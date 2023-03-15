@@ -27,10 +27,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Test & Lint
+      - name: Test and Build image
         uses: docker/build-push-action@v2
         with:
           context: ./
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ghcr.io/gitcoinco/allo-indexer:latest
           builder: ${{ steps.buildx.outputs.name }}
-          cache-from: type=registry,ref=ghcr.io/gitcoinco/allo-protocol:cache
-          cache-to: type=registry,ref=ghcr.io/gitcoinco/allo-protocol:cache,mode=max
+          cache-from: type=registry,ref=ghcr.io/gitcoinco/allo-indexer:cache
+          cache-to: type=registry,ref=ghcr.io/gitcoinco/allo-indexer:cache,mode=max
