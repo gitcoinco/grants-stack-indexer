@@ -44,6 +44,6 @@ npm run index:mainnet -- --run-once # this will run the mainnext indexer to the 
 Run the indexer with Docker:
 
 ```bash
-docker run ghcr.io/gitcoinco/allo-protocol -e INFURA_API_KEY="" -e ALCHEMY_API_KEY="" -e STORAGE_DIR="" -p 8080:8080
+docker run ghcr.io/gitcoinco/allo-indexer -e INFURA_API_KEY="" -e ALCHEMY_API_KEY="" -e STORAGE_DIR="" -p 8080:8080
 ```
 
