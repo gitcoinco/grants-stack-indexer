@@ -1,4 +1,4 @@
-# allo-indexer
+# Allo Protocol Indexer
 
 This is an Allo Protocol Indexer for Grants Stack.
 
