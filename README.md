@@ -44,7 +44,7 @@ This is the current structure:
 - http://localhost:4000/data/{chainId}/rounds/{roundAddress}/projects.json
 - http://localhost:4000/data/{chainId}/rounds/{roundAddress}/projects/{projectId}/votes.json
 
-### Arguments
+### Indexer arguments
 
 The indexer is a long running process by default, use the follwing options to change it's behaviour:
 
