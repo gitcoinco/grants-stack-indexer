@@ -38,11 +38,11 @@ http://localhost:4000/data/{chainId}/_index.json
 
 This is the current structure:
 
-http://localhost:4000/data/{chainId}/rounds.json
-http://localhost:4000/data/{chainId}/projects.json
-http://localhost:4000/data/{chainId}/rounds/{roundAddress}/votes.json
-http://localhost:4000/data/{chainId}/rounds/{roundAddress}/projects.json
-http://localhost:4000/data/{chainId}/rounds/{roundAddress}/projects/{projectId}/votes.json
+- http://localhost:4000/data/{chainId}/rounds.json
+- http://localhost:4000/data/{chainId}/projects.json
+- http://localhost:4000/data/{chainId}/rounds/{roundAddress}/votes.json
+- http://localhost:4000/data/{chainId}/rounds/{roundAddress}/projects.json
+- http://localhost:4000/data/{chainId}/rounds/{roundAddress}/projects/{projectId}/votes.json
 
 ### Arguments
 
