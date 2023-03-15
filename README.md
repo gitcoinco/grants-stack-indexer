@@ -39,3 +39,11 @@ npm run index:mainnet -- --to-block=16833357 # this will run the mainnext indexe
 npm run index:mainnet -- --run-once # this will run the mainnext indexer to the latest block, the program will exit after it's done
 ```
 
+### Docker
+
+Run the indexer with Docker:
+
+```bash
+docker run ghcr.io/gitcoinco/allo-protocol -e INFURA_API_KEY="" -e ALCHEMY_API_KEY="" -e STORAGE_DIR="" -p 8080:8080
+```
+
