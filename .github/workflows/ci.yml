@@ -32,5 +32,5 @@ jobs:
         with:
           context: ./
           builder: ${{ steps.buildx.outputs.name }}
-          cache-from: type=registry,ref=ghcr.io/gitcoin/allo-protocol:cache
-          cache-to: type=registry,ref=ghcr.io/gitcoin/allo-protocol:cache,mode=max
+          cache-from: type=registry,ref=ghcr.io/gitcoinco/allo-protocol:cache
+          cache-to: type=registry,ref=ghcr.io/gitcoinco/allo-protocol:cache,mode=max
