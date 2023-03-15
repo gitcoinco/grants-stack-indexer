@@ -22,7 +22,7 @@
   "license": "ISC",
   "dependencies": {
     "@types/yargs": "^17.0.22",
-    "chainsauce": "^1.0.1",
+    "chainsauce": "^1.0.4",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "ethers": "^5.7.2",
