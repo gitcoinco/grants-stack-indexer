@@ -28,6 +28,16 @@ npm run build # Compile the code
 npm run lint # Lint the code
 ```
 
+The best way to work on the event handler is to make changes to the code and run this:
+
+```
+rm -rf data/1 && npm run index:mainnet -- --to-block=16833995
+```
+
+Then check if the new files generated under `data/1`.
+
+This way you can reindex everything since the beginning and reuse the event cache.
+
 ### Available indexers
 
 ```bash
