@@ -4,16 +4,21 @@ This is an Allo Protocol Indexer for Grants Stack.
 
 Please make sure you set the environment variables before running.
 
-# How to run?
+## How to run?
 
 ```
 npm install
 
-npm run dev # Run the Typescript compiler on watch mode
-
-
 npm start # will run the HTTP server and all the indexers for all chains
 npm run index # will run the indexers for all chains
+```
+
+## Development
+
+``
+npm run dev # Run the Typescript compiler on watch mode
+npm run build # Compile the code
+npm run lint # Lint the code
 ```
 
 ### Available indexers
