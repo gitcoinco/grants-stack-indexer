@@ -1,16 +1,24 @@
 import { ethers } from "ethers";
 import { Log, createIndexer, JsonStorage, ToBlock } from "chainsauce";
 import path from "node:path";
+import yargs from "yargs/yargs";
 
 import handleEvent from "./handleEvent.js";
 import config from "./config.js";
+
+const args = yargs(process.argv)
+  .options({
+    runOnce: { type: "boolean", default: false },
+    toBlock: { type: "number" },
+  })
+  .parseSync();
 
 // Get to block parameter
 
 let toBlock: ToBlock = "latest";
 
-if (process.argv[3] && process.argv[3] !== "latest") {
-  toBlock = Number(process.argv[3]);
+if (args.toBlock) {
+  toBlock = args.toBlock;
 }
 
 // Get chain parameter
@@ -38,6 +46,7 @@ const storage = new JsonStorage(storageDir);
 const indexer = await createIndexer(provider, storage, handleEvent, {
   toBlock,
   logLevel: Log.Debug,
+  runOnce: args.runOnce,
 });
 
 for (const subscription of chain.subscriptions) {
