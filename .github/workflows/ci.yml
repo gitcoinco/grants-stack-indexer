@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+  pull_request:
+    branches: "**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+        with:
+          driver-opts: |
+            network=host
+
+      - name: Test & Lint
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          builder: ${{ steps.buildx.outputs.name }}
+          cache-from: type=registry,ref=ghcr.io/gitcoin/allo-protocol:cache
+          cache-to: type=registry,ref=ghcr.io/gitcoin/allo-protocol:cache,mode=max
