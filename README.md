@@ -32,7 +32,7 @@ npm run index:goerli
 
 ### HTTP Server
 
-When you run the HTTP server, it will serve the JSON files, partitioned by each chain, check the index file for each one to see what's available:
+The `npm run serve` command runs a static HTTP server to serve JSON files, they're partitioned by each chain, check the index file for each one to see what's available:
 
 http://localhost:4000/data/{chainId}/_index.json
 
