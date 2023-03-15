@@ -13,6 +13,13 @@ npm start # will run the HTTP server and all the indexers for all chains
 npm run index # will run the indexers for all chains
 ```
 
+## Production URLs
+
+- Mainnet: https://grants-stack-indexer.fly.dev/data/1/_index.json
+- Goerli: https://grants-stack-indexer.fly.dev/data/5/_index.json
+- Fantom: https://grants-stack-indexer.fly.dev/data/250/_index.json
+- Optimism: https://grants-stack-indexer.fly.dev/data/10/_index.json
+
 ## Development
 
 ```bash
