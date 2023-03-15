@@ -2,7 +2,7 @@
 
 This is an Allo Protocol Indexer for Grants Stack.
 
-Please make sure you set the environment variables before running.
+**Please make sure you set the environment variables before running.**
 
 ## How to run?
 
@@ -29,6 +29,20 @@ npm run index:fantom
 npm run index:optimism
 npm run index:goerli
 ```
+
+### HTTP Server
+
+When you run the HTTP server, it will serve the JSON files, partitioned by each chain, check the index file for each one to see what's available:
+
+http://localhost:4000/data/{chainId}/_index.json
+
+This is the current structure:
+
+http://localhost:4000/data/{chainId}/rounds.json
+http://localhost:4000/data/{chainId}/projects.json
+http://localhost:4000/data/{chainId}/rounds/{roundAddress}/votes.json
+http://localhost:4000/data/{chainId}/rounds/{roundAddress}/projects.json
+http://localhost:4000/data/{chainId}/rounds/{roundAddress}/projects/{projectId}/votes.json
 
 ### Arguments
 
