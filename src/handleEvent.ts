@@ -9,20 +9,56 @@ import QuadraticFundingImplementationABI
 
 type Indexer = ChainsauceIndexer<JsonStorage>;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function convertToUSD(_token: string, _amount: ethers.BigNumber) {
-    // TODO
-    /* Check if price is cached */
-    let price = cache.get('_token');
+const CHAIN = {
+  1: "ethereum",
+  250: "fantom",
+  10: "optimism",
+};
 
-    if (!price) {
-        /* If not, fetch price from coingecko */
-        price = await Promise.resolve(999);
-        /* Insert updated price to cache */
-        cache.put(_token, price);
-    }
+async function getPriceFromCoinGecko(token: string, chainId) {
+  const chain = CHAIN[chainId];
+  if (token === ethers.constants.AddressZero) {
+      const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${chain}&vs_currencies=usd`);
+      const data = await response.json();
+      return data[chain]?.usd || 0;
+  } else {
+      const response = await fetch(`https://api.coingecko.com/api/v3/simple/token_price/${chain}?contract_addresses=${token.toLowerCase()}&vs_currencies=usd`);
+      const data = await response.json();
+      return data[token]?.usd || 0;
+  }
 
-    return _amount.mul(price);
+}
+
+function isCacheExpired(cacheKey: string, expiresInMinutes: number) {
+  const currentTime = new Date().getTime();
+  const entry = cache.get(cacheKey);
+
+  if (!entry) {
+      return true;
+  }
+
+  return (currentTime - entry.timestamp) / 1000 > expiresInMinutes * 60;
+}
+
+async function convertToUSD(token: string, amount: ethers.BigNumber, chainId: number) {
+
+  if (!CHAIN[chainId]) {
+      console.log("Chain token prices not supported", chainId);
+      return 0;
+  }
+
+  const cacheKey = `${token}-price-chain-${chainId}`;
+
+  if (isCacheExpired(cacheKey, 1)) {
+      const price = await getPriceFromCoinGecko(token, chainId);
+      cache.put(cacheKey, {price, timestamp: new Date().getTime(), chainId});
+  }
+
+  const cachedPrice = cache.get(cacheKey).price;
+  if (cachedPrice === 0) {
+      console.log("Price not found for token", token, "using 0 instead");
+  }
+  return (Number(ethers.utils.formatUnits(amount, 18)) * cachedPrice).toFixed(2); 
 }
 
 async function cachedIpfs<T>(indexer: Indexer, cid: string): Promise<T> {
@@ -42,6 +78,7 @@ function fullProjectId(
 
 async function handleEvent(indexer: Indexer, event: Event) {
     const db = indexer.storage;
+    const chainId = indexer.chainId;
 
     switch (event.name) {
         // -- PROJECTS
@@ -189,7 +226,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
 
         // --- Votes
         case "Voted": {
-            const amountUSD = convertToUSD(event.args.token, event.args.amount);
+            const amountUSD = await convertToUSD(event.args.token.toLowerCase(), event.args.amount, chainId);
 
             const projectApplicationId = [
                 event.args.projectId,
@@ -220,7 +257,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
                 voter: event.args.voter,
                 grantAddress: event.args.grantAddress,
                 amount: event.args.amount.toString(),
-                amountUSD,
+                amountUSD: amountUSD,
                 fullProjectId: event.args.projectId,
                 roundAddress: event.args.roundAddress,
                 projectApplicationId: projectApplicationId,
