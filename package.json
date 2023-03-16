@@ -8,6 +8,7 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint src",
+    "format": "prettier --write src",
     "dev": "tsc --watch",
     "start": "run-p serve index",
     "serve": "node dist/src/server.js",
@@ -40,6 +41,7 @@
     "@types/node": "^18.15.3",
     "@typescript-eslint/eslint-plugin": "^5.55.0",
     "@typescript-eslint/parser": "^5.55.0",
-    "eslint": "^8.36.0"
+    "eslint": "^8.36.0",
+    "prettier": "^2.8.4"
   }
 }
