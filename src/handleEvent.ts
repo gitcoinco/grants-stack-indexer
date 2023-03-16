@@ -57,12 +57,12 @@ async function handleEvent(indexer: Indexer, event: Event) {
     // -- PROJECTS
     case "ProjectCreated": {
       await db.collection("projects").insert({
-        fullId: fullProjectId(
+        id: fullProjectId(
           indexer.chainId,
           event.args.projectID.toNumber(),
           event.address
         ),
-        id: event.args.projectID.toNumber(),
+        projectNumber: event.args.projectID.toNumber(),
         metaPtr: null,
         votesUSD: 0,
         votes: 0,
@@ -78,14 +78,18 @@ async function handleEvent(indexer: Indexer, event: Event) {
         indexer.cache
       );
 
+      const id = fullProjectId(
+        indexer.chainId,
+        event.args.projectID.toNumber(),
+        event.address
+      );
+
       try {
-        await db
-          .collection("projects")
-          .updateById(event.args.projectID.toNumber(), (project) => ({
-            ...project,
-            metaPtr: event.args.metaPtr.pointer,
-            metadata: metadata,
-          }));
+        await db.collection("projects").updateById(id, (project) => ({
+          ...project,
+          metaPtr: event.args.metaPtr.pointer,
+          metadata: metadata,
+        }));
       } catch (e) {
         console.error("Project not found", event.args.projectID.toNumber());
       }
@@ -93,22 +97,30 @@ async function handleEvent(indexer: Indexer, event: Event) {
     }
 
     case "OwnerAdded": {
-      await db
-        .collection("projects")
-        .updateById(event.args.projectID.toNumber(), (project) => ({
-          ...project,
-          owners: [...project.owners, event.args.owner],
-        }));
+      const id = fullProjectId(
+        indexer.chainId,
+        event.args.projectID.toNumber(),
+        event.address
+      );
+
+      await db.collection("projects").updateById(id, (project) => ({
+        ...project,
+        owners: [...project.owners, event.args.owner],
+      }));
       break;
     }
 
     case "OwnerRemoved": {
-      await db
-        .collection("projects")
-        .updateById(event.args.projectID.toNumber(), (project) => ({
-          ...project,
-          owners: project.owners.filter((o: string) => o == event.args.owner),
-        }));
+      const id = fullProjectId(
+        indexer.chainId,
+        event.args.projectID.toNumber(),
+        event.address
+      );
+
+      await db.collection("projects").updateById(id, (project) => ({
+        ...project,
+        owners: project.owners.filter((o: string) => o == event.args.owner),
+      }));
       break;
     }
 
@@ -132,7 +144,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
         indexer.cache
       );
 
-      applicationMetaPtr = await applicationMetaPtr;
+      applicationMetaPtr = (await applicationMetaPtr).pointer;
       applicationMetadata = await applicationMetadata;
       applicationsStartTime = (await applicationsStartTime).toString();
       applicationsEndTime = (await applicationsEndTime).toString();
@@ -141,8 +153,9 @@ async function handleEvent(indexer: Indexer, event: Event) {
 
       await db.collection("rounds").insert({
         id: event.args.roundAddress,
-        votesUSD: 0,
+        amountUSD: 0,
         votes: 0,
+        uniqueContributors: 0,
         implementationAddress: event.args.roundImplementation,
         applicationMetaPtr,
         applicationMetadata,
@@ -157,11 +170,11 @@ async function handleEvent(indexer: Indexer, event: Event) {
     case "NewProjectApplication": {
       const project = await db
         .collection("projects")
-        .findOneWhere((project) => project.fullId == event.args.project);
+        .findById(event.args.project);
 
       await db.collection(`rounds/${event.address}/projects`).insert({
         id: event.args.project,
-        projectId: project?.id ?? null,
+        projectNumber: project?.projectNumber ?? null,
         roundId: event.address,
         status: null,
       });
@@ -212,7 +225,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
 
       const projectApplication = await db
         .collection(`rounds/${event.args.roundAddress}/projects`)
-        .findOneWhere((project) => project.id == event.args.projectId);
+        .findById(event.args.projectId);
 
       const round = await db
         .collection(`rounds`)
@@ -223,14 +236,9 @@ async function handleEvent(indexer: Indexer, event: Event) {
         projectApplication.status !== "APPROVED" ||
         round === undefined
       ) {
-        console.warn(
-          "Invalid vote:",
-          event.args,
-          "Application:",
-          projectApplication,
-          "Round:",
-          round
-        );
+        // TODO: We seem to be ceceiving votes for projects that have been rejected? Here's an example:
+        // Project ID: 0x79f3e178005bfbe0a3defff8693009bb12e58102763501e52995162820ae3560
+        // Round ID: 0xd95a1969c41112cee9a2c931e849bcef36a16f4c
         return;
       }
 
@@ -261,11 +269,49 @@ async function handleEvent(indexer: Indexer, event: Event) {
         projectApplicationId: projectApplicationId,
       };
 
-      Promise.all([
-        await db
-          .collection(`rounds/${event.args.roundAddress}/votes`)
-          .insert(vote),
-        await db
+      // Insert or update  unique contributor
+      const roundContributors = db.collection(
+        `rounds/${event.args.roundAddress}/contributors`
+      );
+
+      const existingRoundContributor = await roundContributors.updateById(
+        event.args.voter,
+        (contributor) => ({
+          ...contributor,
+          amountUSD: contributor.amountUSD + amountUSD,
+          votes: contributor.votes + 1,
+        })
+      );
+
+      if (!existingRoundContributor) {
+        await roundContributors.insert({
+          id: event.args.voter,
+          amountUSD,
+          votes: 1,
+        });
+      }
+
+      await Promise.all([
+        db
+          .collection("rounds")
+          .updateById(event.args.roundAddress, (round) => ({
+            ...round,
+            amountUSD: round.amountUSD + amountUSD,
+            votes: round.votes + 1,
+            uniqueContributors:
+              round.uniqueContributors + (existingRoundContributor ? 0 : 1),
+          })),
+        db
+          .collection(`rounds/${event.args.roundAddress}/projects`)
+          .updateById(event.args.projectId, (project) => ({
+            ...project,
+            amountUSD: round.amountUSD + amountUSD,
+            votes: round.votes + 1,
+            uniqueContributors:
+              round.uniqueContributors + (existingRoundContributor ? 0 : 1),
+          })),
+        db.collection(`rounds/${event.args.roundAddress}/votes`).insert(vote),
+        db
           .collection(
             `rounds/${event.args.roundAddress}/projects/${event.args.projectId}/votes`
           )
