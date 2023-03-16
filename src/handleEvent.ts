@@ -1,75 +1,41 @@
-import { Indexer as ChainsauceIndexer, JsonStorage, Event } from "chainsauce";
+import {
+  Cache,
+  Indexer as ChainsauceIndexer,
+  JsonStorage,
+  Event,
+} from "chainsauce";
 import { ethers } from "ethers";
-import cache from "memory-cache";
 import { fetchJson as ipfs } from "./ipfs.js";
+import { getPrice } from "./coinGecko.js";
 
 import RoundImplementationABI from "../abis/RoundImplementation.json" assert { type: "json" };
 import QuadraticFundingImplementationABI from "../abis/QuadraticFundingVotingStrategyImplementation.json" assert { type: "json" };
 
 type Indexer = ChainsauceIndexer<JsonStorage>;
 
-const CHAIN = {
-  1: "ethereum",
-  250: "fantom",
-  10: "optimism",
-};
-
-async function getPriceFromCoinGecko(token: string, chainId) {
-  const chain = CHAIN[chainId];
-  if (token === ethers.constants.AddressZero) {
-    const response = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${chain}&vs_currencies=usd`
-    );
-    const data = await response.json();
-    return data[chain]?.usd || 0;
-  } else {
-    const response = await fetch(
-      `https://api.coingecko.com/api/v3/simple/token_price/${chain}?contract_addresses=${token.toLowerCase()}&vs_currencies=usd`
-    );
-    const data = await response.json();
-    return data[token]?.usd || 0;
-  }
-}
-
-function isCacheExpired(cacheKey: string, expiresInMinutes: number) {
-  const currentTime = new Date().getTime();
-  const entry = cache.get(cacheKey);
-
-  if (!entry) {
-    return true;
-  }
-
-  return (currentTime - entry.timestamp) / 1000 > expiresInMinutes * 60;
-}
-
 async function convertToUSD(
   token: string,
   amount: ethers.BigNumber,
-  chainId: number
-) {
-  if (!CHAIN[chainId]) {
-    console.log("Chain token prices not supported", chainId);
-    return 0;
+  chainId: number,
+  fromTimestamp: number,
+  toTimestamp: number,
+  cache: Cache
+): Promise<number> {
+  const cacheKey = `price-${token}-${chainId}-${toTimestamp}-${fromTimestamp}`;
+
+  const price = await cache.lazy<number>(cacheKey, () => {
+    return getPrice(token, chainId, fromTimestamp, toTimestamp);
+  });
+
+  if (price === 0) {
+    console.warn("Price not found for token:", token, "chainId:", chainId);
   }
 
-  const cacheKey = `${token}-price-chain-${chainId}`;
-
-  if (isCacheExpired(cacheKey, 1)) {
-    const price = await getPriceFromCoinGecko(token, chainId);
-    cache.put(cacheKey, { price, timestamp: new Date().getTime(), chainId });
-  }
-
-  const cachedPrice = cache.get(cacheKey).price;
-  if (cachedPrice === 0) {
-    console.log("Price not found for token", token, "using 0 instead");
-  }
-  return (Number(ethers.utils.formatUnits(amount, 18)) * cachedPrice).toFixed(
-    2
-  );
+  return Number(ethers.utils.formatUnits(amount, 18)) * price;
 }
 
-async function cachedIpfs<T>(indexer: Indexer, cid: string): Promise<T> {
-  return await indexer.cache.lazy<T>(`ipfs-${cid}`, () => ipfs<T>(cid));
+async function cachedIpfs<T>(cid: string, cache: Cache): Promise<T> {
+  return await cache.lazy<T>(`ipfs-${cid}`, () => ipfs<T>(cid));
 }
 
 function fullProjectId(
@@ -90,7 +56,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
   switch (event.name) {
     // -- PROJECTS
     case "ProjectCreated": {
-      db.collection("projects").insert({
+      await db.collection("projects").insert({
         fullId: fullProjectId(
           indexer.chainId,
           event.args.projectID.toNumber(),
@@ -107,17 +73,19 @@ async function handleEvent(indexer: Indexer, event: Event) {
     }
 
     case "MetadataUpdated": {
-      const metadata = await cachedIpfs(indexer, event.args.metaPtr.pointer);
+      const metadata = await cachedIpfs(
+        event.args.metaPtr.pointer,
+        indexer.cache
+      );
 
       try {
-        db.collection("projects").updateById(
-          event.args.projectID.toNumber(),
-          (project) => ({
+        await db
+          .collection("projects")
+          .updateById(event.args.projectID.toNumber(), (project) => ({
             ...project,
             metaPtr: event.args.metaPtr.pointer,
             metadata: metadata,
-          })
-        );
+          }));
       } catch (e) {
         console.error("Project not found", event.args.projectID.toNumber());
       }
@@ -125,24 +93,22 @@ async function handleEvent(indexer: Indexer, event: Event) {
     }
 
     case "OwnerAdded": {
-      db.collection("projects").updateById(
-        event.args.projectID.toNumber(),
-        (project) => ({
+      await db
+        .collection("projects")
+        .updateById(event.args.projectID.toNumber(), (project) => ({
           ...project,
           owners: [...project.owners, event.args.owner],
-        })
-      );
+        }));
       break;
     }
 
     case "OwnerRemoved": {
-      db.collection("projects").updateById(
-        event.args.projectID.toNumber(),
-        (project) => ({
+      await db
+        .collection("projects")
+        .updateById(event.args.projectID.toNumber(), (project) => ({
           ...project,
           owners: project.owners.filter((o: string) => o == event.args.owner),
-        })
-      );
+        }));
       break;
     }
 
@@ -160,10 +126,10 @@ async function handleEvent(indexer: Indexer, event: Event) {
       let roundStartTime = contract.roundStartTime();
       let roundEndTime = contract.roundEndTime();
       let applicationMetadata = await cachedIpfs(
-        indexer,
         (
           await applicationMetaPtr
-        ).pointer
+        ).pointer,
+        indexer.cache
       );
 
       applicationMetaPtr = await applicationMetaPtr;
@@ -173,7 +139,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
       roundStartTime = (await roundStartTime).toString();
       roundEndTime = (await roundEndTime).toString();
 
-      db.collection("rounds").insert({
+      await db.collection("rounds").insert({
         id: event.args.roundAddress,
         votesUSD: 0,
         votes: 0,
@@ -193,7 +159,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
         .collection("projects")
         .findOneWhere((project) => project.fullId == event.args.project);
 
-      db.collection(`rounds/${event.address}/projects`).insert({
+      await db.collection(`rounds/${event.address}/projects`).insert({
         id: event.args.project,
         projectId: project?.id ?? null,
         roundId: event.address,
@@ -204,19 +170,18 @@ async function handleEvent(indexer: Indexer, event: Event) {
 
     case "ProjectsMetaPtrUpdated": {
       const projects: { id: string; status: string; payoutAddress: string }[] =
-        await cachedIpfs(indexer, event.args.newMetaPtr.pointer);
+        await cachedIpfs(event.args.newMetaPtr.pointer, indexer.cache);
 
       for (const projectApp of projects) {
         const projectId = projectApp.id.split("-")[0];
 
-        db.collection(`rounds/${event.address}/projects`).updateById(
-          projectId,
-          (application) => ({
+        await db
+          .collection(`rounds/${event.address}/projects`)
+          .updateById(projectId, (application) => ({
             ...application,
             status: projectApp.status,
             payoutAddress: projectApp.payoutAddress,
-          })
-        );
+          }));
       }
       break;
     }
@@ -233,12 +198,6 @@ async function handleEvent(indexer: Indexer, event: Event) {
 
     // --- Votes
     case "Voted": {
-      const amountUSD = await convertToUSD(
-        event.args.token.toLowerCase(),
-        event.args.amount,
-        chainId
-      );
-
       const projectApplicationId = [
         event.args.projectId,
         event.args.roundAddress,
@@ -252,15 +211,43 @@ async function handleEvent(indexer: Indexer, event: Event) {
       );
 
       const projectApplication = await db
-        .collection(`rounds/${event.address}/projects`)
+        .collection(`rounds/${event.args.roundAddress}/projects`)
         .findOneWhere((project) => project.id == event.args.projectId);
+
+      const round = await db
+        .collection(`rounds`)
+        .findById(event.args.roundAddress);
 
       if (
         projectApplication === undefined ||
-        projectApplication.status !== "APPROVED"
+        projectApplication.status !== "APPROVED" ||
+        round === undefined
       ) {
-        // discard vote?
+        console.warn(
+          "Invalid vote:",
+          event.args,
+          "Application:",
+          projectApplication,
+          "Round:",
+          round
+        );
+        return;
       }
+
+      const now = new Date();
+
+      const startDate = new Date(round.roundStartTime * 1000);
+      // if round ends in the future, end it now to get live data
+      const endDate = new Date(round.roundEndTime * 1000);
+
+      const amountUSD = await convertToUSD(
+        event.args.token.toLowerCase(),
+        event.args.amount,
+        chainId,
+        Math.floor(startDate.getTime() / 1000),
+        Math.floor(Math.min(now.getTime(), endDate.getTime()) / 1000),
+        indexer.cache
+      );
 
       const vote = {
         id: voteId,
@@ -274,10 +261,16 @@ async function handleEvent(indexer: Indexer, event: Event) {
         projectApplicationId: projectApplicationId,
       };
 
-      db.collection(`rounds/${event.args.roundAddress}/votes`).insert(vote);
-      db.collection(
-        `rounds/${event.args.roundAddress}/projects/${event.args.projectId}/votes`
-      ).insert(vote);
+      Promise.all([
+        await db
+          .collection(`rounds/${event.args.roundAddress}/votes`)
+          .insert(vote),
+        await db
+          .collection(
+            `rounds/${event.args.roundAddress}/projects/${event.args.projectId}/votes`
+          )
+          .insert(vote),
+      ]);
       break;
     }
 
