@@ -134,7 +134,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
     }
 
     case "NewProjectApplication": {
-      const project = db
+      const project = await db
         .collection("projects")
         .findOneWhere((project) => project.fullId == event.args.project);
 
@@ -192,7 +192,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
         ]
       );
 
-      const projectApplication = db
+      const projectApplication = await db
         .collection(`rounds/${event.address}/projects`)
         .findOneWhere((project) => project.id == event.args.projectId);
 
