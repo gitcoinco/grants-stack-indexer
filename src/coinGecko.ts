@@ -1,9 +1,15 @@
 import { ethers } from "ethers";
 
-const availableChains: { [key: number]: string } = {
+const platforms: { [key: number]: string } = {
   1: "ethereum",
   250: "fantom",
-  10: "optimism",
+  10: "optimistic-ethereum",
+};
+
+const nativeTokens: { [key: number]: string } = {
+  1: "ethereum",
+  250: "ftm",
+  10: "ethereum",
 };
 
 type UnixTimestamp = number;
@@ -14,17 +20,24 @@ export async function getPrice(
   startTime: UnixTimestamp,
   endTime: UnixTimestamp
 ) {
-  const chain = availableChains[chainId];
+  const platform = platforms[chainId];
+  const nativeToken = nativeTokens[chainId];
+
+  // not supported
+  if (!platform) {
+    return 0;
+  }
+
   let data = null;
 
   if (token === ethers.constants.AddressZero) {
     const response = await fetch(
-      `https://api.coingecko.com/api/v3/coins/${chain}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`
+      `https://api.coingecko.com/api/v3/coins/${nativeToken}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`
     );
     data = await response.json();
   } else {
     const response = await fetch(
-      `https://api.coingecko.com/api/v3/coins/${chain}/contract/${token.toLowerCase()}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`
+      `https://api.coingecko.com/api/v3/coins/${platform}/contract/${token.toLowerCase()}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`
     );
 
     data = await response.json();

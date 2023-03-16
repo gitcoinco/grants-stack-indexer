@@ -9,6 +9,10 @@ processes = []
 [processes]
 web = "npm start"
 
+[mounts]
+source="indexer_data"
+destination="/usr/src/app/.cache"
+
 [env]
   PORT = "8080"
   STORAGE_DIR = "/data"
