@@ -21,16 +21,9 @@ export async function getPrice(
     const response = await fetch(
       `https://api.coingecko.com/api/v3/coins/${chain}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`
     );
-
-    console.log(
-      `https://api.coingecko.com/api/v3/coins/${chain}/market_chart/range?vs_currency=usd&from=${startTime}&to${endTime}`
-    );
     data = await response.json();
   } else {
     const response = await fetch(
-      `https://api.coingecko.com/api/v3/coins/${chain}/contract/${token.toLowerCase()}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`
-    );
-    console.log(
       `https://api.coingecko.com/api/v3/coins/${chain}/contract/${token.toLowerCase()}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`
     );
 
