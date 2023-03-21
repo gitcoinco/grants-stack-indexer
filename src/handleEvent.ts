@@ -305,10 +305,10 @@ async function handleEvent(indexer: Indexer, event: Event) {
           .collection(`rounds/${event.args.roundAddress}/projects`)
           .updateById(event.args.projectId, (project) => ({
             ...project,
-            amountUSD: round.amountUSD + amountUSD,
-            votes: round.votes + 1,
+            amountUSD: project.amountUSD + amountUSD,
+            votes: project.votes + 1,
             uniqueContributors:
-              round.uniqueContributors + (existingRoundContributor ? 0 : 1),
+              project.uniqueContributors + (existingRoundContributor ? 0 : 1),
           })),
         db.collection(`rounds/${event.args.roundAddress}/votes`).insert(vote),
         db
