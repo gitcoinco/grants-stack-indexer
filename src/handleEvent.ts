@@ -67,8 +67,6 @@ async function handleEvent(indexer: Indexer, event: Event) {
         ),
         projectNumber: event.args.projectID.toNumber(),
         metaPtr: null,
-        votesUSD: 0,
-        votes: 0,
         owners: [event.args.owner],
       });
 
@@ -159,7 +157,6 @@ async function handleEvent(indexer: Indexer, event: Event) {
         amountUSD: 0,
         votes: 0,
         uniqueContributors: 0,
-        implementationAddress: event.args.roundImplementation,
         applicationMetaPtr,
         applicationMetadata,
         applicationsStartTime,
@@ -180,6 +177,10 @@ async function handleEvent(indexer: Indexer, event: Event) {
         projectNumber: project?.projectNumber ?? null,
         roundId: event.address,
         status: null,
+        amountUSD: 0,
+        votes: 0,
+        uniqueContributors: 0,
+        payoutAddress: null,
       });
       break;
     }
