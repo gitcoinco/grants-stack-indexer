@@ -1,5 +1,11 @@
 import { ethers } from "ethers";
-import { Log, createIndexer, JsonStorage, ToBlock } from "chainsauce";
+import {
+  RetryProvider,
+  Log,
+  createIndexer,
+  JsonStorage,
+  ToBlock,
+} from "chainsauce";
 import path from "node:path";
 import yargs from "yargs/yargs";
 
@@ -37,7 +43,11 @@ if (!chain) {
   process.exit(1);
 }
 
-const provider = new ethers.providers.JsonRpcProvider(chain.rpc);
+const provider = new RetryProvider({
+  url: chain.rpc,
+  timeout: 5 * 60 * 1000,
+});
+
 await provider.getNetwork();
 
 const storageDir = path.join(config.storageDir, `${provider.network.chainId}`);

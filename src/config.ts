@@ -59,7 +59,7 @@ const chains = {
     ],
   },
   fantom: {
-    rpc: `https://rpc.fantom.network`,
+    rpc: "https://rpcapi.fantom.network",
     subscriptions: [
       {
         address: "0x8e1bD5Da87C14dd8e08F7ecc2aBf9D1d558ea174",

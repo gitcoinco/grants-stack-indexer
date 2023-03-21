@@ -22,7 +22,7 @@ export async function fetchJson<T>(cid: string, retries = 5): Promise<T> {
       return (await res.json()) as T;
     } catch (e) {
       attempt = attempt + 1;
-      await wait(attempt * 500);
+      await wait(attempt * 1000);
       console.log("[IPFS] Retrying:", cid, "Attempt:", attempt);
     }
   }
