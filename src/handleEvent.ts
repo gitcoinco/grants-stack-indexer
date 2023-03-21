@@ -31,7 +31,10 @@ async function convertToUSD(
     console.warn("Price not found for token:", token, "chainId:", chainId);
   }
 
-  return Number(ethers.utils.formatUnits(amount, 18)) * price;
+  const priceFixedNumber = ethers.FixedNumber.from(price.toString());
+  const amountFixedNumber = ethers.FixedNumber.from(amount);
+
+  return priceFixedNumber.mulUnsafe(amountFixedNumber).toUnsafeFloat();
 }
 
 async function cachedIpfs<T>(cid: string, cache: Cache): Promise<T> {
