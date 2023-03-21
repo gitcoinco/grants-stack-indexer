@@ -269,7 +269,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
         amountUSD: amountUSD,
       };
 
-      // Insert or update  unique contributor
+      // Insert or update  unique round contributor
       const roundContributors = db.collection(
         `rounds/${event.args.roundAddress}/contributors`
       );
@@ -285,6 +285,28 @@ async function handleEvent(indexer: Indexer, event: Event) {
 
       if (!existingRoundContributor) {
         await roundContributors.insert({
+          id: event.args.voter,
+          amountUSD,
+          votes: 1,
+        });
+      }
+
+      // Insert or update unique project contributor
+      const projectContributors = db.collection(
+        `rounds/${event.args.roundAddress}/projects/${event.args.projectId}/contributors`
+      );
+
+      const existingProjectContributor = await roundContributors.updateById(
+        event.args.voter,
+        (contributor) => ({
+          ...contributor,
+          amountUSD: contributor.amountUSD + amountUSD,
+          votes: contributor.votes + 1,
+        })
+      );
+
+      if (!existingProjectContributor) {
+        await projectContributors.insert({
           id: event.args.voter,
           amountUSD,
           votes: 1,
@@ -308,7 +330,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
             amountUSD: project.amountUSD + amountUSD,
             votes: project.votes + 1,
             uniqueContributors:
-              project.uniqueContributors + (existingRoundContributor ? 0 : 1),
+              project.uniqueContributors + (existingProjectContributor ? 0 : 1),
           })),
         db.collection(`rounds/${event.args.roundAddress}/votes`).insert(vote),
         db
