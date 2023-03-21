@@ -296,7 +296,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
         `rounds/${event.args.roundAddress}/projects/${event.args.projectId}/contributors`
       );
 
-      const existingProjectContributor = await roundContributors.updateById(
+      const existingProjectContributor = await projectContributors.updateById(
         event.args.voter,
         (contributor) => ({
           ...contributor,
