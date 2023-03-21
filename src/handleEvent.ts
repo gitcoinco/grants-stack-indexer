@@ -31,10 +31,12 @@ async function convertToUSD(
     console.warn("Price not found for token:", token, "chainId:", chainId);
   }
 
-  const priceFixedNumber = ethers.FixedNumber.from(price.toString());
-  const amountFixedNumber = ethers.FixedNumber.from(amount);
+  const priceFixedNumber = ethers.FixedNumber.from(price.toFixed(2));
+  const amountFixedNumber = ethers.FixedNumber.fromValue(amount, 18);
 
-  return priceFixedNumber.mulUnsafe(amountFixedNumber).toUnsafeFloat();
+  const result = priceFixedNumber.mulUnsafe(amountFixedNumber).toUnsafeFloat();
+
+  return result;
 }
 
 async function cachedIpfs<T>(cid: string, cache: Cache): Promise<T> {
@@ -215,11 +217,6 @@ async function handleEvent(indexer: Indexer, event: Event) {
 
     // --- Votes
     case "Voted": {
-      const projectApplicationId = [
-        event.args.projectId,
-        event.args.roundAddress,
-      ].join("-");
-
       const voteId = ethers.utils.solidityKeccak256(
         ["string"],
         [
@@ -263,14 +260,13 @@ async function handleEvent(indexer: Indexer, event: Event) {
 
       const vote = {
         id: voteId,
+        projectId: event.args.projectId,
+        roundId: event.args.roundAddress,
         token: event.args.token,
         voter: event.args.voter,
         grantAddress: event.args.grantAddress,
         amount: event.args.amount.toString(),
         amountUSD: amountUSD,
-        fullProjectId: event.args.projectId,
-        roundAddress: event.args.roundAddress,
-        projectApplicationId: projectApplicationId,
       };
 
       // Insert or update  unique contributor
