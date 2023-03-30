@@ -1,3 +1,5 @@
+import { wait } from "./utils.js";
+
 type PassportEvidence = {
   type: string;
   rawScore: string;
@@ -37,8 +39,6 @@ export const getPassportScores = async () => {
     offset
   );
 
-  console.log("Fetching", count, "passports...");
-
   const allPassports: PassportResponse[] = passports;
 
   const paginationCount = count / limit;
@@ -46,6 +46,8 @@ export const getPassportScores = async () => {
   for (let i = 0; i < paginationCount; i++) {
     // increase offset
     offset += limit;
+
+    console.log("Fetching", offset, "/", count, "passports...");
 
     // fetch next set of passports
     const { passports } = await fetchPassportScores(communityId, limit, offset);
@@ -81,26 +83,42 @@ export const filterPassportByEvidence = (
 export const fetchPassportScores = async (
   communityId: number,
   limit: number,
-  offset: number
+  offset: number,
+  maxAttempts = 5
 ): Promise<PassportScoresResponse> => {
   const passportURL = `https://api.scorer.gitcoin.co/registry/score/${communityId}?limit=${limit}&offset=${offset}`;
+  let attempt = 0;
 
-  const response = await fetch(passportURL, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.PASSPORT_API_KEY}`,
-    },
-  });
+  while (attempt < maxAttempts) {
+    try {
+      const response = await fetch(passportURL, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.PASSPORT_API_KEY}`,
+        },
+      });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const jsonResponse = (await response.json()) as any;
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
 
-  const count: number = jsonResponse.count;
-  const passports: PassportResponse[] = jsonResponse.items;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const jsonResponse = (await response.json()) as any;
 
-  return {
-    passports,
-    count,
-  };
+      const count: number = jsonResponse.count;
+      const passports: PassportResponse[] = jsonResponse.items;
+
+      return {
+        passports,
+        count,
+      };
+    } catch (e) {
+      attempt = attempt + 1;
+      await wait(attempt * 5000);
+      console.log("[Passport] Retrying, attempt:", attempt);
+    }
+  }
+
+  throw new Error("Failed to load passport scores");
 };

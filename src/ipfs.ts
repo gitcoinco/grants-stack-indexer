@@ -1,8 +1,5 @@
 import fetch from "node-fetch";
-
-function wait(delay: number) {
-  return new Promise((resolve) => setTimeout(resolve, delay));
-}
+import { wait } from "./utils.js";
 
 export async function fetchJson<T>(cid: string, retries = 5): Promise<T> {
   // TODO: wth is this?
