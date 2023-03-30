@@ -1,4 +1,3 @@
-import { ethers } from "ethers";
 import {
   RetryProvider,
   Log,
@@ -14,7 +13,7 @@ import config from "./config.js";
 
 const args = yargs(process.argv)
   .options({
-    runOnce: { type: "boolean", default: false },
+    follow: { type: "boolean", default: false },
     toBlock: { type: "number" },
   })
   .parseSync();
@@ -56,7 +55,7 @@ const storage = new JsonStorage(storageDir);
 const indexer = await createIndexer(provider, storage, handleEvent, {
   toBlock,
   logLevel: Log.Debug,
-  runOnce: args.runOnce,
+  runOnce: !args.follow,
 });
 
 for (const subscription of chain.subscriptions) {
