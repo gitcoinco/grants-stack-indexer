@@ -6,7 +6,7 @@ import {
 } from "chainsauce";
 import { ethers } from "ethers";
 import { fetchJson as ipfs } from "./ipfs.js";
-import { getPrice } from "./coinGecko.js";
+import type { Price } from "./cli/prices.js";
 
 import RoundImplementationABI from "../abis/RoundImplementation.json" assert { type: "json" };
 import QuadraticFundingImplementationABI from "../abis/QuadraticFundingVotingStrategyImplementation.json" assert { type: "json" };
@@ -14,29 +14,28 @@ import QuadraticFundingImplementationABI from "../abis/QuadraticFundingVotingStr
 type Indexer = ChainsauceIndexer<JsonStorage>;
 
 async function convertToUSD(
+  prices: Price[],
   token: string,
-  amount: ethers.BigNumber,
-  chainId: number,
-  fromTimestamp: number,
-  toTimestamp: number,
-  cache: Cache
+  amount: bigint,
+  blockNumber: number,
+  decimals: number
 ): Promise<number> {
-  const cacheKey = `price-${token}-${chainId}-${toTimestamp}-${fromTimestamp}`;
-
-  const price = await cache.lazy<number>(cacheKey, () => {
-    return getPrice(token, chainId, fromTimestamp, toTimestamp);
-  });
-
-  if (price === 0) {
-    console.warn("Price not found for token:", token, "chainId:", chainId);
+  let closestPrice = null;
+  for (let i = prices.length - 1; i >= 0; i--) {
+    const price = prices[i];
+    if (price.token === token && price.block < blockNumber) {
+      closestPrice = price;
+      break;
+    }
   }
 
-  const priceFixedNumber = ethers.FixedNumber.from(price.toFixed(2));
-  const amountFixedNumber = ethers.FixedNumber.fromValue(amount, 18);
+  if (closestPrice) {
+    const decimalFactor = 10n ** BigInt(decimals);
+    const price = BigInt(Math.trunc(closestPrice.price * 100)) * decimalFactor;
+    return Number((amount * price) / decimalFactor) / 100;
+  }
 
-  const result = priceFixedNumber.mulUnsafe(amountFixedNumber).toUnsafeFloat();
-
-  return result;
+  throw "Price not found";
 }
 
 async function cachedIpfs<T>(cid: string, cache: Cache): Promise<T> {
@@ -56,7 +55,6 @@ function fullProjectId(
 
 async function handleEvent(indexer: Indexer, event: Event) {
   const db = indexer.storage;
-  const chainId = indexer.chainId;
 
   switch (event.name) {
     // -- PROJECTS
@@ -254,19 +252,14 @@ async function handleEvent(indexer: Indexer, event: Event) {
           return;
         }
 
-        const now = new Date();
+        const prices = await db.collection<Price>("prices").all();
 
-        const startDate = new Date(round.roundStartTime * 1000);
-        // if round ends in the future, end it now to get live data
-        const endDate = new Date(round.roundEndTime * 1000);
-
-        const amountUSD = await convertToUSD(
+        const amountUSD = convertToUSD(
+          prices,
           event.args.token.toLowerCase(),
-          event.args.amount,
-          chainId,
-          Math.floor(startDate.getTime() / 1000),
-          Math.floor(Math.min(now.getTime(), endDate.getTime()) / 1000),
-          indexer.cache
+          event.args.amount.toBigInt(),
+          event.blockNumber,
+          18
         );
 
         const vote = {

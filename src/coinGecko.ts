@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { wait } from "./utils.js";
+import fetchRetry from "./fetchRetry.js";
 
 const platforms: { [key: number]: string } = {
   1: "ethereum",
@@ -13,63 +13,81 @@ const nativeTokens: { [key: number]: string } = {
   10: "ethereum",
 };
 
+type Timestamp = number;
 type UnixTimestamp = number;
+type Price = number;
 
-export const tokens = [
-  {
-    code: "USDC",
-    address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-    chainId: 1,
-    decimals: 6,
-  },
-  {
-    code: "ETH",
-    address: "0x0",
-    chainId: 1,
-    decimals: 18,
-  },
-];
-
-export async function getPrice(
+export async function getPrices(
   token: string,
   chainId: number,
   startTime: UnixTimestamp,
-  endTime: UnixTimestamp,
-  retries = 5
-) {
+  endTime: UnixTimestamp
+): Promise<[Timestamp, Price][]> {
   const platform = platforms[chainId];
   const nativeToken = nativeTokens[chainId];
 
   // not supported
   if (!platform) {
-    return 0;
+    throw new Error(`Prices for platform ${platform} are not supported.`);
   }
 
-  let data = null;
-  let attempt = 0;
+  const url =
+    token === ethers.constants.AddressZero
+      ? `https://api.coingecko.com/api/v3/coins/${nativeToken}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`
+      : `https://api.coingecko.com/api/v3/coins/${platform}/contract/${token.toLowerCase()}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`;
 
-  while (attempt < retries) {
-    try {
-      const url =
-        token === ethers.constants.AddressZero
-          ? `https://api.coingecko.com/api/v3/coins/${nativeToken}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`
-          : `https://api.coingecko.com/api/v3/coins/${platform}/contract/${token.toLowerCase()}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`;
-      const res = await fetch(url);
-      if (!res.ok) {
-        throw new Error(await res.text());
-      }
-      data = await res.json();
-    } catch (e) {
-      attempt = attempt + 1;
-      await wait(attempt * 1000);
-      console.log("[Coingecko] Retrying, attempt:", attempt, e);
-    }
+  const res = await fetchRetry(url, {
+    retries: 5,
+    backoff: 1000,
+  });
+
+  const data = await res.json();
+
+  return data.prices;
+}
+
+export async function getPricesByHour(
+  token: string,
+  chainId: number,
+  startTime: UnixTimestamp,
+  endTime: UnixTimestamp
+): Promise<[Timestamp, Price][]> {
+  const prices = await getPrices(token, chainId, startTime, endTime);
+  const groupedByHour: Record<number, Price[]> = {};
+  const hour = 60 * 60 * 1000;
+  const result: [Timestamp, Price][] = [];
+
+  // group the prices by hour
+  for (const price of prices) {
+    const key = Math.floor(price[0] / hour) * hour;
+    groupedByHour[key] = groupedByHour[key] ?? [];
+    groupedByHour[key].push(price[1]);
   }
 
-  console.log(data);
+  // reduce groups into a single price by calculating their average
+  for (const key in groupedByHour) {
+    const total = groupedByHour[key].reduce((total, price) => total + price, 0);
+    result.push([Number(key), total / groupedByHour[key].length]);
+  }
 
-  const startPrice = data.prices[0][1];
-  const endPrice = data.prices[data.prices.length - 1][1];
+  return result;
+}
 
-  return (startPrice + endPrice) / 2;
+export async function getAveragePrice(
+  token: string,
+  chainId: number,
+  startTime: UnixTimestamp,
+  endTime: UnixTimestamp
+): Promise<Price> {
+  const prices = await getPrices(token, chainId, startTime, endTime);
+
+  if (prices.length === 0) {
+    throw new Error(
+      `No prices returned for ${chainId}:${token} from ${startTime} to ${endTime}`
+    );
+  }
+
+  const total = prices.reduce((total, [_timestamp, price]) => total + price, 0);
+
+  return total / prices.length;
 }

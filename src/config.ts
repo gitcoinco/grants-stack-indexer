@@ -6,9 +6,37 @@ import QuadraticFundingFactoryABI from "../abis/QuadraticFundingVotingStrategyFa
 
 dotenv.config();
 
-const chains = {
+type ChainConfig = {
+  rpc: string;
+  id: number;
+  tokens: { code: string; address: string; decimals: number }[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  subscriptions: { address: string; abi: any }[];
+};
+
+type Chains = Record<string, ChainConfig>;
+
+const chains: Chains = {
   mainnet: {
+    id: 1,
     rpc: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    tokens: [
+      {
+        code: "USDC",
+        address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        decimals: 6,
+      },
+      {
+        code: "DAI",
+        address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        decimals: 18,
+      },
+      {
+        code: "ETH",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+      },
+    ],
     subscriptions: [
       {
         address: "0x03506eD3f57892C85DB20C36846e9c808aFe9ef4",
@@ -25,7 +53,9 @@ const chains = {
     ],
   },
   goerli: {
+    id: 5,
     rpc: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    tokens: [],
     subscriptions: [
       {
         address: "0x832c5391dc7931312CbdBc1046669c9c3A4A28d5",
@@ -42,7 +72,9 @@ const chains = {
     ],
   },
   optimism: {
+    id: 10,
     rpc: `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+    tokens: [],
     subscriptions: [
       {
         address: "0x8e1bD5Da87C14dd8e08F7ecc2aBf9D1d558ea174",
@@ -59,7 +91,9 @@ const chains = {
     ],
   },
   fantom: {
+    id: 250,
     rpc: "https://rpcapi.fantom.network",
+    tokens: [],
     subscriptions: [
       {
         address: "0x8e1bD5Da87C14dd8e08F7ecc2aBf9D1d558ea174",

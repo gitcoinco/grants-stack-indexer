@@ -10,6 +10,8 @@ trap "kill 0" EXIT
 
 # Index everything once
 
+npm run prices
+
 npm run passport &
 npm run index:goerli &
 npm run index:mainnet &
@@ -20,11 +22,13 @@ wait
 
 # Run HTTP server and run everything as a long running process
 
-supervise "npm run serve" &
+supervise "npm run prices -- --follow" &
 supervise "npm run passport -- --follow" &
 supervise "npm run index:goerli -- --follow" &
 supervise "npm run index:mainnet -- --follow" &
 supervise "npm run index:optimism -- --follow" &
 supervise "npm run index:fantom -- --follow" &
+
+supervise "npm run serve" &
 
 wait

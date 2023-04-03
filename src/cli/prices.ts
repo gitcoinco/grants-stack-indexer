@@ -1,12 +1,16 @@
-import { ethers } from "ethers";
 import fs from "node:fs/promises";
 import { parseArgs } from "node:util";
 import path from "node:path";
+import { getPricesByHour } from "../coinGecko.js";
+import getBlockFromTimestamp from "../getBlockFromTimestamp.js";
 
 import config from "../config.js";
-import { getPrice, tokens } from "../coinGecko.js";
 
-const lastDate = new Date(2023, 0, 1);
+const getPricesFrom = new Date(Date.UTC(2023, 0, 1, 0, 0, 0)).getTime();
+
+const minutes = (n: number) => n * 60 * 1000;
+const hours = (n: number) => minutes(60) * n;
+const days = (n: number) => hours(24) * n;
 
 const { values } = parseArgs({
   options: {
@@ -17,39 +21,118 @@ const { values } = parseArgs({
   },
 });
 
-async function getPricesAndWrite(dir: string) {
-  const now = new Date();
+export type Price = {
+  chainId: number;
+  token: string;
+  code: string;
+  price: number;
+  from: number;
+  to: number;
+  block: number;
+};
 
-  for (const token of tokens) {
-    const prices = await getPrice(
-      token.address,
-      token.chainId,
-      lastDate.getTime(),
-      now.getTime()
+async function readPrices(filename: string): Promise<Price[]> {
+  let currentPrices;
+
+  try {
+    currentPrices = JSON.parse((await fs.readFile(filename)).toString());
+  } catch {
+    currentPrices = [];
+  }
+
+  return currentPrices;
+}
+
+async function writePrices(filename: string, prices: Price[]) {
+  const tempFile = `${filename}.write`;
+  await fs.writeFile(tempFile, JSON.stringify(prices));
+  await fs.rename(tempFile, filename);
+}
+
+async function appendPrices(filename: string, newPrices: Price[]) {
+  const currentPrices = await readPrices(filename);
+  await writePrices(filename, currentPrices.concat(newPrices));
+}
+
+function chunkTimeBy(millis: number, chunkBy: number): [number, number][] {
+  const chunks: [number, number][] = [];
+
+  for (let i = 0; i < millis; i += chunkBy) {
+    const chunkEndTime = Math.min(i + chunkBy, millis);
+    chunks.push([i, chunkEndTime]);
+  }
+
+  return chunks;
+}
+
+async function updatePricesAndWrite() {
+  for (const chainKey in config.chains) {
+    const chain = config.chains[chainKey];
+
+    const filename = path.join(config.storageDir, `${chain.id}/prices.json`);
+    await fs.mkdir(path.dirname(filename), { recursive: true });
+
+    const currentPrices = await readPrices(filename);
+
+    // get last updated price
+    const lastPriceAt = currentPrices.reduce(
+      (acc, price) => Math.max(price.to, acc),
+      getPricesFrom
     );
 
-    console.log(prices);
+    const now = new Date();
 
-    // await fs.mkdir(dir, { recursive: true });
-    // await fs.writeFile(
-    //   path.join(dir, "passport_scores.json"),
-    //   JSON.stringify(scores)
-    // );
-    // await fs.writeFile(
-    //   path.join(dir, "passport_valid_addresses.json"),
-    //   JSON.stringify(validAddresses)
-    // );
+    // time elapsed from the last update, rounded to hours
+    const timeElapsed =
+      Math.floor((now.getTime() - lastPriceAt) / hours(1)) * hours(1);
+
+    // only fetch new prices every new hour
+    if (timeElapsed < hours(1)) {
+      return;
+    }
+
+    // get prices in 90 day chunks to get the most of Coingecko's granularity
+    const timeChunks = chunkTimeBy(timeElapsed, days(90));
+
+    for (const chunk of timeChunks) {
+      for (const token of chain.tokens) {
+        const prices = await getPricesByHour(
+          token.address,
+          chain.id,
+          (lastPriceAt + chunk[0]) / 1000,
+          (lastPriceAt + chunk[1]) / 1000
+        );
+
+        const newPrices = await Promise.all(
+          prices.map(async ([timestamp, price]) => {
+            const block = await getBlockFromTimestamp(chainKey, timestamp);
+
+            return {
+              chainId: chain.id,
+              token: token.address.toLowerCase(),
+              code: token.code,
+              price,
+              from: timestamp,
+              to: timestamp + hours(1),
+              block,
+            };
+          })
+        );
+
+        appendPrices(filename, newPrices);
+      }
+    }
   }
 }
 
 async function loop() {
-  await getPricesAndWrite(config.storageDir);
+  await updatePricesAndWrite();
 
-  setTimeout(loop, 60 * 60 * 1000);
+  setTimeout(loop, minutes(1));
 }
 
 if (values.follow) {
   await loop();
 } else {
-  await getPricesAndWrite(config.storageDir);
+  await updatePricesAndWrite();
 }
