@@ -24,7 +24,6 @@ async function convertToUSD(
   const cacheKey = `price-${token}-${chainId}-${toTimestamp}-${fromTimestamp}`;
 
   const price = await cache.lazy<number>(cacheKey, () => {
-    console.log(cacheKey);
     return getPrice(token, chainId, fromTimestamp, toTimestamp);
   });
 
