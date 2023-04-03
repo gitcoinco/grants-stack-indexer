@@ -63,11 +63,11 @@ This is the current structure:
 
 ### Indexer arguments
 
-The indexer is a long running process by default, use the follwing options to change it's behaviour:
+The indexer updates to the current last block and exits, use the follwing options to change it's behaviour:
 
 ```bash
 npm run index:mainnet -- --to-block=16833357 # this will run the mainnext indexer only to the specified block, the program will exit after it's done
-npm run index:mainnet -- --run-once # this will run the mainnext indexer to the latest block, the program will exit after it's done
+npm run index:mainnet -- --follow # this will run the mainnext indexer as a long running process, following the blockchain
 ```
 
 ### Docker

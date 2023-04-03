@@ -15,4 +15,6 @@ RUN npm run lint
 
 EXPOSE 8080
 
+COPY init.sh ./
+
 CMD [ "npm", "start" ]

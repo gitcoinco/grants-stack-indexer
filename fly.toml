@@ -1,5 +1,3 @@
-# fly.toml file generated for grants-stack-indexer on 2023-03-10T09:32:46+01:00
-
 app = "grants-stack-indexer"
 kill_signal = "SIGINT"
 kill_timeout = 5
@@ -7,11 +5,7 @@ primary_region = "den"
 processes = []
 
 [processes]
-web = "npm start"
-
-[mounts]
-source="indexer_data"
-destination="/usr/src/app/.cache"
+web = "./init.sh"
 
 [env]
   PORT = "8080"
