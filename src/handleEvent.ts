@@ -20,7 +20,8 @@ async function convertToUSD(
   blockNumber: number,
   decimals: number
 ): Promise<number> {
-  let closestPrice = null;
+  let closestPrice: Price | null = null;
+
   for (let i = prices.length - 1; i >= 0; i--) {
     const price = prices[i];
     if (price.token === token && price.block < blockNumber) {
