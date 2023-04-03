@@ -119,6 +119,8 @@ async function updatePricesAndWrite() {
           })
         );
 
+        console.log("Fetched", newPrices.length, "new prices");
+
         appendPrices(filename, newPrices);
       }
     }

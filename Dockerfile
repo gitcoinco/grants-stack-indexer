@@ -17,4 +17,7 @@ EXPOSE 8080
 
 COPY init.sh ./
 
+# Cache indexer in the image
+RUN ./init.sh
+
 CMD [ "npm", "start" ]

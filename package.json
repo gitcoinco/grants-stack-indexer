@@ -12,7 +12,7 @@
     "dev": "tsc --watch",
     "serve": "node dist/src/server.js",
     "passport": "node dist/src/cli/passport.js",
-    "passport": "node dist/src/cli/prices.js",
+    "prices": "node dist/src/cli/prices.js",
     "_index": "node dist/src/index.js",
     "index:goerli": "npm run _index -- goerli",
     "index:mainnet": "npm run _index -- mainnet",
