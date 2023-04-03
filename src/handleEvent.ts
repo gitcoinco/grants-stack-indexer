@@ -10,12 +10,8 @@ import { getPrice } from "./coinGecko.js";
 
 import RoundImplementationABI from "../abis/RoundImplementation.json" assert { type: "json" };
 import QuadraticFundingImplementationABI from "../abis/QuadraticFundingVotingStrategyImplementation.json" assert { type: "json" };
-import { writeFile } from "node:fs";
 
 type Indexer = ChainsauceIndexer<JsonStorage>;
-
-let blocks = 0;
-let events = 0;
 
 async function convertToUSD(
   token: string,
@@ -62,8 +58,6 @@ function fullProjectId(
 async function handleEvent(indexer: Indexer, event: Event) {
   const db = indexer.storage;
   const chainId = indexer.chainId;
-  events++;
-  console.log("events", events);
 
   switch (event.name) {
     // -- PROJECTS
