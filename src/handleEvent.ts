@@ -11,7 +11,23 @@ import type { Price } from "./cli/prices.js";
 import RoundImplementationABI from "../abis/RoundImplementation.json" assert { type: "json" };
 import QuadraticFundingImplementationABI from "../abis/QuadraticFundingVotingStrategyImplementation.json" assert { type: "json" };
 
+import config from "./config.js";
+
 type Indexer = ChainsauceIndexer<JsonStorage>;
+
+const tokenDecimals = Object.fromEntries(
+  Object.entries(config.chains).map(([_, chain]) => {
+    return [
+      chain.id,
+      Object.fromEntries(
+        chain.tokens.map((token) => [
+          token.address.toLowerCase(),
+          token.decimals,
+        ])
+      ),
+    ];
+  })
+);
 
 async function convertToUSD(
   prices: Price[],
@@ -255,13 +271,22 @@ async function handleEvent(indexer: Indexer, event: Event) {
         }
 
         const prices = await db.collection<Price>("prices").all();
+        const token = event.args.token.toLowerCase();
+
+        if (!tokenDecimals[indexer.chainId][token]) {
+          throw Error(
+            `Unsupported token ${token} for chain ${indexer.chainId}`
+          );
+        }
+
+        const decimals = tokenDecimals[indexer.chainId][token];
 
         const amountUSD = await convertToUSD(
           prices,
-          event.args.token.toLowerCase(),
+          token,
           event.args.amount.toBigInt(),
           event.blockNumber,
-          18
+          decimals
         );
 
         const vote = {
