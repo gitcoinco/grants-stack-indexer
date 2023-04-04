@@ -9,7 +9,7 @@ const platforms: { [key: number]: string } = {
 
 const nativeTokens: { [key: number]: string } = {
   1: "ethereum",
-  250: "ftm",
+  250: "fantom",
   10: "ethereum",
 };
 
@@ -23,12 +23,16 @@ export async function getPrices(
   startTime: UnixTimestamp,
   endTime: UnixTimestamp
 ): Promise<[Timestamp, Price][]> {
+  if (chainId === 5) {
+    return [];
+  }
+
   const platform = platforms[chainId];
   const nativeToken = nativeTokens[chainId];
 
   // not supported
   if (!platform) {
-    throw new Error(`Prices for platform ${platform} are not supported.`);
+    throw new Error(`Prices for chain ID ${chainId} are not supported.`);
   }
 
   const url =
@@ -38,7 +42,7 @@ export async function getPrices(
 
   const res = await fetchRetry(url, {
     retries: 5,
-    backoff: 1000,
+    backoff: 5000,
   });
 
   const data = await res.json();

@@ -26,13 +26,12 @@ export type Price = {
   token: string;
   code: string;
   price: number;
-  from: number;
-  to: number;
+  timestamp: number;
   block: number;
 };
 
 async function readPrices(filename: string): Promise<Price[]> {
-  let currentPrices;
+  let currentPrices: Price[];
 
   try {
     currentPrices = JSON.parse((await fs.readFile(filename)).toString());
@@ -76,7 +75,7 @@ async function updatePricesAndWrite() {
 
     // get last updated price
     const lastPriceAt = currentPrices.reduce(
-      (acc, price) => Math.max(price.to, acc),
+      (acc, price) => Math.max(price.timestamp + hours(1), acc),
       getPricesFrom
     );
 
@@ -112,8 +111,7 @@ async function updatePricesAndWrite() {
               token: token.address.toLowerCase(),
               code: token.code,
               price,
-              from: timestamp,
-              to: timestamp + hours(1),
+              timestamp,
               block,
             };
           })
@@ -121,7 +119,7 @@ async function updatePricesAndWrite() {
 
         console.log("Fetched", newPrices.length, "new prices");
 
-        appendPrices(filename, newPrices);
+        await appendPrices(filename, newPrices);
       }
     }
   }
