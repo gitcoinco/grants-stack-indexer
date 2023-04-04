@@ -30,13 +30,14 @@ async function convertToUSD(
     }
   }
 
-  if (closestPrice) {
-    const decimalFactor = 10n ** BigInt(decimals);
-    const price = BigInt(Math.trunc(closestPrice.price * 100)) * decimalFactor;
-    return Number((amount * price) / decimalFactor) / 100;
+  if (!closestPrice) {
+    throw Error("Price not found");
   }
 
-  throw "Price not found";
+  const decimalFactor = 10n ** BigInt(decimals);
+  const priceCents = BigInt(Math.trunc(closestPrice.price * 100));
+
+  return Number((amount * priceCents) / decimalFactor) / 100;
 }
 
 async function cachedIpfs<T>(cid: string, cache: Cache): Promise<T> {
@@ -255,7 +256,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
 
         const prices = await db.collection<Price>("prices").all();
 
-        const amountUSD = convertToUSD(
+        const amountUSD = await convertToUSD(
           prices,
           event.args.token.toLowerCase(),
           event.args.amount.toBigInt(),
