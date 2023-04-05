@@ -23,7 +23,9 @@ export default async function fetchRetry(
       return res;
     } catch (e) {
       attempt = attempt + 1;
-      await wait(attempt * backoff);
+      await wait(
+        Math.floor(attempt * (Math.random() * (backoff * 0.5) + backoff * 0.5))
+      );
       console.warn("[fetch] Retrying", input, "attempt:", attempt, e);
     }
   }

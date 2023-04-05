@@ -6,13 +6,7 @@ function supervise() {
   while true; do $@ && break; done
 }
 
-cleanup() {
-  echo "Cleaning up background jobs..."
-  pkill -P $$ # kill all child processes
-}
-
-# clean up background process when stopped
-trap "cleanup" EXIT
+trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 
 set -e
 
