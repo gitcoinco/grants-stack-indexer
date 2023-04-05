@@ -20,10 +20,10 @@ export async function appendPrices(chainId: number, newPrices: Price[]) {
   await writePrices(chainId, currentPrices.concat(newPrices));
 }
 
-function createPriceProvider(updateEvery: number = 2000) {
+function createPriceProvider(updateEvery = 2000) {
   type Prices = { lastUpdatedAt: Date; prices: Promise<Price[]> };
 
-  let prices: { [key: number]: Prices } = {};
+  const prices: { [key: number]: Prices } = {};
 
   function shouldRefreshPrices(prices: Prices) {
     return new Date().getTime() - prices.lastUpdatedAt.getTime() > updateEvery;
