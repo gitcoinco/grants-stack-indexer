@@ -36,7 +36,7 @@ web = "./init.sh server"
     port = 443
 
   [[services.tcp_checks]]
-    grace_period = "5s"
+    grace_period = "1200s"
     interval = "15s"
     restart_limit = 0
     timeout = "10s"

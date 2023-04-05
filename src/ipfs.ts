@@ -10,7 +10,7 @@ export async function fetchJson<T>(cid: string): Promise<T> {
     throw new Error(`Invalid IPFS CID: ${cid}`);
   }
 
-  const res = await fetchRetry(`https://cloudflare-ipfs.com/ipfs/${cid}`, {
+  const res = await fetchRetry(`https://gitcoin.mypinata.cloud/ipfs/${cid}`, {
     retries: 10,
     backoff: 1000,
   });
