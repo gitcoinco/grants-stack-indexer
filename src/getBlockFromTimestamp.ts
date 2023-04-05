@@ -9,15 +9,11 @@ const getProvider = memoize((url: string) => {
     timeout: 5 * 60 * 1000,
   });
 
-  let requests = 0;
-
   const lastBlock = provider._getInternalBlockNumber(1000 * 30);
 
   const getBlockNumber = () => lastBlock;
   const getBlock = memoize<number, ReturnType<typeof provider.getBlock>>(
     (number) => {
-      requests += 1;
-      console.log("FETCHING", requests, number);
       return provider.getBlock(number);
     }
   );

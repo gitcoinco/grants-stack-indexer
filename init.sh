@@ -1,29 +1,35 @@
 #!/bin/bash
+
+export NODE_NO_WARNINGS=1
+
 function supervise() {
   while true; do $@ && break; done
 }
 
-export NODE_NO_WARNINGS=1
+cleanup() {
+  echo "Cleaning up background jobs..."
+  pkill -P $$ # kill all child processes
+}
 
-#clean up background process when stopped
-#
-trap "exit" INT TERM
-trap "kill 0" EXIT
+# clean up background process when stopped
+trap "cleanup" EXIT
+
+set -e
 
 # Index everything once
-
-
-# npm run passport &
 
 # The indexers depend on the prices being available
 npm run prices
 
-npm run index:goerli &
-npm run index:mainnet &
-npm run index:optimism &
-npm run index:fantom &
+npm run index:mainnet & pids+=($!)
+npm run index:optimism & pids+=($!)
+npm run index:fantom & pids+=($!)
+npm run index:goerli & pids+=($!)
+npm run passport & pids+=($!)
 
-wait
+for pid in ${pids[*]}; do
+  wait $pid
+done
 
 # Run HTTP server and run everything as a long running process
 if [ "$1" == "server" ]; then

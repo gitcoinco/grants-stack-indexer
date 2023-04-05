@@ -13,11 +13,10 @@
     "serve": "node dist/src/server.js",
     "passport": "node dist/src/cli/passport.js",
     "prices": "node dist/src/cli/prices.js",
-    "_index": "node dist/src/index.js",
-    "index:goerli": "npm run _index -- goerli",
-    "index:mainnet": "npm run _index -- mainnet",
-    "index:optimism": "npm run _index -- optimism",
-    "index:fantom": "npm run _index -- fantom"
+    "index:goerli": "node dist/src/index.js goerli",
+    "index:mainnet": "node dist/src/index.js mainnet",
+    "index:optimism": "node dist/src/index.js optimism",
+    "index:fantom": "node dist/src/index.js fantom"
   },
   "author": "",
   "license": "ISC",
