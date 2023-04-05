@@ -159,7 +159,22 @@ const chains: Chains = {
   },
 };
 
+const tokenDecimals = Object.fromEntries(
+  Object.entries(chains).map(([_, chain]) => {
+    return [
+      chain.id,
+      Object.fromEntries(
+        chain.tokens.map((token) => [
+          token.address.toLowerCase(),
+          token.decimals,
+        ])
+      ),
+    ];
+  })
+);
+
 export default {
+  tokenDecimals,
   storageDir: process.env.STORAGE_DIR || "./data",
   port: Number(process.env.PORT || "4000"),
   chains,

@@ -42,7 +42,7 @@ export async function getPrices(
 
   const res = await fetchRetry(url, {
     retries: 5,
-    backoff: 5000,
+    backoff: 10000,
   });
 
   const data = await res.json();

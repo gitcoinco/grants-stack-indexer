@@ -1,6 +1,5 @@
-import fs from "node:fs/promises";
+import { getPrices, appendPrices } from "../prices.js";
 import { parseArgs } from "node:util";
-import path from "node:path";
 import { getPricesByHour } from "../coinGecko.js";
 import getBlockFromTimestamp from "../getBlockFromTimestamp.js";
 
@@ -21,38 +20,6 @@ const { values } = parseArgs({
   },
 });
 
-export type Price = {
-  chainId: number;
-  token: string;
-  code: string;
-  price: number;
-  timestamp: number;
-  block: number;
-};
-
-async function readPrices(filename: string): Promise<Price[]> {
-  let currentPrices: Price[];
-
-  try {
-    currentPrices = JSON.parse((await fs.readFile(filename)).toString());
-  } catch {
-    currentPrices = [];
-  }
-
-  return currentPrices;
-}
-
-async function writePrices(filename: string, prices: Price[]) {
-  const tempFile = `${filename}.write`;
-  await fs.writeFile(tempFile, JSON.stringify(prices));
-  await fs.rename(tempFile, filename);
-}
-
-async function appendPrices(filename: string, newPrices: Price[]) {
-  const currentPrices = await readPrices(filename);
-  await writePrices(filename, currentPrices.concat(newPrices));
-}
-
 function chunkTimeBy(millis: number, chunkBy: number): [number, number][] {
   const chunks: [number, number][] = [];
 
@@ -68,10 +35,7 @@ async function updatePricesAndWrite() {
   for (const chainKey in config.chains) {
     const chain = config.chains[chainKey];
 
-    const filename = path.join(config.storageDir, `${chain.id}/prices.json`);
-    await fs.mkdir(path.dirname(filename), { recursive: true });
-
-    const currentPrices = await readPrices(filename);
+    const currentPrices = await getPrices(chain.id);
 
     // get last updated price
     const lastPriceAt = currentPrices.reduce(
@@ -107,7 +71,6 @@ async function updatePricesAndWrite() {
             const block = await getBlockFromTimestamp(chainKey, timestamp);
 
             return {
-              chainId: chain.id,
               token: token.address.toLowerCase(),
               code: token.code,
               price,
@@ -119,7 +82,7 @@ async function updatePricesAndWrite() {
 
         console.log("Fetched", newPrices.length, "new prices");
 
-        await appendPrices(filename, newPrices);
+        await appendPrices(chain.id, newPrices);
       }
     }
   }
