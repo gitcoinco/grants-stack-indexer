@@ -6,38 +6,12 @@ import {
 } from "chainsauce";
 import { ethers } from "ethers";
 import { fetchJson as ipfs } from "./ipfs.js";
-import { getPrice } from "./coinGecko.js";
+import { convertToUSD } from "./prices.js";
 
 import RoundImplementationABI from "../abis/RoundImplementation.json" assert { type: "json" };
 import QuadraticFundingImplementationABI from "../abis/QuadraticFundingVotingStrategyImplementation.json" assert { type: "json" };
 
 type Indexer = ChainsauceIndexer<JsonStorage>;
-
-async function convertToUSD(
-  token: string,
-  amount: ethers.BigNumber,
-  chainId: number,
-  fromTimestamp: number,
-  toTimestamp: number,
-  cache: Cache
-): Promise<number> {
-  const cacheKey = `price-${token}-${chainId}-${toTimestamp}-${fromTimestamp}`;
-
-  const price = await cache.lazy<number>(cacheKey, () => {
-    return getPrice(token, chainId, fromTimestamp, toTimestamp);
-  });
-
-  if (price === 0) {
-    console.warn("Price not found for token:", token, "chainId:", chainId);
-  }
-
-  const priceFixedNumber = ethers.FixedNumber.from(price.toFixed(2));
-  const amountFixedNumber = ethers.FixedNumber.fromValue(amount, 18);
-
-  const result = priceFixedNumber.mulUnsafe(amountFixedNumber).toUnsafeFloat();
-
-  return result;
-}
 
 async function cachedIpfs<T>(cid: string, cache: Cache): Promise<T> {
   return await cache.lazy<T>(`ipfs-${cid}`, () => ipfs<T>(cid));
@@ -56,7 +30,6 @@ function fullProjectId(
 
 async function handleEvent(indexer: Indexer, event: Event) {
   const db = indexer.storage;
-  const chainId = indexer.chainId;
 
   switch (event.name) {
     // -- PROJECTS
@@ -254,19 +227,13 @@ async function handleEvent(indexer: Indexer, event: Event) {
           return;
         }
 
-        const now = new Date();
-
-        const startDate = new Date(round.roundStartTime * 1000);
-        // if round ends in the future, end it now to get live data
-        const endDate = new Date(round.roundEndTime * 1000);
+        const token = event.args.token.toLowerCase();
 
         const amountUSD = await convertToUSD(
-          event.args.token.toLowerCase(),
-          event.args.amount,
-          chainId,
-          Math.floor(startDate.getTime() / 1000),
-          Math.floor(Math.min(now.getTime(), endDate.getTime()) / 1000),
-          indexer.cache
+          indexer.chainId,
+          token,
+          event.args.amount.toBigInt(),
+          event.blockNumber
         );
 
         const vote = {

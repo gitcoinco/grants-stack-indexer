@@ -5,11 +5,11 @@ primary_region = "den"
 processes = []
 
 [processes]
-web = "./init.sh"
+web = "./init.sh server"
 
 [env]
   PORT = "8080"
-  STORAGE_DIR = "/data"
+  STORAGE_DIR = "./data"
 
 [experimental]
   auto_rollback = true
@@ -36,7 +36,7 @@ web = "./init.sh"
     port = 443
 
   [[services.tcp_checks]]
-    grace_period = "5s"
+    grace_period = "1200s"
     interval = "15s"
     restart_limit = 0
     timeout = "10s"
