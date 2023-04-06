@@ -2,8 +2,11 @@ import { getPrices, appendPrices } from "../prices.js";
 import { parseArgs } from "node:util";
 import { getPricesByHour } from "../coinGecko.js";
 import getBlockFromTimestamp from "../getBlockFromTimestamp.js";
+import { Cache } from "chainsauce";
 
 import config from "../config.js";
+
+const cache = new Cache(".cache");
 
 const getPricesFrom = new Date(Date.UTC(2023, 0, 1, 0, 0, 0)).getTime();
 
@@ -59,11 +62,17 @@ async function updatePricesAndWrite() {
 
     for (const chunk of timeChunks) {
       for (const token of chain.tokens) {
-        const prices = await getPricesByHour(
-          token.address,
-          chain.id,
-          (lastPriceAt + chunk[0]) / 1000,
-          (lastPriceAt + chunk[1]) / 1000
+        const cacheKey = `${chain.id}-${token.address}-${
+          lastPriceAt + chunk[0]
+        }-${lastPriceAt + chunk[1]}`;
+
+        const prices = await cache.lazy(cacheKey, () =>
+          getPricesByHour(
+            token.address,
+            chain.id,
+            (lastPriceAt + chunk[0]) / 1000,
+            (lastPriceAt + chunk[1]) / 1000
+          )
         );
 
         const newPrices = await Promise.all(

@@ -18,6 +18,6 @@ EXPOSE 8080
 COPY init.sh ./
 
 # Cache indexer in the image
-# RUN ./init.sh
+RUN --mount=type=cache,target=/usr/src/app/.cache ./init.sh
 
 CMD [ "npm", "start" ]

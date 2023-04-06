@@ -9,7 +9,7 @@ web = "./init.sh server"
 
 [env]
   PORT = "8080"
-  STORAGE_DIR = "/data"
+  STORAGE_DIR = "./data"
 
 [experimental]
   auto_rollback = true

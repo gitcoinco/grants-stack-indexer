@@ -8,8 +8,6 @@ function supervise() {
 
 trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 
-set -e
-
 # Index everything once
 
 # The indexers depend on the prices being available
@@ -22,7 +20,12 @@ npm run index:goerli & pids+=($!)
 npm run passport & pids+=($!)
 
 for pid in ${pids[*]}; do
-  wait $pid
+  if wait $pid; then
+      echo "=> Process $pid success"
+  else
+    echo "=> Process $pid failure"
+    exit 1
+  fi
 done
 
 # Run HTTP server and run everything as a long running process
