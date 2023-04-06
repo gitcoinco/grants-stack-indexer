@@ -1,7 +1,6 @@
-import fetch from "node-fetch";
-import { wait } from "./utils.js";
+import fetchRetry from "./fetchRetry.js";
 
-export async function fetchJson<T>(cid: string, retries = 5): Promise<T> {
+export async function fetchJson<T>(cid: string): Promise<T> {
   // TODO: wth is this?
   if (cid === "test_pointer") {
     return undefined as T;
@@ -11,18 +10,12 @@ export async function fetchJson<T>(cid: string, retries = 5): Promise<T> {
     throw new Error(`Invalid IPFS CID: ${cid}`);
   }
 
-  let attempt = 0;
+  const res = await fetchRetry(`https://gitcoin.mypinata.cloud/ipfs/${cid}`, {
+    retries: 10,
+    backoff: 1000,
+  });
 
-  while (attempt < retries) {
-    try {
-      const res = await fetch(`https://cloudflare-ipfs.com/ipfs/${cid}`);
-      return (await res.json()) as T;
-    } catch (e) {
-      attempt = attempt + 1;
-      await wait(attempt * 1000);
-      console.log("[IPFS] Retrying:", cid, "Attempt:", attempt);
-    }
-  }
+  const data = await res.json();
 
-  throw new Error(`IPFS not found: ${cid}`);
+  return data;
 }
