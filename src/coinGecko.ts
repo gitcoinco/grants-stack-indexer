@@ -1,5 +1,6 @@
 import { ethers } from "ethers";
 import fetchRetry from "./fetchRetry.js";
+import config from "./config.js";
 
 const platforms: { [key: number]: string } = {
   1: "ethereum",
@@ -35,12 +36,19 @@ export async function getPrices(
     throw new Error(`Prices for chain ID ${chainId} are not supported.`);
   }
 
-  const url =
+  const path =
     token === ethers.constants.AddressZero
-      ? `https://api.coingecko.com/api/v3/coins/${nativeToken}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`
-      : `https://api.coingecko.com/api/v3/coins/${platform}/contract/${token.toLowerCase()}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`;
+      ? `/coins/${nativeToken}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`
+      : `/coins/${platform}/contract/${token.toLowerCase()}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`;
 
-  const res = await fetchRetry(url, {
+  const headers: HeadersInit = config.coingeckoApiKey
+    ? {
+        "x-cg-pro-api-key": config.coingeckoApiKey,
+      }
+    : {};
+
+  const res = await fetchRetry(`${config.coingeckoApiUrl}${path}`, {
+    headers,
     retries: 5,
     backoff: 10000,
   });

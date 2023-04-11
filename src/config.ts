@@ -175,5 +175,9 @@ export default {
   tokenDecimals,
   storageDir: process.env.STORAGE_DIR || "./data",
   port: Number(process.env.PORT || "4000"),
+  coingeckoApiKey: process.env.COINGECKO_API_KEY,
+  coingeckoApiUrl: process.env.COINGECKO_API_KEY
+    ? "https://pro-api.coingecko.com/api/v3/"
+    : "https://api.coingecko.com/api/v3",
   chains,
 };
