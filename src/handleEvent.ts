@@ -5,13 +5,20 @@ import {
   Event,
 } from "chainsauce";
 import { ethers } from "ethers";
+import StatusesBitmap from "statuses-bitmap";
+
 import { fetchJson as ipfs } from "./ipfs.js";
 import { convertToUSD } from "./prices.js";
-
-import RoundImplementationABI from "../abis/RoundImplementation.json" assert { type: "json" };
-import QuadraticFundingImplementationABI from "../abis/QuadraticFundingVotingStrategyImplementation.json" assert { type: "json" };
+import config from "./config.js";
 
 type Indexer = ChainsauceIndexer<JsonStorage>;
+
+enum ApplicationStatus {
+  PENDING = 0,
+  APPROVED,
+  REJECTED,
+  CANCELLED,
+}
 
 async function cachedIpfs<T>(cid: string, cache: Cache): Promise<T> {
   return await cache.lazy<T>(`ipfs-${cid}`, () => ipfs<T>(cid));
@@ -28,10 +35,24 @@ function fullProjectId(
   );
 }
 
+// mapping of chain id => address => event name => renamed event name
+const eventRenames = Object.fromEntries(
+  Object.entries(config.chains).map(([_, chain]) => {
+    return [
+      chain.id,
+      Object.fromEntries(
+        chain.subscriptions.map((sub) => [sub.address, sub.events])
+      ),
+    ];
+  })
+);
+
 async function handleEvent(indexer: Indexer, event: Event) {
   const db = indexer.storage;
+  const eventName =
+    eventRenames[indexer.chainId]?.[event.address]?.[event.name] ?? event.name;
 
-  switch (event.name) {
+  switch (eventName) {
     // -- PROJECTS
     case "ProjectCreated": {
       await db.collection("projects").insert({
@@ -111,12 +132,31 @@ async function handleEvent(indexer: Indexer, event: Event) {
     }
 
     // --- ROUND
+    case "RoundCreatedV1":
     case "RoundCreated": {
-      const contract = indexer.subscribe(
-        event.args.roundAddress,
-        RoundImplementationABI,
-        event.blockNumber
-      );
+      let contract;
+
+      if (event.name === "RoundCreatedV1") {
+        contract = indexer.subscribe(
+          event.args.roundAddress,
+          (
+            await import("#abis/v1/RoundImplementation.json", {
+              assert: { type: "json" },
+            })
+          ).default,
+          event.blockNumber
+        );
+      } else {
+        contract = indexer.subscribe(
+          event.args.roundAddress,
+          (
+            await import("#abis/v2/RoundImplementation.json", {
+              assert: { type: "json" },
+            })
+          ).default,
+          event.blockNumber
+        );
+      }
 
       let applicationMetaPtr = contract.applicationMetaPtr();
       let applicationsStartTime = contract.applicationsStartTime();
@@ -137,8 +177,10 @@ async function handleEvent(indexer: Indexer, event: Event) {
       roundStartTime = (await roundStartTime).toString();
       roundEndTime = (await roundEndTime).toString();
 
+      const roundId = event.args.roundAddress;
+
       await db.collection("rounds").insert({
-        id: event.args.roundAddress,
+        id: roundId,
         amountUSD: 0,
         votes: 0,
         uniqueContributors: 0,
@@ -149,16 +191,31 @@ async function handleEvent(indexer: Indexer, event: Event) {
         roundStartTime,
         roundEndTime,
       });
+
+      // create empty sub collections
+      await db.collection(`rounds/${roundId}/projects`).replaceAll([]);
+      await db.collection(`rounds/${roundId}/applications`).replaceAll([]);
+      await db.collection(`rounds/${roundId}/votes`).replaceAll([]);
+      await db.collection(`rounds/${roundId}/contributors`).replaceAll([]);
+
       break;
     }
 
     case "NewProjectApplication": {
-      const project = await db
-        .collection("projects")
-        .findById(event.args.project);
+      const projectId = event.args.project || event.args.projectID;
+      const project = await db.collection("projects").findById(projectId);
 
-      await db.collection(`rounds/${event.address}/projects`).insert({
-        id: event.args.project,
+      const applications = db.collection(
+        `rounds/${event.address}/applications`
+      );
+
+      const applicationIndex =
+        event.args.index?.toString() ??
+        (await applications.all()).length.toString();
+
+      await applications.insert({
+        id: applicationIndex,
+        projectId: projectId,
         projectNumber: project?.projectNumber ?? null,
         roundId: event.address,
         status: null,
@@ -167,6 +224,47 @@ async function handleEvent(indexer: Indexer, event: Event) {
         uniqueContributors: 0,
         payoutAddress: null,
       });
+
+      const isNewProject = await db
+        .collection(`rounds/${event.address}/projects`)
+        .upsertById(projectId, (p) => {
+          return (
+            p ?? {
+              id: projectId,
+              projectNumber: project?.projectNumber ?? null,
+              roundId: event.address,
+              status: null,
+              amountUSD: 0,
+              votes: 0,
+              uniqueContributors: 0,
+              payoutAddress: null,
+            }
+          );
+        });
+
+      await db
+        .collection(
+          `rounds/${event.address}/applications/${applicationIndex}/votes`
+        )
+        .replaceAll([]);
+
+      await db
+        .collection(
+          `rounds/${event.address}/applications/${applicationIndex}/contributors`
+        )
+        .replaceAll([]);
+
+      if (isNewProject) {
+        await db
+          .collection(`rounds/${event.address}/projects/${projectId}/votes`)
+          .replaceAll([]);
+
+        await db
+          .collection(
+            `rounds/${event.address}/projects/${projectId}/contributors`
+          )
+          .replaceAll([]);
+      }
       break;
     }
 
@@ -181,18 +279,68 @@ async function handleEvent(indexer: Indexer, event: Event) {
           .collection(`rounds/${event.address}/projects`)
           .updateById(projectId, (application) => ({
             ...application,
-            status: projectApp.status,
+            status: projectApp.status ?? application.status,
             payoutAddress: projectApp.payoutAddress,
           }));
       }
       break;
     }
 
+    case "ApplicationStatusesUpdated": {
+      const bitmap = new StatusesBitmap(BigInt(128), BigInt(2));
+      bitmap.setRow(event.args.index.toBigInt(), event.args.status.toBigInt());
+      const startIndex = event.args.index.toBigInt() * bitmap.itemsPerRow;
+
+      for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
+        const status = bitmap.getStatus(i);
+        const statusString = ApplicationStatus[status];
+        const application = await db
+          .collection(`rounds/${event.address}/applications`)
+          .updateById(i.toString(), (application) => ({
+            ...application,
+            status: statusString,
+          }));
+
+        if (application) {
+          await db
+            .collection(`rounds/${event.address}/projects`)
+            .updateById(application.projectId, (application) => ({
+              ...application,
+              status: statusString,
+            }));
+        }
+      }
+      break;
+    }
+
     // --- Voting Strategy
+    case "VotingContractCreatedV1": {
+      indexer.subscribe(
+        event.args.votingContractAddress,
+        (
+          await import(
+            "#abis/v1/QuadraticFundingVotingStrategyImplementation.json",
+            {
+              assert: { type: "json" },
+            }
+          )
+        ).default,
+        event.blockNumber
+      );
+      break;
+    }
+
     case "VotingContractCreated": {
       indexer.subscribe(
         event.args.votingContractAddress,
-        QuadraticFundingImplementationABI,
+        (
+          await import(
+            "#abis/v2/QuadraticFundingVotingStrategyImplementation.json",
+            {
+              assert: { type: "json" },
+            }
+          )
+        ).default,
         event.blockNumber
       );
       break;
@@ -294,6 +442,50 @@ async function handleEvent(indexer: Indexer, event: Event) {
             }
           }
         );
+
+        if (event.args.applicationIndex) {
+          const applicationIndex = event.args.applicationIndex.toString();
+
+          // Insert or update unique application contributor
+          const applicationContributors = db.collection(
+            `rounds/${event.args.roundAddress}/applications/${applicationIndex}/contributors`
+          );
+
+          const isNewapplicationContributor =
+            await applicationContributors.upsertById(
+              event.args.voter,
+              (contributor) => {
+                if (contributor) {
+                  return {
+                    ...contributor,
+                    amountUSD: contributor.amountUSD + amountUSD,
+                    votes: contributor.votes + 1,
+                  };
+                } else {
+                  return {
+                    id: event.args.voter,
+                    amountUSD,
+                    votes: 1,
+                  };
+                }
+              }
+            );
+
+          db.collection(
+            `rounds/${event.args.roundAddress}/applications`
+          ).updateById(applicationIndex, (project) => ({
+            ...project,
+            amountUSD: project.amountUSD + amountUSD,
+            votes: project.votes + 1,
+            uniqueContributors:
+              project.uniqueContributors +
+              (isNewapplicationContributor ? 1 : 0),
+          }));
+
+          db.collection(
+            `rounds/${event.args.roundAddress}/applications/${applicationIndex}/votes`
+          ).insert(vote);
+        }
 
         await Promise.all([
           db

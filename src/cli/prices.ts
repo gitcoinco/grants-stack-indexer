@@ -54,7 +54,7 @@ async function updatePricesAndWrite() {
 
     // only fetch new prices every new hour
     if (timeElapsed < hours(1)) {
-      return;
+      continue;
     }
 
     // get prices in 90 day chunks to get the most of Coingecko's granularity

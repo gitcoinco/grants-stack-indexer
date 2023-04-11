@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import { existsSync } from "fs";
 import path from "node:path";
 import config from "./config.js";
+import { base58 } from "ethers/lib/utils.js";
 
 export type Price = {
   token: string;
@@ -54,6 +55,10 @@ export async function convertToUSD(
   blockNumber: number
 ): Promise<number> {
   let closestPrice: Price | null = null;
+
+  if (chainId === 5) {
+    return 1;
+  }
 
   if (!config.tokenDecimals[chainId][token]) {
     throw Error(`Unsupported token ${token} for chain ${chainId}`);
