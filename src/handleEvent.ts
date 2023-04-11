@@ -287,7 +287,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
     }
 
     case "ApplicationStatusesUpdated": {
-      const bitmap = new StatusesBitmap(BigInt(128), BigInt(2));
+      const bitmap = new StatusesBitmap(256n, 2n);
       bitmap.setRow(event.args.index.toBigInt(), event.args.status.toBigInt());
       const startIndex = event.args.index.toBigInt() * bitmap.itemsPerRow;
 
