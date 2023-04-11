@@ -13,6 +13,8 @@ trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 # The indexers depend on the prices being available
 npm run prices
 
+echo "=> Prices indexed"
+
 npm run index:mainnet & pids+=($!)
 npm run index:optimism & pids+=($!)
 npm run index:fantom & pids+=($!)
@@ -20,6 +22,8 @@ npm run index:goerli & pids+=($!)
 npm run passport & pids+=($!)
 
 for pid in ${pids[*]}; do
+  echo "=> Waiting for $pid"
+
   if wait $pid; then
       echo "=> Process $pid success"
   else
