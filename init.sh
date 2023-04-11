@@ -6,7 +6,7 @@ function supervise() {
   while true; do $@ && break; done
 }
 
-trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
+trap "pkill -P $$" SIGINT SIGTERM EXIT
 
 # Index everything once
 
@@ -25,7 +25,7 @@ for pid in ${pids[*]}; do
   echo "=> Waiting for $pid"
 
   if wait $pid; then
-      echo "=> Process $pid success"
+    echo "=> Process $pid success"
   else
     echo "=> Process $pid failure"
     exit 1

@@ -51,6 +51,9 @@ const chains: Chains = {
       {
         address: "0x06A6Cc566c5A88E77B1353Cdc3110C2e6c828e38",
         abi: "#abis/v1/QuadraticFundingVotingStrategyFactory.json",
+        events: {
+          VotingContractCreated: "VotingContractCreatedV1",
+        },
       },
       {
         address: "0x9Cb7f434aD3250d1656854A9eC7A71EceC6eE1EF",
@@ -147,15 +150,20 @@ const chains: Chains = {
       },
       {
         address: "0xE1F4A28299966686c689223Ee7803258Dbde0942",
-        abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
+        abi: "#abis/v1/QuadraticFundingVotingStrategyFactory.json",
+        events: {
+          VotingContractCreated: "VotingContractCreatedV1",
+        },
       },
       {
         address: "0x04E753cFB8c8D1D7f776f7d7A033740961b6AEC2",
         abi: "#abis/v2/RoundFactory.json",
+        fromBlock: 87169287,
       },
       {
         address: "0x838C5e10dcc1e54d62761d994722367BA167AC22",
         abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
+        fromBlock: 87168143,
       },
     ],
   },

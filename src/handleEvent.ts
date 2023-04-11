@@ -136,7 +136,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
     case "RoundCreated": {
       let contract;
 
-      if (event.name === "RoundCreatedV1") {
+      if (eventName === "RoundCreatedV1") {
         contract = indexer.subscribe(
           event.args.roundAddress,
           (
