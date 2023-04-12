@@ -8,7 +8,7 @@ This is an Allo Protocol Indexer for Grants Stack.
 
 ## HTTP
 
-Access indexed data trough the following URL: https://indexer-grants-stack.gitcoin.co
+Access indexed data through the following URL: https://indexer-grants-stack.gitcoin.co
 
 ## Disk
 
@@ -26,7 +26,6 @@ All indexed data is written in the `./data` directory, the data follows this str
 /{chainId}/rounds/{roundId}/votes.json
 /{chainId}/rounds/{roundId}/contributors.json
 ```
-
 
 ## How to run?
 
@@ -78,5 +77,15 @@ npm run index:mainnet -- --to-block=16833357 # this will run the mainnext indexe
 npm run index:mainnet -- --follow # this will run the mainnext indexer as a long running process, following the blockchain
 npm run index:mainnet -- --clear # this will run the mainnext indexer from empty data, it will index from the beginning
 npm run index:mainnet -- --no-cache # this will run the mainnext indexer without a cache
+```
+
+## Production
+
+The indexer is currently deployed on [Fly.io](Fly.io), if you have access to the app, the following commands might be useful:
+
+```bash
+fly status # show general status of the app, all VMs and their status
+fly logs # check logs of running VM, it also shows logs of deployments in progress
+fly ssh console # open a console to the runnning VM
 ```
 
