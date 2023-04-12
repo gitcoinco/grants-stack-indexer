@@ -3,6 +3,7 @@ import cors from "cors";
 import serveIndex from "serve-index";
 
 import config from "./config.js";
+import Calculator from "./calculator.js";
 
 const app = express();
 
@@ -21,6 +22,16 @@ app.use(
 
 app.get("/", (_req, res) => {
   res.redirect("/data");
+});
+
+app.get("/chains/:chainID/rounds/:roundID/matches", (req, res) => {
+  const chainID = req.params.chainID;
+  const roundID = req.params.roundID;
+
+  const c = new Calculator("./data", chainID, roundID);
+  const matches = c.calculate();
+
+  res.send(matches);
 });
 
 app.listen(config.port, () => {
