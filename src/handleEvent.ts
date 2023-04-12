@@ -134,7 +134,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
     // --- ROUND
     case "RoundCreatedV1":
     case "RoundCreated": {
-      let contract;
+      let contract: ethers.Contract;
 
       if (eventName === "RoundCreatedV1") {
         contract = indexer.subscribe(
@@ -159,19 +159,14 @@ async function handleEvent(indexer: Indexer, event: Event) {
       }
 
       let applicationMetaPtr = contract.applicationMetaPtr();
+      let metaPtr = contract.roundMetaPtr();
       let applicationsStartTime = contract.applicationsStartTime();
       let applicationsEndTime = contract.applicationsEndTime();
       let roundStartTime = contract.roundStartTime();
       let roundEndTime = contract.roundEndTime();
-      let applicationMetadata = await cachedIpfs(
-        (
-          await applicationMetaPtr
-        ).pointer,
-        indexer.cache
-      );
 
       applicationMetaPtr = (await applicationMetaPtr).pointer;
-      applicationMetadata = await applicationMetadata;
+      metaPtr = (await metaPtr).pointer;
       applicationsStartTime = (await applicationsStartTime).toString();
       applicationsEndTime = (await applicationsEndTime).toString();
       roundStartTime = (await roundStartTime).toString();
@@ -185,7 +180,9 @@ async function handleEvent(indexer: Indexer, event: Event) {
         votes: 0,
         uniqueContributors: 0,
         applicationMetaPtr,
-        applicationMetadata,
+        applicationMetadata: null,
+        metaPtr,
+        metadata: null,
         applicationsStartTime,
         applicationsEndTime,
         roundStartTime,
@@ -198,7 +195,77 @@ async function handleEvent(indexer: Indexer, event: Event) {
       await db.collection(`rounds/${roundId}/votes`).replaceAll([]);
       await db.collection(`rounds/${roundId}/contributors`).replaceAll([]);
 
-      break;
+      return async () => {
+        (await handleEvent(indexer, {
+          name: "RoundMetaPtrUpdated",
+          blockNumber: event.blockNumber,
+          address: event.args.roundAddress,
+          signature: "",
+          logIndex: event.logIndex,
+          transactionHash: event.transactionHash,
+          args: {
+            newMetaPtr: { pointer: metaPtr },
+          },
+        }))!();
+
+        (await handleEvent(indexer, {
+          name: "ApplicationMetaPtrUpdated",
+          blockNumber: event.blockNumber,
+          address: event.args.roundAddress,
+          signature: "",
+          logIndex: event.logIndex,
+          transactionHash: event.transactionHash,
+          args: {
+            newMetaPtr: { pointer: applicationMetaPtr },
+          },
+        }))!();
+      };
+    }
+
+    case "RoundMetaPtrUpdated": {
+      const id = event.address;
+
+      await db.collection("rounds").updateById(id, (round) => ({
+        ...round,
+        metaPtr: event.args.newMetaPtr.pointer,
+      }));
+
+      return async () => {
+        const metaPtr = event.args.newMetaPtr.pointer;
+        const metadata = await cachedIpfs(metaPtr, indexer.cache);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await db.collection("rounds").updateById(id, (round: any) => {
+          if (round.metaPtr === event.args.newMetaPtr.pointer) {
+            return { ...round, metadata };
+          }
+
+          return round;
+        });
+      };
+    }
+
+    case "ApplicationMetaPtrUpdated": {
+      const id = event.address;
+
+      await db.collection("rounds").updateById(id, (round) => ({
+        ...round,
+        applicationMetaPtr: event.args.newMetaPtr.pointer,
+      }));
+
+      return async () => {
+        const metaPtr = event.args.newMetaPtr.pointer;
+        const metadata = await cachedIpfs(metaPtr, indexer.cache);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await db.collection("rounds").updateById(id, (round: any) => {
+          if (round.applicationMetaPtr === event.args.newMetaPtr.pointer) {
+            return { ...round, applicationMetadata: metadata };
+          }
+
+          return round;
+        });
+      };
     }
 
     case "NewProjectApplication": {
