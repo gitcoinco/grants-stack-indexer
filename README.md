@@ -10,17 +10,24 @@ This is an Allo Protocol Indexer for Grants Stack.
 npm install
 
 npm start # will run the HTTP server and all the indexers for all chains
-npm run index # will run the indexers for all chains
+```
+
+You can run specific indexers:
+
+```bash
+npm run index:mainnet
+npm run index:goerli
+npm run index:fantom
+npm run index:optimism
 ```
 
 ## Production URLs
 
-- Mainnet: https://grants-stack-indexer.fly.dev/data/1/_index.json
-- Goerli: https://grants-stack-indexer.fly.dev/data/5/_index.json
-- Fantom: https://grants-stack-indexer.fly.dev/data/250/_index.json
-- Optimism: https://grants-stack-indexer.fly.dev/data/10/_index.json
+The indexer is deployed at: https://indexer-grants-stack.gitcoin.co/
 
 ## Development
+
+Build the source code:
 
 ```bash
 npm run dev # Run the Typescript compiler on watch mode
@@ -28,38 +35,35 @@ npm run build # Compile the code
 npm run lint # Lint the code
 ```
 
-The best way to work on the event handler is to make changes to the code and run this:
+### Data
+
+All indexed data is written in the `./data` directory, the data follows the following structure:
 
 ```
-rm -rf data/1 && npm run index:mainnet -- --to-block=16833995
+/{chainId}/rounds.json
+/{chainId}/projects.json
+/{chainId}/rounds/{roundId}/projects.json
+/{chainId}/rounds/{roundId}/projects/{projectId}/votes.json
+/{chainId}/rounds/{roundId}/projects/{projectId}/contributors.json
+/{chainId}/rounds/{roundId}/applications.json
+/{chainId}/rounds/{roundId}/applications/{applicationIndex}/votes.json
+/{chainId}/rounds/{roundId}/votes.json
+/{chainId}/rounds/{roundId}/contributors.json
 ```
 
-Then check if the new files generated under `data/1`.
+### Developing the indexer
 
-This way you can reindex everything since the beginning and reuse the event cache.
+Each indexer has a `dev:` prefix which will watch for code changes and re-run the indexer with an empty data directory.
 
-### Available indexers
-
-```bash
-npm run index:mainnet
-npm run index:fantom
-npm run index:optimism
-npm run index:goerli
 ```
+npm run dev:index:mainnet
+```
+
+Then check the new files generated under `data/1`.
 
 ### HTTP Server
 
-The `npm run serve` command runs a static HTTP server to serve JSON files, they're partitioned by each chain, check the index file for each one to see what's available:
-
-http://localhost:4000/data/{chainId}/_index.json
-
-This is the current structure:
-
-- http://localhost:4000/data/{chainId}/rounds.json
-- http://localhost:4000/data/{chainId}/projects.json
-- http://localhost:4000/data/{chainId}/rounds/{roundAddress}/votes.json
-- http://localhost:4000/data/{chainId}/rounds/{roundAddress}/projects.json
-- http://localhost:4000/data/{chainId}/rounds/{roundAddress}/projects/{projectId}/votes.json
+The `npm run serve` command runs a static HTTP server to serve the JSON files inside `/.data`, they're partitioned by each chain, check the index file for each one to see what's available.
 
 ### Indexer arguments
 
@@ -68,13 +72,7 @@ The indexer updates to the current last block and exits, use the follwing option
 ```bash
 npm run index:mainnet -- --to-block=16833357 # this will run the mainnext indexer only to the specified block, the program will exit after it's done
 npm run index:mainnet -- --follow # this will run the mainnext indexer as a long running process, following the blockchain
-```
-
-### Docker
-
-Run the indexer with Docker:
-
-```bash
-docker run ghcr.io/gitcoinco/allo-indexer -p 8080:8080
+npm run index:mainnet -- --clear # this will run the mainnext indexer from empty data, it will index from the beginning
+npm run index:mainnet -- --no-cache # this will run the mainnext indexer without a cache
 ```
 
