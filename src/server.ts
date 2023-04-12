@@ -20,7 +20,7 @@ app.use(
 );
 
 app.get("/", (_req, res) => {
-  res.send("Welcome!");
+  res.redirect("/data");
 });
 
 app.listen(config.port, () => {
