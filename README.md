@@ -2,9 +2,31 @@
 
 This is an Allo Protocol Indexer for Grants Stack.
 
-Production deployment: https://indexer-grants-stack.gitcoin.co/
-
 **Please make sure you set the environment variables before running.**
+
+# Indexed Data
+
+## HTTP
+
+Access indexed data trough the following URL: https://indexer-grants-stack.gitcoin.co
+
+## Disk
+
+All indexed data is written in the `./data` directory, the data follows the following structure:
+
+```
+/{chainId}/rounds.json
+/{chainId}/prices.json
+/{chainId}/projects.json
+/{chainId}/rounds/{roundId}/projects.json
+/{chainId}/rounds/{roundId}/projects/{projectId}/votes.json
+/{chainId}/rounds/{roundId}/projects/{projectId}/contributors.json
+/{chainId}/rounds/{roundId}/applications.json
+/{chainId}/rounds/{roundId}/applications/{applicationIndex}/votes.json
+/{chainId}/rounds/{roundId}/votes.json
+/{chainId}/rounds/{roundId}/contributors.json
+```
+
 
 ## How to run?
 
@@ -31,22 +53,6 @@ Build the source code:
 npm run dev # Run the Typescript compiler on watch mode
 npm run build # Compile the code
 npm run lint # Lint the code
-```
-
-### Data
-
-All indexed data is written in the `./data` directory, the data follows the following structure:
-
-```
-/{chainId}/rounds.json
-/{chainId}/projects.json
-/{chainId}/rounds/{roundId}/projects.json
-/{chainId}/rounds/{roundId}/projects/{projectId}/votes.json
-/{chainId}/rounds/{roundId}/projects/{projectId}/contributors.json
-/{chainId}/rounds/{roundId}/applications.json
-/{chainId}/rounds/{roundId}/applications/{applicationIndex}/votes.json
-/{chainId}/rounds/{roundId}/votes.json
-/{chainId}/rounds/{roundId}/contributors.json
 ```
 
 ### Developing the indexer
