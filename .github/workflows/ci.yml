@@ -32,7 +32,6 @@ jobs:
         run: |
           flyctl deploy \
             --remote-only \
-            --build-only \
             --build-secret INFURA_API_KEY=${{ secrets.INFURA_API_KEY }} \
             --build-secret ALCHEMY_API_KEY=${{ secrets.ALCHEMY_API_KEY }} \
             --build-secret PASSPORT_API_KEY=${{ secrets.PASSPORT_API_KEY }} \
