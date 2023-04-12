@@ -9,7 +9,6 @@ RUN npm ci
 
 # Bundle app source
 COPY src src
-COPY abis abis
 COPY tsconfig.json ./
 COPY .eslintrc.cjs ./
 
