@@ -12,7 +12,7 @@ Access indexed data trough the following URL: https://indexer-grants-stack.gitco
 
 ## Disk
 
-All indexed data is written in the `./data` directory, the data follows the following structure:
+All indexed data is written in the `./data` directory, the data follows this structure:
 
 ```
 /{chainId}/rounds.json
