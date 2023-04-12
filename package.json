@@ -15,7 +15,9 @@
     "index:goerli": "node dist/src/index.js goerli",
     "index:mainnet": "node dist/src/index.js mainnet",
     "index:optimism": "node dist/src/index.js optimism",
-    "index:fantom": "node dist/src/index.js fantom"
+    "index:fantom": "node dist/src/index.js fantom",
+    "dev:index:goerli": "nodemon --watch dist --exec 'npm run index:goerli -- --clear'",
+    "dev:index:mainnet": "nodemon --watch dist --exec 'npm run index:mainnet -- --clear'"
   },
   "imports": {
     "#abis/*": {
@@ -46,6 +48,7 @@
     "@typescript-eslint/eslint-plugin": "^5.55.0",
     "@typescript-eslint/parser": "^5.55.0",
     "eslint": "^8.36.0",
+    "nodemon": "^2.0.22",
     "prettier": "^2.8.4"
   }
 }
