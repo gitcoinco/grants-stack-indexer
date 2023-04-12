@@ -1,4 +1,12 @@
 import fetchRetry from "./fetchRetry.js";
+import { Cache } from "chainsauce";
+
+export async function fetchJsonCached<T>(
+  cid: string,
+  cache: Cache
+): Promise<T> {
+  return await cache.lazy<T>(`ipfs-${cid}`, () => fetchJson<T>(cid));
+}
 
 export async function fetchJson<T>(cid: string): Promise<T> {
   // TODO: wth is this?
