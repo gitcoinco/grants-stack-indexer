@@ -59,5 +59,9 @@ const indexer = await createIndexer(provider, storage, handleEvent, {
 });
 
 for (const subscription of chain.subscriptions) {
-  indexer.subscribe(subscription.address, subscription.abi);
+  indexer.subscribe(
+    subscription.address,
+    (await import(subscription.abi, { assert: { type: "json" } })).default,
+    subscription.fromBlock || 0
+  );
 }

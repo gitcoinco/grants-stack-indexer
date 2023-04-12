@@ -6,12 +6,14 @@ function supervise() {
   while true; do $@ && break; done
 }
 
-trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
+trap "pkill -P $$" SIGINT SIGTERM EXIT
 
 # Index everything once
 
 # The indexers depend on the prices being available
 npm run prices
+
+echo "=> Prices indexed"
 
 npm run index:mainnet & pids+=($!)
 npm run index:optimism & pids+=($!)
@@ -20,8 +22,10 @@ npm run index:goerli & pids+=($!)
 npm run passport & pids+=($!)
 
 for pid in ${pids[*]}; do
+  echo "=> Waiting for $pid"
+
   if wait $pid; then
-      echo "=> Process $pid success"
+    echo "=> Process $pid success"
   else
     echo "=> Process $pid failure"
     exit 1
