@@ -2,6 +2,8 @@
 
 This is an Allo Protocol Indexer for Grants Stack.
 
+Production deployment: https://indexer-grants-stack.gitcoin.co/
+
 **Please make sure you set the environment variables before running.**
 
 ## How to run?
@@ -20,10 +22,6 @@ npm run index:goerli
 npm run index:fantom
 npm run index:optimism
 ```
-
-## Production URLs
-
-The indexer is deployed at: https://indexer-grants-stack.gitcoin.co/
 
 ## Development
 
