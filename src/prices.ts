@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import { existsSync } from "fs";
 import path from "node:path";
 import config from "./config.js";
-import { base58 } from "ethers/lib/utils.js";
+import { tokenDecimals } from "./config.js";
 
 export type Price = {
   token: string;
@@ -60,11 +60,11 @@ export async function convertToUSD(
     return 1;
   }
 
-  if (!config.tokenDecimals[chainId][token]) {
+  if (!tokenDecimals[chainId][token]) {
     throw Error(`Unsupported token ${token} for chain ${chainId}`);
   }
 
-  const decimals = config.tokenDecimals[chainId][token];
+  const decimals = tokenDecimals[chainId][token];
   const prices = await priceProvider.getPrices(chainId);
 
   for (let i = prices.length - 1; i >= 0; i--) {

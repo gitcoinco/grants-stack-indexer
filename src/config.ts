@@ -1,8 +1,11 @@
 import "dotenv/config";
 
-type ChainConfig = {
+type ChainId = number;
+
+export type Chain = {
   rpc: string;
-  id: number;
+  name: string;
+  id: ChainId;
   tokens: { code: string; address: string; decimals: number }[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   subscriptions: {
@@ -13,11 +16,10 @@ type ChainConfig = {
   }[];
 };
 
-type Chains = Record<string, ChainConfig>;
-
-const chains: Chains = {
-  mainnet: {
+const chains: Chain[] = [
+  {
     id: 1,
+    name: "mainnet",
     rpc: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
     tokens: [
       {
@@ -67,8 +69,9 @@ const chains: Chains = {
       },
     ],
   },
-  goerli: {
+  {
     id: 5,
+    name: "goerli",
     rpc: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
     tokens: [
       {
@@ -116,8 +119,9 @@ const chains: Chains = {
       },
     ],
   },
-  optimism: {
+  {
     id: 10,
+    name: "optimism",
     rpc: `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
     tokens: [
       {
@@ -167,8 +171,9 @@ const chains: Chains = {
       },
     ],
   },
-  fantom: {
+  {
     id: 250,
+    name: "fantom",
     rpc: "https://rpcapi.fantom.network",
     tokens: [
       {
@@ -205,10 +210,11 @@ const chains: Chains = {
       },
     ],
   },
-};
+];
 
-const tokenDecimals = Object.fromEntries(
-  Object.entries(chains).map(([_, chain]) => {
+// mapping of chain id => token address => decimals
+export const tokenDecimals = Object.fromEntries(
+  chains.map((chain) => {
     return [
       chain.id,
       Object.fromEntries(
@@ -221,8 +227,19 @@ const tokenDecimals = Object.fromEntries(
   })
 );
 
+// mapping of chain id => address => event name => renamed event name
+export const eventRenames = Object.fromEntries(
+  chains.map((chain) => {
+    return [
+      chain.id,
+      Object.fromEntries(
+        chain.subscriptions.map((sub) => [sub.address, sub.events])
+      ),
+    ];
+  })
+);
+
 export default {
-  tokenDecimals,
   storageDir: process.env.STORAGE_DIR || "./data",
   port: Number(process.env.PORT || "4000"),
   coingeckoApiKey: process.env.COINGECKO_API_KEY,

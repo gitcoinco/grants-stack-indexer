@@ -1,7 +1,7 @@
 import { RetryProvider } from "chainsauce";
 import { memoize } from "./utils.js";
 
-import config from "./config.js";
+import { Chain } from "./config.js";
 
 const getProvider = memoize((url: string) => {
   const provider = new RetryProvider({
@@ -22,10 +22,10 @@ const getProvider = memoize((url: string) => {
 });
 
 export default async function getBlockFromTimestamp(
-  chainName: string,
+  chain: Chain,
   timestamp: number
 ): Promise<number> {
-  const provider = getProvider(config.chains[chainName].rpc);
+  const provider = getProvider(chain.rpc);
   const unixTimestamp = timestamp / 1000;
 
   const now = new Date().getTime() / 1000;
