@@ -191,6 +191,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
       return async () => {
         (await roundMetaPtrUpdated(indexer, {
           ...event,
+          address: event.args.roundAddress,
           args: {
             newMetaPtr: { pointer: metaPtr },
           },
@@ -198,6 +199,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
 
         (await applicationMetaPtrUpdated(indexer, {
           ...event,
+          address: event.args.roundAddress,
           args: {
             newMetaPtr: { pointer: applicationMetaPtr },
           },
