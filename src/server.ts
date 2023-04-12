@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import serveIndex from "serve-index";
+
 import config from "./config.js";
 
 const app = express();
@@ -13,7 +15,8 @@ app.use(
     setHeaders: (res) => {
       res.setHeader("Accept-Ranges", "bytes");
     },
-  })
+  }),
+  serveIndex(config.storageDir, { icons: true, view: "details" })
 );
 
 app.get("/", (_req, res) => {
