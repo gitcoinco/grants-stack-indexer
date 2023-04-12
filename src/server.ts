@@ -24,11 +24,11 @@ app.get("/", (_req, res) => {
   res.redirect("/data");
 });
 
-app.get("/chains/:chainID/rounds/:roundID/matches", (req, res) => {
-  const chainID = req.params.chainID;
-  const roundID = req.params.roundID;
+app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
+  const chainId = req.params.chainId;
+  const roundId = req.params.roundId;
 
-  const c = new Calculator("./data", chainID, roundID);
+  const c = new Calculator("./data", chainId, roundId);
   const matches = c.calculate();
 
   res.send(matches);
