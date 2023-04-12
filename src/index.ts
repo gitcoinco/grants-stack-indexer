@@ -23,10 +23,13 @@ const { values: args, positionals: positionalArgs } = parseArgs({
       type: "boolean",
       short: "f",
     },
-    toBlock: {
+    "to-block": {
       type: "string",
     },
     clear: {
+      type: "boolean",
+    },
+    "no-cache": {
       type: "boolean",
     },
   },
@@ -36,8 +39,8 @@ const { values: args, positionals: positionalArgs } = parseArgs({
 
 let toBlock: ToBlock = "latest";
 
-if (args.toBlock) {
-  toBlock = Number(args.toBlock);
+if (args["to-block"]) {
+  toBlock = Number(args["to-block"]);
 }
 
 // Get chain parameter
@@ -85,6 +88,7 @@ if (args.follow) {
 const indexer = await createIndexer(provider, storage, handleEvent, {
   toBlock,
   logLevel: Log.Debug,
+  eventCacheDirectory: args["no-cache"] ? null : "./.cache",
   runOnce: !args.follow,
 });
 
