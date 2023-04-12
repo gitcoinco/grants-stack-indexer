@@ -11,6 +11,7 @@
     "format": "prettier --write src",
     "dev": "tsc --watch",
     "serve": "node dist/src/server.js",
+    "dev:serve": "nodemon --watch dist --exec 'npm run serve'",
     "passport": "node dist/src/cli/passport.js",
     "index:goerli": "node dist/src/index.js goerli",
     "index:mainnet": "node dist/src/index.js mainnet",
