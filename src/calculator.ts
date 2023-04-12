@@ -8,22 +8,22 @@ type AugmentedResult = Calculation & {
 
 export default class Calculator {
   private baseDataPath: string;
-  private chainID: string;
-  private roundID: string;
+  private chainId: string;
+  private roundId: string;
 
-  constructor(baseDataPath: string, chainID: string, roundID: string) {
+  constructor(baseDataPath: string, chainId: string, roundId: string) {
     this.baseDataPath = baseDataPath;
-    this.chainID = chainID;
-    this.roundID = roundID;
+    this.chainId = chainId;
+    this.roundId = roundId;
   }
 
   calculate() {
     const rawContributions = this.parseJSONFile(
-      `${this.chainID}/rounds/${this.roundID}/votes.json`
+      `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
-    const projects = this.parseJSONFile(`${this.chainID}/projects.json`);
+    const projects = this.parseJSONFile(`${this.chainId}/projects.json`);
     const applications = this.parseJSONFile(
-      `${this.chainID}/rounds/${this.roundID}/projects.json`
+      `${this.chainId}/rounds/${this.roundId}/projects.json`
     );
 
     const contributions: Array<Contribution> = rawContributions.map(
