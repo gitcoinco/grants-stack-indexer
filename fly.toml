@@ -5,7 +5,7 @@ primary_region = "den"
 processes = []
 
 [processes]
-web = "./init.sh server"
+web = "npm start"
 
 [env]
   PORT = "8080"
