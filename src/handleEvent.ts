@@ -1,27 +1,20 @@
-import {
-  Cache,
-  Indexer as ChainsauceIndexer,
-  JsonStorage,
-  Event,
-} from "chainsauce";
+import { Indexer, JsonStorage, Event } from "chainsauce";
 import { ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
 
-import { fetchJson as ipfs } from "./ipfs.js";
+import { fetchJsonCached as ipfs } from "./ipfs.js";
 import { convertToUSD } from "./prices.js";
 import config from "./config.js";
 
-type Indexer = ChainsauceIndexer<JsonStorage>;
+// Event handlers
+import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
+import applicationMetaPtrUpdated from "./handlers/applicationMetaPtrUpdated.js";
 
 enum ApplicationStatus {
   PENDING = 0,
   APPROVED,
   REJECTED,
   CANCELLED,
-}
-
-async function cachedIpfs<T>(cid: string, cache: Cache): Promise<T> {
-  return await cache.lazy<T>(`ipfs-${cid}`, () => ipfs<T>(cid));
 }
 
 function fullProjectId(
@@ -47,7 +40,7 @@ const eventRenames = Object.fromEntries(
   })
 );
 
-async function handleEvent(indexer: Indexer, event: Event) {
+async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
   const db = indexer.storage;
   const eventName =
     eventRenames[indexer.chainId]?.[event.address]?.[event.name] ?? event.name;
@@ -83,7 +76,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
         }));
 
         return async () => {
-          const metadata = await cachedIpfs(
+          const metadata = await ipfs(
             event.args.metaPtr.pointer,
             indexer.cache
           );
@@ -134,7 +127,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
     // --- ROUND
     case "RoundCreatedV1":
     case "RoundCreated": {
-      let contract;
+      let contract: ethers.Contract;
 
       if (eventName === "RoundCreatedV1") {
         contract = indexer.subscribe(
@@ -159,19 +152,14 @@ async function handleEvent(indexer: Indexer, event: Event) {
       }
 
       let applicationMetaPtr = contract.applicationMetaPtr();
+      let metaPtr = contract.roundMetaPtr();
       let applicationsStartTime = contract.applicationsStartTime();
       let applicationsEndTime = contract.applicationsEndTime();
       let roundStartTime = contract.roundStartTime();
       let roundEndTime = contract.roundEndTime();
-      let applicationMetadata = await cachedIpfs(
-        (
-          await applicationMetaPtr
-        ).pointer,
-        indexer.cache
-      );
 
       applicationMetaPtr = (await applicationMetaPtr).pointer;
-      applicationMetadata = await applicationMetadata;
+      metaPtr = (await metaPtr).pointer;
       applicationsStartTime = (await applicationsStartTime).toString();
       applicationsEndTime = (await applicationsEndTime).toString();
       roundStartTime = (await roundStartTime).toString();
@@ -185,7 +173,9 @@ async function handleEvent(indexer: Indexer, event: Event) {
         votes: 0,
         uniqueContributors: 0,
         applicationMetaPtr,
-        applicationMetadata,
+        applicationMetadata: null,
+        metaPtr,
+        metadata: null,
         applicationsStartTime,
         applicationsEndTime,
         roundStartTime,
@@ -198,7 +188,29 @@ async function handleEvent(indexer: Indexer, event: Event) {
       await db.collection(`rounds/${roundId}/votes`).replaceAll([]);
       await db.collection(`rounds/${roundId}/contributors`).replaceAll([]);
 
-      break;
+      return async () => {
+        (await roundMetaPtrUpdated(indexer, {
+          ...event,
+          args: {
+            newMetaPtr: { pointer: metaPtr },
+          },
+        }))!();
+
+        (await applicationMetaPtrUpdated(indexer, {
+          ...event,
+          args: {
+            newMetaPtr: { pointer: applicationMetaPtr },
+          },
+        }))!();
+      };
+    }
+
+    case "RoundMetaPtrUpdated": {
+      return roundMetaPtrUpdated(indexer, event);
+    }
+
+    case "ApplicationMetaPtrUpdated": {
+      return applicationMetaPtrUpdated(indexer, event);
     }
 
     case "NewProjectApplication": {
@@ -270,7 +282,7 @@ async function handleEvent(indexer: Indexer, event: Event) {
 
     case "ProjectsMetaPtrUpdated": {
       const projects: { id: string; status: string; payoutAddress: string }[] =
-        await cachedIpfs(event.args.newMetaPtr.pointer, indexer.cache);
+        await ipfs(event.args.newMetaPtr.pointer, indexer.cache);
 
       for (const projectApp of projects) {
         const projectId = projectApp.id.split("-")[0];
