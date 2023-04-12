@@ -66,9 +66,12 @@ await provider.getNetwork();
 const storageDir = path.join(config.storageDir, `${provider.network.chainId}`);
 
 if (args.clear) {
+  console.info("Clearing storage directory.");
   try {
     await fs.rm(storageDir, { recursive: true });
-  } catch {}
+  } catch {
+    console.info("No storage to clear.");
+  }
 }
 
 const storage = new JsonStorage(storageDir);
