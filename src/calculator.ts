@@ -1,10 +1,7 @@
 import fs from "fs";
-import { linearQF, Contribution } from "pluralistic";
+import { linearQF, Contribution, Calculation } from "pluralistic";
 
-type AugmentedResult = {
-  totalReceived: number;
-  sumOfSqrt: number;
-  matched: number;
+type AugmentedResult = Calculation & {
   projectName: string;
   payoutAddress: string;
 };
