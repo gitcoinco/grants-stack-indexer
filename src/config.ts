@@ -225,6 +225,7 @@ export default {
   tokenDecimals,
   storageDir: process.env.STORAGE_DIR || "./data",
   port: Number(process.env.PORT || "4000"),
+  ipfsGateway: process.env.IPFS_GATEWAY || "https://cloudflare-ipfs.com",
   coingeckoApiKey: process.env.COINGECKO_API_KEY,
   coingeckoApiUrl: process.env.COINGECKO_API_KEY
     ? "https://pro-api.coingecko.com/api/v3/"
