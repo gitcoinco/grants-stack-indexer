@@ -223,8 +223,10 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         `rounds/${event.address}/applications`
       );
 
+      const projects = db.collection(`rounds/${event.address}/projects`);
+
       const applicationIndex =
-        event.args.index?.toString() ??
+        event.args.applicationIndex?.toString() ??
         (await applications.all()).length.toString();
 
       await applications.insert({
@@ -232,29 +234,29 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         projectId: projectId,
         projectNumber: project?.projectNumber ?? null,
         roundId: event.address,
-        status: null,
+        status: "PENDING",
         amountUSD: 0,
         votes: 0,
         uniqueContributors: 0,
         payoutAddress: null,
+        metadata: null,
       });
 
-      const isNewProject = await db
-        .collection(`rounds/${event.address}/projects`)
-        .upsertById(projectId, (p) => {
-          return (
-            p ?? {
-              id: projectId,
-              projectNumber: project?.projectNumber ?? null,
-              roundId: event.address,
-              status: null,
-              amountUSD: 0,
-              votes: 0,
-              uniqueContributors: 0,
-              payoutAddress: null,
-            }
-          );
-        });
+      const isNewProject = await projects.upsertById(projectId, (p) => {
+        return (
+          p ?? {
+            id: projectId,
+            projectNumber: project?.projectNumber ?? null,
+            roundId: event.address,
+            status: "PENDING",
+            amountUSD: 0,
+            votes: 0,
+            uniqueContributors: 0,
+            payoutAddress: null,
+            metadata: null,
+          }
+        );
+      });
 
       await db
         .collection(
@@ -279,6 +281,22 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           )
           .replaceAll([]);
       }
+
+      return async () => {
+        const metadata = await ipfs(
+          event.args.applicationMetaPtr.pointer,
+          indexer.cache
+        );
+
+        await applications.updateById(applicationIndex, (app) => ({
+          ...app,
+          metadata,
+        }));
+        await projects.updateById(projectId, (project) => ({
+          ...project,
+          metadata,
+        }));
+      };
       break;
     }
 
