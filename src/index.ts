@@ -11,10 +11,7 @@ import { parseArgs } from "node:util";
 
 import handleEvent from "./handleEvent.js";
 import config from "./config.js";
-import {
-  updatePricesAndWriteLoop,
-  updatePricesAndWrite,
-} from "./cli/prices.js";
+import { updatePricesAndWriteLoop, updatePricesAndWrite } from "./prices.js";
 
 const { values: args, positionals: positionalArgs } = parseArgs({
   allowPositionals: true,
