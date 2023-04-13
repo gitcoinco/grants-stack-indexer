@@ -4,13 +4,9 @@ The Allo Protocol Indexer is an indexer for indexing blockchain events from Allo
 
 # Indexed Data
 
-## HTTP Access
+Access indexed data through this URL: https://indexer-grants-stack.gitcoin.co
 
-Access indexed data through the following URL: https://indexer-grants-stack.gitcoin.co
-
-## Disk Access
-
-All indexed data is written in the `./data` directory, the data follows this structure:
+The indexed data follows this structure:
 
 ```
 /{chainId}/rounds.json
