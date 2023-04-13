@@ -4,7 +4,7 @@ import StatusesBitmap from "statuses-bitmap";
 
 import { fetchJsonCached as ipfs } from "./ipfs.js";
 import { convertToUSD } from "./prices.js";
-import config from "./config.js";
+import { eventRenames } from "./config.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
@@ -27,18 +27,6 @@ function fullProjectId(
     [projectChainId, projectRegistryAddress, projectId]
   );
 }
-
-// mapping of chain id => address => event name => renamed event name
-const eventRenames = Object.fromEntries(
-  Object.entries(config.chains).map(([_, chain]) => {
-    return [
-      chain.id,
-      Object.fromEntries(
-        chain.subscriptions.map((sub) => [sub.address, sub.events])
-      ),
-    ];
-  })
-);
 
 async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
   const db = indexer.storage;
@@ -536,3 +524,4 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
 }
 
 export default handleEvent;
+

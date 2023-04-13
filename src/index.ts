@@ -6,39 +6,53 @@ import {
   ToBlock,
 } from "chainsauce";
 import path from "node:path";
-import yargs from "yargs/yargs";
+import fs from "node:fs/promises";
+import { parseArgs } from "node:util";
 
 import handleEvent from "./handleEvent.js";
 import config from "./config.js";
+import { updatePricesAndWriteLoop, updatePricesAndWrite } from "./prices.js";
 
-const args = yargs(process.argv)
-  .options({
-    follow: { type: "boolean", default: false },
-    toBlock: { type: "number" },
-  })
-  .parseSync();
+const { values: args, positionals: positionalArgs } = parseArgs({
+  allowPositionals: true,
+  options: {
+    follow: {
+      type: "boolean",
+      short: "f",
+    },
+    "to-block": {
+      type: "string",
+    },
+    clear: {
+      type: "boolean",
+    },
+    "no-cache": {
+      type: "boolean",
+    },
+  },
+});
 
 // Get to block parameter
 
 let toBlock: ToBlock = "latest";
 
-if (args.toBlock) {
-  toBlock = args.toBlock;
+if (args["to-block"]) {
+  toBlock = Number(args["to-block"]);
 }
 
 // Get chain parameter
 
-const chainName = process.argv[2] as keyof typeof config.chains;
+const chainName = positionalArgs[0];
 
 if (!chainName) {
   console.error("Please provide a chain name to index.");
   process.exit(1);
 }
 
-const chain = config.chains[chainName];
+const chain = config.chains.find((chain) => chain.name === chainName);
 
 if (!chain) {
-  console.error("Chain", chainName, "not supported yet.");
+  console.error("Chain", chainName, "not configured.");
   process.exit(1);
 }
 
@@ -50,11 +64,28 @@ const provider = new RetryProvider({
 await provider.getNetwork();
 
 const storageDir = path.join(config.storageDir, `${provider.network.chainId}`);
+
+if (args.clear) {
+  console.info("Clearing storage directory.");
+  try {
+    await fs.rm(storageDir, { recursive: true });
+  } catch {
+    console.info("No storage to clear.");
+  }
+}
+
 const storage = new JsonStorage(storageDir);
+
+await updatePricesAndWrite(chain);
+
+if (args.follow) {
+  await updatePricesAndWriteLoop(chain);
+}
 
 const indexer = await createIndexer(provider, storage, handleEvent, {
   toBlock,
   logLevel: Log.Debug,
+  eventCacheDirectory: args["no-cache"] ? null : "./.cache",
   runOnce: !args.follow,
 });
 

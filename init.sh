@@ -10,11 +10,6 @@ trap "pkill -P $$" SIGINT SIGTERM EXIT
 
 # Index everything once
 
-# The indexers depend on the prices being available
-npm run prices
-
-echo "=> Prices indexed"
-
 npm run index:mainnet & pids+=($!)
 npm run index:optimism & pids+=($!)
 npm run index:fantom & pids+=($!)
@@ -37,7 +32,6 @@ if [ "$1" == "server" ]; then
 
   echo "=> Index successful, running server!"
 
-  supervise "npm run prices -- --follow" &
   supervise "npm run passport -- --follow" &
   supervise "npm run index:goerli -- --follow" &
   supervise "npm run index:mainnet -- --follow" &
