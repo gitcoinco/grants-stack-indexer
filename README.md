@@ -1,16 +1,14 @@
 # Allo Protocol Indexer
 
-This is an Allo Protocol Indexer for Grants Stack. Built with [Chainsauce](https://github.com/boudra/chainsauce).
+The Allo Protocol Indexer is a tool for indexing blockchain events and serving the data over HTTP in JSON format. The data is organized in a specific structure that enables easy access to different parts of the protocol. The indexer is built using [Chainsauce](https://github.com/boudra/chainsauce) and is designed to work with any EVM-compatible chain.
 
 # Indexed Data
 
-The indexer listens for blockchain events and writes data in the disk in JSON format. The data is then served over HTTP. It is sort of like a statically generated API.
-
-## HTTP
+## HTTP Access
 
 Access indexed data through the following URL: https://indexer-grants-stack.gitcoin.co
 
-## Disk
+## Disk Access
 
 All indexed data is written in the `./data` directory, the data follows this structure:
 
@@ -32,7 +30,7 @@ All indexed data is written in the `./data` directory, the data follows this str
 ```bash
 npm install
 
-npm start # will run the HTTP server and all the indexers for all chains
+npm start # run the HTTP server and all the indexers for all chains
 ```
 
 You can run specific indexers:
