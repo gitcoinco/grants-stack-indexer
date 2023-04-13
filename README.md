@@ -1,10 +1,10 @@
 # Allo Protocol Indexer
 
-This is an Allo Protocol Indexer for Grants Stack.
-
-**Please make sure you set the environment variables before running.**
+This is an Allo Protocol Indexer for Grants Stack. Built with [Chainsauce](https://github.com/boudra/chainsauce).
 
 # Indexed Data
+
+The indexer listens for blockchain events and writes data in the disk in JSON format. The data is then served over HTTP. It is sort of like a statically generated API.
 
 ## HTTP
 
@@ -56,6 +56,8 @@ npm run lint # Lint the code
 
 ### Developing the indexer
 
+**Please make sure you set the environment variables before running, find a `.env` template in `.env.example`**
+
 Each indexer has a `dev:` prefix which will watch for code changes and re-run the indexer with an empty data directory.
 
 ```
@@ -66,26 +68,29 @@ Then check the new files generated under `data/1`.
 
 ### HTTP Server
 
-The `npm run serve` command runs a static HTTP server to serve the JSON files inside `/.data`, they're partitioned by each chain, check the index file for each one to see what's available.
+The `npm run serve` command runs a static HTTP server to serve the JSON files inside `/.data`.
 
 ### Indexer arguments
 
 The indexer updates to the current last block and exits, use the follwing options to change it's behaviour:
 
 ```bash
-npm run index:mainnet -- --to-block=16833357 # this will run the mainnext indexer only to the specified block, the program will exit after it's done
-npm run index:mainnet -- --follow # this will run the mainnext indexer as a long running process, following the blockchain
-npm run index:mainnet -- --clear # this will run the mainnext indexer from empty data, it will index from the beginning
-npm run index:mainnet -- --no-cache # this will run the mainnext indexer without a cache
+npm run index:mainnet -- --to-block=16833357 # run only to the specified block, useful to maximize cache usage
+npm run index:mainnet -- --follow # follow the blockchain, this run as a long running process
+npm run index:mainnet -- --clear # run from empty data, it will index from the beginning
+npm run index:mainnet -- --no-cache # run without a cache
 ```
 
-## Production
+## Deployment
 
-The indexer is currently deployed on [Fly.io](Fly.io), if you have access to the app, the following commands might be useful:
+The indexer is currently automatically deployed on [Fly.io](Fly.io) from the `main` branch. We reindex everything from scratch on each deploy, we only persist the cache, which includes events and IPFS data.
+
+The following commands might be useful for monitoring production:
 
 ```bash
 fly status # show general status of the app, all VMs and their status
 fly logs # check logs of running VM, it also shows logs of deployments in progress
 fly ssh console # open a console to the runnning VM
 ```
+
 
