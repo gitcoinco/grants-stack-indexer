@@ -1,5 +1,7 @@
-import fetchRetry from "./fetchRetry.js";
 import { Cache } from "chainsauce";
+
+import fetchRetry from "./fetchRetry.js";
+import config from "./config.js";
 
 export async function fetchJsonCached<T>(
   cid: string,
@@ -18,7 +20,7 @@ export async function fetchJson<T>(cid: string): Promise<T> {
     throw new Error(`Invalid IPFS CID: ${cid}`);
   }
 
-  const res = await fetchRetry(`https://gitcoin.mypinata.cloud/ipfs/${cid}`, {
+  const res = await fetchRetry(`${config.ipfsGateway}/ipfs/${cid}`, {
     retries: 10,
     backoff: 1000,
   });

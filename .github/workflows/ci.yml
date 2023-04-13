@@ -24,7 +24,8 @@ jobs:
             --build-secret INFURA_API_KEY=${{ secrets.INFURA_API_KEY }} \
             --build-secret ALCHEMY_API_KEY=${{ secrets.ALCHEMY_API_KEY }} \
             --build-secret PASSPORT_API_KEY=${{ secrets.PASSPORT_API_KEY }} \
-            --build-secret COINGECKO_API_KEY=${{ secrets.COINGECKO_API_KEY }}
+            --build-secret COINGECKO_API_KEY=${{ secrets.COINGECKO_API_KEY }} \
+            --build-secret IPFS_GATEWAY=${{ secrets.IPFS_GATEWAY }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
@@ -35,7 +36,8 @@ jobs:
             --build-secret INFURA_API_KEY=${{ secrets.INFURA_API_KEY }} \
             --build-secret ALCHEMY_API_KEY=${{ secrets.ALCHEMY_API_KEY }} \
             --build-secret PASSPORT_API_KEY=${{ secrets.PASSPORT_API_KEY }} \
-            --build-secret COINGECKO_API_KEY=${{ secrets.COINGECKO_API_KEY }}
+            --build-secret COINGECKO_API_KEY=${{ secrets.COINGECKO_API_KEY }} \
+            --build-secret IPFS_GATEWAY=${{ secrets.IPFS_GATEWAY }}
         if: ${{ github.ref == 'refs/heads/main' }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
