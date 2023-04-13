@@ -28,7 +28,9 @@ app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
   const chainId = req.params.chainId;
   const roundId = req.params.roundId;
 
-  const c = new Calculator("./data", chainId, roundId);
+  // temporarily hardcoded amount waiting to take this data from the round indexed data
+  const matchAmount = 333000;
+  const c = new Calculator("./data", chainId, roundId, matchAmount);
   const matches = c.calculate();
 
   res.send(matches);

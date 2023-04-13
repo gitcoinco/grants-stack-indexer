@@ -10,11 +10,18 @@ export default class Calculator {
   private baseDataPath: string;
   private chainId: string;
   private roundId: string;
+  private matchAmount: number;
 
-  constructor(baseDataPath: string, chainId: string, roundId: string) {
+  constructor(
+    baseDataPath: string,
+    chainId: string,
+    roundId: string,
+    matchAmount: number
+  ) {
     this.baseDataPath = baseDataPath;
     this.chainId = chainId;
     this.roundId = roundId;
+    this.matchAmount = matchAmount;
   }
 
   calculate() {
@@ -34,7 +41,7 @@ export default class Calculator {
       })
     );
 
-    const results = linearQF(contributions, 333000, {
+    const results = linearQF(contributions, this.matchAmount, {
       minimumAmount: 1,
       ignoreSaturation: true,
     });
