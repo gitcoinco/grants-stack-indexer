@@ -6,6 +6,12 @@ type AugmentedResult = Calculation & {
   payoutAddress: string;
 };
 
+interface RawContribution {
+  voter: string;
+  projectId: string;
+  amountUSD: number;
+}
+
 export default class Calculator {
   private baseDataPath: string;
   private chainId: string;
@@ -34,7 +40,7 @@ export default class Calculator {
     );
 
     const contributions: Array<Contribution> = rawContributions.map(
-      (raw: any) => ({
+      (raw: RawContribution) => ({
         contributor: raw.voter,
         recipient: raw.projectId,
         amount: raw.amountUSD,
