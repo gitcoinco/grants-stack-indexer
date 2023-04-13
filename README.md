@@ -23,6 +23,13 @@ The indexed data follows this structure:
 /{chainId}/rounds/{roundId}/contributors.json
 ```
 
+The indexer is monitoring the following chains with their respective chain IDs:
+
+- Ethereum Mainnet: 1
+- Ethereum Goerli Testnet: 5
+- Optimism: 10
+- Fantom: 250
+
 ## How to run?
 
 ```bash
