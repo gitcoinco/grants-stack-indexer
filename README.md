@@ -1,6 +1,6 @@
 # Allo Protocol Indexer
 
-The Allo Protocol Indexer is a tool for indexing blockchain events and serving the data over HTTP in JSON format. The data is organized in a specific structure that enables easy access to different parts of the protocol. The indexer is built using [Chainsauce](https://github.com/boudra/chainsauce) and is designed to work with any EVM-compatible chain.
+The Allo Protocol Indexer is an indexer for indexing blockchain events from Allo contracts and serving the data over HTTP in JSON format. The data is organized in a specific structure that enables easy access to different parts of the protocol. The indexer is built using [Chainsauce](https://github.com/boudra/chainsauce) and is designed to work with any EVM-compatible chain.
 
 # Indexed Data
 
