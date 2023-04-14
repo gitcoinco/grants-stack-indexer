@@ -40,7 +40,10 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
 
   let questionTitles = [];
 
-  if (applications.length > 0 && applications[0].metadata.application.answers) {
+  if (
+    applications.length > 0 &&
+    applications[0].metadata?.application.answers
+  ) {
     questionTitles = applications[0].metadata.application.answers.map(
       (answer: any) => answer.question
     );
@@ -63,15 +66,16 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
   const records = [];
 
   for (const application of applications) {
-    const answers = application.metadata.application.answers.map(
-      (answer: any) => answer.answer || JSON.stringify(answer.encryptedAnswer)
-    );
+    const answers =
+      application.metadata?.application.answers.map(
+        (answer: any) => answer.answer || JSON.stringify(answer.encryptedAnswer)
+      ) ?? [];
 
     records.push([
       application.id,
       application.projectId,
       application.status,
-      application.metadata.title,
+      application.metadata.application.project.title,
       application.metadata.application.project.website,
       application.metadata.application.project.projectTwitter,
       application.metadata.application.project.projectGithub,
@@ -82,7 +86,7 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
 
   res.setHeader("content-type", "text/csv");
   res.send(csv.getHeaderString() + csv.stringifyRecords(records));
-}); 
+});
 
 app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
   const chainId = req.params.chainId;

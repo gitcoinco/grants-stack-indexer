@@ -97,7 +97,7 @@ export async function updatePricesAndWrite(chain: Chain) {
 export async function updatePricesAndWriteLoop(chain: Chain) {
   await updatePricesAndWrite(chain);
 
-  setTimeout(updatePricesAndWriteLoop, minutes(1));
+  setTimeout(() => updatePricesAndWriteLoop(chain), minutes(1));
 }
 
 export async function getPrices(chainId: number): Promise<Price[]> {
