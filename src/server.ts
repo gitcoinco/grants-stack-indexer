@@ -89,26 +89,24 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
 });
 
 app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
+  let calculator: Calculator;
   const chainId = req.params.chainId;
   const roundId = req.params.roundId;
 
   // temporarily hardcoded amount waiting to take this data from the round indexed data
   const matchAmount = 333000;
-  let minDonationThreshold = Number(req.query.minDonationThreshold);
-  if (minDonationThreshold) {
-    // if user provides a minDonationThreshold, check if it is a valid number
-    if (isNaN(minDonationThreshold) || minDonationThreshold < 0) {
-      res.status(400).send("invalid minDonationThreshold");
+  const minimumAmount = req.query.minimumAmount?.toString();
+  if (minimumAmount) {
+    if (isNaN(Number(minimumAmount)) || Number(minimumAmount) < 0) {
+      res.status(400).send("invalid minimumAmount");
       return;
     }
+    calculator = new Calculator("./data", chainId, roundId, matchAmount, Number(minimumAmount));
   } else {
-    // if user does not provide a minDonationThreshold, set it to 0
-    minDonationThreshold = 0;
+    calculator = new Calculator("./data", chainId, roundId, matchAmount);
   }
 
-  const c = new Calculator("./data", chainId, roundId, matchAmount, minDonationThreshold);
-  const matches = c.calculate();
-
+  const matches = calculator.calculate();
   res.send(matches);
 });
 

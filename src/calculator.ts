@@ -17,20 +17,20 @@ export default class Calculator {
   private chainId: string;
   private roundId: string;
   private matchAmount: number;
-  private minDonationThreshold: number;
+  private minimumAmount: number | undefined;
 
   constructor(
     baseDataPath: string,
     chainId: string,
     roundId: string,
-    matchAmount: number, 
-    minDonationThreshold: number,
+    matchAmount: number,
+    minimumAmount?: number,
   ) {
     this.baseDataPath = baseDataPath;
     this.chainId = chainId;
     this.roundId = roundId;
     this.matchAmount = matchAmount;
-    this.minDonationThreshold = minDonationThreshold;
+    this.minimumAmount = minimumAmount;
   }
 
   calculate() {
@@ -41,12 +41,10 @@ export default class Calculator {
     const applications = this.parseJSONFile(
       `${this.chainId}/rounds/${this.roundId}/projects.json`
     );
-
     const rounds = this.parseJSONFile(
         `${this.chainId}/rounds.json`
     );
     const currentRound = rounds.find((r: any) => r.id === this.roundId);
-
     let contributions: Array<Contribution> = rawContributions.map(
       (raw: RawContribution) => ({
         contributor: raw.voter,
@@ -55,21 +53,20 @@ export default class Calculator {
       })
     );
 
-   // if round min donation threshold is set, filter contributions
-    if (currentRound.minDonationThreshold) {
-      const minDonationThreshold = currentRound.minDonationThreshold;
-      contributions = contributions.filter((c: Contribution) => {
-          return c.amount >= minDonationThreshold;
-      });
-      // if min donation threshold is not set, filter contributions with the provided minDonationThreshold
+    let threshold: number;
+    if (typeof this.minimumAmount !== "undefined") {
+      threshold = this.minimumAmount;
+    } else if (typeof currentRound.minimumAmount !== "undefined") {
+      threshold = currentRound.minimumAmount;
     } else {
-      contributions = contributions.filter((c: Contribution) => {
-          return c.amount >= this.minDonationThreshold;
-      });
+      threshold = 0;
     }
+    contributions = contributions.filter((c: Contribution) => {
+      return c.amount >= threshold;
+    });
 
     const results = linearQF(contributions, this.matchAmount, {
-      minimumAmount: this.minDonationThreshold,
+      minimumAmount: threshold,
       ignoreSaturation: true,
     });
 
