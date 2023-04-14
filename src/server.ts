@@ -6,6 +6,7 @@ import { JsonStorage } from "chainsauce";
 import { createArrayCsvStringifier } from "csv-writer";
 
 import config from "./config.js";
+import Calculator from "./calculator.js";
 
 const app = express();
 function loadDatabase(chainId: string) {
@@ -81,6 +82,18 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
 
   res.setHeader("content-type", "text/csv");
   res.send(csv.getHeaderString() + csv.stringifyRecords(records));
+}); 
+
+app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
+  const chainId = req.params.chainId;
+  const roundId = req.params.roundId;
+
+  // temporarily hardcoded amount waiting to take this data from the round indexed data
+  const matchAmount = 333000;
+  const c = new Calculator("./data", chainId, roundId, matchAmount);
+  const matches = c.calculate();
+
+  res.send(matches);
 });
 
 app.listen(config.port, () => {
