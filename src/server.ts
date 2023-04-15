@@ -7,6 +7,7 @@ import { createArrayCsvStringifier } from "csv-writer";
 
 import config from "./config.js";
 import Calculator from "./calculator.js";
+import {CalculatorOptions} from "./types.js";
 
 const app = express();
 function loadDatabase(chainId: string) {
@@ -89,26 +90,31 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
 });
 
 app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
-  let calculator: Calculator;
   const chainId = req.params.chainId;
   const roundId = req.params.roundId;
-
-  // temporarily hardcoded amount waiting to take this data from the round indexed data
   const matchAmount = 333000;
   const minimumAmount = req.query.minimumAmount?.toString();
-  if (minimumAmount) {
-    if (isNaN(Number(minimumAmount)) || Number(minimumAmount) < 0) {
-      res.status(400).send("invalid minimumAmount");
-      return;
-    }
-    calculator = new Calculator("./data", chainId, roundId, matchAmount, Number(minimumAmount));
-  } else {
-    calculator = new Calculator("./data", chainId, roundId, matchAmount);
-  }
+  const passportThreshold = req.query.passportThreshold?.toString();
+  const passport = req.query.passport?.toString()?.toLowerCase() === 'true';
+
+  const calculatorOptions: CalculatorOptions = {
+    baseDataPath: "./data",
+    chainId: chainId,
+    roundId: roundId,
+    matchAmount: matchAmount,
+    minimumAmount: minimumAmount ? Number(minimumAmount) : undefined,
+    passportThreshold: passportThreshold ? Number(passportThreshold) : undefined,
+    passport: passport,
+  };
+
+  const calculator = new Calculator(calculatorOptions);
 
   const matches = calculator.calculate();
   res.send(matches);
 });
+
+
+
 
 app.listen(config.port, () => {
   console.log(`Server listening on port ${config.port}`);
