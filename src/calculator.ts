@@ -58,12 +58,27 @@ export default class Calculator {
     const applications = this.parseJSONFile(
         `${this.chainId}/rounds/${this.roundId}/projects.json`
     );
-    const rounds = this.parseJSONFile(
-        `${this.chainId}/rounds.json`
-    );
+    const rounds = this.parseJSONFile(`${this.chainId}/rounds.json`);
     const passportScores = this.parseJSONFile("passport_scores.json");
 
     const currentRound = rounds.find((r: any) => r.id === this.roundId);
+    const minAmount = this.minimumAmount ?? currentRound.minimumAmount ?? 0;
+
+    const isEligible = (c: Contribution, addressData: any): boolean => {
+      const hasValidEvidence = addressData?.evidence?.success;
+
+      if (this.passport) {
+        if (typeof this.passportThreshold !== 'undefined') {
+          return (
+              parseFloat(addressData?.evidence.rawScore ?? '0') > this.passportThreshold
+          );
+        } else {
+          return hasValidEvidence;
+        }
+      }
+      return true;
+    };
+
     let contributions: Array<Contribution> = rawContributions.map(
         (raw: RawContribution) => ({
           contributor: raw.voter,
@@ -74,25 +89,8 @@ export default class Calculator {
 
     contributions = contributions.filter((c: Contribution) => {
       const addressData = passportScores.find((ps: any) => ps.address === c.contributor);
-      const hasValidEvidence = addressData?.evidence?.success;
 
-      if (this.passport) {
-        if (typeof this.passportThreshold !== 'undefined') {
-          return (
-              c.amount >= (this.minimumAmount ?? currentRound.minimumAmount ?? 0) &&
-              parseFloat(addressData?.score ?? '0') > this.passportThreshold
-          );
-        } else {
-          return (
-              c.amount >= (this.minimumAmount ?? currentRound.minimumAmount ?? 0) &&
-              hasValidEvidence
-          );
-        }
-      } else {
-        return (
-            c.amount >= (this.minimumAmount ?? currentRound.minimumAmount ?? 0)
-        );
-      }
+      return c.amount >= minAmount && isEligible(c, addressData);
     });
 
     const results = linearQF(contributions, this.matchAmount, {
