@@ -94,7 +94,7 @@ app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
   const matchAmount = 333000;
   const minimumAmount = req.query.minimumAmount?.toString();
   const passportThreshold = req.query.passportThreshold?.toString();
-  const passport = req.query.passport?.toString()?.toLowerCase() === 'true';
+  const enablePassport = req.query.enablePassport?.toString()?.toLowerCase() === 'true';
 
   const calculatorOptions: CalculatorOptions = {
     baseDataPath: "./data",
@@ -103,7 +103,7 @@ app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
     matchAmount: matchAmount,
     minimumAmount: minimumAmount ? Number(minimumAmount) : undefined,
     passportThreshold: passportThreshold ? Number(passportThreshold) : undefined,
-    passport: passport,
+    enablePassport: enablePassport,
   };
 
   const calculator = new Calculator(calculatorOptions);

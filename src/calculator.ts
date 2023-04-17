@@ -8,7 +8,7 @@ export interface CalculatorOptions {
   matchAmount: number;
   minimumAmount?: number;
   passportThreshold?: number;
-  passport?: boolean;
+  enablePassport?: boolean;
 }
 
 export type AugmentedResult = Calculation & {
@@ -28,7 +28,7 @@ export default class Calculator {
   private roundId: string;
   private matchAmount: number;
   private minimumAmount: number | undefined;
-  private passport: boolean | undefined;
+  private enablePassport: boolean | undefined;
   private passportThreshold: number | undefined;
 
   constructor(options: CalculatorOptions) {
@@ -38,7 +38,7 @@ export default class Calculator {
         roundId,
         matchAmount,
         minimumAmount,
-        passport,
+        enablePassport,
         passportThreshold,
     } = options;
     this.baseDataPath = baseDataPath;
@@ -46,7 +46,7 @@ export default class Calculator {
     this.roundId = roundId;
     this.matchAmount = matchAmount;
     this.minimumAmount = minimumAmount;
-    this.passport = passport;
+    this.enablePassport = enablePassport;
     this.passportThreshold = passportThreshold;
   }
 
@@ -67,7 +67,7 @@ export default class Calculator {
     const isEligible = (c: Contribution, addressData: any): boolean => {
       const hasValidEvidence = addressData?.evidence?.success;
 
-      if (this.passport) {
+      if (this.enablePassport) {
         if (typeof this.passportThreshold !== 'undefined') {
           return (
               parseFloat(addressData?.evidence.rawScore ?? '0') > this.passportThreshold
