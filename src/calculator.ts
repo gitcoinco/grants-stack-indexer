@@ -1,7 +1,26 @@
 import fs from "fs";
 import { linearQF, Contribution, Calculation } from "pluralistic";
-import {AugmentedResult, CalculatorOptions, RawContribution} from "./types.js";
 
+export interface CalculatorOptions {
+  baseDataPath: string;
+  chainId: string;
+  roundId: string;
+  matchAmount: number;
+  minimumAmount?: number;
+  passportThreshold?: number;
+  passport?: boolean;
+}
+
+export type AugmentedResult = Calculation & {
+  projectName: string;
+  payoutAddress: string;
+};
+
+export interface RawContribution {
+  voter: string;
+  projectId: string;
+  amountUSD: number;
+}
 
 export default class Calculator {
   private baseDataPath: string;
@@ -43,7 +62,6 @@ export default class Calculator {
         `${this.chainId}/rounds.json`
     );
     const passportScores = this.parseJSONFile("passport_scores.json");
-    const validAddresses = this.parseJSONFile("passport_valid_addresses.json");
 
     const currentRound = rounds.find((r: any) => r.id === this.roundId);
     let contributions: Array<Contribution> = rawContributions.map(
@@ -57,7 +75,6 @@ export default class Calculator {
     contributions = contributions.filter((c: Contribution) => {
       const addressData = passportScores.find((ps: any) => ps.address === c.contributor);
       const hasValidEvidence = addressData?.evidence?.success;
-      const isValidAddress = validAddresses.includes(c.contributor);
 
       if (this.passport) {
         if (typeof this.passportThreshold !== 'undefined') {
@@ -68,8 +85,7 @@ export default class Calculator {
         } else {
           return (
               c.amount >= (this.minimumAmount ?? currentRound.minimumAmount ?? 0) &&
-              hasValidEvidence &&
-              isValidAddress
+              hasValidEvidence
           );
         }
       } else {

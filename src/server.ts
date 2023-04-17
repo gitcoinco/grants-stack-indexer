@@ -6,8 +6,7 @@ import { JsonStorage } from "chainsauce";
 import { createArrayCsvStringifier } from "csv-writer";
 
 import config from "./config.js";
-import Calculator from "./calculator.js";
-import {CalculatorOptions} from "./types.js";
+import Calculator, {CalculatorOptions} from "./calculator.js";
 
 const app = express();
 function loadDatabase(chainId: string) {
