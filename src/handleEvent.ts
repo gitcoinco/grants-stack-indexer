@@ -399,7 +399,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           ]
         );
 
-        let applicationId =
+        const applicationId =
           event.args.applicationIndex?.toString() ?? event.args.projectId;
 
         const application = await db
