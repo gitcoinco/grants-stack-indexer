@@ -66,8 +66,8 @@ export default class Calculator {
     const rounds = this.parseJSONFile(`${this.chainId}/rounds.json`);
     const passportScores = this.parseJSONFile("passport_scores.json");
 
-    const currentRound = rounds.find((r: any) => r.id === this.roundId);
-    const minAmount = this.minimumAmount ?? currentRound.minimumAmount ?? 0;
+    const round = rounds.find((r: RawRound) => r.id === this.roundId);
+    const minAmount = this.minimumAmount ?? round.minimumAmount ?? 0;
 
     const isEligible = (_c: Contribution, addressData: any): boolean => {
       const hasValidEvidence = addressData?.evidence?.success;
@@ -93,16 +93,19 @@ export default class Calculator {
       })
     );
 
+    const passportIndex = passportScores.reduce((ps: any, acc: any) => {
+      acc[ps.address] = ps;
+      return acc;
+    }, {});
+
     contributions = contributions.filter((c: Contribution) => {
-      const addressData = passportScores.find(
-        (ps: any) => ps.address === c.contributor
-      );
+      const addressData = passportIndex[c.contributor];
 
       return c.amount >= minAmount && isEligible(c, addressData);
     });
 
-    const results = linearQF(contributions, currentRound.matchAmount, {
-      minimumAmount: this.minimumAmount ?? currentRound.minimumAmount,
+    const results = linearQF(contributions, round.matchAmount, {
+      minimumAmount: this.minimumAmount ?? round.minimumAmount,
       ignoreSaturation: true,
     });
 
