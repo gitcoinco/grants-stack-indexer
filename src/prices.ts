@@ -18,7 +18,7 @@ export type Price = {
 
 const cache = new Cache(".cache");
 
-const getPricesFrom = new Date(Date.UTC(2023, 0, 1, 0, 0, 0)).getTime();
+const getPricesFrom = new Date(Date.UTC(2022, 11, 1, 0, 0, 0)).getTime();
 
 const minutes = (n: number) => n * 60 * 1000;
 const hours = (n: number) => minutes(60) * n;
@@ -118,21 +118,26 @@ function createPriceProvider(updateEvery = 2000) {
     return new Date().getTime() - prices.lastUpdatedAt.getTime() > updateEvery;
   }
 
+  function updatePrices(chainId: number) {
+    const chainPrices = getPrices(chainId);
+
+    prices[chainId] = {
+      prices: chainPrices,
+      lastUpdatedAt: new Date(),
+    };
+
+    return chainPrices;
+  }
+
   return {
     getPrices(chainId: number): Promise<Price[]> {
       if (!prices[chainId] || shouldRefreshPrices(prices[chainId])) {
-        const chainPrices = getPrices(chainId);
-
-        prices[chainId] = {
-          prices: chainPrices,
-          lastUpdatedAt: new Date(),
-        };
-
-        return chainPrices;
+        updatePrices(chainId);
       }
 
       return prices[chainId].prices;
     },
+    updatePrices,
   };
 }
 

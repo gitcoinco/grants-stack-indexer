@@ -6,7 +6,7 @@ import { JsonStorage } from "chainsauce";
 import { createArrayCsvStringifier } from "csv-writer";
 
 import config from "./config.js";
-import Calculator, {CalculatorOptions} from "./calculator.js";
+import Calculator, { CalculatorOptions } from "./calculator.js";
 
 const app = express();
 function loadDatabase(chainId: string) {
@@ -91,29 +91,29 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
 app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
   const chainId = req.params.chainId;
   const roundId = req.params.roundId;
-  const matchAmount = 333000;
+
   const minimumAmount = req.query.minimumAmount?.toString();
   const passportThreshold = req.query.passportThreshold?.toString();
-  const enablePassport = req.query.enablePassport?.toString()?.toLowerCase() === 'true';
+  const enablePassport =
+    req.query.enablePassport?.toString()?.toLowerCase() === "true";
 
   const calculatorOptions: CalculatorOptions = {
     baseDataPath: "./data",
     chainId: chainId,
     roundId: roundId,
-    matchAmount: matchAmount,
     minimumAmount: minimumAmount ? Number(minimumAmount) : undefined,
-    passportThreshold: passportThreshold ? Number(passportThreshold) : undefined,
+    passportThreshold: passportThreshold
+      ? Number(passportThreshold)
+      : undefined,
     enablePassport: enablePassport,
   };
 
   const calculator = new Calculator(calculatorOptions);
 
   const matches = calculator.calculate();
+
   res.send(matches);
 });
-
-
-
 
 app.listen(config.port, () => {
   console.log(`Server listening on port ${config.port}`);
