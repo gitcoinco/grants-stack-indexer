@@ -4,11 +4,12 @@ import StatusesBitmap from "statuses-bitmap";
 
 import { fetchJsonCached as ipfs } from "./ipfs.js";
 import { convertToUSD } from "./prices.js";
-import { eventRenames } from "./config.js";
+import { eventRenames, tokenDecimals } from "./config.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
 import applicationMetaPtrUpdated from "./handlers/applicationMetaPtrUpdated.js";
+import matchAmountUpdated from "./handlers/matchAmountUpdated.js";
 
 enum ApplicationStatus {
   PENDING = 0,
@@ -116,6 +117,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
     case "RoundCreatedV1":
     case "RoundCreated": {
       let contract: ethers.Contract;
+      let matchAmount;
 
       if (eventName === "RoundCreatedV1") {
         contract = indexer.subscribe(
@@ -127,6 +129,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           ).default,
           event.blockNumber
         );
+        matchAmount = "0";
       } else {
         contract = indexer.subscribe(
           event.args.roundAddress,
@@ -137,10 +140,13 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           ).default,
           event.blockNumber
         );
+        matchAmount = contract.matchAmount();
       }
 
       let applicationMetaPtr = contract.applicationMetaPtr();
       let metaPtr = contract.roundMetaPtr();
+
+      let token = contract.token();
       let applicationsStartTime = contract.applicationsStartTime();
       let applicationsEndTime = contract.applicationsEndTime();
       let roundStartTime = contract.roundStartTime();
@@ -148,6 +154,8 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
 
       applicationMetaPtr = (await applicationMetaPtr).pointer;
       metaPtr = (await metaPtr).pointer;
+      token = (await token).toString();
+      matchAmount = await matchAmount;
       applicationsStartTime = (await applicationsStartTime).toString();
       applicationsEndTime = (await applicationsEndTime).toString();
       roundStartTime = (await roundStartTime).toString();
@@ -159,6 +167,9 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         id: roundId,
         amountUSD: 0,
         votes: 0,
+        token,
+        matchAmount: "0",
+        matchAmountUSD: 0,
         uniqueContributors: 0,
         applicationMetaPtr,
         applicationMetadata: null,
@@ -175,6 +186,16 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
       await db.collection(`rounds/${roundId}/applications`).replaceAll([]);
       await db.collection(`rounds/${roundId}/votes`).replaceAll([]);
       await db.collection(`rounds/${roundId}/contributors`).replaceAll([]);
+
+      if (tokenDecimals[indexer.chainId][token]) {
+        await matchAmountUpdated(indexer, {
+          ...event,
+          address: event.args.roundAddress,
+          args: {
+            newAmount: matchAmount,
+          },
+        });
+      }
 
       return async () => {
         (await roundMetaPtrUpdated(indexer, {
@@ -214,8 +235,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
       const projects = db.collection(`rounds/${event.address}/projects`);
 
       const applicationIndex =
-        event.args.applicationIndex?.toString() ??
-        (await applications.all()).length.toString();
+        event.args.applicationIndex?.toString() ?? projectId;
 
       await applications.insert({
         id: applicationIndex,
@@ -226,7 +246,6 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         amountUSD: 0,
         votes: 0,
         uniqueContributors: 0,
-        payoutAddress: null,
         metadata: null,
       });
 
@@ -240,7 +259,6 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
             amountUSD: 0,
             votes: 0,
             uniqueContributors: 0,
-            payoutAddress: null,
             metadata: null,
           }
         );
@@ -285,7 +303,6 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           metadata,
         }));
       };
-      break;
     }
 
     case "ProjectsMetaPtrUpdated": {
@@ -300,7 +317,13 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           .updateById(projectId, (application) => ({
             ...application,
             status: projectApp.status ?? application.status,
-            payoutAddress: projectApp.payoutAddress,
+          }));
+
+        await db
+          .collection(`rounds/${event.address}/applications`)
+          .updateById(projectId, (application) => ({
+            ...application,
+            status: projectApp.status ?? application.status,
           }));
       }
       break;
@@ -376,17 +399,20 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           ]
         );
 
-        const projectApplication = await db
-          .collection(`rounds/${event.args.roundAddress}/projects`)
-          .findById(event.args.projectId);
+        const applicationId =
+          event.args.applicationIndex?.toString() ?? event.args.projectId;
+
+        const application = await db
+          .collection(`rounds/${event.args.roundAddress}/applications`)
+          .findById(applicationId);
 
         const round = await db
           .collection(`rounds`)
           .findById(event.args.roundAddress);
 
         if (
-          projectApplication === undefined ||
-          projectApplication.status !== "APPROVED" ||
+          application === undefined ||
+          application.status !== "APPROVED" ||
           round === undefined
         ) {
           // TODO: We seem to be ceceiving votes for projects that have been rejected? Here's an example:
@@ -407,6 +433,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         const vote = {
           id: voteId,
           projectId: event.args.projectId,
+          applicationId: applicationId,
           roundId: event.args.roundAddress,
           token: event.args.token,
           voter: event.args.voter,
@@ -463,49 +490,44 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           }
         );
 
-        if (event.args.applicationIndex) {
-          const applicationIndex = event.args.applicationIndex.toString();
+        // Insert or update unique application contributor
+        const applicationContributors = db.collection(
+          `rounds/${event.args.roundAddress}/applications/${applicationId}/contributors`
+        );
 
-          // Insert or update unique application contributor
-          const applicationContributors = db.collection(
-            `rounds/${event.args.roundAddress}/applications/${applicationIndex}/contributors`
+        const isNewapplicationContributor =
+          await applicationContributors.upsertById(
+            event.args.voter,
+            (contributor) => {
+              if (contributor) {
+                return {
+                  ...contributor,
+                  amountUSD: contributor.amountUSD + amountUSD,
+                  votes: contributor.votes + 1,
+                };
+              } else {
+                return {
+                  id: event.args.voter,
+                  amountUSD,
+                  votes: 1,
+                };
+              }
+            }
           );
 
-          const isNewapplicationContributor =
-            await applicationContributors.upsertById(
-              event.args.voter,
-              (contributor) => {
-                if (contributor) {
-                  return {
-                    ...contributor,
-                    amountUSD: contributor.amountUSD + amountUSD,
-                    votes: contributor.votes + 1,
-                  };
-                } else {
-                  return {
-                    id: event.args.voter,
-                    amountUSD,
-                    votes: 1,
-                  };
-                }
-              }
-            );
+        db.collection(
+          `rounds/${event.args.roundAddress}/applications`
+        ).updateById(applicationId, (project) => ({
+          ...project,
+          amountUSD: project.amountUSD + amountUSD,
+          votes: project.votes + 1,
+          uniqueContributors:
+            project.uniqueContributors + (isNewapplicationContributor ? 1 : 0),
+        }));
 
-          db.collection(
-            `rounds/${event.args.roundAddress}/applications`
-          ).updateById(applicationIndex, (project) => ({
-            ...project,
-            amountUSD: project.amountUSD + amountUSD,
-            votes: project.votes + 1,
-            uniqueContributors:
-              project.uniqueContributors +
-              (isNewapplicationContributor ? 1 : 0),
-          }));
-
-          db.collection(
-            `rounds/${event.args.roundAddress}/applications/${applicationIndex}/votes`
-          ).insert(vote);
-        }
+        db.collection(
+          `rounds/${event.args.roundAddress}/applications/${applicationId}/votes`
+        ).insert(vote);
 
         await Promise.all([
           db
@@ -542,4 +564,3 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
 }
 
 export default handleEvent;
-
