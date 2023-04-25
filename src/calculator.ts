@@ -88,7 +88,7 @@ export default class Calculator {
     let contributions: Array<Contribution> = rawContributions.map(
       (raw: RawContribution) => ({
         contributor: raw.voter,
-        recipient: raw.projectId,
+        recipient: raw.applicationId,
         amount: raw.amountUSD,
       })
     );
@@ -118,11 +118,11 @@ export default class Calculator {
         totalReceived: calc.totalReceived,
         sumOfSqrt: calc.sumOfSqrt,
         matched: calc.matched,
-        projectId: id,
+        projectId: application.projectId,
         applicationId: application.id,
         contributionsCount: application.votes,
-        projectName: application?.metadata?.application?.project?.title,
-        payoutAddress: application?.metadata?.application?.recipient,
+        projectName: application.metadata?.application?.project?.title,
+        payoutAddress: application.metadata?.application?.recipient,
       });
     }
 
