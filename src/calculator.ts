@@ -88,7 +88,7 @@ export default class Calculator {
     let contributions: Array<Contribution> = rawContributions.map(
       (raw: RawContribution) => ({
         contributor: raw.voter,
-        recipient: raw.projectId,
+        recipient: raw.applicationId,
         amount: raw.amountUSD,
       })
     );
@@ -110,19 +110,32 @@ export default class Calculator {
     });
 
     const augmented: Array<AugmentedResult> = [];
-    for (const id in results) {
-      const calc = results[id];
-      const application = applications.find((a: any) => a.id === id);
+    for (const recipient in results) {
+      const calc = results[recipient];
+
+      let application;
+
+      if (recipient.startsWith("0x")) {
+        // old votes IDs are project IDs
+        application = applications.find(
+          (a: any) => a.projectId.toLowerCase() === recipient.toLowerCase()
+        );
+      } else {
+        // new votes IDs are application IDs (application indexes)
+        application = applications.find(
+          (a: any) => a.id.toLowerCase() === recipient.toLowerCase()
+        );
+      }
 
       augmented.push({
         totalReceived: calc.totalReceived,
         sumOfSqrt: calc.sumOfSqrt,
         matched: calc.matched,
-        projectId: id,
-        applicationId: application?.id,
-        contributionsCount: application?.votes,
-        projectName: application?.metadata?.application?.project?.title,
-        payoutAddress: application?.metadata?.application?.recipient,
+        projectId: application.projectId,
+        applicationId: application.id,
+        contributionsCount: application.votes,
+        projectName: application.metadata?.application?.project?.title,
+        payoutAddress: application.metadata?.application?.recipient,
       });
     }
 
