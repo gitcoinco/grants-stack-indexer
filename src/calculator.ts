@@ -119,8 +119,8 @@ export default class Calculator {
         sumOfSqrt: calc.sumOfSqrt,
         matched: calc.matched,
         projectId: id,
-        applicationId: application.id,
-        contributionsCount: application.votes,
+        applicationId: application?.id,
+        contributionsCount: application?.votes,
         projectName: application?.metadata?.application?.project?.title,
         payoutAddress: application?.metadata?.application?.recipient,
       });
