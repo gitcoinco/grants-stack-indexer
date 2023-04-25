@@ -34,7 +34,7 @@ The indexer is monitoring the following chains with their respective chain IDs:
 
 ```bash
 npm install
-
+npm run build
 npm start # run the HTTP server and all the indexers for all chains
 ```
 
@@ -48,8 +48,6 @@ npm run index:optimism
 ```
 
 ## Development
-
-Build the source code:
 
 ```bash
 npm run dev # Run the Typescript compiler on watch mode
