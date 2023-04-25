@@ -104,7 +104,7 @@ export default class Calculator {
       return c.amount >= minAmount && isEligible(c, addressData);
     });
 
-    const results = linearQF(contributions, round.matchAmount, {
+    const results = linearQF(contributions, round.matchAmountUSD, {
       minimumAmount: this.minimumAmount ?? round.minimumAmount,
       ignoreSaturation: true,
     });
