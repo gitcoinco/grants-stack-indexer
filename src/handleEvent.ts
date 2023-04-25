@@ -155,7 +155,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
 
       applicationMetaPtr = (await applicationMetaPtr).pointer;
       metaPtr = (await metaPtr).pointer;
-      token = (await token).toString();
+      token = (await token).toString().toLowerCase();
       matchAmount = await matchAmount;
       applicationsStartTime = (await applicationsStartTime).toString();
       applicationsEndTime = (await applicationsEndTime).toString();
