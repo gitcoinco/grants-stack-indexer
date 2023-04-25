@@ -29,12 +29,17 @@ type PassportScoresResponse = {
  * @returns string[]
  */
 export const getPassportScores = async () => {
-  const communityId = 13;
+  if (!process.env.PASSPORT_SCORER_ID) {
+    throw new Error("PASSPORT_SCORER_ID is not set");
+  }
+
+  const scorerId = Number(process.env.PASSPORT_SCORER_ID);
+
   const limit = 1000;
   let offset = 0;
 
   const { passports, count } = await fetchPassportScores(
-    communityId,
+    scorerId,
     limit,
     offset
   );
@@ -50,7 +55,7 @@ export const getPassportScores = async () => {
     console.log("Fetching", offset, "/", count, "passports...");
 
     // fetch next set of passports
-    const { passports } = await fetchPassportScores(communityId, limit, offset);
+    const { passports } = await fetchPassportScores(scorerId, limit, offset);
 
     allPassports.push(...passports);
   }
@@ -75,18 +80,18 @@ export const filterPassportByEvidence = (
 /**
  * Fetches passport scores of a given community based on limit and offset
  *
- * @param communityId number
+ * @param scorerId number
  * @param limit number
  * @param offset number
  * @returns Promise<PassportScoresResponse>
  */
 export const fetchPassportScores = async (
-  communityId: number,
+  scorerId: number,
   limit: number,
   offset: number,
   maxAttempts = 5
 ): Promise<PassportScoresResponse> => {
-  const passportURL = `https://api.scorer.gitcoin.co/registry/score/${communityId}?limit=${limit}&offset=${offset}`;
+  const passportURL = `https://api.scorer.gitcoin.co/registry/score/${scorerId}?limit=${limit}&offset=${offset}`;
   let attempt = 0;
 
   while (attempt < maxAttempts) {
