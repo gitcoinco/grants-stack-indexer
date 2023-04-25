@@ -46,6 +46,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         projectNumber: event.args.projectID.toNumber(),
         metaPtr: null,
         owners: [event.args.owner],
+        createdAtBlock: event.blockNumber,
       });
 
       break;
@@ -179,6 +180,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         applicationsEndTime,
         roundStartTime,
         roundEndTime,
+        createdAtBlock: event.blockNumber,
       });
 
       // create empty sub collections
@@ -247,6 +249,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         votes: 0,
         uniqueContributors: 0,
         metadata: null,
+        createdAtBlock: event.blockNumber,
       });
 
       const isNewProject = await projects.upsertById(projectId, (p) => {
@@ -260,6 +263,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
             votes: 0,
             uniqueContributors: 0,
             metadata: null,
+            createdAtBlock: event.blockNumber,
           }
         );
       });
