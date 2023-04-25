@@ -84,7 +84,7 @@ if (args.follow) {
 
 const indexer = await createIndexer(provider, storage, handleEvent, {
   toBlock,
-  logLevel: Log.Debug,
+  logLevel: Log.Info,
   eventCacheDirectory: args["no-cache"] ? null : "./.cache",
   runOnce: !args.follow,
 });

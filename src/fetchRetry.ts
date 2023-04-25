@@ -15,7 +15,6 @@ export default async function fetchRetry(
 
   while (attempt < retries) {
     try {
-      console.debug("[fetch] Fetching", input);
       const res = await fetch(input, init);
       if (!res.ok) {
         throw new Error(await res.text());
