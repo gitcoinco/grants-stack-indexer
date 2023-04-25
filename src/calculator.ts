@@ -116,12 +116,12 @@ export default class Calculator {
       let application;
 
       if (recipient.startsWith("0x")) {
-        // old votes IDs are project IDs
+        // old votes recipients are project IDs
         application = applications.find(
           (a: any) => a.projectId.toLowerCase() === recipient.toLowerCase()
         );
       } else {
-        // new votes IDs are application IDs (application indexes)
+        // new votes recipients are application IDs (application indexes)
         application = applications.find(
           (a: any) => a.id.toLowerCase() === recipient.toLowerCase()
         );
