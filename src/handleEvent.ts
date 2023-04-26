@@ -455,7 +455,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           grantAddress: event.args.grantAddress,
           amount: event.args.amount.toString(),
           amountUSD: amountUSD,
-          amountRoundtoken: conversionRoundToken.amount.toString(),
+          amountRoundToken: conversionRoundToken.amount.toString(),
         };
 
         // Insert or update  unique round contributor
