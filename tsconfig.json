@@ -3,6 +3,7 @@
   "compilerOptions": {
     "target": "es2021",
     "module": "esnext",
+    "allowJs": true,
     "esModuleInterop": true,
     "moduleResolution": "nodenext",
     "declaration": true,
@@ -15,6 +16,8 @@
   },
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "src/*.test.*",
+    "src/**/*.test.*"
   ]
 }
