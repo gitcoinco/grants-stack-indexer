@@ -446,6 +446,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         const vote = {
           id: voteId,
           transaction: event.transactionHash,
+          blockNumber: event.blockNumber,
           projectId: event.args.projectId,
           applicationId: applicationId,
           roundId: event.args.roundAddress,
