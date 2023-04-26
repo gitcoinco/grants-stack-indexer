@@ -19,8 +19,10 @@ import Calculator, {
   OverridesColumnNotFoundError,
   parseOverrides,
 } from "../calculator/index.js";
+import fs from "fs";
 
 export const app = express();
+
 function loadDatabase(chainId: string) {
   const storageDir = path.join(config.storageDir, chainId);
   return new JsonStorage(storageDir);
@@ -34,7 +36,7 @@ app.use(
     acceptRanges: true,
     setHeaders: (res) => {
       res.setHeader("Accept-Ranges", "bytes");
-    },
+    }
   }),
   serveIndex(config.storageDir, { icons: true, view: "details" })
 );
@@ -106,8 +108,8 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
       "projecTwitter",
       "projectGithub",
       "userGithub",
-      ...questionTitles,
-    ],
+      ...questionTitles
+    ]
   });
 
   const records = [];
@@ -127,7 +129,7 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
       application.metadata.application.project.projectTwitter,
       application.metadata.application.project.projectGithub,
       application.metadata.application.project.userGithub,
-      ...answers,
+      ...answers
     ]);
   }
 
@@ -135,8 +137,55 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
   res.send(csv.getHeaderString() + csv.stringifyRecords(records));
 });
 
+app.get("/data/:chainId/rounds/:roundId/votecoefficients.csv", async (req, res) => {
+  const db = loadDatabase(req.params.chainId);
+
+  const votes = await db
+    .collection(`rounds/${req.params.roundId}/votes`)
+    .all();
+
+  const data = fs.readFileSync('./data/passport_scores.json', {
+    encoding: "utf8",
+    flag: "r",
+  });
+  const passportScores: any[] =  JSON.parse(data);
+
+  const voteCoefficients = votes.map((vote) => {
+    const { address, evidence, error, ...passport_score } = passportScores.find(score => score.address === vote.voter) ?? {};
+    return {
+      ...vote,
+      ...passport_score,
+      ...evidence
+    };
+  });
+
+  const csv = createArrayCsvStringifier({
+    header: [
+      "id",
+      "projectId",
+      "applicationId",
+      "roundId",
+      "token",
+      "voter",
+      "grantAddress",
+      "amount",
+      "amountUSD",
+      "score",
+      "status",
+      "last_score_timestamp",
+      "type",
+      "succes",
+      "rawScore",
+      "threshold",
+    ]
+  });
+
+  res.setHeader("content-type", "text/csv");
+  res.send(csv.getHeaderString() + csv.stringifyRecords(voteCoefficients));
+});
+
 export const calculatorConfig: { dataProvider: DataProvider } = {
-  dataProvider: new FileSystemDataProvider("./data"),
+  dataProvider: new FileSystemDataProvider("./data")
 };
 
 async function matchesHandler(
