@@ -1,6 +1,12 @@
 import fs from "fs";
 import { linearQF, Contribution, Calculation } from "pluralistic";
 
+export class FileNotFoundError extends Error {
+  constructor(fileDescription: string) {
+    super(`cannot find ${fileDescription} file`);
+  }
+}
+
 export type CalculatorOptions = {
   baseDataPath: string;
   chainId: string;
@@ -58,13 +64,18 @@ export default class Calculator {
 
   calculate() {
     const rawContributions = this.parseJSONFile(
+      "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
     const applications = this.parseJSONFile(
+      "applications",
       `${this.chainId}/rounds/${this.roundId}/applications.json`
     );
-    const rounds = this.parseJSONFile(`${this.chainId}/rounds.json`);
-    const passportScores = this.parseJSONFile("passport_scores.json");
+    const rounds = this.parseJSONFile("rounds", `${this.chainId}/rounds.json`);
+    const passportScores = this.parseJSONFile(
+      "passport scores",
+      "passport_scores.json"
+    );
 
     const round = rounds.find((r: RawRound) => r.id === this.roundId);
     const minAmount = this.minimumAmount ?? round.minimumAmount ?? 0;
@@ -129,8 +140,12 @@ export default class Calculator {
     return augmented;
   }
 
-  parseJSONFile(path: string) {
+  parseJSONFile(fileDescription: string, path: string) {
     const fullPath = `${this.baseDataPath}/${path}`;
+    if (!fs.existsSync(fullPath)) {
+      throw new FileNotFoundError(fileDescription);
+    }
+
     const data = fs.readFileSync(fullPath, {
       encoding: "utf8",
       flag: "r",
