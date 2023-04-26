@@ -145,20 +145,20 @@ const chains: Chain[] = [
         address: "0x8e1bD5Da87C14dd8e08F7ecc2aBf9D1d558ea174",
         abi: "#abis/v2/ProjectRegistry.json",
       },
-      // {
-      //   address: "0x0f0A4961274A578443089D06AfB9d1fC231A5a4D",
-      //   abi: "#abis/v1/RoundFactory.json",
-      //   events: {
-      //     RoundCreated: "RoundCreatedV1",
-      //   },
-      // },
-      // {
-      //   address: "0xE1F4A28299966686c689223Ee7803258Dbde0942",
-      //   abi: "#abis/v1/QuadraticFundingVotingStrategyFactory.json",
-      //   events: {
-      //     VotingContractCreated: "VotingContractCreatedV1",
-      //   },
-      // },
+      {
+        address: "0x0f0A4961274A578443089D06AfB9d1fC231A5a4D",
+        abi: "#abis/v1/RoundFactory.json",
+        events: {
+          RoundCreated: "RoundCreatedV1",
+        },
+      },
+      {
+        address: "0xE1F4A28299966686c689223Ee7803258Dbde0942",
+        abi: "#abis/v1/QuadraticFundingVotingStrategyFactory.json",
+        events: {
+          VotingContractCreated: "VotingContractCreatedV1",
+        },
+      },
       {
         address: "0x04E753cFB8c8D1D7f776f7d7A033740961b6AEC2",
         abi: "#abis/v2/RoundFactory.json",
