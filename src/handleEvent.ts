@@ -434,6 +434,8 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           event.blockNumber
         );
 
+        const amountUSD = conversionUSD.amount;
+
         const conversionRoundToken = await convertFromUSD(
           indexer.chainId,
           round.token,
@@ -443,6 +445,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
 
         const vote = {
           id: voteId,
+          transaction: event.transactionHash,
           projectId: event.args.projectId,
           applicationId: applicationId,
           roundId: event.args.roundAddress,
@@ -450,7 +453,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           voter: event.args.voter,
           grantAddress: event.args.grantAddress,
           amount: event.args.amount.toString(),
-          amountUSD: conversionUSD.amount,
+          amountUSD: amountUSD,
           amountRoundtoken: conversionRoundToken.amount.toString(),
         };
 
