@@ -180,7 +180,7 @@ export async function convertToUSD(
   amount: bigint,
   blockNumber: number
 ): Promise<{ amount: number; price: number }> {
-  let closestPrice = await getUSDConversionRate(chainId, token, blockNumber);
+  const closestPrice = await getUSDConversionRate(chainId, token, blockNumber);
   const decimals = tokenDecimals[chainId][token];
   const usdDecimalFactor = Math.pow(10, 8);
   const decimalFactor = 10n ** BigInt(decimals);
@@ -202,7 +202,7 @@ export async function convertFromUSD(
   amount: number,
   blockNumber: number
 ): Promise<{ amount: bigint; price: number }> {
-  let closestPrice = await getUSDConversionRate(chainId, token, blockNumber);
+  const closestPrice = await getUSDConversionRate(chainId, token, blockNumber);
   const decimals = tokenDecimals[chainId][token];
   const usdDecimalFactor = Math.pow(10, 8);
   const decimalFactor = 10n ** BigInt(decimals);
