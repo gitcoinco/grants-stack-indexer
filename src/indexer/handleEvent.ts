@@ -2,9 +2,9 @@ import { Indexer, JsonStorage, Event } from "chainsauce";
 import { ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
 
-import { fetchJsonCached as ipfs } from "./ipfs.js";
-import { convertFromUSD, convertToUSD } from "./prices.js";
-import { eventRenames, tokenDecimals } from "./config.js";
+import { fetchJsonCached as ipfs } from "../utils/ipfs.js";
+import { convertToUSD, convertFromUSD } from "../prices/index.js";
+import { eventRenames, tokenDecimals } from "../config.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";

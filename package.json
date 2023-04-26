@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "",
   "type": "module",
-  "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
+  "main": "dist/src/indexer/index.js",
+  "types": "dist/src/indexer/index.d.ts",
   "scripts": {
     "start": "./init.sh server",
     "build": "tsc",
@@ -13,19 +13,19 @@
     "dev": "tsc --watch",
     "test": "npx vitest run --reporter verbose",
     "test:watch": "npx vitest watch --reporter verbose",
-    "serve": "node dist/src/server.js",
+    "serve": "node dist/src/http/index.js",
     "dev:serve": "nodemon --watch dist --exec 'npm run serve'",
     "passport": "node dist/src/cli/passport.js",
-    "index:goerli": "node dist/src/index.js goerli",
-    "index:mainnet": "node dist/src/index.js mainnet",
-    "index:optimism": "node dist/src/index.js optimism",
-    "index:fantom": "node dist/src/index.js fantom",
+    "index:goerli": "node dist/src/cli/indexer.js goerli",
+    "index:mainnet": "node dist/src/cli/indexer.js mainnet",
+    "index:optimism": "node dist/src/cli/indexer.js optimism",
+    "index:fantom": "node dist/src/cli/indexer.js fantom",
     "dev:index:goerli": "nodemon --watch dist --exec 'npm run index:goerli -- --clear'",
     "dev:index:mainnet": "nodemon --watch dist --exec 'npm run index:mainnet -- --clear'"
   },
   "imports": {
     "#abis/*": {
-      "default": "./src/abis/*"
+      "default": "./src/indexer/abis/*"
     }
   },
   "author": "",

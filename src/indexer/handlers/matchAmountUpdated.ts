@@ -1,5 +1,5 @@
 import { Indexer, JsonStorage, Event } from "chainsauce";
-import { convertToUSD } from "../prices.js";
+import { convertToUSD } from "../../prices/index.js";
 
 export default async function (
   { chainId, storage: db }: Indexer<JsonStorage>,

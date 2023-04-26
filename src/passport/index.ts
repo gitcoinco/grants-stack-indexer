@@ -1,4 +1,4 @@
-import { wait } from "./utils.js";
+import { wait } from "../utils/index.js";
 
 type PassportEvidence = {
   type: string;

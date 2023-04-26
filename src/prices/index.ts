@@ -2,11 +2,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Cache } from "chainsauce";
 
-import getBlockFromTimestamp from "./getBlockFromTimestamp.js";
+import getBlockFromTimestamp from "../utils/getBlockFromTimestamp.js";
 import { getPricesByHour } from "./coinGecko.js";
 import { existsSync } from "fs";
-import config from "./config.js";
-import { Chain, tokenDecimals } from "./config.js";
+import config from "../config.js";
+import { Chain, tokenDecimals } from "../config.js";
 
 export type Price = {
   token: string;

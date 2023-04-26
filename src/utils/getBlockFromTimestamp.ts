@@ -1,7 +1,7 @@
 import { RetryProvider } from "chainsauce";
-import { memoize } from "./utils.js";
+import { memoize } from "./index.js";
 
-import { Chain } from "./config.js";
+import { Chain } from "../config.js";
 
 const getProvider = memoize((url: string) => {
   const provider = new RetryProvider({

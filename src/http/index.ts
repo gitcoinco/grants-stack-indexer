@@ -5,14 +5,15 @@ import path from "node:path";
 import { JsonStorage } from "chainsauce";
 import { createArrayCsvStringifier } from "csv-writer";
 
-import config from "./config.js";
+import config from "../config.js";
+
 import Calculator, {
   DataProvider,
   FileSystemDataProvider,
   CalculatorOptions,
   FileNotFoundError,
   ResourceNotFoundError,
-} from "./calculator.js";
+} from "../calculator/index.js";
 
 export const app = express();
 function loadDatabase(chainId: string) {

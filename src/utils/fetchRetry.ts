@@ -1,4 +1,4 @@
-import { wait } from "./utils.js";
+import { wait } from "./index.js";
 
 export type RequestOptions = {
   retries: number;
