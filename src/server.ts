@@ -6,7 +6,10 @@ import { JsonStorage } from "chainsauce";
 import { createArrayCsvStringifier } from "csv-writer";
 
 import config from "./config.js";
-import Calculator, { CalculatorOptions } from "./calculator.js";
+import Calculator, {
+  CalculatorOptions,
+  FileNotFoundError,
+} from "./calculator.js";
 
 const app = express();
 function loadDatabase(chainId: string) {
@@ -108,11 +111,27 @@ app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
     enablePassport: enablePassport,
   };
 
-  const calculator = new Calculator(calculatorOptions);
+  try {
+    const calculator = new Calculator(calculatorOptions);
+    const matches = calculator.calculate();
+    res.send(matches);
+  } catch (e) {
+    console.error(e);
 
-  const matches = calculator.calculate();
+    if (e instanceof FileNotFoundError) {
+      res.statusCode = 404;
+      res.send({
+        error: e.message,
+      });
 
-  res.send(matches);
+      return;
+    }
+
+    res.statusCode = 500;
+    res.send({
+      error: "something went wrong",
+    });
+  }
 });
 
 app.listen(config.port, () => {
