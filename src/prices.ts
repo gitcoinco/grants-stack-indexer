@@ -205,17 +205,14 @@ export async function convertFromUSD(
   const closestPrice = await getUSDConversionRate(chainId, token, blockNumber);
   const decimals = tokenDecimals[chainId][token];
   const usdDecimalFactor = Math.pow(10, 8);
-  const decimalFactor = 10n ** BigInt(decimals);
+  const decimalFactor = 10n ** BigInt(decimals) / BigInt(usdDecimalFactor);
 
-  const amountInDecimals = BigInt(Math.trunc(amount * usdDecimalFactor));
-  const priceInDecimals = BigInt(
-    Math.trunc(closestPrice.price * usdDecimalFactor)
-  );
-
-  const convertedAmountInDecimals = amountInDecimals / priceInDecimals;
+  const convertedAmountInDecimals =
+    BigInt(Math.trunc((amount / closestPrice.price) * usdDecimalFactor)) *
+    decimalFactor;
 
   return {
-    amount: convertedAmountInDecimals * decimalFactor,
+    amount: convertedAmountInDecimals,
     price: 1 / closestPrice.price,
   };
 }
