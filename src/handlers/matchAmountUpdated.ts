@@ -20,6 +20,6 @@ export default async function (
   await db.collection("rounds").updateById(id, (round) => ({
     ...round,
     matchAmount: matchAmount,
-    matchAmountUSD: amountUSD,
+    matchAmountUSD: amountUSD.price,
   }));
 }

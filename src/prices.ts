@@ -141,23 +141,22 @@ function createPriceProvider(updateEvery = 2000) {
   };
 }
 
-export async function convertToUSD(
+export async function getUSDConversionRate(
   chainId: number,
   token: string,
-  amount: bigint,
   blockNumber: number
-): Promise<number> {
+): Promise<Price> {
   let closestPrice: Price | null = null;
 
+  // goerli
   if (chainId === 5) {
-    return 1;
+    return { token, code: "ETH", price: 1, timestamp: 0, block: 0 };
   }
 
   if (!tokenDecimals[chainId][token]) {
     throw Error(`Unsupported token ${token} for chain ${chainId}`);
   }
 
-  const decimals = tokenDecimals[chainId][token];
   const prices = await priceProvider.getPrices(chainId);
 
   for (let i = prices.length - 1; i >= 0; i--) {
@@ -172,10 +171,53 @@ export async function convertToUSD(
     throw Error(`Price not found, token ${token} for chain ${chainId}`);
   }
 
-  const decimalFactor = 10n ** BigInt(decimals);
-  const priceCents = BigInt(Math.trunc(closestPrice.price * 100));
+  return closestPrice;
+}
 
-  return Number((amount * priceCents) / decimalFactor) / 100;
+export async function convertToUSD(
+  chainId: number,
+  token: string,
+  amount: bigint,
+  blockNumber: number
+): Promise<{ amount: number; price: number }> {
+  let closestPrice = await getUSDConversionRate(chainId, token, blockNumber);
+  const decimals = tokenDecimals[chainId][token];
+  const usdDecimalFactor = Math.pow(10, 8);
+  const decimalFactor = 10n ** BigInt(decimals);
+
+  const priceInDecimals = BigInt(
+    Math.trunc(closestPrice.price * usdDecimalFactor)
+  );
+
+  return {
+    amount:
+      Number((amount * priceInDecimals) / decimalFactor) / usdDecimalFactor,
+    price: closestPrice.price,
+  };
+}
+
+export async function convertFromUSD(
+  chainId: number,
+  token: string,
+  amount: number,
+  blockNumber: number
+): Promise<{ amount: bigint; price: number }> {
+  let closestPrice = await getUSDConversionRate(chainId, token, blockNumber);
+  const decimals = tokenDecimals[chainId][token];
+  const usdDecimalFactor = Math.pow(10, 8);
+  const decimalFactor = 10n ** BigInt(decimals);
+
+  const amountInDecimals = BigInt(Math.trunc(amount * usdDecimalFactor));
+  const priceInDecimals = BigInt(
+    Math.trunc(closestPrice.price * usdDecimalFactor)
+  );
+
+  const convertedAmountInDecimals = amountInDecimals / priceInDecimals;
+
+  return {
+    amount: convertedAmountInDecimals * decimalFactor,
+    price: 1 / closestPrice.price,
+  };
 }
 
 export const priceProvider = createPriceProvider();
