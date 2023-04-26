@@ -7,11 +7,14 @@ import { createArrayCsvStringifier } from "csv-writer";
 
 import config from "./config.js";
 import Calculator, {
+  DataProvider,
+  FileSystemDataProvider,
   CalculatorOptions,
   FileNotFoundError,
+  ResourceNotFoundError,
 } from "./calculator.js";
 
-const app = express();
+export const app = express();
 function loadDatabase(chainId: string) {
   const storageDir = path.join(config.storageDir, chainId);
   return new JsonStorage(storageDir);
@@ -91,6 +94,10 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
   res.send(csv.getHeaderString() + csv.stringifyRecords(records));
 });
 
+export const calculatorConfig: { dataProvider: DataProvider } = {
+  dataProvider: new FileSystemDataProvider("./data"),
+};
+
 app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
   const chainId = req.params.chainId;
   const roundId = req.params.roundId;
@@ -101,7 +108,7 @@ app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
     req.query.enablePassport?.toString()?.toLowerCase() === "true";
 
   const calculatorOptions: CalculatorOptions = {
-    baseDataPath: "./data",
+    dataProvider: calculatorConfig.dataProvider,
     chainId: chainId,
     roundId: roundId,
     minimumAmount: minimumAmount ? Number(minimumAmount) : undefined,
@@ -116,8 +123,6 @@ app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
     const matches = calculator.calculate();
     res.send(matches);
   } catch (e) {
-    console.error(e);
-
     if (e instanceof FileNotFoundError) {
       res.statusCode = 404;
       res.send({
@@ -127,6 +132,16 @@ app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
       return;
     }
 
+    if (e instanceof ResourceNotFoundError) {
+      res.statusCode = 404;
+      res.send({
+        error: e.message,
+      });
+
+      return;
+    }
+
+    console.error(e);
     res.statusCode = 500;
     res.send({
       error: "something went wrong",
@@ -134,6 +149,8 @@ app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
   }
 });
 
-app.listen(config.port, () => {
-  console.log(`Server listening on port ${config.port}`);
-});
+if (process.env.TS_JEST !== "1") {
+  app.listen(config.port, () => {
+    console.log(`Server listening on port ${config.port}`);
+  });
+}

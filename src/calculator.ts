@@ -7,8 +7,40 @@ export class FileNotFoundError extends Error {
   }
 }
 
+export class ResourceNotFoundError extends Error {
+  constructor(resource: string) {
+    super(`${resource} not found`);
+  }
+}
+
+export interface DataProvider {
+  loadFile(description: string, path: string): Array<any>;
+}
+
+export class FileSystemDataProvider {
+  basePath: string;
+
+  constructor(basePath: string) {
+    this.basePath = basePath;
+  }
+
+  loadFile(description: string, path: string) {
+    const fullPath = `${this.basePath}/${path}`;
+    if (!fs.existsSync(fullPath)) {
+      throw new FileNotFoundError(description);
+    }
+
+    const data = fs.readFileSync(fullPath, {
+      encoding: "utf8",
+      flag: "r",
+    });
+
+    return JSON.parse(data);
+  }
+}
+
 export type CalculatorOptions = {
-  baseDataPath: string;
+  dataProvider: DataProvider;
   chainId: string;
   roundId: string;
   minimumAmount?: number;
@@ -38,7 +70,7 @@ type RawRound = {
 };
 
 export default class Calculator {
-  private baseDataPath: string;
+  private dataProvider: DataProvider;
   private chainId: string;
   private roundId: string;
   private minimumAmount: number | undefined;
@@ -47,14 +79,14 @@ export default class Calculator {
 
   constructor(options: CalculatorOptions) {
     const {
-      baseDataPath,
+      dataProvider,
       chainId,
       roundId,
       minimumAmount,
       enablePassport,
       passportThreshold,
     } = options;
-    this.baseDataPath = baseDataPath;
+    this.dataProvider = dataProvider;
     this.chainId = chainId;
     this.roundId = roundId;
     this.minimumAmount = minimumAmount;
@@ -78,6 +110,10 @@ export default class Calculator {
     );
 
     const round = rounds.find((r: RawRound) => r.id === this.roundId);
+    if (round === undefined) {
+      throw new ResourceNotFoundError("round");
+    }
+
     const minAmount = this.minimumAmount ?? round.minimumAmount ?? 0;
 
     const isEligible = (_c: Contribution, addressData: any): boolean => {
@@ -141,16 +177,6 @@ export default class Calculator {
   }
 
   parseJSONFile(fileDescription: string, path: string) {
-    const fullPath = `${this.baseDataPath}/${path}`;
-    if (!fs.existsSync(fullPath)) {
-      throw new FileNotFoundError(fileDescription);
-    }
-
-    const data = fs.readFileSync(fullPath, {
-      encoding: "utf8",
-      flag: "r",
-    });
-
-    return JSON.parse(data);
+    return this.dataProvider.loadFile(fileDescription, path);
   }
 }
