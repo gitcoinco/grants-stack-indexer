@@ -137,80 +137,81 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
   res.send(csv.getHeaderString() + csv.stringifyRecords(records));
 });
 
+const processPassportScores = (scores: any[]) => {
+  return scores.reduce((map, score) => {
+    const address = score.address.toLowerCase();
+    const { evidence, error, ...remainingScore } = score;
+    map[address] = { ...remainingScore, ...evidence };
+    return map;
+  }, {});
+};
+
 app.get("/data/:chainId/rounds/:roundId/vote_coefficients.csv", async (req, res) => {
-  const db = loadDatabase(req.params.chainId);
+  const { chainId, roundId } = req.params;
+  const db = loadDatabase(chainId);
 
-  const votes = await db
-    .collection(`rounds/${req.params.roundId}/votes`)
-    .all();
+  try {
+    const [votes, data] = await Promise.all([
+      db.collection(`rounds/${roundId}/votes`).all(),
+      fs.promises.readFile("./data/passport_scores.json", { encoding: "utf8", flag: "r" }),
+    ]);
 
-  const data = fs.readFileSync("./data/passport_scores.json", {
-    encoding: "utf8",
-    flag: "r"
-  });
+    const passportScores = JSON.parse(data);
+    const passportScoresMap = processPassportScores(passportScores);
 
-  /*TODO: type this once we have unified types*/
-  const passportScores: any[] = JSON.parse(data);
+    const records = votes.map((vote: any) => {
+      const voter = vote.voter.toLowerCase();
+      const combinedVote = { ...vote, ...passportScoresMap[voter] ?? {} };
 
-  const processPassportScores = (scores: any[]): Record<string, any> => {
-    return scores.reduce((map: Record<string, any>, score: any) => {
-      const address = score.address.toLowerCase();
-      const { evidence, error, ...remainingScore } = score;
-      map[address] = { ...remainingScore, ...evidence };
-      return map;
-    }, {});
-  };
+      return [
+        combinedVote.id,
+        combinedVote.projectId,
+        combinedVote.applicationId,
+        combinedVote.roundId,
+        combinedVote.token,
+        voter,
+        combinedVote.grantAddress,
+        combinedVote.amount,
+        combinedVote.amountUSD,
+        combinedVote.coefficient,
+        combinedVote.status,
+        combinedVote.last_score_timestamp,
+        combinedVote.type,
+        combinedVote.success,
+        combinedVote.rawScore,
+        combinedVote.threshold,
+      ];
+    });
 
-  const passportScoresMap = processPassportScores(passportScores);
+    const csv = createArrayCsvStringifier({
+      header: [
+        "id",
+        "projectId",
+        "applicationId",
+        "roundId",
+        "token",
+        "voter",
+        "grantAddress",
+        "amount",
+        "amountUSD",
+        "coefficient",
+        "status",
+        "last_score_timestamp",
+        "type",
+        "success",
+        "rawScore",
+        "threshold",
+      ],
+    });
 
-  const voteCoefficients: any[] = votes.map((vote: any) => {
-    const voter = vote.voter.toLowerCase();
-    return { ...vote, ...passportScoresMap[voter] ?? {} };
-  });
-
-  const records = voteCoefficients.map((voteCoefficient) => [
-    voteCoefficient.id,
-    voteCoefficient.projectId,
-    voteCoefficient.applicationId,
-    voteCoefficient.roundId,
-    voteCoefficient.token,
-    voteCoefficient.voter,
-    voteCoefficient.grantAddress,
-    voteCoefficient.amount,
-    voteCoefficient.amountUSD,
-    voteCoefficient.coefficient,
-    voteCoefficient.status,
-    voteCoefficient.last_score_timestamp,
-    voteCoefficient.type,
-    voteCoefficient.success,
-    voteCoefficient.rawScore,
-    voteCoefficient.threshold
-  ]);
-
-  const csv = createArrayCsvStringifier({
-    header: [
-      "id",
-      "projectId",
-      "applicationId",
-      "roundId",
-      "token",
-      "voter",
-      "grantAddress",
-      "amount",
-      "amountUSD",
-      "coefficient",
-      "status",
-      "last_score_timestamp",
-      "type",
-      "success",
-      "rawScore",
-      "threshold"
-    ]
-  });
-
-  res.setHeader("content-type", "text/csv");
-  res.send(csv.getHeaderString() + csv.stringifyRecords(records));
+    res.setHeader("content-type", "text/csv");
+    res.send(csv.getHeaderString() + csv.stringifyRecords(records));
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).send("Internal server error");
+  }
 });
+
 
 export const calculatorConfig: { dataProvider: DataProvider } = {
   dataProvider: new FileSystemDataProvider("./data")
