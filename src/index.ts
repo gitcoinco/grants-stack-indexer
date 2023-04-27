@@ -38,7 +38,7 @@ const { values: args, positionals: positionalArgs } = parseArgs({
 // Get to block parameter
 
 let toBlock: ToBlock = "latest";
-let fromBlock: number = 0;
+let fromBlock = 0;
 
 if (args["to-block"]) {
   toBlock = Number(args["to-block"]);
