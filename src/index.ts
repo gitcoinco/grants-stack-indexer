@@ -23,6 +23,9 @@ const { values: args, positionals: positionalArgs } = parseArgs({
     "to-block": {
       type: "string",
     },
+    "from-block": {
+      type: "string",
+    },
     clear: {
       type: "boolean",
     },
@@ -35,9 +38,14 @@ const { values: args, positionals: positionalArgs } = parseArgs({
 // Get to block parameter
 
 let toBlock: ToBlock = "latest";
+let fromBlock = 0;
 
 if (args["to-block"]) {
   toBlock = Number(args["to-block"]);
+}
+
+if (args["from-block"]) {
+  fromBlock = Number(args["from-block"]);
 }
 
 // Get chain parameter
@@ -93,6 +101,6 @@ for (const subscription of chain.subscriptions) {
   indexer.subscribe(
     subscription.address,
     (await import(subscription.abi, { assert: { type: "json" } })).default,
-    subscription.fromBlock || 0
+    Math.max(subscription.fromBlock || 0, fromBlock)
   );
 }
