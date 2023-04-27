@@ -436,12 +436,17 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
 
         const amountUSD = conversionUSD.amount;
 
-        const conversionRoundToken = await convertFromUSD(
-          indexer.chainId,
-          round.token,
-          conversionUSD.amount,
-          event.blockNumber
-        );
+        const amountRoundToken =
+          round.token === token
+            ? event.args.amount.toString()
+            : (
+                await convertFromUSD(
+                  indexer.chainId,
+                  round.token,
+                  conversionUSD.amount,
+                  event.blockNumber
+                )
+              ).amount.toString();
 
         const vote = {
           id: voteId,
@@ -450,12 +455,12 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           projectId: event.args.projectId,
           applicationId: applicationId,
           roundId: event.args.roundAddress,
-          token: event.args.token,
           voter: event.args.voter,
           grantAddress: event.args.grantAddress,
+          token: event.args.token,
           amount: event.args.amount.toString(),
           amountUSD: amountUSD,
-          amountRoundToken: conversionRoundToken.amount.toString(),
+          amountRoundToken,
         };
 
         // Insert or update  unique round contributor
