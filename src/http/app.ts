@@ -168,7 +168,24 @@ app.get("/data/:chainId/rounds/:roundId/vote_coefficients.csv", async (req, res)
     return { ...vote, ...passportScoresMap[voter] ?? {} };
   });
 
-  const records = voteCoefficients.map((voteCoefficient) => Object.values(voteCoefficient));
+  const records = voteCoefficients.map((voteCoefficient) => [
+    voteCoefficient.id,
+    voteCoefficient.projectId,
+    voteCoefficient.applicationId,
+    voteCoefficient.roundId,
+    voteCoefficient.token,
+    voteCoefficient.voter,
+    voteCoefficient.grantAddress,
+    voteCoefficient.amount,
+    voteCoefficient.amountUSD,
+    voteCoefficient.coefficient,
+    voteCoefficient.status,
+    voteCoefficient.last_score_timestamp,
+    voteCoefficient.type,
+    voteCoefficient.success,
+    voteCoefficient.rawScore,
+    voteCoefficient.threshold
+  ]);
 
   const csv = createArrayCsvStringifier({
     header: [
@@ -185,7 +202,7 @@ app.get("/data/:chainId/rounds/:roundId/vote_coefficients.csv", async (req, res)
       "status",
       "last_score_timestamp",
       "type",
-      "succes",
+      "success",
       "rawScore",
       "threshold"
     ]
