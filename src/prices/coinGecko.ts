@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
-import fetchRetry from "./fetchRetry.js";
-import config from "./config.js";
+import fetchRetry from "../utils/fetchRetry.js";
+import config from "../config.js";
 
 const platforms: { [key: number]: string } = {
   1: "ethereum",

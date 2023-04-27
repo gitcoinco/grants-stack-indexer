@@ -1,7 +1,7 @@
 import { Indexer, JsonStorage, Event } from "chainsauce";
-import { fetchJsonCached as ipfs } from "../ipfs.js";
+import { fetchJsonCached as ipfs } from "../../utils/ipfs.js";
 
-export default async function roundMetaPtrUpdated(
+export default async function applicationMetaPtrUpdated(
   { cache, storage: db }: Indexer<JsonStorage>,
   event: Event
 ) {
@@ -9,7 +9,7 @@ export default async function roundMetaPtrUpdated(
 
   await db.collection("rounds").updateById(id, (round) => ({
     ...round,
-    metaPtr: event.args.newMetaPtr.pointer,
+    applicationMetaPtr: event.args.newMetaPtr.pointer,
   }));
 
   return async () => {
@@ -18,8 +18,8 @@ export default async function roundMetaPtrUpdated(
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await db.collection("rounds").updateById(id, (round: any) => {
-      if (round.metaPtr === event.args.newMetaPtr.pointer) {
-        return { ...round, metadata };
+      if (round.applicationMetaPtr === event.args.newMetaPtr.pointer) {
+        return { ...round, applicationMetadata: metadata };
       }
 
       return round;

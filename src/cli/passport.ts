@@ -4,7 +4,10 @@ import { parseArgs } from "node:util";
 import path from "node:path";
 
 import config from "../config.js";
-import { filterPassportByEvidence, getPassportScores } from "../passport.js";
+import {
+  filterPassportByEvidence,
+  getPassportScores,
+} from "../passport/index.js";
 
 const { values } = parseArgs({
   options: {

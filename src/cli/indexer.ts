@@ -9,9 +9,12 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { parseArgs } from "node:util";
 
-import handleEvent from "./handleEvent.js";
-import config from "./config.js";
-import { updatePricesAndWriteLoop, updatePricesAndWrite } from "./prices.js";
+import handleEvent from "../indexer/handleEvent.js";
+import config from "../config.js";
+import {
+  updatePricesAndWriteLoop,
+  updatePricesAndWrite,
+} from "../prices/index.js";
 
 const { values: args, positionals: positionalArgs } = parseArgs({
   allowPositionals: true,
