@@ -137,7 +137,7 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
   res.send(csv.getHeaderString() + csv.stringifyRecords(records));
 });
 
-app.get("/data/:chainId/rounds/:roundId/votecoefficients.csv", async (req, res) => {
+app.get("/data/:chainId/rounds/:roundId/vote_coefficients.csv", async (req, res) => {
   const db = loadDatabase(req.params.chainId);
 
   const votes = await db
