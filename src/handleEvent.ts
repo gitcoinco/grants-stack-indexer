@@ -3,7 +3,7 @@ import { ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
 
 import { fetchJsonCached as ipfs } from "./ipfs.js";
-import { convertToUSD } from "./prices.js";
+import { convertFromUSD, convertToUSD } from "./prices.js";
 import { eventRenames, tokenDecimals } from "./config.js";
 
 // Event handlers
@@ -427,23 +427,40 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
 
         const token = event.args.token.toLowerCase();
 
-        const amountUSD = await convertToUSD(
+        const conversionUSD = await convertToUSD(
           indexer.chainId,
           token,
           event.args.amount.toBigInt(),
           event.blockNumber
         );
 
+        const amountUSD = conversionUSD.amount;
+
+        const amountRoundToken =
+          round.token === token
+            ? event.args.amount.toString()
+            : (
+                await convertFromUSD(
+                  indexer.chainId,
+                  round.token,
+                  conversionUSD.amount,
+                  event.blockNumber
+                )
+              ).amount.toString();
+
         const vote = {
           id: voteId,
+          transaction: event.transactionHash,
+          blockNumber: event.blockNumber,
           projectId: event.args.projectId,
           applicationId: applicationId,
           roundId: event.args.roundAddress,
-          token: event.args.token,
           voter: event.args.voter,
           grantAddress: event.args.grantAddress,
+          token: event.args.token,
           amount: event.args.amount.toString(),
           amountUSD: amountUSD,
+          amountRoundToken,
         };
 
         // Insert or update  unique round contributor
