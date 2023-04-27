@@ -77,6 +77,7 @@ The indexer updates to the current last block and exits, use the follwing option
 
 ```bash
 npm run index:mainnet -- --to-block=16833357 # run only to the specified block, useful to maximize cache usage
+npm run index:mainnet -- --from-block=16994526 # run only from the specified block, useful to index only the latest events
 npm run index:mainnet -- --follow # follow the blockchain, this run as a long running process
 npm run index:mainnet -- --clear # run from empty data, it will index from the beginning
 npm run index:mainnet -- --no-cache # run without a cache
