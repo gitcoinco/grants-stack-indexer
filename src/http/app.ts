@@ -152,18 +152,20 @@ app.get("/data/:chainId/rounds/:roundId/vote_coefficients.csv", async (req, res)
   /*TODO: type this once we have unified types*/
   const passportScores: any[] = JSON.parse(data);
 
-  const voteCoefficients = votes.map((vote) => {
-    const {
-      address,
-      evidence,
-      error,
-      ...passport_score
-    } = passportScores.find(score => score.address.toLowerCase() === vote.voter.toLowerCase()) ?? {};
-    return {
-      ...vote,
-      ...passport_score,
-      ...evidence
-    };
+  const processPassportScores = (scores: any[]): Record<string, any> => {
+    return scores.reduce((map: Record<string, any>, score: any) => {
+      const address = score.address.toLowerCase();
+      const { evidence, error, ...remainingScore } = score;
+      map[address] = { ...remainingScore, ...evidence };
+      return map;
+    }, {});
+  };
+
+  const passportScoresMap = processPassportScores(passportScores);
+
+  const voteCoefficients: any[] = votes.map((vote: any) => {
+    const voter = vote.voter.toLowerCase();
+    return { ...vote, ...passportScoresMap[voter] ?? {} };
   });
 
   const records = voteCoefficients.map((voteCoefficient) => Object.values(voteCoefficient));
