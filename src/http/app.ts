@@ -144,20 +144,29 @@ app.get("/data/:chainId/rounds/:roundId/votecoefficients.csv", async (req, res) 
     .collection(`rounds/${req.params.roundId}/votes`)
     .all();
 
-  const data = fs.readFileSync('./data/passport_scores.json', {
+  const data = fs.readFileSync("./data/passport_scores.json", {
     encoding: "utf8",
-    flag: "r",
+    flag: "r"
   });
-  const passportScores: any[] =  JSON.parse(data);
+
+  /*TODO: type this once we have unified types*/
+  const passportScores: any[] = JSON.parse(data);
 
   const voteCoefficients = votes.map((vote) => {
-    const { address, evidence, error, ...passport_score } = passportScores.find(score => score.address === vote.voter) ?? {};
+    const {
+      address,
+      evidence,
+      error,
+      ...passport_score
+    } = passportScores.find(score => score.address.toLowerCase() === vote.voter.toLowerCase()) ?? {};
     return {
       ...vote,
       ...passport_score,
       ...evidence
     };
   });
+
+  let records = voteCoefficients.map((voteCoefficient) => Object.values(voteCoefficient));
 
   const csv = createArrayCsvStringifier({
     header: [
@@ -170,18 +179,18 @@ app.get("/data/:chainId/rounds/:roundId/votecoefficients.csv", async (req, res) 
       "grantAddress",
       "amount",
       "amountUSD",
-      "score",
+      "coefficient",
       "status",
       "last_score_timestamp",
       "type",
       "succes",
       "rawScore",
-      "threshold",
+      "threshold"
     ]
   });
 
   res.setHeader("content-type", "text/csv");
-  res.send(csv.getHeaderString() + csv.stringifyRecords(voteCoefficients));
+  res.send(csv.getHeaderString() + csv.stringifyRecords(records));
 });
 
 export const calculatorConfig: { dataProvider: DataProvider } = {
