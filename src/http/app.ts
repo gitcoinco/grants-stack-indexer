@@ -166,7 +166,7 @@ app.get("/data/:chainId/rounds/:roundId/votecoefficients.csv", async (req, res) 
     };
   });
 
-  let records = voteCoefficients.map((voteCoefficient) => Object.values(voteCoefficient));
+  const records = voteCoefficients.map((voteCoefficient) => Object.values(voteCoefficient));
 
   const csv = createArrayCsvStringifier({
     header: [

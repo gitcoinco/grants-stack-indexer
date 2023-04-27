@@ -12,6 +12,7 @@ export default async function (
 
   const amountUSD = await convertToUSD(
     chainId,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     round!.token,
     BigInt(matchAmount),
     event.blockNumber
