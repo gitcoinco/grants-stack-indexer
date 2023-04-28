@@ -161,7 +161,7 @@ export default class Calculator {
 
     const minAmount = this.minimumAmount ?? round.minimumAmount ?? 0;
 
-    const isEligible = (_c: Contribution, addressData: any): boolean => {
+    const isEligible = (addressData: any): boolean => {
       const hasValidEvidence = addressData?.evidence?.success;
 
       if (this.enablePassport) {
@@ -177,30 +177,39 @@ export default class Calculator {
       return true;
     };
 
-    let contributions: Array<Contribution> = rawContributions.map(
-      (raw: RawContribution) => ({
-        id: raw.id,
-        contributor: raw.voter,
-        recipient: raw.applicationId,
-        amount: raw.amountUSD,
-      })
-    );
-
     const passportIndex = passportScores.reduce((ps: any, acc: any) => {
       acc[ps.address] = ps;
       return acc;
     }, {});
 
-    contributions = contributions.filter((c: Contribution) => {
-      const addressData = passportIndex[c.contributor];
+    const contributions: Array<Contribution> = [];
 
-      const override = this.overrides[c.id];
+    for (let i = 0; i < rawContributions.length; i++) {
+      const raw = rawContributions[i];
+      const addressData = passportIndex[raw.contributor];
+      const override = this.overrides[raw.id];
+
       if (override !== undefined && override !== "1") {
-        return false;
+        continue;
       }
 
-      return c.amount >= minAmount && isEligible(c, addressData);
-    });
+      const amount = raw.amountUSD;
+
+      if (amount < minAmount) {
+        continue;
+      }
+
+      if (!isEligible(addressData)) {
+        continue;
+      }
+
+      contributions.push({
+        id: raw.id,
+        contributor: raw.voter,
+        recipient: raw.applicationId,
+        amount: raw.amountUSD,
+      });
+    }
 
     const results = linearQF(contributions, round.matchAmountUSD, {
       minimumAmount: this.minimumAmount ?? round.minimumAmount,
