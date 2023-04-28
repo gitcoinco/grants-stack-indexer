@@ -144,7 +144,7 @@ function createPriceProvider(updateEvery = 2000) {
 export async function getUSDConversionRate(
   chainId: number,
   token: string,
-  blockNumber: number
+  blockNumber?: number
 ): Promise<Price> {
   let closestPrice: Price | null = null;
 
@@ -161,7 +161,7 @@ export async function getUSDConversionRate(
 
   for (let i = prices.length - 1; i >= 0; i--) {
     const price = prices[i];
-    if (price.token === token && price.block < blockNumber) {
+    if (price.token === token && (!blockNumber || price.block < blockNumber)) {
       closestPrice = price;
       break;
     }
@@ -178,7 +178,7 @@ export async function convertToUSD(
   chainId: number,
   token: string,
   amount: bigint,
-  blockNumber: number
+  blockNumber?: number
 ): Promise<{ amount: number; price: number }> {
   const closestPrice = await getUSDConversionRate(chainId, token, blockNumber);
   const decimals = tokenDecimals[chainId][token];
