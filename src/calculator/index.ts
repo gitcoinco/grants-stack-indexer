@@ -194,16 +194,20 @@ export default class Calculator {
         10n ** matchTokenDecimals ??
       0n;
 
-    // round.metadata.quadraticFundingConfig.matchingCapAmount is a percentage
-    const matchingCapAmount =
-      this.matchingCapAmount ??
-      (((round.metadata?.quadraticFundingConfig?.matchingCap ?? false) &&
+    let matchingCapAmount = this.matchingCapAmount;
+
+    if (
+      matchingCapAmount === undefined &&
+      (round.metadata?.quadraticFundingConfig?.matchingCap ?? false)
+    ) {
+      // round.metadata.quadraticFundingConfig.matchingCapAmount is a percentage
+      matchingCapAmount =
         (matchAmount *
           BigInt(
             round.metadata?.quadraticFundingConfig?.matchingCapAmount ?? 0
           )) /
-          100n) ||
-        undefined);
+        100n;
+    }
 
     const isEligible = (addressData: any): boolean => {
       const hasValidEvidence = addressData?.evidence?.success;
