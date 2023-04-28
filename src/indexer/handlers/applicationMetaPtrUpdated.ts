@@ -10,6 +10,7 @@ export default async function applicationMetaPtrUpdated(
   await db.collection("rounds").updateById(id, (round) => ({
     ...round,
     applicationMetaPtr: event.args.newMetaPtr.pointer,
+    updatedAtBlock: event.blockNumber,
   }));
 
   return async () => {
