@@ -19,6 +19,8 @@ EXPOSE 8080
 
 COPY init.sh ./
 
+RUN npm run test
+
 # Cache indexer in the image
 RUN --mount=type=secret,id=INFURA_API_KEY \
     --mount=type=secret,id=ALCHEMY_API_KEY \

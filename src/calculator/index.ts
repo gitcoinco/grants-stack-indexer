@@ -1,4 +1,5 @@
 import fs from "fs";
+import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
 
 export class FileNotFoundError extends Error {
@@ -13,9 +14,19 @@ export class ResourceNotFoundError extends Error {
   }
 }
 
+export class OverridesColumnNotFoundError extends Error {
+  constructor(column: string) {
+    super(`cannot find column ${column} in the overrides file`);
+  }
+}
+
 export interface DataProvider {
   loadFile(description: string, path: string): Array<any>;
 }
+
+export type Overrides = {
+  [transactionId: string]: string;
+};
 
 export class FileSystemDataProvider {
   basePath: string;
@@ -39,6 +50,31 @@ export class FileSystemDataProvider {
   }
 }
 
+export function parseOverrides(buf: Buffer): Promise<any> {
+  return new Promise((resolve, _reject) => {
+    const results: Overrides = {};
+    const stream = csv()
+      .on("headers", (headers) => {
+        if (headers.indexOf("transactionId") < 0) {
+          throw new OverridesColumnNotFoundError("transactionId");
+        }
+
+        if (headers.indexOf("coefficient") < 0) {
+          throw new OverridesColumnNotFoundError("coefficient");
+        }
+      })
+      .on("data", (data) => {
+        results[data["transactionId"]] = data["coefficient"];
+      })
+      .on("end", () => {
+        resolve(results);
+      });
+
+    stream.write(buf);
+    stream.end();
+  });
+}
+
 export type CalculatorOptions = {
   dataProvider: DataProvider;
   chainId: string;
@@ -46,6 +82,7 @@ export type CalculatorOptions = {
   minimumAmount?: number;
   passportThreshold?: number;
   enablePassport?: boolean;
+  overrides: Overrides;
 };
 
 export type AugmentedResult = Calculation & {
@@ -57,6 +94,7 @@ export type AugmentedResult = Calculation & {
 };
 
 type RawContribution = {
+  id: string;
   voter: string;
   projectId: string;
   applicationId: string;
@@ -76,6 +114,7 @@ export default class Calculator {
   private minimumAmount: number | undefined;
   private enablePassport: boolean | undefined;
   private passportThreshold: number | undefined;
+  private overrides: Overrides;
 
   constructor(options: CalculatorOptions) {
     const {
@@ -85,6 +124,7 @@ export default class Calculator {
       minimumAmount,
       enablePassport,
       passportThreshold,
+      overrides,
     } = options;
     this.dataProvider = dataProvider;
     this.chainId = chainId;
@@ -92,10 +132,11 @@ export default class Calculator {
     this.minimumAmount = minimumAmount;
     this.enablePassport = enablePassport;
     this.passportThreshold = passportThreshold;
+    this.overrides = overrides;
   }
 
   calculate() {
-    const rawContributions = this.parseJSONFile(
+    const rawContributions: Array<RawContribution> = this.parseJSONFile(
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
@@ -118,9 +159,7 @@ export default class Calculator {
       throw new ResourceNotFoundError("round match amount");
     }
 
-    const minAmount = this.minimumAmount ?? round.minimumAmount ?? 0;
-
-    const isEligible = (_c: Contribution, addressData: any): boolean => {
+    const isEligible = (addressData: any): boolean => {
       const hasValidEvidence = addressData?.evidence?.success;
 
       if (this.enablePassport) {
@@ -136,27 +175,35 @@ export default class Calculator {
       return true;
     };
 
-    let contributions: Array<Contribution> = rawContributions.map(
-      (raw: RawContribution) => ({
-        contributor: raw.voter,
-        recipient: raw.applicationId,
-        amount: raw.amountUSD,
-      })
-    );
-
     const passportIndex = passportScores.reduce((ps: any, acc: any) => {
       acc[ps.address] = ps;
       return acc;
     }, {});
 
-    contributions = contributions.filter((c: Contribution) => {
-      const addressData = passportIndex[c.contributor];
+    const contributions: Array<Contribution> = [];
 
-      return c.amount >= minAmount && isEligible(c, addressData);
-    });
+    for (let i = 0; i < rawContributions.length; i++) {
+      const raw = rawContributions[i];
+      const addressData = passportIndex[raw.voter];
+      const override = this.overrides[raw.id];
+
+      if (override !== undefined && override !== "1") {
+        continue;
+      }
+
+      if (!isEligible(addressData)) {
+        continue;
+      }
+
+      contributions.push({
+        contributor: raw.voter,
+        recipient: raw.applicationId,
+        amount: raw.amountUSD,
+      });
+    }
 
     const results = linearQF(contributions, round.matchAmountUSD, {
-      minimumAmount: this.minimumAmount ?? round.minimumAmount,
+      minimumAmount: this.minimumAmount ?? round.minimumAmount ?? 0,
       ignoreSaturation: true,
     });
 
