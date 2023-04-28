@@ -114,13 +114,13 @@ type RawRound = {
   matchAmount: string;
   matchAmountUSD: number;
   metadata?: {
-    quadraticFundingConfig: {
-      matchingFundsAvailable: number;
-      matchingCap: boolean;
-      minDonationThreshold: boolean;
-      sybilDefense: boolean;
-      matchingCapAmount: number;
-      minDonationThresholdAmount: number;
+    quadraticFundingConfig?: {
+      matchingFundsAvailable?: number;
+      sybilDefense?: boolean;
+      matchingCap?: boolean;
+      matchingCapAmount?: number;
+      minDonationThreshold?: boolean;
+      minDonationThresholdAmount?: number;
     };
   };
 };
@@ -174,28 +174,36 @@ export default class Calculator {
       throw new ResourceNotFoundError("round match amount");
     }
 
-    if (round.metadata === undefined) {
-      throw new ResourceNotFoundError("round metadata");
+    if (round.token === undefined) {
+      throw new ResourceNotFoundError("round token");
     }
 
     const matchAmount = BigInt(round.matchAmount);
     const matchTokenDecimals = BigInt(tokenDecimals[this.chainId][round.token]);
 
     const enablePassport =
-      this.enablePassport ?? round.metadata.quadraticFundingConfig.sybilDefense;
+      this.enablePassport ??
+      round.metadata?.quadraticFundingConfig?.sybilDefense ??
+      false;
 
     const minimumAmount =
       this.minimumAmount ??
-      BigInt(round.metadata.quadraticFundingConfig.minDonationThresholdAmount) *
+      BigInt(
+        round.metadata?.quadraticFundingConfig?.minDonationThresholdAmount ?? 0
+      ) *
         10n ** matchTokenDecimals ??
       0n;
 
     // round.metadata.quadraticFundingConfig.matchingCapAmount is a percentage
     const matchingCapAmount =
       this.matchingCapAmount ??
-      (matchAmount *
-        BigInt(round.metadata.quadraticFundingConfig.matchingCapAmount)) /
-        100n;
+      (((round.metadata?.quadraticFundingConfig?.matchingCap ?? false) &&
+        (matchAmount *
+          BigInt(
+            round.metadata?.quadraticFundingConfig?.matchingCapAmount ?? 0
+          )) /
+          100n) ||
+        undefined);
 
     const isEligible = (addressData: any): boolean => {
       const hasValidEvidence = addressData?.evidence?.success;

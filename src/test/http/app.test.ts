@@ -111,27 +111,38 @@ describe("server", () => {
           {
             applicationId: "application-id-1",
             projectId: "project-id-1",
-            totalReceived: 15,
-            sumOfSqrt: 7,
-            matched: 13.6,
+            totalReceived: "1500",
+            sumOfSqrt: "70",
+            matched: "1360",
+            matchedUSD: 0,
+            matchedWithoutCap: "1360",
+            capOverflow: "0",
           },
           {
             applicationId: "application-id-2",
             projectId: "project-id-2",
-            totalReceived: 10,
-            sumOfSqrt: 8,
-            matched: 21.6,
+            totalReceived: "1000",
+            sumOfSqrt: "80",
+            matched: "2160",
+            matchedUSD: 0,
+            matchedWithoutCap: "2160",
+            capOverflow: "0",
           },
           {
             applicationId: "application-id-3",
             projectId: "project-id-3",
-            totalReceived: 34,
-            sumOfSqrt: 14,
-            matched: 64.8,
+            totalReceived: "3400",
+            sumOfSqrt: "140",
+            matched: "6480",
+            matchedUSD: 0,
+            matchedWithoutCap: "6480",
+            capOverflow: "0",
           },
         ];
 
-        const resp = await request(app).get("/chains/1/rounds/0x1234/matches?ignoreSaturation=true");
+        const resp = await request(app).get(
+          "/chains/1/rounds/0x1234/matches?ignoreSaturation=true"
+        );
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
       });
@@ -161,11 +172,13 @@ describe("server", () => {
           },
         ];
 
-        const resp = await request(app).get("/chains/1/rounds/0x1234/matches?ignoreSaturation=false");
+        const resp = await request(app).get(
+          "/chains/1/rounds/0x1234/matches?ignoreSaturation=false"
+        );
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
+        expect(resp.statusCode).toBe(200);
       });
-
     });
 
     describe("calculations with overrides", () => {
