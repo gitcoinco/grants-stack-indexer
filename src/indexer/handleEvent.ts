@@ -219,6 +219,10 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
       };
     }
 
+    case "MatchAmountUpdated": {
+      return matchAmountUpdated(indexer, event);
+    }
+
     case "RoundMetaPtrUpdated": {
       return roundMetaPtrUpdated(indexer, event);
     }
