@@ -186,7 +186,7 @@ export default class Calculator {
 
     for (let i = 0; i < rawContributions.length; i++) {
       const raw = rawContributions[i];
-      const addressData = passportIndex[raw.contributor];
+      const addressData = passportIndex[raw.voter];
       const override = this.overrides[raw.id];
 
       if (override !== undefined && override !== "1") {
