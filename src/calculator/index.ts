@@ -136,7 +136,7 @@ export default class Calculator {
   }
 
   calculate() {
-    const rawContributions = this.parseJSONFile(
+    const rawContributions: Array<RawContribution> = this.parseJSONFile(
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
