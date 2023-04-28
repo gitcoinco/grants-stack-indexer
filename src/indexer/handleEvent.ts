@@ -255,7 +255,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         uniqueContributors: 0,
         metadata: null,
         createdAtBlock: event.blockNumber,
-        updatedAtBlock: event.blockNumber,
+        statusUpdatedAtBlock: event.blockNumber,
       });
 
       const isNewProject = await projects.upsertById(projectId, (p) => {
@@ -270,7 +270,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
             uniqueContributors: 0,
             metadata: null,
             createdAtBlock: event.blockNumber,
-            updatedAtBlock: event.blockNumber,
+            statusUpdatedAtBlock: event.blockNumber,
           }
         );
       });
@@ -327,7 +327,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           .collection(`rounds/${event.address}/projects`)
           .updateById(projectId, (application) => ({
             ...application,
-            updatedAtBlock: event.blockNumber,
+            statusUpdatedAtBlock: event.blockNumber,
             status: projectApp.status ?? application.status,
           }));
 
@@ -335,7 +335,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           .collection(`rounds/${event.address}/applications`)
           .updateById(projectId, (application) => ({
             ...application,
-            updatedAtBlock: event.blockNumber,
+            statusUpdatedAtBlock: event.blockNumber,
             status: projectApp.status ?? application.status,
           }));
       }
@@ -355,7 +355,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           .updateById(i.toString(), (application) => ({
             ...application,
             status: statusString,
-            updatedAtBlock: event.blockNumber,
+            statusUpdatedAtBlock: event.blockNumber,
           }));
 
         if (application) {
@@ -364,7 +364,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
             .updateById(application.projectId, (application) => ({
               ...application,
               status: statusString,
-              updatedAtBlock: event.blockNumber,
+              statusUpdatedAtBlock: event.blockNumber,
             }));
         }
       }
