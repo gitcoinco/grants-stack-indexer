@@ -170,7 +170,7 @@ describe("server", () => {
         expect(resp.body).toEqual({ error: "overrides param required" });
       });
 
-      test("should render 400 if the overrides file doesn't have the transactionId column", async () => {
+      test("should render 400 if the overrides file doesn't have the contributionId column", async () => {
         const overridesContent = loadFixture(
           "overrides-without-transaction-id",
           "csv"
@@ -180,7 +180,7 @@ describe("server", () => {
           .attach("overrides", Buffer.from(overridesContent), "overrides.csv");
         expect(resp.statusCode).toBe(400);
         expect(resp.body).toEqual({
-          error: "cannot find column transactionId in the overrides file",
+          error: "cannot find column contributionId in the overrides file",
         });
       });
 
