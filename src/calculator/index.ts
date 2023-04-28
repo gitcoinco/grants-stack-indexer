@@ -193,12 +193,6 @@ export default class Calculator {
         continue;
       }
 
-      const amount = raw.amountUSD;
-
-      if (amount < minAmount) {
-        continue;
-      }
-
       if (!isEligible(addressData)) {
         continue;
       }
