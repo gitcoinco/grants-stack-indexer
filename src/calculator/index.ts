@@ -159,8 +159,6 @@ export default class Calculator {
       throw new ResourceNotFoundError("round match amount");
     }
 
-    const minAmount = this.minimumAmount ?? round.minimumAmount ?? 0;
-
     const isEligible = (addressData: any): boolean => {
       const hasValidEvidence = addressData?.evidence?.success;
 
@@ -205,7 +203,7 @@ export default class Calculator {
     }
 
     const results = linearQF(contributions, round.matchAmountUSD, {
-      minimumAmount: this.minimumAmount ?? round.minimumAmount,
+      minimumAmount: this.minimumAmount ?? round.minimumAmount ?? 0,
       ignoreSaturation: true,
     });
 
