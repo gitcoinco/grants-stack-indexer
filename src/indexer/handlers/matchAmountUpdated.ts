@@ -19,6 +19,7 @@ export default async function (
 
   await db.collection("rounds").updateById(id, (round) => ({
     ...round,
+    updatedAtBlock: event.blockNumber,
     matchAmount: matchAmount,
     matchAmountUSD: amountUSD.amount,
   }));
