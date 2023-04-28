@@ -1,9 +1,15 @@
-import { describe, test, expect, beforeEach } from "vitest";
+import { vi, describe, test, expect, beforeEach } from "vitest";
 import fs from "fs";
 import path from "path";
 import request from "supertest";
 import { app, calculatorConfig } from "../../http/app.js";
 import { FileNotFoundError } from "../../calculator/index.js";
+
+vi.mock("../../prices/index.js", () => {
+  return {
+    convertToUSD: vi.fn().mockReturnValue({ amount: 0 }),
+  };
+});
 
 const loadFixture = (name: string, extension = "json") => {
   const p = path.resolve(__dirname, "../fixtures", `${name}.${extension}`);
