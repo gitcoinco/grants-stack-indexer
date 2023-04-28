@@ -13,7 +13,7 @@
     "dev": "tsc --watch",
     "test": "npx vitest run --reporter verbose",
     "test:watch": "npx vitest watch --reporter verbose",
-    "serve": "node dist/src/http/index.js",
+    "serve": "node dist/src/http/server.js",
     "dev:serve": "nodemon --watch dist --exec 'npm run serve'",
     "passport": "node dist/src/cli/passport.js",
     "index:goerli": "node dist/src/cli/indexer.js goerli",

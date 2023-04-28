@@ -1,4 +1,5 @@
-import express from "express";
+import express, { Request, Response } from "express";
+import multer from "multer";
 import cors from "cors";
 import serveIndex from "serve-index";
 import path from "node:path";
@@ -6,13 +7,17 @@ import { JsonStorage } from "chainsauce";
 import { createArrayCsvStringifier } from "csv-writer";
 
 import config from "../config.js";
+const upload = multer();
 
 import Calculator, {
+  Overrides,
   DataProvider,
   FileSystemDataProvider,
   CalculatorOptions,
   FileNotFoundError,
   ResourceNotFoundError,
+  OverridesColumnNotFoundError,
+  parseOverrides,
 } from "../calculator/index.js";
 
 export const app = express();
@@ -33,6 +38,41 @@ app.use(
   }),
   serveIndex(config.storageDir, { icons: true, view: "details" })
 );
+
+function handleError(res: Response, err: any) {
+  if (err instanceof FileNotFoundError) {
+    res.statusCode = 404;
+    res.send({
+      error: err.message,
+    });
+
+    return;
+  }
+
+  if (err instanceof ResourceNotFoundError) {
+    res.statusCode = 404;
+    res.send({
+      error: err.message,
+    });
+
+    return;
+  }
+
+  if (err instanceof OverridesColumnNotFoundError) {
+    res.statusCode = 400;
+    res.send({
+      error: err.message,
+    });
+
+    return;
+  }
+
+  console.error(err);
+  res.statusCode = 500;
+  res.send({
+    error: "something went wrong",
+  });
+}
 
 app.get("/", (_req, res) => {
   res.redirect("/data");
@@ -99,7 +139,12 @@ export const calculatorConfig: { dataProvider: DataProvider } = {
   dataProvider: new FileSystemDataProvider("./data"),
 };
 
-app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
+async function matchesHandler(
+  req: Request,
+  res: Response,
+  okStatusCode: number,
+  useOverrides: boolean
+) {
   const chainId = req.params.chainId;
   const roundId = req.params.roundId;
 
@@ -107,6 +152,25 @@ app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
   const passportThreshold = req.query.passportThreshold?.toString();
   const enablePassport =
     req.query.enablePassport?.toString()?.toLowerCase() === "true";
+
+  let overrides: Overrides = {};
+
+  if (useOverrides) {
+    const file = req.file;
+    if (file === undefined || file.fieldname !== "overrides") {
+      res.status(400);
+      res.send({ error: "overrides param required" });
+      return;
+    }
+
+    const buf = file.buffer;
+    try {
+      overrides = await parseOverrides(buf);
+    } catch (e) {
+      handleError(res, e);
+      return;
+    }
+  }
 
   const calculatorOptions: CalculatorOptions = {
     dataProvider: calculatorConfig.dataProvider,
@@ -117,41 +181,27 @@ app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
       ? Number(passportThreshold)
       : undefined,
     enablePassport: enablePassport,
+    overrides,
   };
 
   try {
     const calculator = new Calculator(calculatorOptions);
     const matches = calculator.calculate();
+    res.status(okStatusCode);
     res.send(matches);
   } catch (e) {
-    if (e instanceof FileNotFoundError) {
-      res.statusCode = 404;
-      res.send({
-        error: e.message,
-      });
-
-      return;
-    }
-
-    if (e instanceof ResourceNotFoundError) {
-      res.statusCode = 404;
-      res.send({
-        error: e.message,
-      });
-
-      return;
-    }
-
-    console.error(e);
-    res.statusCode = 500;
-    res.send({
-      error: "something went wrong",
-    });
+    handleError(res, e);
   }
+}
+
+app.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
+  matchesHandler(req, res, 200, false);
 });
 
-if (process.env.VITEST !== "true") {
-  app.listen(config.port, () => {
-    console.log(`Server listening on port ${config.port}`);
-  });
-}
+app.post(
+  "/chains/:chainId/rounds/:roundId/matches",
+  upload.single("overrides"),
+  (req, res) => {
+    matchesHandler(req, res, 201, true);
+  }
+);
