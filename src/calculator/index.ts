@@ -1,4 +1,5 @@
 import fs from "fs";
+import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
 
 export class FileNotFoundError extends Error {
@@ -13,9 +14,19 @@ export class ResourceNotFoundError extends Error {
   }
 }
 
+export class OverridesColumnNotFoundError extends Error {
+  constructor(column: string) {
+    super(`cannot find column ${column} in the overrides file`);
+  }
+}
+
 export interface DataProvider {
   loadFile(description: string, path: string): Array<any>;
 }
+
+export type Overrides = {
+  [transactionId: string]: string;
+};
 
 export class FileSystemDataProvider {
   basePath: string;
@@ -39,6 +50,31 @@ export class FileSystemDataProvider {
   }
 }
 
+export function parseOverrides(buf: Buffer): Promise<any> {
+  return new Promise((resolve, _reject) => {
+    const results: Overrides = {};
+    const stream = csv()
+      .on("headers", (headers) => {
+        if (headers.indexOf("transactionId") < 0) {
+          throw new OverridesColumnNotFoundError("transactionId");
+        }
+
+        if (headers.indexOf("coefficient") < 0) {
+          throw new OverridesColumnNotFoundError("coefficient");
+        }
+      })
+      .on("data", (data) => {
+        results[data["transactionId"]] = data["coefficient"];
+      })
+      .on("end", () => {
+        resolve(results);
+      });
+
+    stream.write(buf);
+    stream.end();
+  });
+}
+
 export type CalculatorOptions = {
   dataProvider: DataProvider;
   chainId: string;
@@ -46,6 +82,7 @@ export type CalculatorOptions = {
   minimumAmount?: number;
   passportThreshold?: number;
   enablePassport?: boolean;
+  overrides: Overrides;
 };
 
 export type AugmentedResult = Calculation & {
@@ -57,6 +94,7 @@ export type AugmentedResult = Calculation & {
 };
 
 type RawContribution = {
+  id: string;
   voter: string;
   projectId: string;
   applicationId: string;
@@ -76,6 +114,7 @@ export default class Calculator {
   private minimumAmount: number | undefined;
   private enablePassport: boolean | undefined;
   private passportThreshold: number | undefined;
+  private overrides: Overrides;
 
   constructor(options: CalculatorOptions) {
     const {
@@ -85,6 +124,7 @@ export default class Calculator {
       minimumAmount,
       enablePassport,
       passportThreshold,
+      overrides,
     } = options;
     this.dataProvider = dataProvider;
     this.chainId = chainId;
@@ -92,6 +132,7 @@ export default class Calculator {
     this.minimumAmount = minimumAmount;
     this.enablePassport = enablePassport;
     this.passportThreshold = passportThreshold;
+    this.overrides = overrides;
   }
 
   calculate() {
@@ -138,6 +179,7 @@ export default class Calculator {
 
     let contributions: Array<Contribution> = rawContributions.map(
       (raw: RawContribution) => ({
+        id: raw.id,
         contributor: raw.voter,
         recipient: raw.applicationId,
         amount: raw.amountUSD,
@@ -151,6 +193,11 @@ export default class Calculator {
 
     contributions = contributions.filter((c: Contribution) => {
       const addressData = passportIndex[c.contributor];
+
+      const override = this.overrides[c.id];
+      if (override !== undefined && override !== "1") {
+        return false;
+      }
 
       return c.amount >= minAmount && isEligible(c, addressData);
     });
