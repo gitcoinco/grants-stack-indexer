@@ -47,6 +47,16 @@ npm run index:fantom
 npm run index:optimism
 ```
 
+The indexer script updates to the current last block and exits, use the follwing options to change it's behaviour:
+
+```bash
+npm run index:mainnet -- --to-block=16833357 # run only to the specified block, useful to maximize cache usage
+npm run index:mainnet -- --from-block=16994526 # run only from the specified block, useful to index only the latest events
+npm run index:mainnet -- --follow # follow the blockchain, this runs as a long running process indexing events as they happen
+npm run index:mainnet -- --clear # clear the indexed data before indexing
+npm run index:mainnet -- --no-cache # run without a cache
+```
+
 ## Development
 
 ```bash
@@ -70,18 +80,6 @@ Then check the new files generated under `data/1`.
 ### HTTP Server
 
 The `npm run serve` command runs a static HTTP server to serve the JSON files inside `/.data`.
-
-### Indexer arguments
-
-The indexer updates to the current last block and exits, use the follwing options to change it's behaviour:
-
-```bash
-npm run index:mainnet -- --to-block=16833357 # run only to the specified block, useful to maximize cache usage
-npm run index:mainnet -- --from-block=16994526 # run only from the specified block, useful to index only the latest events
-npm run index:mainnet -- --follow # follow the blockchain, this run as a long running process
-npm run index:mainnet -- --clear # run from empty data, it will index from the beginning
-npm run index:mainnet -- --no-cache # run without a cache
-```
 
 ## Deployment
 
