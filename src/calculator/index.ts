@@ -197,14 +197,11 @@ export default class Calculator {
         continue;
       }
 
-      const c: Contribution = {
-        id: raw.id,
+      contributions.push({
         contributor: raw.voter,
         recipient: raw.applicationId,
         amount: raw.amountUSD,
-      };
-
-      contributions.push(c);
+      });
     }
 
     const results = linearQF(contributions, round.matchAmountUSD, {
