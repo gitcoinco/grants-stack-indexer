@@ -11,7 +11,7 @@ const loadFixture = (name: string, extension = "json") => {
   return data;
 };
 
-class TestDataProvider {
+export class TestDataProvider {
   routes: { [path: string]: string };
 
   constructor(routes: { [path: string]: string | any }) {
