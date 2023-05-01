@@ -19,8 +19,10 @@ import Calculator, {
   OverridesColumnNotFoundError,
   parseOverrides,
 } from "../calculator/index.js";
+import fs from "fs";
 
 export const app = express();
+
 function loadDatabase(chainId: string) {
   const storageDir = path.join(config.storageDir, chainId);
   return new JsonStorage(storageDir);
@@ -34,7 +36,7 @@ app.use(
     acceptRanges: true,
     setHeaders: (res) => {
       res.setHeader("Accept-Ranges", "bytes");
-    },
+    }
   }),
   serveIndex(config.storageDir, { icons: true, view: "details" })
 );
@@ -106,8 +108,8 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
       "projecTwitter",
       "projectGithub",
       "userGithub",
-      ...questionTitles,
-    ],
+      ...questionTitles
+    ]
   });
 
   const records = [];
@@ -127,7 +129,7 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
       application.metadata.application.project.projectTwitter,
       application.metadata.application.project.projectGithub,
       application.metadata.application.project.userGithub,
-      ...answers,
+      ...answers
     ]);
   }
 
@@ -135,8 +137,84 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
   res.send(csv.getHeaderString() + csv.stringifyRecords(records));
 });
 
+const processPassportScores = (scores: any[]) => {
+  return scores.reduce((map, score) => {
+    const address = score.address.toLowerCase();
+    const { evidence, error, ...remainingScore } = score;
+    map[address] = { ...remainingScore, ...evidence };
+    return map;
+  }, {});
+};
+
+app.get("/data/:chainId/rounds/:roundId/vote_coefficients.csv", async (req, res) => {
+  const { chainId, roundId } = req.params;
+  const db = loadDatabase(chainId);
+
+  try {
+    const [votes, data] = await Promise.all([
+      db.collection(`rounds/${roundId}/votes`).all(),
+      fs.promises.readFile("./data/passport_scores.json", { encoding: "utf8", flag: "r" }),
+    ]);
+
+    const passportScores = JSON.parse(data);
+    const passportScoresMap = processPassportScores(passportScores);
+
+    const records = votes.map((vote: any) => {
+      const voter = vote.voter.toLowerCase();
+      const combinedVote = { ...vote, ...passportScoresMap[voter] ?? {} };
+
+      return [
+        combinedVote.id,
+        combinedVote.projectId,
+        combinedVote.applicationId,
+        combinedVote.roundId,
+        combinedVote.token,
+        voter,
+        combinedVote.grantAddress,
+        combinedVote.amount,
+        combinedVote.amountUSD,
+        combinedVote.coefficient,
+        combinedVote.status,
+        combinedVote.last_score_timestamp,
+        combinedVote.type,
+        combinedVote.success,
+        combinedVote.rawScore,
+        combinedVote.threshold,
+      ];
+    });
+
+    const csv = createArrayCsvStringifier({
+      header: [
+        "id",
+        "projectId",
+        "applicationId",
+        "roundId",
+        "token",
+        "voter",
+        "grantAddress",
+        "amount",
+        "amountUSD",
+        "coefficient",
+        "status",
+        "last_score_timestamp",
+        "type",
+        "success",
+        "rawScore",
+        "threshold",
+      ],
+    });
+
+    res.setHeader("content-type", "text/csv");
+    res.send(csv.getHeaderString() + csv.stringifyRecords(records));
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).send("Internal server error");
+  }
+});
+
+
 export const calculatorConfig: { dataProvider: DataProvider } = {
-  dataProvider: new FileSystemDataProvider("./data"),
+  dataProvider: new FileSystemDataProvider("./data")
 };
 
 async function matchesHandler(

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import fs from "fs";
 import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";

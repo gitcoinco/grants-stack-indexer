@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Indexer, JsonStorage, Event } from "chainsauce";
 import { ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
