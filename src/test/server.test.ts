@@ -67,6 +67,40 @@ describe("server", () => {
         const res = await request(app).get("/chains/1/rounds/0x1234/matches");
         expect(res.status).toBe(404);
       });
+      
+    });
+
+    describe("matches csv", () => {
+      test("should render matches as csv", () =>
+      new Promise((done) => {
+        console.log("Starting test"); // Add a log statement at the beginning of the test
+    
+        calculatorConfig.dataProvider = new TestDataProvider({
+          "1/rounds/0x1234/votes.json": "votes",
+          "1/rounds/0x1234/applications.json": "applications",
+          "1/rounds.json": "rounds",
+          "passport_scores.json": "passport_scores",
+        });
+    
+        const expectedCsv = [
+          "matched,contributionsCount,sumOfSqrt,totalReceived,projectId,applicationId,payoutAddress,projectName",
+          "13.6,5,7,15,project-id-1,application-id-1,payout-address-1,Project 1",
+          "21.6,4,8,10,project-id-2,application-id-2,payout-address-2,Project 2",
+          "64.8,3,14,34,project-id-3,application-id-3,payout-address-3,Project 3",
+        ].join("\n");
+    
+        request(app)
+          .get("/chains/1/rounds/0x1234/matches.csv")
+          .then((resp) => {
+            expect(resp.statusCode).toBe(200);
+            expect(resp.text).toEqual(expectedCsv);
+            done(true);
+          })
+          .catch((error) => {
+            done(false);
+          });
+      }),
+      10000);
     });
 
     describe("calculations", () => {
@@ -111,6 +145,7 @@ describe("server", () => {
               done(true);
             });
         }));
+        
     });
   });
 });
