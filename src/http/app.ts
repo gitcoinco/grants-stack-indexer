@@ -283,3 +283,86 @@ app.post(
     matchesHandler(req, res, 201, true);
   }
 );
+
+app.get("/chains/:chainId/rounds/:roundId/matches.csv", async (req, res) => {
+  const chainId = req.params.chainId;
+  const roundId = req.params.roundId;
+
+  const minimumAmount = req.query.minimumAmount?.toString();
+  const passportThreshold = req.query.passportThreshold?.toString();
+  const enablePassport =
+    req.query.enablePassport?.toString()?.toLowerCase() === "true";
+
+  const calculatorOptions: CalculatorOptions = {
+    dataProvider: calculatorConfig.dataProvider,
+    chainId: chainId,
+    roundId: roundId,
+    minimumAmount: minimumAmount ? Number(minimumAmount) : undefined,
+    passportThreshold: passportThreshold
+      ? Number(passportThreshold)
+      : undefined,
+    enablePassport: enablePassport,
+    overrides: {}
+  };
+
+  try {
+    const calculator = new Calculator(calculatorOptions);
+    const matches = calculator.calculate();
+
+    const csv = createArrayCsvStringifier({
+      header: [
+        "matched",
+        "contributionsCount",
+        "sumOfSqrt",
+        "totalReceived",
+        "projectId",
+        "applicationId",
+        "payoutAddress",
+        "projectName"
+      ],
+    });
+
+    const records = [];
+
+    for (const match of matches) {
+      records.push([
+        match.matched,
+        match.contributionsCount,
+        match.sumOfSqrt,
+        match.totalReceived,
+        match.projectId,
+        match.applicationId,
+        match.payoutAddress,
+        match.projectName
+      ]);
+    }
+
+    res.setHeader("content-type", "text/csv");
+    res.send(csv.getHeaderString() + csv.stringifyRecords(records));
+  } catch (e) {
+    if (e instanceof FileNotFoundError) {
+      res.statusCode = 404;
+      res.send({
+          error: e.message,
+      });
+
+      return;
+    }
+
+    if (e instanceof ResourceNotFoundError) {
+      res.statusCode = 404;
+      res.send({
+          error: e.message,
+      });
+
+      return;
+    }
+
+    console.error(e);
+    res.statusCode = 500;
+    res.send({
+      error: "something went wrong",
+    });
+  }
+
+});
