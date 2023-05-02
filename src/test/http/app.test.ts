@@ -123,6 +123,7 @@ describe("server", () => {
             matchedUSD: 0,
             matchedWithoutCap: "1360",
             capOverflow: "0",
+            contributionsCount: "4",
           },
           {
             applicationId: "application-id-2",
@@ -133,6 +134,7 @@ describe("server", () => {
             matchedUSD: 0,
             matchedWithoutCap: "2160",
             capOverflow: "0",
+            contributionsCount: "7",
           },
           {
             applicationId: "application-id-3",
@@ -143,6 +145,7 @@ describe("server", () => {
             matchedUSD: 0,
             matchedWithoutCap: "6480",
             capOverflow: "0",
+            contributionsCount: "7",
           },
         ];
 
