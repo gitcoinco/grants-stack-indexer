@@ -40,7 +40,7 @@
     "express": "^4.18.2",
     "multer": "^1.4.5-lts.1",
     "npm-run-all": "^4.1.5",
-    "pluralistic": "github:gitcoinco/pluralistic.js#44ecf5fc495b20c3edc1d1fd0cf10368a572b20d",
+    "pluralistic": "github:gitcoinco/pluralistic.js#8f7c85f1f0ddbe91ed849e9f21a5a80c0f05916a",
     "serve-index": "^1.9.1",
     "statuses-bitmap": "github:gitcoinco/statuses-bitmap#3d8fd370f209ccbaffd3781cf2b6d2895237c21c",
     "typescript": "^4.9.5"
