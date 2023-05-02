@@ -322,47 +322,20 @@ app.get("/chains/:chainId/rounds/:roundId/matches.csv", async (req, res) => {
       ],
     });
 
-    const records = [];
-
-    for (const match of matches) {
-      records.push([
-        match.matched,
-        match.contributionsCount,
-        match.sumOfSqrt,
-        match.totalReceived,
-        match.projectId,
-        match.applicationId,
-        match.payoutAddress,
-        match.projectName
-      ]);
-    }
+    const records = matches.map((match: any) => ([
+      match.matched,
+      match.contributionsCount,
+      match.sumOfSqrt,
+      match.totalReceived,
+      match.projectId,
+      match.applicationId,
+      match.payoutAddress,
+      match.projectName
+    ]));
 
     res.setHeader("content-type", "text/csv");
     res.send(csv.getHeaderString() + csv.stringifyRecords(records));
   } catch (e) {
-    if (e instanceof FileNotFoundError) {
-      res.statusCode = 404;
-      res.send({
-          error: e.message,
-      });
-
-      return;
-    }
-
-    if (e instanceof ResourceNotFoundError) {
-      res.statusCode = 404;
-      res.send({
-          error: e.message,
-      });
-
-      return;
-    }
-
-    console.error(e);
-    res.statusCode = 500;
-    res.send({
-      error: "something went wrong",
-    });
+    handleError(res, e);
   }
-
 });
