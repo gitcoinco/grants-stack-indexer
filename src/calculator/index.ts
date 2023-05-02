@@ -96,7 +96,6 @@ export type AugmentedResult = Calculation & {
   matchedUSD: number;
   projectName: string;
   payoutAddress: string;
-  contributionsCount: number;
 };
 
 type RawContribution = {
@@ -275,7 +274,6 @@ export default class Calculator {
         matchedUSD: conversionUSD.amount,
         projectId: application.projectId,
         applicationId: application.id,
-        contributionsCount: application.votes,
         projectName: application.metadata?.application?.project?.title,
         payoutAddress: application.metadata?.application?.recipient,
       });
