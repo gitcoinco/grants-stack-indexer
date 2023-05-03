@@ -109,7 +109,7 @@ type RawRound = {
   id: string;
 };
 
-export default class  {
+export default class Calculator {
   private dataProvider: DataProvider;
   private chainId: string;
   private roundId: string;
@@ -209,7 +209,7 @@ export default class  {
 
     const results = linearQF(contributions, round.matchAmountUSD, {
       minimumAmount: this.minimumAmount ?? round.minimumAmount ?? 0,
-      ignoreSaturation: this.ignoreSaturation ?? true, 
+      ignoreSaturation: this.ignoreSaturation ?? false, 
     });
 
     const augmented: Array<AugmentedResult> = [];
