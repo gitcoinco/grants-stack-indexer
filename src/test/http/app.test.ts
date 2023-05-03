@@ -106,7 +106,7 @@ describe("server", () => {
         });
       });
 
-      test("should render calculations", async () => {
+      test("should render calculations with ignore saturation true", async () => {
         const expectedResults = [
           {
             applicationId: "application-id-1",
@@ -131,10 +131,41 @@ describe("server", () => {
           },
         ];
 
-        const resp = await request(app).get("/chains/1/rounds/0x1234/matches");
+        const resp = await request(app).get("/chains/1/rounds/0x1234/matches?ignoreSaturation=true");
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
       });
+
+      test("should render calculations with ignore saturation false", async () => {
+        const expectedResults = [
+          {
+            applicationId: "application-id-1",
+            projectId: "project-id-1",
+            totalReceived: 15,
+            sumOfSqrt: 7,
+            matched: 8.024,
+          },
+          {
+            applicationId: "application-id-2",
+            projectId: "project-id-2",
+            totalReceived: 10,
+            sumOfSqrt: 8,
+            matched: 12.744,
+          },
+          {
+            applicationId: "application-id-3",
+            projectId: "project-id-3",
+            totalReceived: 34,
+            sumOfSqrt: 14,
+            matched: 38.232,
+          },
+        ];
+
+        const resp = await request(app).get("/chains/1/rounds/0x1234/matches?ignoreSaturation=false");
+        expect(resp.statusCode).toBe(200);
+        expect(resp.body).toEqual(expectedResults);
+      });
+
     });
 
     describe("calculations with overrides", () => {
