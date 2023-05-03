@@ -83,6 +83,7 @@ export type CalculatorOptions = {
   minimumAmount?: number;
   passportThreshold?: number;
   enablePassport?: boolean;
+  ignoreSaturation?: boolean;
   overrides: Overrides;
 };
 
@@ -108,13 +109,14 @@ type RawRound = {
   id: string;
 };
 
-export default class Calculator {
+export default class  {
   private dataProvider: DataProvider;
   private chainId: string;
   private roundId: string;
   private minimumAmount: number | undefined;
   private enablePassport: boolean | undefined;
   private passportThreshold: number | undefined;
+  private ignoreSaturation: boolean | undefined;
   private overrides: Overrides;
 
   constructor(options: CalculatorOptions) {
@@ -125,6 +127,7 @@ export default class Calculator {
       minimumAmount,
       enablePassport,
       passportThreshold,
+      ignoreSaturation,
       overrides,
     } = options;
     this.dataProvider = dataProvider;
@@ -133,6 +136,7 @@ export default class Calculator {
     this.minimumAmount = minimumAmount;
     this.enablePassport = enablePassport;
     this.passportThreshold = passportThreshold;
+    this.ignoreSaturation = ignoreSaturation;
     this.overrides = overrides;
   }
 
@@ -205,7 +209,7 @@ export default class Calculator {
 
     const results = linearQF(contributions, round.matchAmountUSD, {
       minimumAmount: this.minimumAmount ?? round.minimumAmount ?? 0,
-      ignoreSaturation: true,
+      ignoreSaturation: this.ignoreSaturation ?? true, 
     });
 
     const augmented: Array<AugmentedResult> = [];
