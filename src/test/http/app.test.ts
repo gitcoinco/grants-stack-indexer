@@ -113,21 +113,21 @@ describe("server", () => {
             projectId: "project-id-1",
             totalReceived: 15,
             sumOfSqrt: 7,
-            matched: 13.6,
+            matched: 8.024,
           },
           {
             applicationId: "application-id-2",
             projectId: "project-id-2",
             totalReceived: 10,
             sumOfSqrt: 8,
-            matched: 21.6,
+            matched: 12.744,
           },
           {
             applicationId: "application-id-3",
             projectId: "project-id-3",
             totalReceived: 34,
             sumOfSqrt: 14,
-            matched: 64.8,
+            matched: 38.232,
           },
         ];
 
