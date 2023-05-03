@@ -104,7 +104,7 @@ describe("server", () => {
           ];
 
           request(app)
-            .get("/chains/1/rounds/0x1234/matches")
+            .get("/chains/1/rounds/0x1234/matches?ignoreSaturation=true")
             .then((resp) => {
               expect(resp.statusCode).toBe(200);
               expect(resp.body).toEqual(expectedResults);
