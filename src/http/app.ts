@@ -137,13 +137,43 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
   res.send(csv.getHeaderString() + csv.stringifyRecords(records));
 });
 
-const processPassportScores = (scores: any[]) => {
+type BasePassportScore = {
+  address: string;
+  score: string | null;
+  status: string;
+  last_score_timestamp: string;
+};
+
+type FullPassportScore = BasePassportScore & {
+  evidence: {
+    type: string;
+    success: boolean;
+    rawScore: string;
+    threshold: string;
+  } | null;
+  error?: string;
+};
+
+type FlatPassportScoreWithCoefficient = BasePassportScore & {
+  coefficient: 0 | 1;
+  type?: string;
+  success?: boolean;
+  rawScore?: string;
+  threshold?: string;
+};
+
+type PassportScoresMap = {
+  [address: string]: FlatPassportScoreWithCoefficient;
+};
+
+const processPassportScores = (scores: FullPassportScore[]): PassportScoresMap => {
   return scores.reduce((map, score) => {
     const address = score.address.toLowerCase();
     const { evidence, error, ...remainingScore } = score;
-    map[address] = { ...remainingScore, ...evidence };
+    const coefficient = evidence !== null && evidence.success ? 1 : 0;
+    map[address] = { ...remainingScore, ...evidence, coefficient };
     return map;
-  }, {});
+  }, {} as PassportScoresMap);
 };
 
 app.get("/data/:chainId/rounds/:roundId/vote_coefficients.csv", async (req, res) => {
@@ -156,12 +186,13 @@ app.get("/data/:chainId/rounds/:roundId/vote_coefficients.csv", async (req, res)
       fs.promises.readFile("./data/passport_scores.json", { encoding: "utf8", flag: "r" }),
     ]);
 
-    const passportScores = JSON.parse(data);
+    const passportScores: FullPassportScore[] = JSON.parse(data);
     const passportScoresMap = processPassportScores(passportScores);
 
     const records = votes.map((vote: any) => {
       const voter = vote.voter.toLowerCase();
-      const combinedVote = { ...vote, ...passportScoresMap[voter] ?? {} };
+      const score = passportScoresMap[voter];
+      const combinedVote = { ...vote, ...passportScoresMap[voter] ?? { coefficient: 0 } };
 
       return [
         combinedVote.id,
@@ -232,7 +263,7 @@ async function matchesHandler(
   const enablePassport =
     req.query.enablePassport?.toString()?.toLowerCase() === "true";
 
-  const ignoreSaturation = 
+  const ignoreSaturation =
     req.query.ignoreSaturation?.toString()?.toLowerCase() === "true";
 
   let overrides: Overrides = {};
