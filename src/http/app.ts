@@ -137,15 +137,43 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
   res.send(csv.getHeaderString() + csv.stringifyRecords(records));
 });
 
-type ValidPassportAddresses = {
-  [address: string]: true | undefined;
+type BasePassportScore = {
+  address: string;
+  score: string | null;
+  status: string;
+  last_score_timestamp: string;
 };
 
-const processPassportScores = (scores: any[]): ValidPassportAddresses => {
-  return scores.reduce((map, address) => {
-    map[address.toLowerCase()] = true;
+type FullPassportScore = BasePassportScore & {
+  evidence: {
+    type: string;
+    success: boolean;
+    rawScore: string;
+    threshold: string;
+  } | null;
+  error?: string;
+};
+
+type FlatPassportScoreWithCoefficient = BasePassportScore & {
+  coefficient: 0 | 1;
+  type?: string;
+  success?: boolean;
+  rawScore?: string;
+  threshold?: string;
+};
+
+type PassportScoresMap = {
+  [address: string]: FlatPassportScoreWithCoefficient;
+};
+
+const processPassportScores = (scores: FullPassportScore[]): PassportScoresMap => {
+  return scores.reduce((map, score) => {
+    const address = score.address.toLowerCase();
+    const { evidence, error, ...remainingScore } = score;
+    const coefficient = evidence !== null && evidence.success ? 1 : 0;
+    map[address] = { ...remainingScore, ...evidence, coefficient };
     return map;
-  }, {});
+  }, {} as PassportScoresMap);
 };
 
 app.get("/data/:chainId/rounds/:roundId/vote_coefficients.csv", async (req, res) => {
@@ -155,10 +183,10 @@ app.get("/data/:chainId/rounds/:roundId/vote_coefficients.csv", async (req, res)
   try {
     const [votes, data] = await Promise.all([
       db.collection(`rounds/${roundId}/votes`).all(),
-      fs.promises.readFile("./data/passport_valid_addresses.json", { encoding: "utf8", flag: "r" }),
+      fs.promises.readFile("./data/passport_scores.json", { encoding: "utf8", flag: "r" }),
     ]);
 
-    const passportScores = JSON.parse(data);
+    const passportScores: FullPassportScore[] = JSON.parse(data);
     const passportScoresMap = processPassportScores(passportScores);
 
     const records = votes.map((vote: any) => {
