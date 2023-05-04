@@ -186,12 +186,22 @@ export default class Calculator {
       round.metadata?.quadraticFundingConfig?.sybilDefense ??
       false;
 
+    // 1. convert threshold amount to 6 tokenDecimals
+    // 2. truncate rest of decimals to bigint
+    // 3. convert decimals to tokendecimals
+    // 4. remove initial 6 decimals
     const minimumAmount =
       this.minimumAmount ??
-      BigInt(
-        round.metadata?.quadraticFundingConfig?.minDonationThresholdAmount ?? 0
+      (BigInt(
+        Math.trunc(
+          Number(
+            round.metadata?.quadraticFundingConfig
+              ?.minDonationThresholdAmount ?? 0
+          ) * Math.pow(10, 6)
+        )
       ) *
-        10n ** matchTokenDecimals ??
+        10n ** matchTokenDecimals) /
+        10n ** 6n ??
       0n;
 
     let matchingCapAmount = this.matchingCapAmount;
@@ -200,13 +210,17 @@ export default class Calculator {
       matchingCapAmount === undefined &&
       (round.metadata?.quadraticFundingConfig?.matchingCap ?? false)
     ) {
-      // round.metadata.quadraticFundingConfig.matchingCapAmount is a percentage
+      // round.metadata.quadraticFundingConfig.matchingCapAmount is a percentage, 0 to 100, could contain decimals
       matchingCapAmount =
         (matchAmount *
           BigInt(
-            round.metadata?.quadraticFundingConfig?.matchingCapAmount ?? 0
+            Math.trunc(
+              Number(
+                round.metadata?.quadraticFundingConfig?.matchingCapAmount ?? 0
+              ) * 100
+            )
           )) /
-        100n;
+        10000n;
     }
 
     const isEligible = (addressData: any): boolean => {
