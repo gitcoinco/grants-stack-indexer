@@ -186,9 +186,9 @@ export default class Calculator {
       round.metadata?.quadraticFundingConfig?.sybilDefense ??
       false;
 
-    // 1. convert threshold amount to 6 tokenDecimals
+    // 1. convert threshold amount to 6 decimals
     // 2. truncate rest of decimals to bigint
-    // 3. convert decimals to tokendecimals
+    // 3. convert decimals to token decimals
     // 4. remove initial 6 decimals
     const minimumAmount =
       this.minimumAmount ??
