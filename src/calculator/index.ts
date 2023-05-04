@@ -239,7 +239,7 @@ export default class Calculator {
       return true;
     };
 
-    const passportIndex = passportScores.reduce((ps: any, acc: any) => {
+    const passportIndex = passportScores.reduce((acc: any, ps: any) => {
       acc[ps.address] = ps;
       return acc;
     }, {});
