@@ -28,7 +28,7 @@ export interface DataProvider {
 }
 
 export type Overrides = {
-  [contributionId: string]: string;
+  [id: string]: string;
 };
 
 export class FileSystemDataProvider {
@@ -58,8 +58,8 @@ export function parseOverrides(buf: Buffer): Promise<any> {
     const results: Overrides = {};
     const stream = csv()
       .on("headers", (headers) => {
-        if (headers.indexOf("contributionId") < 0) {
-          throw new OverridesColumnNotFoundError("contributionId");
+        if (headers.indexOf("id") < 0) {
+          throw new OverridesColumnNotFoundError("id");
         }
 
         if (headers.indexOf("coefficient") < 0) {
@@ -67,7 +67,7 @@ export function parseOverrides(buf: Buffer): Promise<any> {
         }
       })
       .on("data", (data) => {
-        results[data["contributionId"]] = data["coefficient"];
+        results[data["id"]] = data["coefficient"];
       })
       .on("end", () => {
         resolve(results);
