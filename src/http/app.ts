@@ -137,11 +137,13 @@ app.get("/data/:chainId/rounds/:roundId/applications.csv", async (req, res) => {
   res.send(csv.getHeaderString() + csv.stringifyRecords(records));
 });
 
-const processPassportScores = (scores: any[]) => {
-  return scores.reduce((map, score) => {
-    const address = score.address.toLowerCase();
-    const { evidence, error, ...remainingScore } = score;
-    map[address] = { ...remainingScore, ...evidence };
+type ValidPassportAddresses = {
+  [address: string]: true | undefined;
+};
+
+const processPassportScores = (scores: any[]): ValidPassportAddresses => {
+  return scores.reduce((map, address) => {
+    map[address.toLowerCase()] = true;
     return map;
   }, {});
 };
@@ -153,7 +155,7 @@ app.get("/data/:chainId/rounds/:roundId/vote_coefficients.csv", async (req, res)
   try {
     const [votes, data] = await Promise.all([
       db.collection(`rounds/${roundId}/votes`).all(),
-      fs.promises.readFile("./data/passport_scores.json", { encoding: "utf8", flag: "r" }),
+      fs.promises.readFile("./data/passport_valid_addresses.json", { encoding: "utf8", flag: "r" }),
     ]);
 
     const passportScores = JSON.parse(data);
@@ -161,7 +163,13 @@ app.get("/data/:chainId/rounds/:roundId/vote_coefficients.csv", async (req, res)
 
     const records = votes.map((vote: any) => {
       const voter = vote.voter.toLowerCase();
-      const combinedVote = { ...vote, ...passportScoresMap[voter] ?? {} };
+      const score = passportScoresMap[voter];
+      const coefficient = score !== undefined ? 1 : 0;
+      const combinedVote = {
+      ...vote,
+      ...(score ?? {}),
+      coefficient,
+      };
 
       return [
         combinedVote.id,
