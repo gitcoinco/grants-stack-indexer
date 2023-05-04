@@ -192,12 +192,7 @@ app.get("/data/:chainId/rounds/:roundId/vote_coefficients.csv", async (req, res)
     const records = votes.map((vote: any) => {
       const voter = vote.voter.toLowerCase();
       const score = passportScoresMap[voter];
-      const coefficient = score !== undefined ? 1 : 0;
-      const combinedVote = {
-      ...vote,
-      ...(score ?? {}),
-      coefficient,
-      };
+      const combinedVote = { ...vote, ...passportScoresMap[voter] ?? { coefficient: 0 } };
 
       return [
         combinedVote.id,
