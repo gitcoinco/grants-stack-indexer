@@ -144,6 +144,7 @@ export default class Calculator {
     this.passportThreshold = options.passportThreshold;
     this.matchingCapAmount = options.matchingCapAmount;
     this.overrides = options.overrides;
+    this.ignoreSaturation = options.ignoreSaturation;
   }
 
   async calculate(): Promise<Array<AugmentedResult>> {
