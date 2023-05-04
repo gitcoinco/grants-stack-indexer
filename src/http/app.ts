@@ -263,7 +263,7 @@ async function matchesHandler(
   const enablePassport =
     req.query.enablePassport?.toString()?.toLowerCase() === "true";
 
-  const ignoreSaturation = 
+  const ignoreSaturation =
     req.query.ignoreSaturation?.toString()?.toLowerCase() === "true";
 
   let overrides: Overrides = {};
