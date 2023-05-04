@@ -8,7 +8,8 @@
     "voter": "voter-1",
     "grantAddress": "grant-address-1",
     "amount": "0",
-    "amountUSD": 1
+    "amountUSD": 1,
+    "amountRoundToken": "100"
   },
   {
     "id": "vote-2",
@@ -19,7 +20,8 @@
     "voter": "voter-2",
     "grantAddress": "grant-address-1",
     "amount": "0",
-    "amountUSD": 4
+    "amountUSD": 4,
+    "amountRoundToken": "400"
   },
   {
     "id": "vote-3",
@@ -30,7 +32,8 @@
     "voter": "voter-3",
     "grantAddress": "grant-address-1",
     "amount": "0",
-    "amountUSD": 1
+    "amountUSD": 1,
+    "amountRoundToken": "100"
   },
   {
     "id": "vote-4",
@@ -41,7 +44,8 @@
     "voter": "voter-4",
     "grantAddress": "grant-address-1",
     "amount": "0",
-    "amountUSD": 9
+    "amountUSD": 9,
+    "amountRoundToken": "900"
   },
 
 
@@ -54,7 +58,8 @@
     "voter": "voter-5",
     "grantAddress": "grant-address-2",
     "amount": "0",
-    "amountUSD": 1
+    "amountUSD": 1,
+    "amountRoundToken": "100"
   },
   {
     "id": "vote-6",
@@ -65,7 +70,8 @@
     "voter": "voter-6",
     "grantAddress": "grant-address-2",
     "amount": "0",
-    "amountUSD": 1
+    "amountUSD": 1,
+    "amountRoundToken": "100"
   },
   {
     "id": "vote-7",
@@ -76,7 +82,8 @@
     "voter": "voter-7",
     "grantAddress": "grant-address-2",
     "amount": "0",
-    "amountUSD": 1
+    "amountUSD": 1,
+    "amountRoundToken": "100"
   },
   {
     "id": "vote-8",
@@ -87,7 +94,8 @@
     "voter": "voter-8",
     "grantAddress": "grant-address-2",
     "amount": "0",
-    "amountUSD": 1
+    "amountUSD": 1,
+    "amountRoundToken": "100"
   },
   {
     "id": "vote-9",
@@ -98,7 +106,8 @@
     "voter": "voter-9",
     "grantAddress": "grant-address-2",
     "amount": "0",
-    "amountUSD": 1
+    "amountUSD": 1,
+    "amountRoundToken": "100"
   },
   {
     "id": "vote-10",
@@ -109,7 +118,8 @@
     "voter": "voter-10",
     "grantAddress": "grant-address-2",
     "amount": "0",
-    "amountUSD": 1
+    "amountUSD": 1,
+    "amountRoundToken": "100"
   },
   {
     "id": "vote-11",
@@ -120,7 +130,8 @@
     "voter": "voter-11",
     "grantAddress": "grant-address-2",
     "amount": "0",
-    "amountUSD": 4
+    "amountUSD": 4,
+    "amountRoundToken": "400"
   },
 
   {
@@ -132,7 +143,8 @@
     "voter": "voter-12",
     "grantAddress": "grant-address-3",
     "amount": "0",
-    "amountUSD": 1
+    "amountUSD": 1,
+    "amountRoundToken": "100"
   },
   {
     "id": "vote-13",
@@ -143,7 +155,8 @@
     "voter": "voter-13",
     "grantAddress": "grant-address-3",
     "amount": "0",
-    "amountUSD": 9
+    "amountUSD": 9,
+    "amountRoundToken": "900"
   },
   {
     "id": "vote-14",
@@ -154,7 +167,8 @@
     "voter": "voter-14",
     "grantAddress": "grant-address-3",
     "amount": "0",
-    "amountUSD": 1
+    "amountUSD": 1,
+    "amountRoundToken": "100"
   },
   {
     "id": "vote-15",
@@ -165,7 +179,8 @@
     "voter": "voter-15",
     "grantAddress": "grant-address-3",
     "amount": "0",
-    "amountUSD": 9
+    "amountUSD": 9,
+    "amountRoundToken": "900"
   },
   {
     "id": "vote-16",
@@ -176,7 +191,8 @@
     "voter": "voter-16",
     "grantAddress": "grant-address-3",
     "amount": "0",
-    "amountUSD": 1
+    "amountUSD": 1,
+    "amountRoundToken": "100"
   },
   {
     "id": "vote-17",
@@ -187,7 +203,8 @@
     "voter": "voter-17",
     "grantAddress": "grant-address-3",
     "amount": "0",
-    "amountUSD": 9
+    "amountUSD": 9,
+    "amountRoundToken": "900"
   },
   {
     "id": "vote-18",
@@ -198,6 +215,7 @@
     "voter": "voter-18",
     "grantAddress": "grant-address-3",
     "amount": "0",
-    "amountUSD": 4
+    "amountUSD": 4,
+    "amountRoundToken": "400"
   }
 ]

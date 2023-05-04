@@ -1,9 +1,15 @@
-import { describe, test, expect, beforeEach } from "vitest";
+import { vi, describe, test, expect, beforeEach } from "vitest";
 import fs from "fs";
 import path from "path";
 import request from "supertest";
 import { app, calculatorConfig } from "../../http/app.js";
 import { FileNotFoundError } from "../../calculator/index.js";
+
+vi.mock("../../prices/index.js", () => {
+  return {
+    convertToUSD: vi.fn().mockReturnValue({ amount: 0 }),
+  };
+});
 
 const loadFixture = (name: string, extension = "json") => {
   const p = path.resolve(__dirname, "../fixtures", `${name}.${extension}`);
@@ -111,27 +117,41 @@ describe("server", () => {
           {
             applicationId: "application-id-1",
             projectId: "project-id-1",
-            totalReceived: 15,
-            sumOfSqrt: 7,
-            matched: 13.6,
+            totalReceived: "1500",
+            sumOfSqrt: "70",
+            matched: "1360",
+            matchedUSD: 0,
+            matchedWithoutCap: "1360",
+            capOverflow: "0",
+            contributionsCount: "4",
           },
           {
             applicationId: "application-id-2",
             projectId: "project-id-2",
-            totalReceived: 10,
-            sumOfSqrt: 8,
-            matched: 21.6,
+            totalReceived: "1000",
+            sumOfSqrt: "80",
+            matched: "2160",
+            matchedUSD: 0,
+            matchedWithoutCap: "2160",
+            capOverflow: "0",
+            contributionsCount: "7",
           },
           {
             applicationId: "application-id-3",
             projectId: "project-id-3",
-            totalReceived: 34,
-            sumOfSqrt: 14,
-            matched: 64.8,
+            totalReceived: "3400",
+            sumOfSqrt: "140",
+            matched: "6480",
+            matchedUSD: 0,
+            matchedWithoutCap: "6480",
+            capOverflow: "0",
+            contributionsCount: "7",
           },
         ];
 
-        const resp = await request(app).get("/chains/1/rounds/0x1234/matches?ignoreSaturation=true");
+        const resp = await request(app).get(
+          "/chains/1/rounds/0x1234/matches?ignoreSaturation=true"
+        );
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
       });
@@ -141,31 +161,45 @@ describe("server", () => {
           {
             applicationId: "application-id-1",
             projectId: "project-id-1",
-            totalReceived: 15,
-            sumOfSqrt: 7,
-            matched: 8.024,
+            totalReceived: "1500",
+            sumOfSqrt: "70",
+            matched: "802",
+            matchedUSD: 0,
+            matchedWithoutCap: "802",
+            capOverflow: "0",
+            contributionsCount: "4",
           },
           {
             applicationId: "application-id-2",
             projectId: "project-id-2",
-            totalReceived: 10,
-            sumOfSqrt: 8,
-            matched: 12.744,
+            totalReceived: "1000",
+            sumOfSqrt: "80",
+            matched: "1274",
+            matchedUSD: 0,
+            matchedWithoutCap: "1274",
+            capOverflow: "0",
+            contributionsCount: "7",
           },
           {
             applicationId: "application-id-3",
             projectId: "project-id-3",
-            totalReceived: 34,
-            sumOfSqrt: 14,
-            matched: 38.232,
+            totalReceived: "3400",
+            sumOfSqrt: "140",
+            matched: "3823",
+            matchedUSD: 0,
+            matchedWithoutCap: "3823",
+            capOverflow: "0",
+            contributionsCount: "7",
           },
         ];
 
-        const resp = await request(app).get("/chains/1/rounds/0x1234/matches?ignoreSaturation=false");
+        const resp = await request(app).get(
+          "/chains/1/rounds/0x1234/matches?ignoreSaturation=false"
+        );
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
+        expect(resp.statusCode).toBe(200);
       });
-
     });
 
     describe("calculations with overrides", () => {

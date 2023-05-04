@@ -2,6 +2,8 @@
 import fs from "fs";
 import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
+import { convertToUSD } from "../prices/index.js";
+import { tokenDecimals } from "../config.js";
 
 export class FileNotFoundError extends Error {
   constructor(fileDescription: string) {
@@ -78,9 +80,10 @@ export function parseOverrides(buf: Buffer): Promise<any> {
 
 export type CalculatorOptions = {
   dataProvider: DataProvider;
-  chainId: string;
+  chainId: number;
   roundId: string;
-  minimumAmount?: number;
+  minimumAmount?: bigint;
+  matchingCapAmount?: bigint;
   passportThreshold?: number;
   enablePassport?: boolean;
   ignoreSaturation?: boolean;
@@ -90,9 +93,9 @@ export type CalculatorOptions = {
 export type AugmentedResult = Calculation & {
   projectId: string;
   applicationId: string;
+  matchedUSD: number;
   projectName: string;
   payoutAddress: string;
-  contributionsCount: number;
 };
 
 type RawContribution = {
@@ -101,46 +104,50 @@ type RawContribution = {
   projectId: string;
   applicationId: string;
   amountUSD: number;
+  amountRoundToken: string;
 };
 
 type RawRound = {
+  token: string;
+  id: string;
   matchAmount: string;
   matchAmountUSD: number;
-  id: string;
+  metadata?: {
+    quadraticFundingConfig?: {
+      matchingFundsAvailable?: number;
+      sybilDefense?: boolean;
+      matchingCap?: boolean;
+      matchingCapAmount?: number;
+      minDonationThreshold?: boolean;
+      minDonationThresholdAmount?: number;
+    };
+  };
 };
 
 export default class Calculator {
   private dataProvider: DataProvider;
-  private chainId: string;
+  private chainId: number;
   private roundId: string;
-  private minimumAmount: number | undefined;
+  private minimumAmount: bigint | undefined;
+  private matchingCapAmount: bigint | undefined;
   private enablePassport: boolean | undefined;
   private passportThreshold: number | undefined;
   private ignoreSaturation: boolean | undefined;
   private overrides: Overrides;
 
   constructor(options: CalculatorOptions) {
-    const {
-      dataProvider,
-      chainId,
-      roundId,
-      minimumAmount,
-      enablePassport,
-      passportThreshold,
-      ignoreSaturation,
-      overrides,
-    } = options;
-    this.dataProvider = dataProvider;
-    this.chainId = chainId;
-    this.roundId = roundId;
-    this.minimumAmount = minimumAmount;
-    this.enablePassport = enablePassport;
-    this.passportThreshold = passportThreshold;
-    this.ignoreSaturation = ignoreSaturation;
-    this.overrides = overrides;
+    this.dataProvider = options.dataProvider;
+    this.chainId = options.chainId;
+    this.roundId = options.roundId;
+    this.minimumAmount = options.minimumAmount;
+    this.enablePassport = options.enablePassport;
+    this.passportThreshold = options.passportThreshold;
+    this.matchingCapAmount = options.matchingCapAmount;
+    this.overrides = options.overrides;
+    this.ignoreSaturation = options.ignoreSaturation;
   }
 
-  calculate() {
+  async calculate(): Promise<Array<AugmentedResult>> {
     const rawContributions: Array<RawContribution> = this.parseJSONFile(
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
@@ -149,7 +156,10 @@ export default class Calculator {
       "applications",
       `${this.chainId}/rounds/${this.roundId}/applications.json`
     );
-    const rounds = this.parseJSONFile("rounds", `${this.chainId}/rounds.json`);
+    const rounds: RawRound[] = this.parseJSONFile(
+      "rounds",
+      `${this.chainId}/rounds.json`
+    );
     const passportScores = this.parseJSONFile(
       "passport scores",
       "passport_scores.json"
@@ -160,14 +170,49 @@ export default class Calculator {
       throw new ResourceNotFoundError("round");
     }
 
-    if (round.matchAmountUSD === undefined) {
+    if (round.matchAmount === undefined) {
       throw new ResourceNotFoundError("round match amount");
+    }
+
+    if (round.token === undefined) {
+      throw new ResourceNotFoundError("round token");
+    }
+
+    const matchAmount = BigInt(round.matchAmount);
+    const matchTokenDecimals = BigInt(tokenDecimals[this.chainId][round.token]);
+
+    const enablePassport =
+      this.enablePassport ??
+      round.metadata?.quadraticFundingConfig?.sybilDefense ??
+      false;
+
+    const minimumAmount =
+      this.minimumAmount ??
+      BigInt(
+        round.metadata?.quadraticFundingConfig?.minDonationThresholdAmount ?? 0
+      ) *
+        10n ** matchTokenDecimals ??
+      0n;
+
+    let matchingCapAmount = this.matchingCapAmount;
+
+    if (
+      matchingCapAmount === undefined &&
+      (round.metadata?.quadraticFundingConfig?.matchingCap ?? false)
+    ) {
+      // round.metadata.quadraticFundingConfig.matchingCapAmount is a percentage
+      matchingCapAmount =
+        (matchAmount *
+          BigInt(
+            round.metadata?.quadraticFundingConfig?.matchingCapAmount ?? 0
+          )) /
+        100n;
     }
 
     const isEligible = (addressData: any): boolean => {
       const hasValidEvidence = addressData?.evidence?.success;
 
-      if (this.enablePassport) {
+      if (enablePassport) {
         if (typeof this.passportThreshold !== "undefined") {
           return (
             parseFloat(addressData?.evidence.rawScore ?? "0") >
@@ -203,27 +248,33 @@ export default class Calculator {
       contributions.push({
         contributor: raw.voter,
         recipient: raw.applicationId,
-        amount: raw.amountUSD,
+        amount: BigInt(raw.amountRoundToken),
       });
     }
 
-    const results = linearQF(contributions, round.matchAmountUSD, {
-      minimumAmount: this.minimumAmount ?? round.minimumAmount ?? 0,
-      ignoreSaturation: this.ignoreSaturation ?? false, 
+    const results = linearQF(contributions, matchAmount, matchTokenDecimals, {
+      minimumAmount,
+      matchingCapAmount,
+      ignoreSaturation: this.ignoreSaturation ?? false,
     });
 
     const augmented: Array<AugmentedResult> = [];
+
     for (const id in results) {
       const calc = results[id];
       const application = applications.find((a: any) => a.id === id);
 
+      const conversionUSD = await convertToUSD(
+        this.chainId,
+        round.token,
+        calc.matched
+      );
+
       augmented.push({
-        totalReceived: calc.totalReceived,
-        sumOfSqrt: calc.sumOfSqrt,
-        matched: calc.matched,
+        ...calc,
+        matchedUSD: conversionUSD.amount,
         projectId: application.projectId,
         applicationId: application.id,
-        contributionsCount: application.votes,
         projectName: application.metadata?.application?.project?.title,
         payoutAddress: application.metadata?.application?.recipient,
       });

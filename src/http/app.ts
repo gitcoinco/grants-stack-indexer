@@ -223,11 +223,12 @@ async function matchesHandler(
   okStatusCode: number,
   useOverrides: boolean
 ) {
-  const chainId = req.params.chainId;
+  const chainId = Number(req.params.chainId);
   const roundId = req.params.roundId;
 
   const minimumAmount = req.query.minimumAmount?.toString();
   const passportThreshold = req.query.passportThreshold?.toString();
+  const matchingCapAmount = req.query.matchingCapAmount?.toString();
   const enablePassport =
     req.query.enablePassport?.toString()?.toLowerCase() === "true";
 
@@ -257,7 +258,10 @@ async function matchesHandler(
     dataProvider: calculatorConfig.dataProvider,
     chainId: chainId,
     roundId: roundId,
-    minimumAmount: minimumAmount ? Number(minimumAmount) : undefined,
+    minimumAmount: minimumAmount ? BigInt(minimumAmount) : undefined,
+    matchingCapAmount: matchingCapAmount
+      ? BigInt(matchingCapAmount)
+      : undefined,
     passportThreshold: passportThreshold
       ? Number(passportThreshold)
       : undefined,
@@ -268,9 +272,13 @@ async function matchesHandler(
 
   try {
     const calculator = new Calculator(calculatorOptions);
-    const matches = calculator.calculate();
+    const matches = await calculator.calculate();
+    const responseBody = JSON.stringify(matches, (_key, value) =>
+      typeof value === "bigint" ? value.toString() : value
+    );
+    res.setHeader("content-type", "application/json");
     res.status(okStatusCode);
-    res.send(matches);
+    res.send(responseBody);
   } catch (e) {
     handleError(res, e);
   }
