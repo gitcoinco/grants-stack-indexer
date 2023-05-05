@@ -11,4 +11,4 @@ if(process.env.SENTRY_DSN) {
 }
 
 // re-export
-export * as Sentry from '@sentry/node';
+export * from '@sentry/node';
