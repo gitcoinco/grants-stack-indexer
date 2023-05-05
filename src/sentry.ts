@@ -8,3 +8,6 @@ if(process.env.SENTRY_DSN) {
 } else {
   console.warn("SENTRY_DSN not set, Sentry will not be initialized.");
 }
+
+// re-export
+export * as Sentry from '@sentry/node';
