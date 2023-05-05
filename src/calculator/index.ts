@@ -68,7 +68,7 @@ export class FileSystemDataProvider {
 export function parseOverrides(buf: Buffer): Promise<any> {
   return new Promise((resolve, _reject) => {
     const results: Overrides = {};
-    let rowIndex = 0;
+    let rowIndex = 1;
 
     const stream = csv()
       .on("headers", (headers) => {
