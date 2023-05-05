@@ -9,6 +9,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { parseArgs } from "node:util";
 
+import "../sentry.js";
 import handleEvent from "../indexer/handleEvent.js";
 import config from "../config.js";
 import {

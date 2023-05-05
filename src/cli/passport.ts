@@ -3,7 +3,9 @@ import fs from "node:fs/promises";
 import { parseArgs } from "node:util";
 import path from "node:path";
 
+import "../sentry.js";
 import config from "../config.js";
+
 import {
   filterPassportByEvidence,
   getPassportScores,
