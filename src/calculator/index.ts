@@ -251,19 +251,14 @@ export default class Calculator {
       const addressData = passportIndex[raw.voter];
       const override = this.overrides[raw.id];
 
-      if (override !== undefined && override !== "1") {
-        continue;
+      // only count contributions that are eligible by passport or the coefficient is 1
+      if (override !== "1" || isEligible(addressData)) {
+        contributions.push({
+          contributor: raw.voter,
+          recipient: raw.applicationId,
+          amount: BigInt(raw.amountRoundToken),
+        });
       }
-
-      if (!isEligible(addressData)) {
-        continue;
-      }
-
-      contributions.push({
-        contributor: raw.voter,
-        recipient: raw.applicationId,
-        amount: BigInt(raw.amountRoundToken),
-      });
     }
 
     const results = linearQF(contributions, matchAmount, matchTokenDecimals, {
