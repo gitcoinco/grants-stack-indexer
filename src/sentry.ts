@@ -1,3 +1,4 @@
+import "./config.js"
 import * as Sentry from '@sentry/node';
 
 if(process.env.SENTRY_DSN) {
