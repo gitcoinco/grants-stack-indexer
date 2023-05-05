@@ -81,14 +81,14 @@ export function parseOverrides(buf: Buffer): Promise<any> {
         }
       })
       .on("data", (data) => {
-        if (data["coefficient"] === "0" || data["coefficient"] === "1") {
-          results[data["id"]] = data["coefficient"];
-        } else {
+        if (data["coefficient"] !== "0" &&  data["coefficient"] !== "1") {
           throw new OverridesInvalidRowError(
             rowIndex,
             `Coefficient must be 0 or 1, found: ${data["coefficient"]}`
           );
         }
+
+        results[data["id"]] = data["coefficient"];
         rowIndex += 1;
       })
       .on("end", () => {
