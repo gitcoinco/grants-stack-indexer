@@ -16,8 +16,8 @@ import Calculator, {
   CalculatorOptions,
   FileNotFoundError,
   ResourceNotFoundError,
-  OverridesColumnNotFoundError,
   parseOverrides,
+  CalculatorError,
 } from "../calculator/index.js";
 import fs from "fs";
 
@@ -36,7 +36,7 @@ app.use(
     acceptRanges: true,
     setHeaders: (res) => {
       res.setHeader("Accept-Ranges", "bytes");
-    }
+    },
   }),
   serveIndex(config.storageDir, { icons: true, view: "details" })
 );
@@ -60,7 +60,7 @@ function handleError(res: Response, err: any) {
     return;
   }
 
-  if (err instanceof OverridesColumnNotFoundError) {
+  if (err instanceof CalculatorError) {
     res.statusCode = 400;
     res.send({
       error: err.message,

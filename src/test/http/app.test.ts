@@ -262,6 +262,21 @@ describe("server", () => {
           error: "cannot find column coefficient in the overrides file",
         });
       });
+
+      test("should render 400 if the overrides file has invalid coefficients", async () => {
+        const overridesContent = loadFixture(
+          "overrides-with-invalid-coefficient",
+          "csv"
+        );
+        const resp = await request(app)
+          .post("/chains/1/rounds/0x1234/matches")
+          .attach("overrides", Buffer.from(overridesContent), "overrides.csv");
+        expect(resp.statusCode).toBe(400);
+        expect(resp.body).toEqual({
+          error:
+            "Row 1 in the overrides file is invalid: Coefficient must be 0 or 1, found: what",
+        });
+      });
     });
   });
 });
