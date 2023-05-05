@@ -410,9 +410,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
       return async () => {
         const voteId = ethers.utils.solidityKeccak256(
           ["string"],
-          [
-            `${event.transactionHash}-${event.args.voter}-${event.args.grantAddress}`,
-          ]
+          [`${event.blockNumber}-${event.logIndex}`]
         );
 
         const applicationId =
