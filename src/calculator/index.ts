@@ -5,21 +5,33 @@ import { linearQF, Contribution, Calculation } from "pluralistic";
 import { convertToUSD } from "../prices/index.js";
 import { tokenDecimals } from "../config.js";
 
-export class FileNotFoundError extends Error {
+export class CalculatorError extends Error {
+  constructor(...args: any[]) {
+    super(...args);
+  }
+}
+
+export class FileNotFoundError extends CalculatorError {
   constructor(fileDescription: string) {
     super(`cannot find ${fileDescription} file`);
   }
 }
 
-export class ResourceNotFoundError extends Error {
+export class ResourceNotFoundError extends CalculatorError {
   constructor(resource: string) {
     super(`${resource} not found`);
   }
 }
 
-export class OverridesColumnNotFoundError extends Error {
+export class OverridesColumnNotFoundError extends CalculatorError {
   constructor(column: string) {
     super(`cannot find column ${column} in the overrides file`);
+  }
+}
+
+export class OverridesInvalidRowError extends CalculatorError {
+  constructor(row: number, message: string) {
+    super(`Row ${row} in the overrides file is invalid: ${message}`);
   }
 }
 
@@ -56,6 +68,8 @@ export class FileSystemDataProvider {
 export function parseOverrides(buf: Buffer): Promise<any> {
   return new Promise((resolve, _reject) => {
     const results: Overrides = {};
+    let rowIndex = 1;
+
     const stream = csv()
       .on("headers", (headers) => {
         if (headers.indexOf("id") < 0) {
@@ -67,7 +81,15 @@ export function parseOverrides(buf: Buffer): Promise<any> {
         }
       })
       .on("data", (data) => {
+        if (data["coefficient"] !== "0" &&  data["coefficient"] !== "1") {
+          throw new OverridesInvalidRowError(
+            rowIndex,
+            `Coefficient must be 0 or 1, found: ${data["coefficient"]}`
+          );
+        }
+
         results[data["id"]] = data["coefficient"];
+        rowIndex += 1;
       })
       .on("end", () => {
         resolve(results);
@@ -251,19 +273,18 @@ export default class Calculator {
       const addressData = passportIndex[raw.voter];
       const override = this.overrides[raw.id];
 
-      if (override !== undefined && override !== "1") {
+      if (override === "0") {
         continue;
       }
 
-      if (!isEligible(addressData)) {
-        continue;
+      // only count contributions that are eligible by passport or the coefficient is 1
+      if (override === "1" || isEligible(addressData)) {
+        contributions.push({
+          contributor: raw.voter,
+          recipient: raw.applicationId,
+          amount: BigInt(raw.amountRoundToken),
+        });
       }
-
-      contributions.push({
-        contributor: raw.voter,
-        recipient: raw.applicationId,
-        amount: BigInt(raw.amountRoundToken),
-      });
     }
 
     const results = linearQF(contributions, matchAmount, matchTokenDecimals, {
