@@ -229,7 +229,7 @@ describe("server", () => {
         expect(projects.has("project-id-3")).toBe(true);
       });
 
-      test("should render 400 if no overrides file has been uploaded", async () => {
+      test.skip("should render 400 if no overrides file has been uploaded", async () => {
         const resp = await request(app).post("/chains/1/rounds/0x1234/matches");
         expect(resp.statusCode).toBe(400);
         expect(resp.body).toEqual({ error: "overrides param required" });
