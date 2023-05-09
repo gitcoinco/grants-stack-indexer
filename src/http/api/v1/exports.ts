@@ -118,7 +118,7 @@ async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
 
   const records = votes.map((vote: any) => {
     const voter = vote.voter.toLowerCase();
-    let score = passportScoresMap[voter];
+    const score = passportScoresMap[voter];
     if (score !== undefined && !usePassport) {
       score.coefficient = defaultCoefficient;
     }
