@@ -267,7 +267,7 @@ router.get(
       throw new ClientError("Round not found", 404);
     }
 
-    let body = await exportVoteCoefficientsCSV(db, round);
+    const body = await exportVoteCoefficientsCSV(db, round);
 
     res.setHeader("content-type", "text/csv");
     res.setHeader(
