@@ -254,6 +254,31 @@ async function exportApplicationsCSV(db: JsonStorage, round: Round) {
   return csv.getHeaderString() + csv.stringifyRecords(records);
 }
 
+// temporary route for backwards compatibility
+router.get(
+  "/data/:chainId/rounds/:roundId/vote_coefficients.csv",
+  async (req, res) => {
+    const chainId = Number(req.params.chainId);
+    const roundId = req.params.roundId;
+    const db = database(chainId);
+    const round = await db.collection<Round>("rounds").findById(roundId);
+
+    if (!round) {
+      throw new ClientError("Round not found", 404);
+    }
+
+    let body = await exportVoteCoefficientsCSV(db, round);
+
+    res.setHeader("content-type", "text/csv");
+    res.setHeader(
+      "content-disposition",
+      `attachment; filename=vote_coefficients-${round.id}.csv`
+    );
+    res.status(200);
+    res.send(body);
+  }
+);
+
 router.get(
   "/chains/:chainId/rounds/:roundId/exports/:exportName",
   async (req, res) => {
