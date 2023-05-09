@@ -28,3 +28,6 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/api/v1", api);
+
+// temporary route for backwards compatibility
+app.use("/", api);
