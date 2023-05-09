@@ -301,7 +301,7 @@ export default class Calculator {
         continue;
       }
 
-      // only count contributions to the right payout address specified in the aopplication metadata
+      // only count contributions to the right payout address specified in the application metadata
       const application = applications[raw.applicationId];
       const payoutAddress = application?.metadata?.application?.recipient;
       if (
