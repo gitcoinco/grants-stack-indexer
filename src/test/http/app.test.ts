@@ -218,7 +218,7 @@ describe("server", () => {
         });
       });
 
-      test("should render calculations with ignore saturation true", async () => {
+      test("should keep the same results skipping bad votes", async () => {
         const expectedResults = [
           {
             applicationId: "application-id-1",
