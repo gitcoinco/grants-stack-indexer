@@ -9,7 +9,11 @@ export type Round = {
   applicationMetaPtr: string;
   applicationMetadata: string | null;
   metaPtr: string;
-  metadata: string | null;
+  metadata: {
+    quadraticFundingConfig: {
+      sybilDefense: boolean;
+    };
+  } | null;
   applicationsStartTime: number;
   applicationsEndTime: number;
   roundStartTime: number;
