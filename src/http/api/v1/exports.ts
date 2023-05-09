@@ -109,14 +109,23 @@ async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
     }),
   ]);
 
+  const usePassport =
+    round?.metadata?.quadraticFundingConfig?.sybilDefense ?? false;
+
   const passportScores: FullPassportScore[] = JSON.parse(data);
   const passportScoresMap = processPassportScores(passportScores);
+  const defaultCoefficient = usePassport ? 0 : 1;
 
   const records = votes.map((vote: any) => {
     const voter = vote.voter.toLowerCase();
+    let score = passportScoresMap[voter];
+    if (score !== undefined && !usePassport) {
+      score.coefficient = defaultCoefficient;
+    }
+
     const combinedVote = {
       ...vote,
-      ...(passportScoresMap[voter] ?? { coefficient: 0 }),
+      ...(score ?? { coefficient: defaultCoefficient }),
     };
 
     return [
