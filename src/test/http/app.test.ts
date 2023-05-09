@@ -2,7 +2,8 @@ import { vi, describe, test, expect, beforeEach } from "vitest";
 import fs from "fs";
 import path from "path";
 import request from "supertest";
-import { app, calculatorConfig } from "../../http/app.js";
+import { app } from "../../http/app.js";
+import { calculatorConfig } from "../../http/api/v1/matches.js";
 import { FileNotFoundError } from "../../calculator/index.js";
 
 vi.mock("../../prices/index.js", () => {
@@ -49,7 +50,9 @@ describe("server", () => {
           "passport_scores.json": "passport_scores",
         });
 
-        const resp = await request(app).get("/chains/1/rounds/0x1234/matches");
+        const resp = await request(app).get(
+          "/api/v1/chains/1/rounds/0x1234/matches"
+        );
         expect(resp.status).toEqual(404);
       });
 
@@ -61,7 +64,9 @@ describe("server", () => {
           "passport_scores.json": "passport_scores",
         });
 
-        const resp = await request(app).get("/chains/1/rounds/0x1234/matches");
+        const resp = await request(app).get(
+          "/api/v1/chains/1/rounds/0x1234/matches"
+        );
         expect(resp.status).toEqual(404);
       });
 
@@ -73,7 +78,9 @@ describe("server", () => {
           "passport_scores.json": "passport_scores",
         });
 
-        const resp = await request(app).get("/chains/1/rounds/0x1234/matches");
+        const resp = await request(app).get(
+          "/api/v1/chains/1/rounds/0x1234/matches"
+        );
         expect(resp.status).toEqual(404);
       });
 
@@ -85,7 +92,9 @@ describe("server", () => {
           "passport_scores.json": "passport_scores",
         });
 
-        const resp = await request(app).get("/chains/1/rounds/0x1234/matches");
+        const resp = await request(app).get(
+          "/api/v1/chains/1/rounds/0x1234/matches"
+        );
         expect(resp.status).toEqual(404);
       });
 
@@ -97,7 +106,9 @@ describe("server", () => {
           "passport_scores.json": undefined,
         });
 
-        const resp = await request(app).get("/chains/1/rounds/0x1234/matches");
+        const resp = await request(app).get(
+          "/api/v1/chains/1/rounds/0x1234/matches"
+        );
         expect(resp.status).toEqual(404);
       });
     });
@@ -150,7 +161,7 @@ describe("server", () => {
         ];
 
         const resp = await request(app).get(
-          "/chains/1/rounds/0x1234/matches?ignoreSaturation=true"
+          "/api/v1/chains/1/rounds/0x1234/matches?ignoreSaturation=true"
         );
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
@@ -194,7 +205,7 @@ describe("server", () => {
         ];
 
         const resp = await request(app).get(
-          "/chains/1/rounds/0x1234/matches?ignoreSaturation=false"
+          "/api/v1/chains/1/rounds/0x1234/matches?ignoreSaturation=false"
         );
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
@@ -214,7 +225,7 @@ describe("server", () => {
         const overridesContent = loadFixture("overrides", "csv");
 
         const resp = await request(app)
-          .post("/chains/1/rounds/0x1234/matches")
+          .post("/api/v1/chains/1/rounds/0x1234/matches")
           .attach("overrides", Buffer.from(overridesContent), "overrides.csv");
 
         expect(resp.statusCode).toBe(201);
@@ -230,7 +241,9 @@ describe("server", () => {
       });
 
       test("should render 400 if no overrides file has been uploaded", async () => {
-        const resp = await request(app).post("/chains/1/rounds/0x1234/matches");
+        const resp = await request(app).post(
+          "/api/v1/chains/1/rounds/0x1234/matches"
+        );
         expect(resp.statusCode).toBe(400);
         expect(resp.body).toEqual({ error: "overrides param required" });
       });
@@ -241,7 +254,7 @@ describe("server", () => {
           "csv"
         );
         const resp = await request(app)
-          .post("/chains/1/rounds/0x1234/matches")
+          .post("/api/v1/chains/1/rounds/0x1234/matches")
           .attach("overrides", Buffer.from(overridesContent), "overrides.csv");
         expect(resp.statusCode).toBe(400);
         expect(resp.body).toEqual({
@@ -255,7 +268,7 @@ describe("server", () => {
           "csv"
         );
         const resp = await request(app)
-          .post("/chains/1/rounds/0x1234/matches")
+          .post("/api/v1/chains/1/rounds/0x1234/matches")
           .attach("overrides", Buffer.from(overridesContent), "overrides.csv");
         expect(resp.statusCode).toBe(400);
         expect(resp.body).toEqual({
@@ -269,7 +282,7 @@ describe("server", () => {
           "csv"
         );
         const resp = await request(app)
-          .post("/chains/1/rounds/0x1234/matches")
+          .post("/api/v1/chains/1/rounds/0x1234/matches")
           .attach("overrides", Buffer.from(overridesContent), "overrides.csv");
         expect(resp.statusCode).toBe(400);
         expect(resp.body).toEqual({
