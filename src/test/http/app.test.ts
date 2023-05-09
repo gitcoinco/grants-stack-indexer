@@ -135,6 +135,7 @@ describe("server", () => {
             matchedWithoutCap: "1360",
             capOverflow: "0",
             contributionsCount: "4",
+            payoutAddress: "grant-address-1",
           },
           {
             applicationId: "application-id-2",
@@ -146,6 +147,7 @@ describe("server", () => {
             matchedWithoutCap: "2160",
             capOverflow: "0",
             contributionsCount: "7",
+            payoutAddress: "grant-address-2",
           },
           {
             applicationId: "application-id-3",
@@ -157,6 +159,7 @@ describe("server", () => {
             matchedWithoutCap: "6480",
             capOverflow: "0",
             contributionsCount: "7",
+            payoutAddress: "grant-address-3",
           },
         ];
 
@@ -179,6 +182,7 @@ describe("server", () => {
             matchedWithoutCap: "802",
             capOverflow: "0",
             contributionsCount: "4",
+            payoutAddress: "grant-address-1",
           },
           {
             applicationId: "application-id-2",
@@ -190,6 +194,7 @@ describe("server", () => {
             matchedWithoutCap: "1274",
             capOverflow: "0",
             contributionsCount: "7",
+            payoutAddress: "grant-address-2",
           },
           {
             applicationId: "application-id-3",
@@ -201,6 +206,7 @@ describe("server", () => {
             matchedWithoutCap: "3823",
             capOverflow: "0",
             contributionsCount: "7",
+            payoutAddress: "grant-address-3",
           },
         ];
 
@@ -210,6 +216,64 @@ describe("server", () => {
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
         expect(resp.statusCode).toBe(200);
+      });
+    });
+
+    describe("calculations with bad votes", () => {
+      beforeEach(async () => {
+        calculatorConfig.dataProvider = new TestDataProvider({
+          "1/rounds/0x1234/votes.json": "votes-with-bad-recipient",
+          "1/rounds/0x1234/applications.json": "applications",
+          "1/rounds.json": "rounds",
+          "passport_scores.json": "passport_scores",
+        });
+      });
+
+      test("should keep the same results skipping bad votes", async () => {
+        const expectedResults = [
+          {
+            applicationId: "application-id-1",
+            projectId: "project-id-1",
+            totalReceived: "1500",
+            sumOfSqrt: "70",
+            matched: "1360",
+            matchedUSD: 0,
+            matchedWithoutCap: "1360",
+            capOverflow: "0",
+            contributionsCount: "4",
+            payoutAddress: "grant-address-1",
+          },
+          {
+            applicationId: "application-id-2",
+            projectId: "project-id-2",
+            totalReceived: "1000",
+            sumOfSqrt: "80",
+            matched: "2160",
+            matchedUSD: 0,
+            matchedWithoutCap: "2160",
+            capOverflow: "0",
+            contributionsCount: "7",
+            payoutAddress: "grant-address-2",
+          },
+          {
+            applicationId: "application-id-3",
+            projectId: "project-id-3",
+            totalReceived: "3400",
+            sumOfSqrt: "140",
+            matched: "6480",
+            matchedUSD: 0,
+            matchedWithoutCap: "6480",
+            capOverflow: "0",
+            contributionsCount: "7",
+            payoutAddress: "grant-address-3",
+          },
+        ];
+
+        const resp = await request(app).get(
+          "/chains/1/rounds/0x1234/matches?ignoreSaturation=true"
+        );
+        expect(resp.statusCode).toBe(200);
+        expect(resp.body).toEqual(expectedResults);
       });
     });
 
