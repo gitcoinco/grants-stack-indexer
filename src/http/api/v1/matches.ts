@@ -2,6 +2,7 @@ import express, { Response, Request } from "express";
 
 const upload = multer();
 import multer from "multer";
+import ClientError from "../clientError.js";
 
 import Calculator, {
   Overrides,
@@ -16,39 +17,21 @@ import Calculator, {
 
 const router = express.Router();
 
-function handleError(res: Response, err: unknown) {
+function handleError(err: unknown) {
   if (err instanceof FileNotFoundError) {
-    res.statusCode = 404;
-    res.send({
-      error: err.message,
-    });
-
-    return;
+    throw new ClientError(err.message, 404);
   }
 
   if (err instanceof ResourceNotFoundError) {
-    res.statusCode = 404;
-    res.send({
-      error: err.message,
-    });
-
-    return;
+    throw new ClientError(err.message, 404);
   }
 
   if (err instanceof CalculatorError) {
-    res.statusCode = 400;
-    res.send({
-      error: err.message,
-    });
-
-    return;
+    throw new ClientError(err.message, 400);
   }
 
-  console.error(err);
-  res.statusCode = 500;
-  res.send({
-    error: "something went wrong",
-  });
+  // unexpected error, rethrow to upper level handler
+  throw err;
 }
 
 export const calculatorConfig: { dataProvider: DataProvider } = {
@@ -87,7 +70,7 @@ async function matchesHandler(
     try {
       overrides = await parseOverrides(buf);
     } catch (e) {
-      handleError(res, e);
+      handleError(e);
       return;
     }
   }
@@ -118,19 +101,19 @@ async function matchesHandler(
     res.status(okStatusCode);
     res.send(responseBody);
   } catch (e) {
-    handleError(res, e);
+    handleError(e);
   }
 }
 
-router.get("/chains/:chainId/rounds/:roundId/matches", (req, res) => {
-  matchesHandler(req, res, 200, false);
+router.get("/chains/:chainId/rounds/:roundId/matches", async (req, res) => {
+  await matchesHandler(req, res, 200, false);
 });
 
 router.post(
   "/chains/:chainId/rounds/:roundId/matches",
   upload.single("overrides"),
-  (req, res) => {
-    matchesHandler(req, res, 201, true);
+  async (req, res) => {
+    await matchesHandler(req, res, 201, true);
   }
 );
 
