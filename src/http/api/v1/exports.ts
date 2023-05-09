@@ -298,7 +298,7 @@ router.get(
     res.setHeader("content-type", "text/csv");
     res.setHeader(
       "content-disposition",
-      `attachment; filename=${exportName}.csv`
+      `attachment; filename=${exportName}-${round.id}.csv`
     );
     res.status(200);
     res.send(body);
