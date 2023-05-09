@@ -39,9 +39,10 @@
     "dotenv": "^16.0.3",
     "ethers": "^5.7.2",
     "express": "^4.18.2",
+    "express-async-errors": "^3.1.1",
     "multer": "^1.4.5-lts.1",
     "npm-run-all": "^4.1.5",
-    "pluralistic": "github:gitcoinco/pluralistic.js#01e869460cd3e14637fea9fd55f3fe0540c73660",
+    "pluralistic": "github:gitcoinco/pluralistic.js#90a896ffe0bcc94d6a02f4d81efe2ab4a5af64f9",
     "serve-index": "^1.9.1",
     "statuses-bitmap": "github:gitcoinco/statuses-bitmap#3d8fd370f209ccbaffd3781cf2b6d2895237c21c",
     "typescript": "^4.9.5"
