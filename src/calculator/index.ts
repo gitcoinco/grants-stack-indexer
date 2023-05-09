@@ -81,7 +81,7 @@ export function parseOverrides(buf: Buffer): Promise<any> {
         }
       })
       .on("data", (data) => {
-        if (data["coefficient"] !== "0" &&  data["coefficient"] !== "1") {
+        if (data["coefficient"] !== "0" && data["coefficient"] !== "1") {
           throw new OverridesInvalidRowError(
             rowIndex,
             `Coefficient must be 0 or 1, found: ${data["coefficient"]}`
@@ -127,6 +127,25 @@ type RawContribution = {
   applicationId: string;
   amountUSD: number;
   amountRoundToken: string;
+  grantAddress: string;
+};
+
+type Application = {
+  id: string;
+  projectId: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  metadata: {
+    application: {
+      project: {
+        title: string;
+      };
+      recipient: string;
+    };
+  };
+};
+
+type ApplicationsMap = {
+  [id: string]: Application;
 };
 
 type RawRound = {
@@ -174,14 +193,19 @@ export default class Calculator {
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
-    const applications = this.parseJSONFile(
+    const applications: ApplicationsMap = this.parseJSONFile(
       "applications",
       `${this.chainId}/rounds/${this.roundId}/applications.json`
-    );
+    ).reduce((all, current) => {
+      all[current.id] = current;
+      return all;
+    }, {} as ApplicationsMap);
+
     const rounds: RawRound[] = this.parseJSONFile(
       "rounds",
       `${this.chainId}/rounds.json`
     );
+
     const passportScores = this.parseJSONFile(
       "passport scores",
       "passport_scores.json"
@@ -277,6 +301,18 @@ export default class Calculator {
         continue;
       }
 
+      // only count contributions to the right payout address specified in the aopplication metadata
+      const application = applications[raw.applicationId];
+      const payoutAddress = application?.metadata?.application?.recipient;
+      if (
+        payoutAddress === undefined ||
+        payoutAddress.toLowerCase() != raw.grantAddress.toLowerCase()
+      ) {
+        // skip if the application is not found or if the application payout address
+        // is different from the donation recipient
+        continue;
+      }
+
       // only count contributions that are eligible by passport or the coefficient is 1
       if (override === "1" || isEligible(addressData)) {
         contributions.push({
@@ -297,7 +333,7 @@ export default class Calculator {
 
     for (const id in results) {
       const calc = results[id];
-      const application = applications.find((a: any) => a.id === id);
+      const application = applications[id];
 
       const conversionUSD = await convertToUSD(
         this.chainId,

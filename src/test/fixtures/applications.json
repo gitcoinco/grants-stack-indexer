@@ -1,14 +1,29 @@
 [
   {
     "id": "application-id-1",
-    "projectId": "project-id-1"
+    "projectId": "project-id-1",
+    "metadata": {
+      "application": {
+        "recipient": "grant-address-1"
+      }
+    }
   },
   {
     "id": "application-id-2",
-    "projectId": "project-id-2"
+    "projectId": "project-id-2",
+    "metadata": {
+      "application": {
+        "recipient": "grant-address-2"
+      }
+    }
   },
   {
     "id": "application-id-3",
-    "projectId": "project-id-3"
+    "projectId": "project-id-3",
+    "metadata": {
+      "application": {
+        "recipient": "grant-address-3"
+      }
+    }
   }
 ]
