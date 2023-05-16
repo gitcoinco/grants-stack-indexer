@@ -169,6 +169,27 @@ describe("server", () => {
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
       });
+    });
+
+    describe("calculations with round not saturated", () => {
+      beforeEach(async () => {
+        calculatorConfig.dataProvider = new TestDataProvider({
+          "1/rounds/0x1234/votes.json": "votes",
+          "1/rounds/0x1234/applications.json": "applications",
+          "1/rounds.json": [
+            {
+              id: "0x1234",
+              token: "0x0000000000000000000000000000000000000000",
+              // instead of 100 like in the previous test
+              // this round has a pot of 1000,
+              // so it's not saturated because the sum of matches is 250
+              matchAmount: "100000",
+              metadata: {},
+            },
+          ],
+          "passport_scores.json": "passport_scores",
+        });
+      });
 
       test("should render calculations with ignore saturation false", async () => {
         const expectedResults = [
@@ -177,9 +198,9 @@ describe("server", () => {
             projectId: "project-id-1",
             totalReceived: "1500",
             sumOfSqrt: "70",
-            matched: "802",
+            matched: "3400",
             matchedUSD: 0,
-            matchedWithoutCap: "802",
+            matchedWithoutCap: "3400",
             capOverflow: "0",
             contributionsCount: "4",
             payoutAddress: "grant-address-1",
@@ -189,9 +210,9 @@ describe("server", () => {
             projectId: "project-id-2",
             totalReceived: "1000",
             sumOfSqrt: "80",
-            matched: "1274",
+            matched: "5400",
             matchedUSD: 0,
-            matchedWithoutCap: "1274",
+            matchedWithoutCap: "5400",
             capOverflow: "0",
             contributionsCount: "7",
             payoutAddress: "grant-address-2",
@@ -201,9 +222,9 @@ describe("server", () => {
             projectId: "project-id-3",
             totalReceived: "3400",
             sumOfSqrt: "140",
-            matched: "3823",
+            matched: "16200",
             matchedUSD: 0,
-            matchedWithoutCap: "3823",
+            matchedWithoutCap: "16200",
             capOverflow: "0",
             contributionsCount: "7",
             payoutAddress: "grant-address-3",
