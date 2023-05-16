@@ -120,7 +120,7 @@ describe("server", () => {
     });
 
     describe("calculations", () => {
-      beforeEach(async () => {
+      beforeEach(() => {
         calculatorConfig.dataProvider = new TestDataProvider({
           "1/rounds/0x1234/votes.json": "votes",
           "1/rounds/0x1234/applications.json": "applications",
@@ -247,7 +247,7 @@ describe("server", () => {
     });
 
     describe("calculations with bad votes", () => {
-      beforeEach(async () => {
+      beforeEach(() => {
         calculatorConfig.dataProvider = new TestDataProvider({
           "1/rounds/0x1234/votes.json": "votes-with-bad-recipient",
           "1/rounds/0x1234/applications.json": "applications",

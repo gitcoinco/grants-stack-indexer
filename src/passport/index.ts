@@ -93,6 +93,10 @@ export const fetchPassportScores = async (
   const passportURL = `https://api.scorer.gitcoin.co/registry/score/${scorerId}?limit=${limit}&offset=${offset}`;
   let attempt = 0;
 
+  if (!process.env.PASSPORT_API_KEY) {
+    throw new Error("PASSPORT_API_KEY is not set");
+  }
+
   while (attempt < maxAttempts) {
     try {
       const response = await fetch(passportURL, {
@@ -107,15 +111,14 @@ export const fetchPassportScores = async (
         throw new Error(await response.text());
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const jsonResponse = (await response.json()) as any;
-
-      const count: number = jsonResponse.count;
-      const passports: PassportScore[] = jsonResponse.items;
+      const jsonResponse = (await response.json()) as {
+        count: number;
+        items: PassportScore[];
+      };
 
       return {
-        passports,
-        count,
+        passports: jsonResponse.items,
+        count: jsonResponse.count,
       };
     } catch (e) {
       attempt = attempt + 1;
