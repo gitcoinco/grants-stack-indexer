@@ -21,3 +21,35 @@ export type Round = {
   createdAtBlock: number;
   updatedAtBlock: number;
 };
+
+export type Application = {
+  id: string;
+  projectId: string;
+  roundId: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  payoutAddress: string;
+  amountUSD: number;
+  votes: number;
+  uniqueContributors: number;
+  metadata: {
+    application: {
+      project: {
+        title: string;
+      };
+      recipient: string;
+    };
+  };
+};
+
+export type Vote = {
+  id: string;
+  projectId: string;
+  roundId: string;
+  applicationId: string;
+  token: string;
+  voter: string;
+  grantAddress: string;
+  amount: string;
+  amountUSD: number;
+  amountRoundToken: string;
+};
