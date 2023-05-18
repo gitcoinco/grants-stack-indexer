@@ -131,8 +131,13 @@ async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
 
     let coefficient = 0;
 
-    // If passport is enabled and the score exists or passport is disabled
-    if ((isPassportEnabled && score) || !isPassportEnabled) {
+    // If passport is enabled and the score exists then use the coefficient
+    if (isPassportEnabled && score) {
+      coefficient = score.coefficient;
+    }
+
+    // If passport is disabled then coefficient is 1 by default
+    if (!isPassportEnabled) {
       coefficient = 1;
     }
 
