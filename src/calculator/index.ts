@@ -215,17 +215,9 @@ export default class Calculator {
     // 4. remove initial 6 decimals
     const minimumAmount =
       this.minimumAmount ??
-      (BigInt(
-        Math.trunc(
-          Number(
-            round.metadata?.quadraticFundingConfig
-              ?.minDonationThresholdAmount ?? 0
-          ) * Math.pow(10, 6)
-        )
-      ) *
-        10n ** matchTokenDecimals) /
-        10n ** 6n ??
-      0n;
+      Number(
+        round.metadata?.quadraticFundingConfig?.minDonationThresholdAmount ?? 0
+      );
 
     let matchingCapAmount = this.matchingCapAmount;
 
@@ -295,7 +287,10 @@ export default class Calculator {
       }
 
       // only count contributions that are eligible by passport or the coefficient is 1
-      if (override === "1" || isEligible(addressData)) {
+      if (
+        override === "1" ||
+        (isEligible(addressData) && raw.amountUSD >= minimumAmount)
+      ) {
         contributions.push({
           contributor: raw.voter,
           recipient: raw.applicationId,
@@ -305,7 +300,7 @@ export default class Calculator {
     }
 
     const results = linearQF(contributions, matchAmount, matchTokenDecimals, {
-      minimumAmount,
+      minimumAmount: 0n,
       matchingCapAmount,
       ignoreSaturation: this.ignoreSaturation ?? false,
     });
