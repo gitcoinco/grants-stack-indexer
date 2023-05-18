@@ -4,6 +4,7 @@ import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
 import { convertToUSD } from "../prices/index.js";
 import { tokenDecimals } from "../config.js";
+import type { Application, Vote } from "../indexer/types.js";
 
 export class CalculatorError extends Error {
   constructor(...args: any[]) {
@@ -120,30 +121,6 @@ export type AugmentedResult = Calculation & {
   payoutAddress: string;
 };
 
-type RawContribution = {
-  id: string;
-  voter: string;
-  projectId: string;
-  applicationId: string;
-  amountUSD: number;
-  amountRoundToken: string;
-  grantAddress: string;
-};
-
-type Application = {
-  id: string;
-  projectId: string;
-  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
-  metadata: {
-    application: {
-      project: {
-        title: string;
-      };
-      recipient: string;
-    };
-  };
-};
-
 type ApplicationsMap = {
   [id: string]: Application;
 };
@@ -189,7 +166,7 @@ export default class Calculator {
   }
 
   async calculate(): Promise<Array<AugmentedResult>> {
-    const rawContributions: Array<RawContribution> = this.parseJSONFile(
+    const rawContributions: Array<Vote> = this.parseJSONFile(
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
@@ -298,6 +275,10 @@ export default class Calculator {
       const override = this.overrides[raw.id];
 
       if (override === "0") {
+        continue;
+      }
+
+      if (applications[raw.applicationId].status !== "APPROVED") {
         continue;
       }
 

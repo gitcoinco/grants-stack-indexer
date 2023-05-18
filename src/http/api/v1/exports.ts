@@ -8,7 +8,7 @@ import fs from "fs";
 
 import database from "../../../database.js";
 import { getPrices } from "../../../prices/index.js";
-import { Round } from "../../../indexer/types.js";
+import { Round, Application, Vote } from "../../../indexer/types.js";
 import ClientError from "../clientError.js";
 
 const router = express.Router();
@@ -94,20 +94,26 @@ async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
   ): PassportScoresMap => {
     return scores.reduce((map, score) => {
       const address = score.address.toLowerCase();
-      const { evidence, error, ...remainingScore } = score;
+      const { evidence, ...remainingScore } = score;
       const coefficient = evidence !== null && evidence.success ? 1 : 0;
       map[address] = { ...remainingScore, ...evidence, coefficient };
       return map;
     }, {} as PassportScoresMap);
   };
 
-  const [votes, data] = await Promise.all([
-    db.collection(`rounds/${round.id}/votes`).all(),
+  const [applications, votes, data] = await Promise.all([
+    db.collection<Application>(`rounds/${round.id}/applications`).all(),
+    db.collection<Vote>(`rounds/${round.id}/votes`).all(),
     fs.promises.readFile("./data/passport_scores.json", {
       encoding: "utf8",
       flag: "r",
     }),
   ]);
+
+  const applicationMap = applications.reduce((map, application) => {
+    map[application.id] = application;
+    return map;
+  }, {} as Record<string, Application>);
 
   const isPassportEnabled =
     round?.metadata?.quadraticFundingConfig?.sybilDefense ?? false;
@@ -116,11 +122,15 @@ async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
   const passportScoresMap = processPassportScores(passportScores);
   const defaultCoefficient = isPassportEnabled ? 0 : 1;
 
-  const records = votes.map((vote: any) => {
+  const records = votes.flatMap((vote) => {
     const voter = vote.voter.toLowerCase();
     const score = passportScoresMap[voter];
     if (score !== undefined && !isPassportEnabled) {
       score.coefficient = defaultCoefficient;
+    }
+
+    if (applicationMap[vote.applicationId]?.status !== "APPROVED") {
+      return [];
     }
 
     const combinedVote = {
@@ -129,22 +139,24 @@ async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
     };
 
     return [
-      combinedVote.id,
-      combinedVote.projectId,
-      combinedVote.applicationId,
-      combinedVote.roundId,
-      combinedVote.token,
-      voter,
-      combinedVote.grantAddress,
-      combinedVote.amount,
-      combinedVote.amountUSD,
-      combinedVote.coefficient,
-      combinedVote.status,
-      combinedVote.last_score_timestamp,
-      combinedVote.type,
-      combinedVote.success,
-      combinedVote.rawScore,
-      combinedVote.threshold,
+      [
+        combinedVote.id,
+        combinedVote.projectId,
+        combinedVote.applicationId,
+        combinedVote.roundId,
+        combinedVote.token,
+        voter,
+        combinedVote.grantAddress,
+        combinedVote.amount,
+        combinedVote.amountUSD,
+        combinedVote.coefficient,
+        combinedVote.status,
+        combinedVote.last_score_timestamp,
+        combinedVote.type,
+        combinedVote.success,
+        combinedVote.rawScore,
+        combinedVote.threshold,
+      ],
     ];
   });
 
