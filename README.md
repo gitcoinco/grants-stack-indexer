@@ -32,13 +32,31 @@ The indexer is monitoring the following chains with their respective chain IDs:
 
 ## How to run?
 
+### Production:
+
 ```bash
 npm install
 npm run build
-npm start # this runs the production start script which will index all chains
+npm start # this runs the production start script which will index all chains and start the HTTP server
 ```
 
-You can also run the index script to just index, use the follwing options to change it's behaviour:
+### Development:
+
+**Make sure you set the environment variables before running, find a `.env` template in `.env.example`**
+
+
+```bash
+npm install
+npm start:dev:goerli # or `npm run start:dev:mainnet` or `npm run start:dev -- --chain=otherchain`
+```
+
+The HTTP server runs on port 4000, check it here: http://localhost:4000/
+
+Indexed JSON data is found in the `data` directory.
+
+----
+
+Run the standalone index script to just index data, use the follwing options to change it's behaviour:
 
 ```bash
 npm run index -- --chain=mainnet --to-block=16833357 # run only to the specified block, useful to maximize cache usage
@@ -47,22 +65,6 @@ npm run index -- --chain=mainnet --follow # follow the blockchain, this runs as 
 npm run index -- --chain=mainnet --clear # clear the indexed data before indexing
 npm run index -- --chain=mainnet --no-cache # run without a cache
 ```
-
-## Development
-
-**Please make sure you set the environment variables before running, find a `.env` template in `.env.example`**
-
-Run the indexer:
-
-```
-npm run start:dev:mainnet
-```
-
-Then check the new files generated under `data/1`.
-
-### HTTP Server
-
-The server will run under port 4000, check it here: http://localhost:4000/
 
 ## Deployment
 
