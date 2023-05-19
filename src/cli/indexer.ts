@@ -17,9 +17,12 @@ import {
   updatePricesAndWrite,
 } from "../prices/index.js";
 
-const { values: args, positionals: positionalArgs } = parseArgs({
-  allowPositionals: true,
+const { values: args } = parseArgs({
   options: {
+    chain: {
+      type: "string",
+      short: "s",
+    },
     follow: {
       type: "boolean",
       short: "f",
@@ -54,7 +57,7 @@ if (args["from-block"]) {
 
 // Get chain parameter
 
-const chainName = positionalArgs[0];
+const chainName = args.chain;
 
 if (!chainName) {
   console.error("Please provide a chain name to index.");
