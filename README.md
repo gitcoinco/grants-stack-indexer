@@ -35,7 +35,7 @@ The indexer is monitoring the following chains with their respective chain IDs:
 ```bash
 npm install
 npm run build
-npm start # this runs the indexer and the HTTP server
+npm start # this runs the production start script which will index all chains
 ```
 
 You can also run the index script to just index, use the follwing options to change it's behaviour:
