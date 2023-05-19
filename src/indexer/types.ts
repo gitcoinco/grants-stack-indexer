@@ -12,6 +12,7 @@ export type Round = {
   metadata: {
     quadraticFundingConfig: {
       sybilDefense: boolean;
+      minDonationThresholdAmount: number;
     };
   } | null;
   applicationsStartTime: number;

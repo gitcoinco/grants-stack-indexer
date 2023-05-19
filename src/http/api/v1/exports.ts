@@ -118,15 +118,31 @@ async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
   const isPassportEnabled =
     round?.metadata?.quadraticFundingConfig?.sybilDefense ?? false;
 
+  const minimumAmount = Number(
+    round.metadata?.quadraticFundingConfig?.minDonationThresholdAmount ?? 0
+  );
+
   const passportScores: FullPassportScore[] = JSON.parse(data);
   const passportScoresMap = processPassportScores(passportScores);
-  const defaultCoefficient = isPassportEnabled ? 0 : 1;
 
   const records = votes.flatMap((vote) => {
     const voter = vote.voter.toLowerCase();
     const score = passportScoresMap[voter];
-    if (score !== undefined && !isPassportEnabled) {
-      score.coefficient = defaultCoefficient;
+
+    let coefficient = 0;
+
+    // If passport is enabled and the score exists then use the coefficient
+    if (isPassportEnabled && score) {
+      coefficient = score.coefficient;
+    }
+
+    // If passport is disabled then coefficient is 1 by default
+    if (!isPassportEnabled) {
+      coefficient = 1;
+    }
+
+    if (vote.amountUSD < minimumAmount) {
+      coefficient = 0;
     }
 
     if (applicationMap[vote.applicationId]?.status !== "APPROVED") {
@@ -135,7 +151,7 @@ async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
 
     const combinedVote = {
       ...vote,
-      ...(score ?? { coefficient: defaultCoefficient }),
+      ...score,
     };
 
     return [
@@ -149,7 +165,7 @@ async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
         combinedVote.grantAddress,
         combinedVote.amount,
         combinedVote.amountUSD,
-        combinedVote.coefficient,
+        coefficient,
         combinedVote.status,
         combinedVote.last_score_timestamp,
         combinedVote.type,
