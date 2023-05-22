@@ -32,54 +32,39 @@ The indexer is monitoring the following chains with their respective chain IDs:
 
 ## How to run?
 
+### Production:
+
 ```bash
 npm install
 npm run build
-npm start # run the HTTP server and all the indexers for all chains
+npm start # this runs the production start script which will index all chains and start the HTTP server
 ```
 
-You can run specific indexers:
+### Development:
+
+**Make sure you set the environment variables before running, find a `.env` template in `.env.example`**
+
 
 ```bash
-npm run index:mainnet
-npm run index:goerli
-npm run index:fantom
-npm run index:optimism
+npm install
+npm start:dev:goerli # or `npm run start:dev:mainnet` or `npm run start:dev -- --chain=otherchain`
 ```
 
-The indexer script updates to the current last block and exits, use the follwing options to change it's behaviour:
+The HTTP server runs on port 4000, check it here: http://localhost:4000/
+
+Indexed JSON data is found in the `data` directory.
+
+----
+
+Run the standalone index script to just index data, use the follwing options to change it's behaviour:
 
 ```bash
-npm run index:mainnet -- --to-block=16833357 # run only to the specified block, useful to maximize cache usage
-npm run index:mainnet -- --from-block=16994526 # run only from the specified block, useful to index only the latest events
-npm run index:mainnet -- --follow # follow the blockchain, this runs as a long running process indexing events as they happen
-npm run index:mainnet -- --clear # clear the indexed data before indexing
-npm run index:mainnet -- --no-cache # run without a cache
+npm run index -- --chain=mainnet --to-block=16833357 # run only to the specified block, useful to maximize cache usage
+npm run index -- --chain=mainnet --from-block=16994526 # run only from the specified block, useful to index only the latest events
+npm run index -- --chain=mainnet --follow # follow the blockchain, this runs as a long running process indexing events as they happen
+npm run index -- --chain=mainnet --clear # clear the indexed data before indexing
+npm run index -- --chain=mainnet --no-cache # run without a cache
 ```
-
-## Development
-
-```bash
-npm run dev # Run the Typescript compiler on watch mode
-npm run build # Compile the code
-npm run lint # Lint the code
-```
-
-### Developing the indexer
-
-**Please make sure you set the environment variables before running, find a `.env` template in `.env.example`**
-
-Each indexer has a `dev:` prefix which will watch for code changes and re-run the indexer with an empty data directory.
-
-```
-npm run dev:index:mainnet
-```
-
-Then check the new files generated under `data/1`.
-
-### HTTP Server
-
-The `npm run serve` command runs a static HTTP server to serve the JSON files inside `/.data`.
 
 ## Deployment
 

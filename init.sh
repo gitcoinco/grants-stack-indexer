@@ -10,10 +10,10 @@ trap "pkill -P $$" SIGINT SIGTERM EXIT
 
 # Index everything once
 
-npm run index:mainnet & pids+=($!)
-npm run index:optimism & pids+=($!)
-npm run index:fantom & pids+=($!)
-npm run index:goerli & pids+=($!)
+npm run index -- --chain=mainnet & pids+=($!)
+npm run index -- --chain=optimism & pids+=($!)
+npm run index -- --chain=fantom & pids+=($!)
+npm run index -- --chain=goerli & pids+=($!)
 npm run passport & pids+=($!)
 
 for pid in ${pids[*]}; do
@@ -33,10 +33,10 @@ if [ "$1" == "server" ]; then
   echo "=> Index successful, running server!"
 
   supervise "npm run passport -- --follow" &
-  supervise "npm run index:goerli -- --follow" &
-  supervise "npm run index:mainnet -- --follow" &
-  supervise "npm run index:optimism -- --follow" &
-  supervise "npm run index:fantom -- --follow" &
+  supervise "npm run index -- --chain=goerli --follow" &
+  supervise "npm run index -- --chain=mainnet --follow" &
+  supervise "npm run index -- --chain=optimism --follow" &
+  supervise "npm run index -- --chain=fantom --follow" &
 
   supervise "npm run serve" &
 
