@@ -15,7 +15,6 @@ export async function fetchJsonCached<T>(
 const cidRegex = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[0-9A-Za-z]{50,})$/;
 
 export async function fetchJson<T>(cid: string): Promise<T | undefined> {
-  // TODO: wth is this?
   if (!cidRegex.test(cid)) {
     console.error("Invalid IPFS CID:", cid);
     return undefined;
