@@ -10,9 +10,11 @@ export async function fetchJsonCached<T>(
   return await cache.lazy<T>(`ipfs-${cid}`, () => fetchJson<T>(cid));
 }
 
+const cidRegex = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[0-9A-Za-z]{50,})$/;
+
 export async function fetchJson<T>(cid: string): Promise<T> {
   // TODO: wth is this?
-  if (cid === "test_pointer") {
+  if (!cidRegex.test(cid)) {
     return undefined as T;
   }
 
