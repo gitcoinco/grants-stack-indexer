@@ -50,11 +50,44 @@ async function matchesHandler(
   const minimumAmount = req.query.minimumAmount?.toString();
   const passportThreshold = req.query.passportThreshold?.toString();
   const matchingCapAmount = req.query.matchingCapAmount?.toString();
-  const enablePassport =
-    req.query.enablePassport?.toString()?.toLowerCase() === "true";
 
-  const ignoreSaturation =
-    req.query.ignoreSaturation?.toString()?.toLowerCase() === "true";
+  const enablePassportParam = req.query.enablePassport
+    ?.toString()
+    ?.toLowerCase();
+
+  let enablePassport = undefined;
+
+  if (enablePassportParam !== undefined) {
+    if (enablePassportParam === "true") {
+      enablePassport = true;
+    } else if (enablePassportParam === "false") {
+      enablePassport = false;
+    } else {
+      throw new ClientError(
+        "enablePassport parameter must be true or false",
+        400
+      );
+    }
+  }
+
+  const ignoreSaturationParam = req.query.ignoreSaturation
+    ?.toString()
+    ?.toLowerCase();
+
+  let ignoreSaturation = true;
+
+  if (ignoreSaturationParam !== undefined) {
+    if (ignoreSaturationParam === "true") {
+      ignoreSaturation = true;
+    } else if (ignoreSaturationParam === "false") {
+      ignoreSaturation = false;
+    } else {
+      throw new ClientError(
+        "ignoreSaturation parameter must be true or false",
+        400
+      );
+    }
+  }
 
   let overrides: Overrides = {};
 
