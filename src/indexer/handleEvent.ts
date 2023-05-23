@@ -565,7 +565,22 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           `rounds/${event.args.roundAddress}/applications/${applicationId}/votes`
         ).insert(vote);
 
+        const donorPartitionedPath = vote.voter
+          .split(/(.{6})/)
+          .filter((s: string) => s.length > 0)
+          .join("/");
+
         await Promise.all([
+          db.collection(`donors/${donorPartitionedPath}`).insert({
+            ...vote,
+            round: {
+              name: round.metadata.name,
+            },
+            project: {
+              canonicalId: application.metadata.application.project.id,
+              title: application.metadata.application.project.title,
+            },
+          }),
           db
             .collection("rounds")
             .updateById(event.args.roundAddress, (round) => ({
