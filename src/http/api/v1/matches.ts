@@ -38,6 +38,28 @@ export const calculatorConfig: { dataProvider: DataProvider } = {
   dataProvider: new FileSystemDataProvider("./data"),
 };
 
+function boolParam<T extends Record<string, unknown>>(
+  object: T,
+  name: keyof T
+): boolean | undefined {
+  const param = object[name]?.toString()?.toLowerCase();
+
+  if (param === undefined) {
+    return undefined;
+  }
+
+  if (param === "true") {
+    return true;
+  } else if (param === "false") {
+    return false;
+  } else {
+    throw new ClientError(
+      `${name.toString()} parameter must be true or false`,
+      400
+    );
+  }
+}
+
 async function matchesHandler(
   req: Request,
   res: Response,
@@ -50,11 +72,9 @@ async function matchesHandler(
   const minimumAmount = req.query.minimumAmount?.toString();
   const passportThreshold = req.query.passportThreshold?.toString();
   const matchingCapAmount = req.query.matchingCapAmount?.toString();
-  const enablePassport =
-    req.query.enablePassport?.toString()?.toLowerCase() === "true";
 
-  const ignoreSaturation =
-    req.query.ignoreSaturation?.toString()?.toLowerCase() === "true";
+  const enablePassport = boolParam(req.query, "enablePassport");
+  const ignoreSaturation = boolParam(req.query, "ignoreSaturation");
 
   let overrides: Overrides = {};
 

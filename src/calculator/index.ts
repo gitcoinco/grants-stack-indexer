@@ -248,14 +248,14 @@ export default class Calculator {
             this.passportThreshold
           );
         } else {
-          return hasValidEvidence;
+          return Boolean(hasValidEvidence);
         }
       }
       return true;
     };
 
     const passportIndex = passportScores.reduce((acc: any, ps: any) => {
-      acc[ps.address] = ps;
+      acc[ps.address.toLowerCase()] = ps;
       return acc;
     }, {});
 
@@ -263,7 +263,7 @@ export default class Calculator {
 
     for (let i = 0; i < rawContributions.length; i++) {
       const raw = rawContributions[i];
-      const addressData = passportIndex[raw.voter];
+      const addressData = passportIndex[raw.voter.toLowerCase()];
       const override = this.overrides[raw.id];
 
       if (override === "0") {

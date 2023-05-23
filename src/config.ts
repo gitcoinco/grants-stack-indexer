@@ -85,6 +85,11 @@ const chains: Chain[] = [
         decimals: 18,
       },
       {
+        code: "DAI",
+        address: "0x11fE4B6AE13d2a6055C8D9cF65c55bac32B5d844",
+        decimals: 18,
+      },
+      {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
