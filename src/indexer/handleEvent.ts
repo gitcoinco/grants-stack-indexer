@@ -318,8 +318,13 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
     }
 
     case "ProjectsMetaPtrUpdated": {
-      const projects: { id: string; status: string; payoutAddress: string }[] =
-        await ipfs(event.args.newMetaPtr.pointer, indexer.cache);
+      const projects = await ipfs<
+        { id: string; status: string; payoutAddress: string }[]
+      >(event.args.newMetaPtr.pointer, indexer.cache);
+
+      if (!projects) {
+        return;
+      }
 
       for (const projectApp of projects) {
         const projectId = projectApp.id.split("-")[0];
