@@ -422,7 +422,7 @@ describe("server", () => {
         expect(resp.statusCode).toBe(400);
         expect(resp.body).toEqual({
           error:
-            "Row 2 in the overrides file is invalid: Coefficient must be 0 or 1, found: what",
+            "Row 2 in the overrides file is invalid: Coefficient must be a number, found: what",
         });
       });
     });
