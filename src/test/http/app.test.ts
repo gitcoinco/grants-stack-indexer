@@ -4,7 +4,11 @@ import path from "path";
 import request from "supertest";
 import { app } from "../../http/app.js";
 import { calculatorConfig } from "../../http/api/v1/matches.js";
-import { AugmentedResult, FileNotFoundError } from "../../calculator/index.js";
+import {
+  AugmentedResult,
+  DataProvider,
+  FileNotFoundError,
+} from "../../calculator/index.js";
 
 vi.mock("../../prices/index.js", () => {
   return {
@@ -18,24 +22,26 @@ const loadFixture = (name: string, extension = "json") => {
   return data;
 };
 
-export class TestDataProvider {
-  routes: { [path: string]: string };
+type Fixtures = { [path: string]: string | undefined | unknown[] };
 
-  constructor(routes: { [path: string]: string | any }) {
-    this.routes = routes;
+export class TestDataProvider implements DataProvider {
+  fixtures: Fixtures;
+
+  constructor(fixtures: Fixtures) {
+    this.fixtures = fixtures;
   }
 
-  loadFile(description: string, path: string) {
-    const fixture = this.routes[path];
+  loadFile<T>(description: string, path: string): Array<T> {
+    const fixture = this.fixtures[path];
     if (fixture === undefined) {
       throw new FileNotFoundError(description);
     }
 
     if (typeof fixture !== "string") {
-      return fixture;
+      return fixture as Array<T>;
     }
 
-    return JSON.parse(loadFixture(fixture));
+    return JSON.parse(loadFixture(fixture)) as Array<T>;
   }
 }
 
@@ -315,10 +321,13 @@ describe("server", () => {
 
         expect(resp.statusCode).toBe(201);
 
-        const matches = resp.body.reduce((acc, match: AugmentedResult) => {
-          acc[match.projectId] = match.matched;
-          return acc;
-        }, {} as Record<string, string>);
+        const matches = resp.body.reduce(
+          (acc: Record<string, string>, match: AugmentedResult) => {
+            acc[match.projectId] = match.matched.toString();
+            return acc;
+          },
+          {} as Record<string, string>
+        );
 
         // all votes for projects 1 are overridden with coefficient 0
         // so the calc[should only contains poject 2 and 3.
