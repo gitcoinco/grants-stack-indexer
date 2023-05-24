@@ -4,7 +4,7 @@ import path from "path";
 import request from "supertest";
 import { app } from "../../http/app.js";
 import { calculatorConfig } from "../../http/api/v1/matches.js";
-import { FileNotFoundError } from "../../calculator/index.js";
+import { AugmentedResult, FileNotFoundError } from "../../calculator/index.js";
 
 vi.mock("../../prices/index.js", () => {
   return {
@@ -315,14 +315,17 @@ describe("server", () => {
 
         expect(resp.statusCode).toBe(201);
 
-        const projects = new Set(resp.body.map((p: any) => p.projectId));
+        const matches = resp.body.reduce((acc, match: AugmentedResult) => {
+          acc[match.projectId] = match.matched;
+          return acc;
+        }, {} as Record<string, string>);
 
         // all votes for projects 1 are overridden with coefficient 0
-        // so the calculations should only contains poject 2 and 3.
-        expect(resp.body.length).toBe(2);
-        expect(projects.has("project-id-1")).toBe(false);
-        expect(projects.has("project-id-2")).toBe(true);
-        expect(projects.has("project-id-3")).toBe(true);
+        // so the calc[should only contains poject 2 and 3.
+        expect(resp.body.length).toBe(3);
+        expect(matches["project-id-1"]).toBe("0");
+        expect(matches["project-id-2"]).toBe("2500");
+        expect(matches["project-id-3"]).toBe("7500");
       });
 
       test("should render 400 if no overrides file has been uploaded", async () => {
