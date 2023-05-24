@@ -4,13 +4,13 @@ import {
 } from "csv-writer";
 import { JsonStorage } from "chainsauce";
 import express from "express";
-import fs from "fs";
 
 import database from "../../../database.js";
 import { getPrices } from "../../../prices/index.js";
 import { Round, Application, Vote } from "../../../indexer/types.js";
 import { getVotesWithCoefficients } from "../../../calculator/votes.js";
 import ClientError from "../clientError.js";
+import fs from "fs/promises";
 import { PassportScore } from "../../../passport/index.js";
 
 const router = express.Router();
@@ -61,6 +61,7 @@ async function exportPricesCSV(chainId: number, round: Round) {
   return csv.getHeaderString()!.concat(csv.stringifyRecords(pricesDuringRound));
 }
 
+<<<<<<< HEAD
 async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
   const [applications, votes, passportScoresString] = await Promise.all([
     db.collection<Application>(`rounds/${round.id}/applications`).all(),
@@ -240,7 +241,7 @@ router.get(
       throw new ClientError("Round not found", 404);
     }
 
-    const body = await exportVoteCoefficientsCSV(db, round);
+    const body = await exportVoteCoefficientsCSV(db, chainId, round);
 
     res.setHeader("content-type", "text/csv");
     res.setHeader(
@@ -285,7 +286,7 @@ router.get(
         break;
       }
       case "vote_coefficients": {
-        body = await exportVoteCoefficientsCSV(db, round);
+        body = await exportVoteCoefficientsCSV(db, chainId, round);
         break;
       }
       default: {
