@@ -4,11 +4,11 @@ import {
 } from "csv-writer";
 import { JsonStorage } from "chainsauce";
 import express from "express";
-import fs from "fs";
 
 import database from "../../../database.js";
 import { getPrices } from "../../../prices/index.js";
-import { Round, Application, Vote } from "../../../indexer/types.js";
+import { Round } from "../../../indexer/types.js";
+import { getVotes } from "../../../calculator/votes.js";
 import ClientError from "../clientError.js";
 
 const router = express.Router();
@@ -59,71 +59,12 @@ async function exportPricesCSV(chainId: number, round: Round) {
   return csv.getHeaderString()!.concat(csv.stringifyRecords(pricesDuringRound));
 }
 
-type BasePassportScore = {
-  address: string;
-  score: string | null;
-  status: string;
-  last_score_timestamp: string;
-};
-
-type FullPassportScore = BasePassportScore & {
-  evidence: {
-    type: string;
-    success: boolean;
-    rawScore: string;
-    threshold: string;
-  } | null;
-  error?: string;
-};
-
-type FlatPassportScoreWithCoefficient = BasePassportScore & {
-  coefficient: 0 | 1;
-  type?: string;
-  success?: boolean;
-  rawScore?: string;
-  threshold?: string;
-};
-
-type PassportScoresMap = {
-  [address: string]: FlatPassportScoreWithCoefficient;
-};
-
-async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
-  const processPassportScores = (
-    scores: FullPassportScore[]
-  ): PassportScoresMap => {
-    return scores.reduce((map, score) => {
-      const address = score.address.toLowerCase();
-      const { evidence, ...remainingScore } = score;
-      const coefficient = evidence !== null && evidence.success ? 1 : 0;
-      map[address] = { ...remainingScore, ...evidence, coefficient };
-      return map;
-    }, {} as PassportScoresMap);
-  };
-
-  const [applications, votes, data] = await Promise.all([
-    db.collection<Application>(`rounds/${round.id}/applications`).all(),
-    db.collection<Vote>(`rounds/${round.id}/votes`).all(),
-    fs.promises.readFile("./data/passport_scores.json", {
-      encoding: "utf8",
-      flag: "r",
-    }),
-  ]);
-
-  const applicationMap = applications.reduce((map, application) => {
-    map[application.id] = application;
-    return map;
-  }, {} as Record<string, Application>);
-
-  const isPassportEnabled =
-    round?.metadata?.quadraticFundingConfig?.sybilDefense ?? false;
-
-  const minimumAmount = Number(
-    round.metadata?.quadraticFundingConfig?.minDonationThresholdAmount ?? 0
-  );
-
-  const passportScores: FullPassportScore[] = JSON.parse(data);
-  const passportScoresMap = processPassportScores(passportScores);
+async function exportVoteCoefficientsCSV(
+  db: JsonStorage,
+  chainId: string,
+  round: Round
+) {
+  const votes = await getVotes(db, chainId, round.id);
 
   const records = votes.flatMap((vote) => {
     const voter = vote.voter.toLowerCase();
@@ -304,7 +245,7 @@ router.get(
       throw new ClientError("Round not found", 404);
     }
 
-    const body = await exportVoteCoefficientsCSV(db, round);
+    const body = await exportVoteCoefficientsCSV(db, chainId, round);
 
     res.setHeader("content-type", "text/csv");
     res.setHeader(
@@ -349,7 +290,7 @@ router.get(
         break;
       }
       case "vote_coefficients": {
-        body = await exportVoteCoefficientsCSV(db, round);
+        body = await exportVoteCoefficientsCSV(db, chainId, round);
         break;
       }
       default: {
