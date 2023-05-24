@@ -3,6 +3,7 @@ import type { PassportScore } from "../passport/index.js";
 
 type VoteWithCoefficient = Vote & {
   coefficient: number;
+  passportScore?: PassportScore;
 };
 
 export async function getVotesWithCoefficients(
@@ -39,7 +40,6 @@ export async function getVotesWithCoefficients(
 
   return votes.flatMap((vote) => {
     const voter = vote.voter.toLowerCase();
-    const score = passportScoresMap[voter];
     const application = applicationMap[vote.applicationId];
 
     // skip votes to applications that are not approved
@@ -60,15 +60,17 @@ export async function getVotesWithCoefficients(
 
     // Passport check
 
+    const passportScore = passportScoresMap[voter];
     let passportCheckPassed = false;
 
     if (enablePassport) {
       if (
         options.passportThreshold &&
-        Number(score?.evidence?.rawScore ?? "0") > options.passportThreshold
+        Number(passportScore?.evidence?.rawScore ?? "0") >
+          options.passportThreshold
       ) {
         passportCheckPassed = true;
-      } else if (score.evidence?.success) {
+      } else if (passportScore.evidence?.success) {
         passportCheckPassed = true;
       }
     } else {
@@ -89,12 +91,7 @@ export async function getVotesWithCoefficients(
       {
         ...vote,
         coefficient,
-        minimumAmountUSD: minimumAmountUSD,
-        passportLastScoreTimestamp: score?.last_score_timestamp,
-        passportRawScore: score?.evidence?.rawScore,
-        passportCheckType: score?.evidence?.type,
-        passportCheckSuccess: score?.evidence?.success,
-        passpportThreshold: score?.evidence?.threshold,
+        passportScore: passportScore,
       },
     ];
   });

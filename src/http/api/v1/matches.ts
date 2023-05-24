@@ -69,7 +69,7 @@ async function matchesHandler(
   const chainId = Number(req.params.chainId);
   const roundId = req.params.roundId;
 
-  const minimumAmount = req.query.minimumAmount?.toString();
+  const minimumAmountUSD = req.query.minimumAmountUSD?.toString();
   const passportThreshold = req.query.passportThreshold?.toString();
   const matchingCapAmount = req.query.matchingCapAmount?.toString();
 
@@ -99,7 +99,7 @@ async function matchesHandler(
     dataProvider: calculatorConfig.dataProvider,
     chainId: chainId,
     roundId: roundId,
-    minimumAmount: minimumAmount ? BigInt(minimumAmount) : undefined,
+    minimumAmountUSD: minimumAmountUSD ? Number(minimumAmountUSD) : undefined,
     matchingCapAmount: matchingCapAmount
       ? BigInt(matchingCapAmount)
       : undefined,

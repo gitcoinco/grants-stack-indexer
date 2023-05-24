@@ -4,12 +4,14 @@ import {
 } from "csv-writer";
 import { JsonStorage } from "chainsauce";
 import express from "express";
+import fs from "fs";
 
 import database from "../../../database.js";
 import { getPrices } from "../../../prices/index.js";
-import { Round } from "../../../indexer/types.js";
-import { getVotes } from "../../../calculator/votes.js";
+import { Round, Application, Vote } from "../../../indexer/types.js";
+import { getVotesWithCoefficients } from "../../../calculator/votes.js";
 import ClientError from "../clientError.js";
+import { PassportScore } from "../../../passport/index.js";
 
 const router = express.Router();
 
@@ -59,60 +61,47 @@ async function exportPricesCSV(chainId: number, round: Round) {
   return csv.getHeaderString()!.concat(csv.stringifyRecords(pricesDuringRound));
 }
 
-async function exportVoteCoefficientsCSV(
-  db: JsonStorage,
-  chainId: string,
-  round: Round
-) {
-  const votes = await getVotes(db, chainId, round.id);
+async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
+  const [applications, votes, passportScoresString] = await Promise.all([
+    db.collection<Application>(`rounds/${round.id}/applications`).all(),
+    db.collection<Vote>(`rounds/${round.id}/votes`).all(),
+    fs.promises.readFile("./data/passport_scores.json", {
+      encoding: "utf8",
+      flag: "r",
+    }),
+  ]);
 
-  const records = votes.flatMap((vote) => {
-    const voter = vote.voter.toLowerCase();
-    const score = passportScoresMap[voter];
+  const passportScores = JSON.parse(
+    passportScoresString
+  ) as Array<PassportScore>;
 
-    let coefficient = 0;
+  const votesWithCoefficients = await getVotesWithCoefficients(
+    round,
+    applications,
+    votes,
+    passportScores,
+    {}
+  );
 
-    // If passport is enabled and the score exists then use the coefficient
-    if (isPassportEnabled && score) {
-      coefficient = score.coefficient;
-    }
-
-    // If passport is disabled then coefficient is 1 by default
-    if (!isPassportEnabled) {
-      coefficient = 1;
-    }
-
-    if (vote.amountUSD < minimumAmount) {
-      coefficient = 0;
-    }
-
-    if (applicationMap[vote.applicationId]?.status !== "APPROVED") {
-      return [];
-    }
-
-    const combinedVote = {
-      ...vote,
-      ...score,
-    };
-
+  const records = votesWithCoefficients.flatMap((vote) => {
     return [
       [
-        combinedVote.id,
-        combinedVote.projectId,
-        combinedVote.applicationId,
-        combinedVote.roundId,
-        combinedVote.token,
-        voter,
-        combinedVote.grantAddress,
-        combinedVote.amount,
-        combinedVote.amountUSD,
-        coefficient,
-        combinedVote.status,
-        combinedVote.last_score_timestamp,
-        combinedVote.type,
-        combinedVote.success,
-        combinedVote.rawScore,
-        combinedVote.threshold,
+        vote.id,
+        vote.projectId,
+        vote.applicationId,
+        vote.roundId,
+        vote.token,
+        vote.voter,
+        vote.grantAddress,
+        vote.amount,
+        vote.amountUSD,
+        vote.coefficient,
+        vote.passportScore?.status,
+        vote.passportScore?.last_score_timestamp,
+        vote.passportScore?.evidence?.type,
+        vote.passportScore?.evidence?.success,
+        vote.passportScore?.evidence?.rawScore,
+        vote.passportScore?.evidence?.threshold,
       ],
     ];
   });
@@ -138,7 +127,13 @@ async function exportVoteCoefficientsCSV(
     ],
   });
 
-  return csv.getHeaderString()!.concat(csv.stringifyRecords(records));
+  const header = csv.getHeaderString();
+
+  if (!header) {
+    throw new Error("failed to generate CSV header");
+  }
+
+  return header.concat(csv.stringifyRecords(records));
 }
 
 async function exportRoundCSV(round: Round) {
@@ -245,7 +240,7 @@ router.get(
       throw new ClientError("Round not found", 404);
     }
 
-    const body = await exportVoteCoefficientsCSV(db, chainId, round);
+    const body = await exportVoteCoefficientsCSV(db, round);
 
     res.setHeader("content-type", "text/csv");
     res.setHeader(
@@ -290,7 +285,7 @@ router.get(
         break;
       }
       case "vote_coefficients": {
-        body = await exportVoteCoefficientsCSV(db, chainId, round);
+        body = await exportVoteCoefficientsCSV(db, round);
         break;
       }
       default: {
