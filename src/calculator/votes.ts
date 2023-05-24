@@ -70,7 +70,7 @@ export async function getVotesWithCoefficients(
           options.passportThreshold
       ) {
         passportCheckPassed = true;
-      } else if (passportScore.evidence?.success) {
+      } else if (passportScore?.evidence?.success) {
         passportCheckPassed = true;
       }
     } else {
