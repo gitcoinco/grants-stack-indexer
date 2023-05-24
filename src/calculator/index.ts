@@ -26,9 +26,7 @@ export interface DataProvider {
   loadFile<T>(description: string, path: string): Array<T>;
 }
 
-export type Overrides = {
-  [id: string]: string;
-};
+export type Overrides = Record<string, number>;
 
 export class FileSystemDataProvider implements DataProvider {
   basePath: string;
@@ -68,14 +66,15 @@ export function parseOverrides(buf: Buffer): Promise<Overrides> {
         }
       })
       .on("data", (data) => {
-        if (data["coefficient"] !== "0" && data["coefficient"] !== "1") {
+        const coefficient = Number(data["coefficient"]);
+        if (!isFinite(coefficient)) {
           throw new OverridesInvalidRowError(
             rowIndex,
-            `Coefficient must be 0 or 1, found: ${data["coefficient"]}`
+            `Coefficient must be a number, found: ${data["coefficient"]}`
           );
         }
 
-        results[data["id"]] = data["coefficient"];
+        results[data["id"]] = coefficient;
         rowIndex += 1;
       })
       .on("end", () => {
@@ -203,7 +202,7 @@ export default class Calculator {
         const scaleFactor = Math.pow(10, 4);
         const coefficient = BigInt(
           Math.trunc(
-            Number(this.overrides[vote.id] ?? vote.coefficient) * scaleFactor
+            (this.overrides[vote.id] ?? vote.coefficient) * scaleFactor
           )
         );
 

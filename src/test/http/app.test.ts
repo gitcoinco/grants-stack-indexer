@@ -330,11 +330,49 @@ describe("server", () => {
         );
 
         // all votes for projects 1 are overridden with coefficient 0
-        // so the calc[should only contains poject 2 and 3.
         expect(resp.body.length).toBe(3);
         expect(matches["project-id-1"]).toBe("0");
         expect(matches["project-id-2"]).toBe("2500");
         expect(matches["project-id-3"]).toBe("7500");
+      });
+
+      test("coefficients should multiply votes", async () => {
+        calculatorConfig.dataProvider = new TestDataProvider({
+          "1/rounds/0x1234/votes.json": "votes",
+          "1/rounds/0x1234/applications.json": "applications",
+          "1/rounds.json": "rounds",
+          "passport_scores.json": "passport_scores",
+        });
+
+        const overridesContent = loadFixture(
+          "overrides-with-floating-coefficient",
+          "csv"
+        );
+
+        const resp = await request(app)
+          .post("/api/v1/chains/1/rounds/0x1234/matches")
+          .attach("overrides", Buffer.from(overridesContent), "overrides.csv");
+
+        expect(resp.statusCode).toBe(201);
+
+        const matches = resp.body.reduce(
+          (acc: Record<string, AugmentedResult>, match: AugmentedResult) => {
+            acc[match.projectId] = match;
+            return acc;
+          },
+          {} as Record<string, AugmentedResult>
+        );
+
+        // project Id received half of the vote amounts because they have been revised as 0.5
+        expect(resp.body.length).toBe(3);
+        expect(matches["project-id-1"].totalReceived).toBe("750");
+        expect(matches["project-id-1"].matched).toBe("710");
+
+        expect(matches["project-id-2"].totalReceived).toBe("1000");
+        expect(matches["project-id-2"].matched).toBe("2322");
+
+        expect(matches["project-id-3"].totalReceived).toBe("3400");
+        expect(matches["project-id-3"].matched).toBe("6967");
       });
 
       test("should render 400 if no overrides file has been uploaded", async () => {
