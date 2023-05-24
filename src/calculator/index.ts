@@ -200,9 +200,9 @@ export default class Calculator {
 
     const contributions: Array<Contribution> = votesWithCoefficients.flatMap(
       (vote) => {
-        const coefficient = BigInt(this.overrides[vote.id] ?? vote.coefficient);
+        const coefficient = this.overrides[vote.id] ?? vote.coefficient;
 
-        if (coefficient === 0n) {
+        if (coefficient === "0") {
           return [];
         }
 
@@ -210,7 +210,7 @@ export default class Calculator {
           {
             contributor: vote.voter,
             recipient: vote.applicationId,
-            amount: BigInt(vote.amountRoundToken) * coefficient,
+            amount: BigInt(vote.amountRoundToken),
           },
         ];
       }
