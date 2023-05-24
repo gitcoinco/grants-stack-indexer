@@ -40,9 +40,7 @@ export interface DataProvider {
   loadFile(description: string, path: string): Array<any>;
 }
 
-export type Overrides = {
-  [id: string]: string;
-};
+export type Overrides = Record<string, number>;
 
 export class FileSystemDataProvider {
   basePath: string;
@@ -82,14 +80,15 @@ export function parseOverrides(buf: Buffer): Promise<any> {
         }
       })
       .on("data", (data) => {
-        if (data["coefficient"] !== "0" && data["coefficient"] !== "1") {
+        const coefficient = Number(data["coefficient"]);
+        if (!isFinite(coefficient)) {
           throw new OverridesInvalidRowError(
             rowIndex,
-            `Coefficient must be 0 or 1, found: ${data["coefficient"]}`
+            `Coefficient must be a number, found: ${data["coefficient"]}`
           );
         }
 
-        results[data["id"]] = data["coefficient"];
+        results[data["id"]] = coefficient;
         rowIndex += 1;
       })
       .on("end", () => {
@@ -298,16 +297,11 @@ export default class Calculator {
       }
 
       // only count contributions that are eligible by passport or the coefficient is 1
-      if (
-        override === "1" ||
-        (isEligible(addressData) && raw.amountUSD >= minimumAmount)
-      ) {
-        contributions.push({
-          contributor: raw.voter,
-          recipient: raw.applicationId,
-          amount: multipliedAmount,
-        });
-      }
+      contributions.push({
+        contributor: raw.voter,
+        recipient: raw.applicationId,
+        amount: multipliedAmount,
+      });
     }
 
     const results = linearQF(contributions, matchAmount, matchTokenDecimals, {
