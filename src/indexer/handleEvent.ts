@@ -6,6 +6,7 @@ import StatusesBitmap from "statuses-bitmap";
 import { fetchJsonCached as ipfs } from "../utils/ipfs.js";
 import { convertToUSD, convertFromUSD } from "../prices/index.js";
 import { eventRenames, tokenDecimals } from "../config.js";
+import { DetailedVote } from "./types.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
@@ -565,7 +566,21 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           `rounds/${event.args.roundAddress}/applications/${applicationId}/votes`
         ).insert(vote);
 
+        const contributorPartitionedPath = vote.voter
+          .split(/(.{6})/)
+          .filter((s: string) => s.length > 0)
+          .join("/");
+
         await Promise.all([
+          db
+            .collection<DetailedVote>(
+              `contributors/${contributorPartitionedPath}`
+            )
+            .insert({
+              ...vote,
+              roundName: round.metadata.name,
+              projectTitle: application.metadata.application.project.title,
+            }),
           db
             .collection("rounds")
             .updateById(event.args.roundAddress, (round) => ({

@@ -54,3 +54,8 @@ export type Vote = {
   amountUSD: number;
   amountRoundToken: string;
 };
+
+export type DetailedVote = Vote & {
+  roundName: string;
+  projectTitle: string;
+};
