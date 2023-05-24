@@ -200,17 +200,25 @@ export default class Calculator {
 
     const contributions: Array<Contribution> = votesWithCoefficients.flatMap(
       (vote) => {
-        const coefficient = this.overrides[vote.id] ?? vote.coefficient;
+        const scaleFactor = Math.pow(10, 4);
+        const coefficient = BigInt(
+          Math.trunc(
+            Number(this.overrides[vote.id] ?? vote.coefficient) * scaleFactor
+          )
+        );
 
-        if (coefficient === "0") {
+        if (coefficient === 0n) {
           return [];
         }
+
+        const amount = BigInt(vote.amountRoundToken) * BigInt(scaleFactor);
+        const multipliedAmount = (amount * coefficient) / BigInt(scaleFactor);
 
         return [
           {
             contributor: vote.voter,
             recipient: vote.applicationId,
-            amount: BigInt(vote.amountRoundToken),
+            amount: multipliedAmount,
           },
         ];
       }
