@@ -266,9 +266,20 @@ export default class Calculator {
       const addressData = passportIndex[raw.voter.toLowerCase()];
       const override = this.overrides[raw.id];
 
-      if (override === "0") {
-        continue;
+      const defaultCoefficient =
+        isEligible(addressData) && raw.amountUSD >= minimumAmount ? 1 : 0;
+
+      const scaleFactor = Math.pow(10, 4);
+      const coefficient = BigInt(
+        Math.trunc(Number(override ?? defaultCoefficient) * scaleFactor)
+      );
+
+      if (coefficient === 0n) {
+        return [];
       }
+
+      const amount = BigInt(raw.amountRoundToken) * BigInt(scaleFactor);
+      const multipliedAmount = (amount * coefficient) / BigInt(scaleFactor);
 
       if (applications[raw.applicationId].status !== "APPROVED") {
         continue;
@@ -294,7 +305,7 @@ export default class Calculator {
         contributions.push({
           contributor: raw.voter,
           recipient: raw.applicationId,
-          amount: BigInt(raw.amountRoundToken),
+          amount: multipliedAmount,
         });
       }
     }
