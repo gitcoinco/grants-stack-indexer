@@ -207,11 +207,7 @@ export default class Calculator {
           )
         );
 
-        if (coefficient === 0n) {
-          return [];
-        }
-
-        const amount = BigInt(vote.amountRoundToken) * BigInt(scaleFactor);
+        const amount = BigInt(vote.amountRoundToken);
         const multipliedAmount = (amount * coefficient) / BigInt(scaleFactor);
 
         return [
