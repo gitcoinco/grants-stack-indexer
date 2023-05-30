@@ -578,8 +578,8 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
             )
             .insert({
               ...vote,
-              roundName: round.metadata.name,
-              projectTitle: application.metadata.application.project.title,
+              roundName: round.metadata?.name,
+              projectTitle: application.metadata?.application.project.title,
             }),
           db
             .collection("rounds")
