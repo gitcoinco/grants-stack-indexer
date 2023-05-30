@@ -154,7 +154,8 @@ export async function getUSDConversionRate(
   }
 
   if (!tokenDecimals[chainId][token]) {
-    throw Error(`Unsupported token ${token} for chain ${chainId}`);
+    console.error(`Unsupported token ${token} for chain ${chainId}`);
+    return { token, code: "Unknown", price: 0, timestamp: 0, block: 0 };
   }
 
   const prices = await priceProvider.getPrices(chainId);
