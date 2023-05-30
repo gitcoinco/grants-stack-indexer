@@ -36,7 +36,7 @@ if [ "$1" == "server" ]; then
   supervise "npm run index -- --chain=goerli --follow" &
   supervise "npm run index -- --chain=mainnet --follow" &
   supervise "npm run index -- --chain=optimism --follow" &
-  supervise "npm run index -- --chain=fantom --follow" &
+  # supervise "npm run index -- --chain=fantom --follow" &
 
   supervise "npm run serve" &
 
