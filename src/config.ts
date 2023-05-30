@@ -44,20 +44,6 @@ const chains: Chain[] = [
         abi: "#abis/v2/ProjectRegistry.json",
       },
       {
-        address: "0xE2Bf906f7d10F059cE65769F53fe50D8E0cC7cBe",
-        abi: "#abis/v1/RoundFactory.json",
-        events: {
-          RoundCreated: "RoundCreatedV1",
-        },
-      },
-      {
-        address: "0x06A6Cc566c5A88E77B1353Cdc3110C2e6c828e38",
-        abi: "#abis/v1/QuadraticFundingVotingStrategyFactory.json",
-        events: {
-          VotingContractCreated: "VotingContractCreatedV1",
-        },
-      },
-      {
         address: "0x9Cb7f434aD3250d1656854A9eC7A71EceC6eE1EF",
         abi: "#abis/v2/RoundFactory.json",
         fromBlock: 16994474,
