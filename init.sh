@@ -12,7 +12,7 @@ trap "pkill -P $$" SIGINT SIGTERM EXIT
 
 npm run index -- --chain=mainnet & pids+=($!)
 npm run index -- --chain=optimism & pids+=($!)
-npm run index -- --chain=fantom & pids+=($!)
+# npm run index -- --chain=fantom & pids+=($!)
 npm run index -- --chain=goerli & pids+=($!)
 npm run passport & pids+=($!)
 
