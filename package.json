@@ -6,10 +6,8 @@
   "main": "dist/src/indexer/index.js",
   "types": "dist/src/indexer/index.d.ts",
   "scripts": {
-    "start": "./init.sh server",
-    "start:dev": "concurrently -P --kill-others -n \"tsc,http,indexer\" \"npm:build:dev\" \"npm:serve:dev\" \"nodemon --delay 2 --watch dist --exec 'npm run index -- --clear {@}'\" --",
-    "start:dev:mainnet": "npm run start:dev -- --chain=mainnet",
-    "start:dev:goerli": "npm run start:dev -- --chain=goerli",
+    "start": "concurrently --kill-others-on-fail 'npm:index:all -- --kill-others-on-failure -- --clear' 'npm:passport' && echo '======> Index successful, running server!' && concurrently 'npm:index:all -- -- --follow' 'npm:passport -- --follow' 'serve'",
+    "start:dev": "concurrently -P --kill-others -n \"tsc,http\" \"npm:build:dev\" \"npm:serve:dev\"",
     "build": "tsc",
     "build:dev": "tsc --watch",
     "lint": "eslint src",
@@ -17,9 +15,11 @@
     "test": "npx vitest run --reporter verbose",
     "test:dev": "npx vitest watch --reporter verbose",
     "serve": "node dist/src/http/server.js",
-    "serve:dev": "nodemon --delay 2 --watch dist --exec 'npm run serve'",
+    "serve:dev": "nodemon --delay 2 --watch dist --exec 'npm run serve -- '",
     "passport": "node dist/src/cli/passport.js",
-    "index": "node dist/src/cli/indexer.js"
+    "index": "node dist/src/cli/indexer.js",
+    "index:dev": "nodemon --delay 2 --watch dist --exec 'npm run index -- '",
+    "index:all": "concurrently --raw -P 'npm:index -- --chain=mainnet {@}' 'npm:index -- --chain=optimism {@}' 'npm:index -- --chain=goerli {@}' 'npm:index -- --chain=fantom {@}'"
   },
   "imports": {
     "#abis/*": {
