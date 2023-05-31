@@ -47,14 +47,16 @@ npm start # this runs the production start script which will index all chains an
 
 ```bash
 npm install
-npm start:dev:goerli # or `npm run start:dev:mainnet` or `npm run start:dev -- --chain=otherchain`
+npm start:dev # run the typescript compiler and the HTTP server
 ```
 
 The HTTP server runs on port 4000, check it here: http://localhost:4000/
 
-Indexed JSON data is found in the `data` directory.
+It shouldn't have any data because you probably haven't indexed anything yet. Check (the indexing section)[#Indexing] to see how to index data.
 
-----
+#### Indexing
+
+Indexed JSON data is found in the `data` directory.
 
 Run the standalone index script to just index data, use the follwing options to change it's behaviour:
 
@@ -64,6 +66,7 @@ npm run index -- --chain=mainnet --from-block=16994526 # run only from the speci
 npm run index -- --chain=mainnet --follow # follow the blockchain, this runs as a long running process indexing events as they happen
 npm run index -- --chain=mainnet --clear # clear the indexed data before indexing
 npm run index -- --chain=mainnet --no-cache # run without a cache
+npm run passport # index passport scores
 ```
 
 ## Deployment
