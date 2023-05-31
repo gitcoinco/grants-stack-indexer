@@ -23,6 +23,9 @@ const { values: args } = parseArgs({
       type: "string",
       short: "s",
     },
+    "log-level": {
+      type: "string",
+    },
     follow: {
       type: "boolean",
       short: "f",
@@ -53,6 +56,28 @@ if (args["to-block"]) {
 
 if (args["from-block"]) {
   fromBlock = Number(args["from-block"]);
+}
+
+let logLevel = Log.Info;
+
+if (args["log-level"]) {
+  switch (args["log-level"]) {
+    case "debug":
+      logLevel = Log.Debug;
+      break;
+    case "info":
+      logLevel = Log.Info;
+      break;
+    case "warning":
+      logLevel = Log.Warning;
+      break;
+    case "error":
+      logLevel = Log.Error;
+      break;
+    default:
+      console.error("Invalid log level.");
+      process.exit(1);
+  }
 }
 
 // Get chain parameter
@@ -99,7 +124,7 @@ if (args.follow) {
 
 const indexer = await createIndexer(provider, storage, handleEvent, {
   toBlock,
-  logLevel: Log.Info,
+  logLevel,
   eventCacheDirectory: args["no-cache"] ? null : "./.cache",
   runOnce: !args.follow,
 });

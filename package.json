@@ -6,7 +6,7 @@
   "main": "dist/src/indexer/index.js",
   "types": "dist/src/indexer/index.d.ts",
   "scripts": {
-    "start": "concurrently --kill-others-on-fail 'npm:index:all -- --kill-others-on-fail -- --clear' 'npm:passport' && echo '======> Index successful, running server!' && concurrently 'npm:index:all -- -- --follow' 'npm:passport -- --follow' 'serve'",
+    "start": "concurrently --kill-others-on-fail 'npm:index:all -- --kill-others-on-fail -- --log-level=error --clear' 'npm:passport' && echo '======> Index successful, running server!' && concurrently 'npm:index:all -- -- --follow' 'npm:passport -- --follow' 'serve'",
     "start:dev": "concurrently -P --kill-others -n \"tsc,http\" \"npm:build:dev\" \"npm:serve:dev\"",
     "build": "tsc",
     "build:dev": "tsc --watch",
