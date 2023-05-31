@@ -180,10 +180,12 @@ const chains: Chain[] = [
         events: {
           RoundCreated: "RoundCreatedV1",
         },
+        fromBlock: 55528191,
       },
       {
         address: "0x06A6Cc566c5A88E77B1353Cdc3110C2e6c828e38",
         abi: "#abis/v1/QuadraticFundingVotingStrategyFactory.json",
+        fromBlock: 55528191,
       },
     ],
   },
