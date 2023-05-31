@@ -52,7 +52,7 @@ npm start:dev # run the typescript compiler and the HTTP server
 
 The HTTP server runs on port 4000, check it here: http://localhost:4000/
 
-It shouldn't have any data because you probably haven't indexed anything yet. Check (the indexing section)[#Indexing] to see how to index data.
+It shouldn't have any data because you probably haven't indexed anything yet. Check [the indexing section](#Indexing) to see how to index data.
 
 #### Indexing
 
