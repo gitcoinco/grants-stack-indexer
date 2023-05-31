@@ -35,6 +35,6 @@ RUN --mount=type=secret,id=INFURA_API_KEY \
     PASSPORT_SCORER_ID=$(cat /run/secrets/PASSPORT_SCORER_ID) \
     COINGECKO_API_KEY=$(cat /run/secrets/COINGECKO_API_KEY) \
     IPFS_GATEWAY=$(cat /run/secrets/IPFS_GATEWAY) \
-    ./init.sh
+    npm run index:all -- 'npm:passport'
 
 CMD [ "npm", "start" ]
