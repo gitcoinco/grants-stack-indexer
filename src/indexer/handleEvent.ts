@@ -580,6 +580,8 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
               ...vote,
               roundName: round.metadata?.name,
               projectTitle: application.metadata?.application.project.title,
+              roundStartTime: round.roundStartTime,
+              roundEndTime: round.roundEndTime,
             }),
           db
             .collection("rounds")

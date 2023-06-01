@@ -62,4 +62,6 @@ export type Vote = {
 export type DetailedVote = Vote & {
   roundName: string;
   projectTitle: string;
+  roundStartTime: number;
+  roundEndTime: number;
 };
