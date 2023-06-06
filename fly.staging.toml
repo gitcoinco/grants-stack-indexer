@@ -1,0 +1,41 @@
+app = "indexer-staging"
+kill_signal = "SIGINT"
+kill_timeout = 5
+primary_region = "den"
+
+[env]
+  PORT = "8080"
+  STORAGE_DIR = "/mnt/indexer/data"
+  CACHE_DIR = "/mnt/indexer/cache"
+
+[processes]
+  web = "npm start"
+
+[mounts]
+  source="indexer_staging"
+  destination="/mnt/indexer"
+
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 8080
+  processes = ["web"]
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  [[services.tcp_checks]]
+    interval = "15s"
+    timeout = "10s"
+    grace_period = "20m0s"
+    restart_limit = 0
