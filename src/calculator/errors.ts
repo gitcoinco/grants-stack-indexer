@@ -1,6 +1,8 @@
-export class CalculatorError extends Error {
-  constructor(message?: string) {
-    super(message);
+import ClientError from "../http/api/clientError.js";
+
+export class CalculatorError extends ClientError {
+  constructor(message: string) {
+    super(message, 400);
   }
 }
 
