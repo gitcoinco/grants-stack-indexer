@@ -9,12 +9,11 @@ primary_region = "den"
   CACHE_DIR = "/mnt/indexer/cache"
 
 [processes]
-  web = "npm start"
+  web = "sh -c 'rm -rf $STORAGE_DIR/* && npm start'"
 
 [mounts]
   source="indexer_staging"
   destination="/mnt/indexer"
-
 
 [[services]]
   protocol = "tcp"
@@ -35,7 +34,6 @@ primary_region = "den"
     soft_limit = 20
 
   [[services.tcp_checks]]
-    interval = "15s"
+    interval = "60s"
     timeout = "10s"
-    grace_period = "20m0s"
-    restart_limit = 0
+    grace_period = "1m"
