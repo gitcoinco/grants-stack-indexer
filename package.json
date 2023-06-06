@@ -30,7 +30,7 @@
   "license": "ISC",
   "dependencies": {
     "@sentry/node": "^7.51.0",
-    "chainsauce": "^1.0.18",
+    "chainsauce": "1.0.19",
     "cors": "^2.8.5",
     "csv-parser": "^3.0.0",
     "csv-writer": "^1.6.0",
