@@ -75,7 +75,11 @@ export async function updatePricesAndWrite(chain: Chain) {
 
       const newPrices = await Promise.all(
         prices.map(async ([timestamp, price]) => {
-          const block = await getBlockFromTimestamp(chain, timestamp);
+          const block = await getBlockFromTimestamp(
+            chain,
+            timestamp,
+            1000 * 60 * 30
+          );
 
           return {
             token: token.address.toLowerCase(),
