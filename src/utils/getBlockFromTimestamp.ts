@@ -36,9 +36,11 @@ export default async function getBlockFromTimestamp(
   // Get the current block number
   const currentBlockNumber = await provider._getInternalBlockNumber(1000 * 30);
 
+  // by default we binary search from 0 to the current block number
   let start = 0;
   let end = currentBlockNumber;
 
+  // try and find a closer range to search in
   for (const entry of chainCache.entries()) {
     if (entry[1] < targetTimestamp) {
       start = Math.max(start, entry[0]);
@@ -55,7 +57,7 @@ export default async function getBlockFromTimestamp(
   while (start <= end) {
     blockNumber = Math.floor((start + end) / 2);
 
-    // Compare the block's timestamp with the target timestamp
+    // get the current block timestamp (could be cached)
     const blockTimestamp = await getBlockTimestamp(blockNumber);
 
     const differenceMs = Math.abs(blockTimestamp - targetTimestamp) * 1000;

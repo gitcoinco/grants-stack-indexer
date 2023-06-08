@@ -75,6 +75,7 @@ export async function updatePricesAndWrite(chain: Chain) {
 
       const newPrices = await Promise.all(
         prices.map(async ([timestamp, price]) => {
+          // get the closest block number to the timestamp with a 30min margin of error
           const block = await getBlockFromTimestamp(
             chain,
             timestamp,
