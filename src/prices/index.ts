@@ -258,11 +258,11 @@ async function readPricesFile(chainId: number): Promise<Price[]> {
     return JSON.parse((await fs.readFile(filename)).toString()) as Price[];
   }
 
-  const initialPricesFilename = `./initial_data/${chainId}/prices.json`;
+  const seedPricesFilename = `./seed/${chainId}/prices.json`;
 
-  if (existsSync(initialPricesFilename)) {
+  if (existsSync(seedPricesFilename)) {
     return JSON.parse(
-      (await fs.readFile(initialPricesFilename)).toString()
+      (await fs.readFile(seedPricesFilename)).toString()
     ) as Price[];
   }
 
