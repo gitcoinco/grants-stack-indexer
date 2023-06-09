@@ -67,7 +67,7 @@ export function parseOverrides(buf: Buffer): Promise<Overrides> {
       })
       .on("data", (data) => {
         const coefficient = Number(data["coefficient"]);
-        if (!isFinite(coefficient)) {
+        if (!Number.isFinite(coefficient)) {
           throw new OverridesInvalidRowError(
             rowIndex,
             `Coefficient must be a number, found: ${data["coefficient"]}`
