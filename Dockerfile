@@ -17,6 +17,9 @@ RUN npm run lint
 
 EXPOSE 8080
 
+COPY seed seed
+COPY init.sh ./
+
 RUN npm run test
 
 # Cache indexer in the image
