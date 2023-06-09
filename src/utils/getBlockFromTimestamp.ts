@@ -3,20 +3,34 @@ import { Chain } from "../config.js";
 
 const cache: Map<number, Map<number, number>> = new Map();
 
-export default async function getBlockFromTimestamp(
+function getCacheForChain(chain: Chain): Map<number, number> {
+  let chainCache = cache.get(chain.id);
+
+  if (!chainCache) {
+    chainCache = new Map();
+    cache.set(chain.id, chainCache);
+  }
+
+  return chainCache;
+}
+
+export async function getBlockFromTimestamp(
   chain: Chain,
   timestampMs: number,
   marginMs = 0
 ): Promise<number> {
-  const provider = new RetryProvider({
-    url: chain.rpc,
-    timeout: 5 * 60 * 1000,
-  });
+  const provider = new RetryProvider(
+    {
+      url: chain.rpc,
+      timeout: 5 * 60 * 1000,
+    },
+    5,
+    10
+  );
 
-  const chainCache = cache.get(chain.id) || (new Map() as Map<number, number>);
+  const chainCache = getCacheForChain(chain);
 
-  cache.set(chain.id, chainCache);
-
+  // Get a block timestamp from the cache or the provider
   async function getBlockTimestamp(number: number): Promise<number> {
     const cachedBlock = chainCache.get(number);
 
@@ -31,7 +45,7 @@ export default async function getBlockFromTimestamp(
     return block.timestamp;
   }
 
-  const targetTimestamp = timestampMs / 1000;
+  const targetTimestamp = Math.floor(timestampMs / 1000);
 
   // Get the current block number
   const currentBlockNumber = await provider._getInternalBlockNumber(1000 * 30);
@@ -42,6 +56,13 @@ export default async function getBlockFromTimestamp(
 
   // try and find a closer range to search in
   for (const entry of chainCache.entries()) {
+    const differenceMs = Math.abs(entry[1] - targetTimestamp) * 1000;
+
+    // early exit if we find a block with a matching timestamp
+    if (differenceMs <= marginMs) {
+      return entry[0];
+    }
+
     if (entry[1] < targetTimestamp) {
       start = Math.max(start, entry[0]);
     }
@@ -63,7 +84,7 @@ export default async function getBlockFromTimestamp(
     const differenceMs = Math.abs(blockTimestamp - targetTimestamp) * 1000;
 
     // If the difference is within the margin, we found the block
-    if (differenceMs < marginMs) {
+    if (differenceMs <= marginMs) {
       break;
     }
 
@@ -80,6 +101,16 @@ export default async function getBlockFromTimestamp(
   }
 
   if (!blockNumber) {
+    throw new Error(
+      `Could not find block for timestamp ${targetTimestamp} and chain ${chain.name}`
+    );
+  }
+
+  // just an assertion for safety, it should never happen
+  const differenceMs =
+    Math.abs((await getBlockTimestamp(blockNumber)) - targetTimestamp) * 1000;
+
+  if (differenceMs > marginMs) {
     throw new Error(
       `Could not find block for timestamp ${targetTimestamp} and chain ${chain.name}`
     );
