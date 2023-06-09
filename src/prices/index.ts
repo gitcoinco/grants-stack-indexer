@@ -65,9 +65,11 @@ export async function updatePricesAndWrite(chain: Chain) {
       }-${lastPriceAt + chunk[1]}`;
 
       console.log(
-        "Fetching prices from",
+        "Fetching prices for",
+        token.code,
+        ":",
         new Date(lastPriceAt + chunk[0]),
-        "to",
+        "-",
         new Date(lastPriceAt + chunk[1])
       );
 
