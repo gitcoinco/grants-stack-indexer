@@ -9,7 +9,9 @@ import fs from "fs";
 import database from "../../../database.js";
 import { getPrices } from "../../../prices/index.js";
 import { Round, Application, Vote } from "../../../indexer/types.js";
+import { getVotesWithCoefficients } from "../../../calculator/votes.js";
 import ClientError from "../clientError.js";
+import { PassportScore } from "../../../passport/index.js";
 
 const router = express.Router();
 
@@ -59,49 +61,8 @@ async function exportPricesCSV(chainId: number, round: Round) {
   return csv.getHeaderString()!.concat(csv.stringifyRecords(pricesDuringRound));
 }
 
-type BasePassportScore = {
-  address: string;
-  score: string | null;
-  status: string;
-  last_score_timestamp: string;
-};
-
-type FullPassportScore = BasePassportScore & {
-  evidence: {
-    type: string;
-    success: boolean;
-    rawScore: string;
-    threshold: string;
-  } | null;
-  error?: string;
-};
-
-type FlatPassportScoreWithCoefficient = BasePassportScore & {
-  coefficient: 0 | 1;
-  type?: string;
-  success?: boolean;
-  rawScore?: string;
-  threshold?: string;
-};
-
-type PassportScoresMap = {
-  [address: string]: FlatPassportScoreWithCoefficient;
-};
-
 async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
-  const processPassportScores = (
-    scores: FullPassportScore[]
-  ): PassportScoresMap => {
-    return scores.reduce((map, score) => {
-      const address = score.address.toLowerCase();
-      const { evidence, ...remainingScore } = score;
-      const coefficient = evidence !== null && evidence.success ? 1 : 0;
-      map[address] = { ...remainingScore, ...evidence, coefficient };
-      return map;
-    }, {} as PassportScoresMap);
-  };
-
-  const [applications, votes, data] = await Promise.all([
+  const [applications, votes, passportScoresString] = await Promise.all([
     db.collection<Application>(`rounds/${round.id}/applications`).all(),
     db.collection<Vote>(`rounds/${round.id}/votes`).all(),
     fs.promises.readFile("./data/passport_scores.json", {
@@ -110,68 +71,37 @@ async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
     }),
   ]);
 
-  const applicationMap = applications.reduce((map, application) => {
-    map[application.id] = application;
-    return map;
-  }, {} as Record<string, Application>);
+  const passportScores = JSON.parse(
+    passportScoresString
+  ) as Array<PassportScore>;
 
-  const isPassportEnabled =
-    round?.metadata?.quadraticFundingConfig?.sybilDefense ?? false;
-
-  const minimumAmount = Number(
-    round.metadata?.quadraticFundingConfig?.minDonationThresholdAmount ?? 0
+  const votesWithCoefficients = await getVotesWithCoefficients(
+    round,
+    applications,
+    votes,
+    passportScores,
+    {}
   );
 
-  const passportScores: FullPassportScore[] = JSON.parse(data);
-  const passportScoresMap = processPassportScores(passportScores);
-
-  const records = votes.flatMap((vote) => {
-    const voter = vote.voter.toLowerCase();
-    const score = passportScoresMap[voter];
-
-    let coefficient = 0;
-
-    // If passport is enabled and the score exists then use the coefficient
-    if (isPassportEnabled && score) {
-      coefficient = score.coefficient;
-    }
-
-    // If passport is disabled then coefficient is 1 by default
-    if (!isPassportEnabled) {
-      coefficient = 1;
-    }
-
-    if (vote.amountUSD < minimumAmount) {
-      coefficient = 0;
-    }
-
-    if (applicationMap[vote.applicationId]?.status !== "APPROVED") {
-      return [];
-    }
-
-    const combinedVote = {
-      ...vote,
-      ...score,
-    };
-
+  const records = votesWithCoefficients.flatMap((vote) => {
     return [
       [
-        combinedVote.id,
-        combinedVote.projectId,
-        combinedVote.applicationId,
-        combinedVote.roundId,
-        combinedVote.token,
-        voter,
-        combinedVote.grantAddress,
-        combinedVote.amount,
-        combinedVote.amountUSD,
-        coefficient,
-        combinedVote.status,
-        combinedVote.last_score_timestamp,
-        combinedVote.type,
-        combinedVote.success,
-        combinedVote.rawScore,
-        combinedVote.threshold,
+        vote.id,
+        vote.projectId,
+        vote.applicationId,
+        vote.roundId,
+        vote.token,
+        vote.voter,
+        vote.grantAddress,
+        vote.amount,
+        vote.amountUSD,
+        vote.coefficient,
+        vote.passportScore?.status,
+        vote.passportScore?.last_score_timestamp,
+        vote.passportScore?.evidence?.type,
+        vote.passportScore?.evidence?.success,
+        vote.passportScore?.evidence?.rawScore,
+        vote.passportScore?.evidence?.threshold,
       ],
     ];
   });
@@ -197,7 +127,13 @@ async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
     ],
   });
 
-  return csv.getHeaderString()!.concat(csv.stringifyRecords(records));
+  const header = csv.getHeaderString();
+
+  if (!header) {
+    throw new Error("failed to generate CSV header");
+  }
+
+  return header.concat(csv.stringifyRecords(records));
 }
 
 async function exportRoundCSV(round: Round) {

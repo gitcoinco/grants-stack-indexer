@@ -10,9 +10,13 @@ export type Round = {
   applicationMetadata: string | null;
   metaPtr: string;
   metadata: {
-    quadraticFundingConfig: {
-      sybilDefense: boolean;
-      minDonationThresholdAmount: number;
+    quadraticFundingConfig?: {
+      matchingFundsAvailable?: number;
+      sybilDefense?: boolean;
+      matchingCap?: boolean;
+      matchingCapAmount?: number;
+      minDonationThreshold?: boolean;
+      minDonationThresholdAmount?: number;
     };
   } | null;
   applicationsStartTime: number;

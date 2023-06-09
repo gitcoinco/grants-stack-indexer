@@ -1,57 +1,43 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import fs from "fs";
 import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
+import type { PassportScore } from "../passport/index.js";
 import { convertToUSD } from "../prices/index.js";
 import { tokenDecimals } from "../config.js";
-import type { Application, Vote } from "../indexer/types.js";
+import type { Round, Application, Vote } from "../indexer/types.js";
+import { getVotesWithCoefficients } from "./votes.js";
+import {
+  CalculatorError,
+  ResourceNotFoundError,
+  FileNotFoundError,
+  OverridesColumnNotFoundError,
+  OverridesInvalidRowError,
+} from "./errors.js";
 
-export class CalculatorError extends Error {
-  constructor(...args: any[]) {
-    super(...args);
-  }
-}
-
-export class FileNotFoundError extends CalculatorError {
-  constructor(fileDescription: string) {
-    super(`cannot find ${fileDescription} file`);
-  }
-}
-
-export class ResourceNotFoundError extends CalculatorError {
-  constructor(resource: string) {
-    super(`${resource} not found`);
-  }
-}
-
-export class OverridesColumnNotFoundError extends CalculatorError {
-  constructor(column: string) {
-    super(`cannot find column ${column} in the overrides file`);
-  }
-}
-
-export class OverridesInvalidRowError extends CalculatorError {
-  constructor(row: number, message: string) {
-    super(`Row ${row} in the overrides file is invalid: ${message}`);
-  }
-}
+export {
+  CalculatorError,
+  ResourceNotFoundError,
+  FileNotFoundError,
+  OverridesColumnNotFoundError,
+  OverridesInvalidRowError,
+};
 
 export interface DataProvider {
-  loadFile(description: string, path: string): Array<any>;
+  loadFile<T>(description: string, path: string): Array<T>;
 }
 
 export type Overrides = {
   [id: string]: string;
 };
 
-export class FileSystemDataProvider {
+export class FileSystemDataProvider implements DataProvider {
   basePath: string;
 
   constructor(basePath: string) {
     this.basePath = basePath;
   }
 
-  loadFile(description: string, path: string) {
+  loadFile<T>(description: string, path: string): Array<T> {
     const fullPath = `${this.basePath}/${path}`;
     if (!fs.existsSync(fullPath)) {
       throw new FileNotFoundError(description);
@@ -62,11 +48,11 @@ export class FileSystemDataProvider {
       flag: "r",
     });
 
-    return JSON.parse(data);
+    return JSON.parse(data) as Array<T>;
   }
 }
 
-export function parseOverrides(buf: Buffer): Promise<any> {
+export function parseOverrides(buf: Buffer): Promise<Overrides> {
   return new Promise((resolve, _reject) => {
     const results: Overrides = {};
     let rowIndex = 1;
@@ -105,7 +91,7 @@ export type CalculatorOptions = {
   dataProvider: DataProvider;
   chainId: number;
   roundId: string;
-  minimumAmount?: bigint;
+  minimumAmountUSD?: number;
   matchingCapAmount?: bigint;
   passportThreshold?: number;
   enablePassport?: boolean;
@@ -121,32 +107,11 @@ export type AugmentedResult = Calculation & {
   payoutAddress: string;
 };
 
-type ApplicationsMap = {
-  [id: string]: Application;
-};
-
-type RawRound = {
-  token: string;
-  id: string;
-  matchAmount: string;
-  matchAmountUSD: number;
-  metadata?: {
-    quadraticFundingConfig?: {
-      matchingFundsAvailable?: number;
-      sybilDefense?: boolean;
-      matchingCap?: boolean;
-      matchingCapAmount?: number;
-      minDonationThreshold?: boolean;
-      minDonationThresholdAmount?: number;
-    };
-  };
-};
-
 export default class Calculator {
   private dataProvider: DataProvider;
   private chainId: number;
   private roundId: string;
-  private minimumAmount: bigint | undefined;
+  private minimumAmountUSD: number | undefined;
   private matchingCapAmount: bigint | undefined;
   private enablePassport: boolean | undefined;
   private passportThreshold: number | undefined;
@@ -157,7 +122,7 @@ export default class Calculator {
     this.dataProvider = options.dataProvider;
     this.chainId = options.chainId;
     this.roundId = options.roundId;
-    this.minimumAmount = options.minimumAmount;
+    this.minimumAmountUSD = options.minimumAmountUSD;
     this.enablePassport = options.enablePassport;
     this.passportThreshold = options.passportThreshold;
     this.matchingCapAmount = options.matchingCapAmount;
@@ -166,29 +131,27 @@ export default class Calculator {
   }
 
   async calculate(): Promise<Array<AugmentedResult>> {
-    const rawContributions: Array<Vote> = this.parseJSONFile(
+    const votes = this.parseJSONFile<Vote>(
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
-    const applications: ApplicationsMap = this.parseJSONFile(
+    const applications = this.parseJSONFile<Application>(
       "applications",
       `${this.chainId}/rounds/${this.roundId}/applications.json`
-    ).reduce((all, current) => {
-      all[current.id] = current;
-      return all;
-    }, {} as ApplicationsMap);
+    );
 
-    const rounds: RawRound[] = this.parseJSONFile(
+    const rounds = this.parseJSONFile<Round>(
       "rounds",
       `${this.chainId}/rounds.json`
     );
 
-    const passportScores = this.parseJSONFile(
+    const passportScores = this.parseJSONFile<PassportScore>(
       "passport scores",
       "passport_scores.json"
     );
 
-    const round = rounds.find((r: RawRound) => r.id === this.roundId);
+    const round = rounds.find((r: Round) => r.id === this.roundId);
+
     if (round === undefined) {
       throw new ResourceNotFoundError("round");
     }
@@ -203,21 +166,6 @@ export default class Calculator {
 
     const matchAmount = BigInt(round.matchAmount);
     const matchTokenDecimals = BigInt(tokenDecimals[this.chainId][round.token]);
-
-    const enablePassport =
-      this.enablePassport ??
-      round.metadata?.quadraticFundingConfig?.sybilDefense ??
-      false;
-
-    // 1. convert threshold amount to 6 decimals
-    // 2. truncate rest of decimals to bigint
-    // 3. convert decimals to token decimals
-    // 4. remove initial 6 decimals
-    const minimumAmount =
-      this.minimumAmount ??
-      Number(
-        round.metadata?.quadraticFundingConfig?.minDonationThresholdAmount ?? 0
-      );
 
     let matchingCapAmount = this.matchingCapAmount;
 
@@ -238,66 +186,35 @@ export default class Calculator {
         10000n;
     }
 
-    const isEligible = (addressData: any): boolean => {
-      const hasValidEvidence = addressData?.evidence?.success;
+    const votesWithCoefficients = await getVotesWithCoefficients(
+      round,
+      applications,
+      votes,
+      passportScores,
+      {
+        minimumAmountUSD: this.minimumAmountUSD,
+        enablePassport: this.enablePassport,
+        passportThreshold: this.passportThreshold,
+      }
+    );
 
-      if (enablePassport) {
-        if (typeof this.passportThreshold !== "undefined") {
-          return (
-            parseFloat(addressData?.evidence.rawScore ?? "0") >
-            this.passportThreshold
-          );
-        } else {
-          return Boolean(hasValidEvidence);
+    const contributions: Array<Contribution> = votesWithCoefficients.flatMap(
+      (vote) => {
+        const coefficient = this.overrides[vote.id] ?? vote.coefficient;
+
+        if (coefficient === "0") {
+          return [];
         }
+
+        return [
+          {
+            contributor: vote.voter,
+            recipient: vote.applicationId,
+            amount: BigInt(vote.amountRoundToken),
+          },
+        ];
       }
-      return true;
-    };
-
-    const passportIndex = passportScores.reduce((acc: any, ps: any) => {
-      acc[ps.address.toLowerCase()] = ps;
-      return acc;
-    }, {});
-
-    const contributions: Array<Contribution> = [];
-
-    for (let i = 0; i < rawContributions.length; i++) {
-      const raw = rawContributions[i];
-      const addressData = passportIndex[raw.voter.toLowerCase()];
-      const override = this.overrides[raw.id];
-
-      if (override === "0") {
-        continue;
-      }
-
-      if (applications[raw.applicationId].status !== "APPROVED") {
-        continue;
-      }
-
-      // only count contributions to the right payout address specified in the application metadata
-      const application = applications[raw.applicationId];
-      const payoutAddress = application?.metadata?.application?.recipient;
-      if (
-        payoutAddress === undefined ||
-        payoutAddress.toLowerCase() != raw.grantAddress.toLowerCase()
-      ) {
-        // skip if the application is not found or if the application payout address
-        // is different from the donation recipient
-        continue;
-      }
-
-      // only count contributions that are eligible by passport or the coefficient is 1
-      if (
-        override === "1" ||
-        (isEligible(addressData) && raw.amountUSD >= minimumAmount)
-      ) {
-        contributions.push({
-          contributor: raw.voter,
-          recipient: raw.applicationId,
-          amount: BigInt(raw.amountRoundToken),
-        });
-      }
-    }
+    );
 
     const results = linearQF(contributions, matchAmount, matchTokenDecimals, {
       minimumAmount: 0n,
@@ -307,9 +224,14 @@ export default class Calculator {
 
     const augmented: Array<AugmentedResult> = [];
 
+    const applicationsMap = applications.reduce((all, current) => {
+      all[current.id] = current;
+      return all;
+    }, {} as Record<string, Application>);
+
     for (const id in results) {
       const calc = results[id];
-      const application = applications[id];
+      const application = applicationsMap[id];
 
       const conversionUSD = await convertToUSD(
         this.chainId,
@@ -330,7 +252,7 @@ export default class Calculator {
     return augmented;
   }
 
-  parseJSONFile(fileDescription: string, path: string) {
-    return this.dataProvider.loadFile(fileDescription, path);
+  parseJSONFile<T>(fileDescription: string, path: string): Array<T> {
+    return this.dataProvider.loadFile<T>(fileDescription, path);
   }
 }

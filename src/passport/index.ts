@@ -1,25 +1,23 @@
 import { wait } from "../utils/index.js";
 
-type PassportEvidence = {
-  type: string;
-  rawScore: string;
-  threshold: string;
-  success: boolean;
-};
-
-export type PassportResponse = {
+export type PassportScore = {
   address: string;
-  score?: string;
-  status?: string;
-  last_score_timestamp?: string;
-  evidence?: PassportEvidence;
+  score: string | null;
+  status: string;
+  last_score_timestamp: string;
+  evidence: {
+    type: string;
+    success: boolean;
+    rawScore: string;
+    threshold: string;
+  } | null;
   error?: string | null;
   detail?: string;
 };
 
 type PassportScoresResponse = {
   count: number;
-  passports: PassportResponse[];
+  passports: PassportScore[];
 };
 
 /**
@@ -44,7 +42,7 @@ export const getPassportScores = async () => {
     offset
   );
 
-  const allPassports: PassportResponse[] = passports;
+  const allPassports: PassportScore[] = passports;
 
   const paginationCount = count / limit;
 
@@ -70,8 +68,8 @@ export const getPassportScores = async () => {
  * @returns PassportResponse[]
  */
 export const filterPassportByEvidence = (
-  passports: PassportResponse[]
-): PassportResponse[] => {
+  passports: PassportScore[]
+): PassportScore[] => {
   return passports.filter(
     (passport) => passport.evidence && passport.evidence.success
   );
@@ -112,7 +110,7 @@ export const fetchPassportScores = async (
       const jsonResponse = (await response.json()) as any;
 
       const count: number = jsonResponse.count;
-      const passports: PassportResponse[] = jsonResponse.items;
+      const passports: PassportScore[] = jsonResponse.items;
 
       return {
         passports,
