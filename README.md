@@ -71,13 +71,22 @@ npm run passport # index passport scores
 
 ## Deployment
 
-The indexer is currently automatically deployed on [Fly.io](Fly.io) from the `main` branch. We reindex everything from scratch on each deploy, we only persist the cache, which includes events and IPFS data.
+We deploy the Docker image to Fly, check [fly.toml](https://github.com/gitcoinco/allo-indexer/blob/main/fly.toml) and [Dockerfile](https://github.com/gitcoinco/allo-indexer/blob/main/Dockerfile) files for more details.
 
-The following commands might be useful for monitoring production:
+**Notes about the deployment**
+
+- `main` continuously deploys to https://indexer-staging.fly.dev/
+- `release` continuously deploys to https://indexer-grants-stack.gitcoin.co/data/
+- On deploy the data directory is always cleared and everything is reindexed, we only persist the cache
+- Find the data directory at `/mnt/indexer/data` and the cache directory at `/mnt/indexer/cache`
+
+The following commands might be useful for monitoring (use the `-c [fly.toml|fly.staging.toml]` argument switch between staging and production:
 
 ```bash
 fly status # show general status of the app, all VMs and their status
+fly -c fly.staging.toml status # status of staging
 fly logs # check logs of running VM, it also shows logs of deployments in progress
+fly -c fly.staging.toml logs # check logs of staging
 fly ssh console # open a console to the runnning VM
 ```
 

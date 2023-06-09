@@ -220,6 +220,7 @@ export const eventRenames = Object.fromEntries(
 
 export default {
   storageDir: process.env.STORAGE_DIR || "./data",
+  cacheDir: process.env.CACHE_DIR || "./.cache",
   port: Number(process.env.PORT || "4000"),
   ipfsGateway: process.env.IPFS_GATEWAY || "https://cloudflare-ipfs.com",
   coingeckoApiKey: process.env.COINGECKO_API_KEY,
