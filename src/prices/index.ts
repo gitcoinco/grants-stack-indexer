@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Cache } from "chainsauce";
 
-import getBlockFromTimestamp from "../utils/getBlockFromTimestamp.js";
+import { getBlockFromTimestamp } from "../utils/getBlockFromTimestamp.js";
 import { getPricesByHour } from "./coinGecko.js";
 import { existsSync } from "fs";
 import config from "../config.js";
@@ -64,6 +64,15 @@ export async function updatePricesAndWrite(chain: Chain) {
         lastPriceAt + chunk[0]
       }-${lastPriceAt + chunk[1]}`;
 
+      console.log(
+        "Fetching prices for",
+        token.code,
+        ":",
+        new Date(lastPriceAt + chunk[0]),
+        "-",
+        new Date(lastPriceAt + chunk[1])
+      );
+
       const prices = await cache.lazy(cacheKey, () =>
         getPricesByHour(
           token.address,
@@ -75,7 +84,12 @@ export async function updatePricesAndWrite(chain: Chain) {
 
       const newPrices = await Promise.all(
         prices.map(async ([timestamp, price]) => {
-          const block = await getBlockFromTimestamp(chain, timestamp);
+          // get the closest block number to the timestamp with a 30min margin of error
+          const block = await getBlockFromTimestamp(
+            chain,
+            timestamp,
+            1000 * 60 * 30
+          );
 
           return {
             token: token.address.toLowerCase(),
@@ -101,7 +115,7 @@ export async function updatePricesAndWriteLoop(chain: Chain) {
 }
 
 export async function getPrices(chainId: number): Promise<Price[]> {
-  return readPricesFile(pricesFilename(chainId));
+  return readPricesFile(chainId);
 }
 
 export async function appendPrices(chainId: number, newPrices: Price[]) {
@@ -237,9 +251,19 @@ function pricesFilename(chainId: number): string {
   return path.join(config.storageDir, `${chainId}/prices.json`);
 }
 
-async function readPricesFile(filename: string): Promise<Price[]> {
+async function readPricesFile(chainId: number): Promise<Price[]> {
+  const filename = pricesFilename(chainId);
+
   if (existsSync(filename)) {
     return JSON.parse((await fs.readFile(filename)).toString()) as Price[];
+  }
+
+  const seedPricesFilename = `./seed/${chainId}/prices.json`;
+
+  if (existsSync(seedPricesFilename)) {
+    return JSON.parse(
+      (await fs.readFile(seedPricesFilename)).toString()
+    ) as Price[];
   }
 
   return [];

@@ -1,46 +1,120 @@
 import { RetryProvider } from "chainsauce";
-import { memoize } from "./index.js";
-
 import { Chain } from "../config.js";
 
-const getProvider = memoize((url: string) => {
-  const provider = new RetryProvider({
-    url: url,
-    timeout: 5 * 60 * 1000,
-  });
+const cache: Map<number, Map<number, number>> = new Map();
 
-  const lastBlock = provider._getInternalBlockNumber(1000 * 30);
+function getCacheForChain(chain: Chain): Map<number, number> {
+  let chainCache = cache.get(chain.id);
 
-  const getBlockNumber = () => lastBlock;
-  const getBlock = memoize<number, ReturnType<typeof provider.getBlock>>(
-    (number) => {
-      return provider.getBlock(number);
-    }
-  );
+  if (!chainCache) {
+    chainCache = new Map();
+    cache.set(chain.id, chainCache);
+  }
 
-  return { getBlockNumber, getBlock };
-});
+  return chainCache;
+}
 
-export default async function getBlockFromTimestamp(
+export async function getBlockFromTimestamp(
   chain: Chain,
-  timestamp: number
+  timestampMs: number,
+  marginMs = 0
 ): Promise<number> {
-  const provider = getProvider(chain.rpc);
-  const unixTimestamp = timestamp / 1000;
-
-  const now = new Date().getTime() / 1000;
-
-  const maxBlock = await provider.getBlockNumber();
-  const prevBlock = await provider.getBlock(maxBlock - 10000);
-
-  // estimate time per block in seconds
-  const timePerBlock = Math.trunc(
-    (now - prevBlock.timestamp) / (maxBlock - prevBlock.number)
+  const provider = new RetryProvider(
+    {
+      url: chain.rpc,
+      timeout: 5 * 60 * 1000,
+    },
+    5,
+    10
   );
 
-  // find an estimated block number
-  const estimatedBlockNumber =
-    maxBlock - Math.trunc((now - unixTimestamp) / timePerBlock);
+  const chainCache = getCacheForChain(chain);
 
-  return estimatedBlockNumber;
+  // Get a block timestamp from the cache or the provider
+  async function getBlockTimestamp(number: number): Promise<number> {
+    const cachedBlock = chainCache.get(number);
+
+    if (cachedBlock) {
+      return cachedBlock;
+    }
+
+    const block = await provider.getBlock(number);
+
+    chainCache.set(block.number, block.timestamp);
+
+    return block.timestamp;
+  }
+
+  const targetTimestamp = Math.floor(timestampMs / 1000);
+
+  // Get the current block number
+  const currentBlockNumber = await provider._getInternalBlockNumber(1000 * 30);
+
+  // by default we binary search from 0 to the current block number
+  let start = 0;
+  let end = currentBlockNumber;
+
+  // try and find a closer range to search in
+  for (const entry of chainCache.entries()) {
+    const differenceMs = Math.abs(entry[1] - targetTimestamp) * 1000;
+
+    // early exit if we find a block with a matching timestamp
+    if (differenceMs <= marginMs) {
+      return entry[0];
+    }
+
+    if (entry[1] < targetTimestamp) {
+      start = Math.max(start, entry[0]);
+    }
+
+    if (entry[1] > targetTimestamp) {
+      end = Math.min(end, entry[0]);
+    }
+  }
+
+  let blockNumber = null;
+
+  // Perform binary search
+  while (start <= end) {
+    blockNumber = Math.floor((start + end) / 2);
+
+    // get the current block timestamp (could be cached)
+    const blockTimestamp = await getBlockTimestamp(blockNumber);
+
+    const differenceMs = Math.abs(blockTimestamp - targetTimestamp) * 1000;
+
+    // If the difference is within the margin, we found the block
+    if (differenceMs <= marginMs) {
+      break;
+    }
+
+    if (blockTimestamp < targetTimestamp) {
+      // The target timestamp is in the second half of the search range
+      start = blockNumber + 1;
+    } else if (blockTimestamp > targetTimestamp) {
+      // The target timestamp is in the first half of the search range
+      end = blockNumber - 1;
+    } else {
+      // Found a block with a timestamp exact to the target timestamp
+      break;
+    }
+  }
+
+  if (!blockNumber) {
+    throw new Error(
+      `Could not find block for timestamp ${targetTimestamp} and chain ${chain.name}`
+    );
+  }
+
+  // just an assertion for safety, it should never happen
+  const differenceMs =
+    Math.abs((await getBlockTimestamp(blockNumber)) - targetTimestamp) * 1000;
+
+  if (differenceMs > marginMs) {
+    throw new Error(
+      `Could not find block for timestamp ${targetTimestamp} and chain ${chain.name}`
+    );
+  }
+
+  return blockNumber;
 }

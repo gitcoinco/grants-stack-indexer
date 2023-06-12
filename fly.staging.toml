@@ -1,4 +1,4 @@
-app = "indexer-production"
+app = "indexer-staging"
 primary_region = "den"
 kill_signal = "SIGINT"
 kill_timeout = 5
@@ -15,7 +15,7 @@ kill_timeout = 5
   web = "sh -c 'rm -rf $STORAGE_DIR/* && npm start'"
 
 [mounts]
-  source="indexer_production"
+  source="indexer_staging"
   destination="/mnt/indexer"
 
 [[services]]
@@ -31,7 +31,6 @@ kill_timeout = 5
   [[services.ports]]
     port = 443
     handlers = ["tls", "http"]
-
   [services.concurrency]
     type = "connections"
     hard_limit = 25
