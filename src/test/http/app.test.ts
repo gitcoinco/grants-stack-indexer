@@ -426,5 +426,65 @@ describe("server", () => {
         });
       });
     });
+
+    describe("passport eligibility", () => {
+      beforeEach(async () => {
+        calculatorConfig.dataProvider = new TestDataProvider({
+          "1/rounds/0x1234/votes.json": "votes",
+          "1/rounds/0x1234/applications.json": "applications",
+          "1/rounds.json": "rounds",
+          "passport_scores.json": "passport_scores",
+        });
+      });
+
+      describe("should enable passport by query param", async () => {
+        test("doesn't count votes without a success in evidence when no threshold is provided", async () => {
+          const expectedResults = [
+            {
+              applicationId: "application-id-1",
+              projectId: "project-id-1",
+              totalReceived: "100",
+              sumOfSqrt: "10",
+              matched: "0",
+              matchedUSD: 0,
+              matchedWithoutCap: "0",
+              capOverflow: "0",
+              contributionsCount: "4",
+              payoutAddress: "grant-address-1",
+            },
+            {
+              applicationId: "application-id-2",
+              projectId: "project-id-2",
+              totalReceived: "0",
+              sumOfSqrt: "0",
+              matched: "0",
+              matchedUSD: 0,
+              matchedWithoutCap: "0",
+              capOverflow: "0",
+              contributionsCount: "7",
+              payoutAddress: "grant-address-2",
+            },
+            {
+              applicationId: "application-id-3",
+              projectId: "project-id-3",
+              totalReceived: "0",
+              sumOfSqrt: "0",
+              matched: "0",
+              matchedUSD: 0,
+              matchedWithoutCap: "0",
+              capOverflow: "0",
+              contributionsCount: "7",
+              payoutAddress: "grant-address-3",
+            },
+          ];
+
+          const resp = await request(app).get(
+            "/api/v1/chains/1/rounds/0x1234/matches?enablePassport=true"
+          );
+          expect(resp.statusCode).toBe(200);
+          expect(resp.body).toEqual(expectedResults);
+        });
+      });
+    });
   });
 });
