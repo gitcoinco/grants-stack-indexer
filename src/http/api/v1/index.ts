@@ -13,7 +13,7 @@ router.use(exports);
 router.use(matches);
 
 // handle uncaught errors
-router.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+router.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   // return client errors
   if (err instanceof ClientError) {
     res.status(err.status);
