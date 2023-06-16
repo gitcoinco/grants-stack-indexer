@@ -432,6 +432,8 @@ describe("server", () => {
         calculatorConfig.dataProvider = new TestDataProvider({
           "1/rounds/0x1234/votes.json": "votes",
           "1/rounds/0x1234/applications.json": "applications",
+          "1/rounds/0x2/votes.json": "votes",
+          "1/rounds/0x2/applications.json": "applications",
           "1/rounds.json": "rounds",
           "passport_scores.json": "passport_scores",
         });
@@ -443,11 +445,11 @@ describe("server", () => {
             {
               applicationId: "application-id-1",
               projectId: "project-id-1",
-              totalReceived: "100",
-              sumOfSqrt: "10",
-              matched: "0",
+              totalReceived: "200",
+              sumOfSqrt: "20",
+              matched: "200",
               matchedUSD: 0,
-              matchedWithoutCap: "0",
+              matchedWithoutCap: "200",
               capOverflow: "0",
               contributionsCount: "4",
               payoutAddress: "grant-address-1",
@@ -480,6 +482,144 @@ describe("server", () => {
 
           const resp = await request(app).get(
             "/api/v1/chains/1/rounds/0x1234/matches?enablePassport=true"
+          );
+          expect(resp.statusCode).toBe(200);
+          expect(resp.body).toEqual(expectedResults);
+        });
+        test("doesn't count votes under the threshold when threshold is provided", async () => {
+          const expectedResults = [
+            {
+              applicationId: "application-id-1",
+              projectId: "project-id-1",
+              totalReceived: "200",
+              sumOfSqrt: "20",
+              matched: "200",
+              matchedUSD: 0,
+              matchedWithoutCap: "200",
+              capOverflow: "0",
+              contributionsCount: "4",
+              payoutAddress: "grant-address-1",
+            },
+            {
+              applicationId: "application-id-2",
+              projectId: "project-id-2",
+              totalReceived: "0",
+              sumOfSqrt: "0",
+              matched: "0",
+              matchedUSD: 0,
+              matchedWithoutCap: "0",
+              capOverflow: "0",
+              contributionsCount: "7",
+              payoutAddress: "grant-address-2",
+            },
+            {
+              applicationId: "application-id-3",
+              projectId: "project-id-3",
+              totalReceived: "0",
+              sumOfSqrt: "0",
+              matched: "0",
+              matchedUSD: 0,
+              matchedWithoutCap: "0",
+              capOverflow: "0",
+              contributionsCount: "7",
+              payoutAddress: "grant-address-3",
+            },
+          ];
+
+          const resp = await request(app).get(
+            "/api/v1/chains/1/rounds/0x1234/matches?enablePassport=true&passportThreshold=15"
+          );
+          expect(resp.statusCode).toBe(200);
+          expect(resp.body).toEqual(expectedResults);
+        });
+        test("enables passport from round metadata and respects success in evidence when no threshold provided", async () => {
+          const expectedResults = [
+            {
+              applicationId: "application-id-1",
+              projectId: "project-id-1",
+              totalReceived: "200",
+              sumOfSqrt: "20",
+              matched: "200",
+              matchedUSD: 0,
+              matchedWithoutCap: "200",
+              capOverflow: "0",
+              contributionsCount: "4",
+              payoutAddress: "grant-address-1",
+            },
+            {
+              applicationId: "application-id-2",
+              projectId: "project-id-2",
+              totalReceived: "0",
+              sumOfSqrt: "0",
+              matched: "0",
+              matchedUSD: 0,
+              matchedWithoutCap: "0",
+              capOverflow: "0",
+              contributionsCount: "7",
+              payoutAddress: "grant-address-2",
+            },
+            {
+              applicationId: "application-id-3",
+              projectId: "project-id-3",
+              totalReceived: "0",
+              sumOfSqrt: "0",
+              matched: "0",
+              matchedUSD: 0,
+              matchedWithoutCap: "0",
+              capOverflow: "0",
+              contributionsCount: "7",
+              payoutAddress: "grant-address-3",
+            },
+          ];
+
+          const resp = await request(app).get(
+            "/api/v1/chains/1/rounds/0x2/matches"
+          );
+          expect(resp.statusCode).toBe(200);
+          expect(resp.body).toEqual(expectedResults);
+        });
+        test("enables passport from round metadata and doesn't count votes under the threshold when threshold is provided", async () => {
+          const expectedResults = [
+            {
+              applicationId: "application-id-1",
+              projectId: "project-id-1",
+              totalReceived: "200",
+              sumOfSqrt: "20",
+              matched: "200",
+              matchedUSD: 0,
+              matchedWithoutCap: "200",
+              capOverflow: "0",
+              contributionsCount: "4",
+              payoutAddress: "grant-address-1",
+            },
+            {
+              applicationId: "application-id-2",
+              projectId: "project-id-2",
+              totalReceived: "0",
+              sumOfSqrt: "0",
+              matched: "0",
+              matchedUSD: 0,
+              matchedWithoutCap: "0",
+              capOverflow: "0",
+              contributionsCount: "7",
+              payoutAddress: "grant-address-2",
+            },
+            {
+              applicationId: "application-id-3",
+              projectId: "project-id-3",
+              totalReceived: "0",
+              sumOfSqrt: "0",
+              matched: "0",
+              matchedUSD: 0,
+              matchedWithoutCap: "0",
+              capOverflow: "0",
+              contributionsCount: "7",
+              payoutAddress: "grant-address-3",
+            },
+          ];
+
+          const resp = await request(app).get(
+            "/api/v1/chains/1/rounds/0x2/matches?passportThreshold=15"
           );
           expect(resp.statusCode).toBe(200);
           expect(resp.body).toEqual(expectedResults);
