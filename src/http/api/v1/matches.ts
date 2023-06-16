@@ -3,6 +3,7 @@ import express, { Response, Request } from "express";
 const upload = multer();
 import multer from "multer";
 import ClientError from "../clientError.js";
+import config from "../../../config.js";
 
 import Calculator, {
   Overrides,
@@ -35,7 +36,7 @@ function handleError(err: unknown) {
 }
 
 export const calculatorConfig: { dataProvider: DataProvider } = {
-  dataProvider: new FileSystemDataProvider("./data"),
+  dataProvider: new FileSystemDataProvider(config.storageDir),
 };
 
 function boolParam<T extends Record<string, unknown>>(
