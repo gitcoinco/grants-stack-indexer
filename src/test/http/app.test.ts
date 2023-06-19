@@ -783,5 +783,116 @@ describe("server", () => {
         expect(resp.body).toEqual(expectedResults);
       });
     });
+
+    describe("minimum amount", () => {
+      beforeEach(async () => {
+        calculatorConfig.dataProvider = new TestDataProvider({
+          "1/rounds/0x1234/votes.json": "votes",
+          "1/rounds/0x1234/applications.json": "applications",
+          "1/rounds/0x3/votes.json": "votes",
+          "1/rounds/0x3/applications.json": "applications",
+          "1/rounds.json": "rounds",
+          "passport_scores.json": "passport_scores",
+        });
+      });
+
+      describe("should enable minimum amount by query param", async () => {
+        test("doesn't count votes with value under specified amount", async () => {
+          const expectedResults = [
+            {
+              applicationId: "application-id-1",
+              capOverflow: "0",
+              contributionsCount: "4",
+              matched: "0",
+              matchedUSD: 0,
+              matchedWithoutCap: "0",
+              payoutAddress: "grant-address-1",
+              projectId: "project-id-1",
+              sumOfSqrt: "30",
+              totalReceived: "900",
+            },
+            {
+              applicationId: "application-id-2",
+              projectId: "project-id-2",
+              totalReceived: "0",
+              sumOfSqrt: "0",
+              matched: "0",
+              matchedUSD: 0,
+              matchedWithoutCap: "0",
+              capOverflow: "0",
+              contributionsCount: "7",
+              payoutAddress: "grant-address-2",
+            },
+            {
+              applicationId: "application-id-3",
+              capOverflow: "0",
+              contributionsCount: "7",
+              matched: "5400",
+              matchedUSD: 0,
+              matchedWithoutCap: "5400",
+              payoutAddress: "grant-address-3",
+              projectId: "project-id-3",
+              sumOfSqrt: "90",
+              totalReceived: "2700",
+            },
+          ];
+
+          const resp = await request(app).get(
+            "/api/v1/chains/1/rounds/0x1234/matches?minimumAmountUSD=5"
+          );
+          expect(resp.statusCode).toBe(200);
+          expect(resp.body).toEqual(expectedResults);
+        });
+      });
+
+      describe("should enable minimum amount from round metadata", async () => {
+        test("doesn't count votes with value under specified amount", async () => {
+          const expectedResults = [
+            {
+              applicationId: "application-id-1",
+              capOverflow: "0",
+              contributionsCount: "4",
+              matched: "1176",
+              matchedUSD: 0,
+              matchedWithoutCap: "1176",
+              payoutAddress: "grant-address-1",
+              projectId: "project-id-1",
+              sumOfSqrt: "50",
+              totalReceived: "1300",
+            },
+            {
+              applicationId: "application-id-2",
+              projectId: "project-id-2",
+              sumOfSqrt: "20",
+              totalReceived: "400",
+              matched: "0",
+              matchedUSD: 0,
+              matchedWithoutCap: "0",
+              capOverflow: "0",
+              contributionsCount: "7",
+              payoutAddress: "grant-address-2",
+            },
+            {
+              applicationId: "application-id-3",
+              capOverflow: "0",
+              contributionsCount: "7",
+              matched: "8823",
+              matchedUSD: 0,
+              matchedWithoutCap: "8823",
+              payoutAddress: "grant-address-3",
+              projectId: "project-id-3",
+              sumOfSqrt: "110",
+              totalReceived: "3100",
+            },
+          ];
+
+          const resp = await request(app).get(
+            "/api/v1/chains/1/rounds/0x3/matches"
+          );
+          expect(resp.statusCode).toBe(200);
+          expect(resp.body).toEqual(expectedResults);
+        });
+      });
+    });
   });
 });
