@@ -81,6 +81,7 @@ export const filterPassportByEvidence = (
  * @param scorerId number
  * @param limit number
  * @param offset number
+ * @param maxAttempts
  * @returns Promise<PassportScoresResponse>
  */
 export const fetchPassportScores = async (

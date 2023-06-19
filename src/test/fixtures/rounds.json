@@ -4,5 +4,15 @@
     "token": "0x0000000000000000000000000000000000000000",
     "matchAmount": "10000",
     "metadata": {}
+  },
+  {
+    "id": "0x2",
+    "token": "0x0000000000000000000000000000000000000000",
+    "matchAmount": "10000",
+    "metadata": {
+      "quadraticFundingConfig": {
+        "sybilDefense": true
+      }
+    }
   }
 ]
