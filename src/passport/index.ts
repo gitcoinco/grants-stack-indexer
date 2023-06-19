@@ -119,7 +119,7 @@ export const fetchPassportScores = async (
     } catch (e) {
       attempt = attempt + 1;
       await wait(attempt * 5000);
-      console.log("[Passport] Retrying, attempt:", attempt);
+      console.log("[Passport] Retrying, attempt:", attempt, e);
     }
   }
 
