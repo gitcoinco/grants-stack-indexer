@@ -486,6 +486,7 @@ describe("server", () => {
           expect(resp.statusCode).toBe(200);
           expect(resp.body).toEqual(expectedResults);
         });
+
         test("doesn't count votes under the threshold when threshold is provided", async () => {
           const expectedResults = [
             {
@@ -532,6 +533,7 @@ describe("server", () => {
           expect(resp.statusCode).toBe(200);
           expect(resp.body).toEqual(expectedResults);
         });
+
         test("enables passport from round metadata and respects success in evidence when no threshold provided", async () => {
           const expectedResults = [
             {
@@ -578,6 +580,7 @@ describe("server", () => {
           expect(resp.statusCode).toBe(200);
           expect(resp.body).toEqual(expectedResults);
         });
+
         test("enables passport from round metadata and doesn't count votes under the threshold when threshold is provided", async () => {
           const expectedResults = [
             {
