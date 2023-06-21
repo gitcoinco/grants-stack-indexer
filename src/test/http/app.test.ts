@@ -789,8 +789,8 @@ describe("server", () => {
         calculatorConfig.dataProvider = new TestDataProvider({
           "1/rounds/0x1234/votes.json": "votes",
           "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds/0x3/votes.json": "votes",
-          "1/rounds/0x3/applications.json": "applications",
+          "1/rounds/0x4/votes.json": "votes",
+          "1/rounds/0x4/applications.json": "applications",
           "1/rounds.json": "rounds",
           "passport_scores.json": "passport_scores",
         });
@@ -887,7 +887,7 @@ describe("server", () => {
           ];
 
           const resp = await request(app).get(
-            "/api/v1/chains/1/rounds/0x3/matches"
+            "/api/v1/chains/1/rounds/0x4/matches"
           );
           expect(resp.statusCode).toBe(200);
           expect(resp.body).toEqual(expectedResults);
