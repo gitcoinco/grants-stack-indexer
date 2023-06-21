@@ -629,5 +629,112 @@ describe("server", () => {
         });
       });
     });
+
+    describe("matching cap", () => {
+      beforeEach(async () => {
+        calculatorConfig.dataProvider = new TestDataProvider({
+          "1/rounds/0x1234/votes.json": "votes",
+          "1/rounds/0x1234/applications.json": "applications",
+          "1/rounds/0x3/votes.json": "votes",
+          "1/rounds/0x3/applications.json": "applications",
+          "1/rounds.json": "rounds",
+          "passport_scores.json": "passport_scores",
+        });
+      });
+
+      test("should enable matching cap from query param", async () => {
+        const expectedResults = [
+          {
+            applicationId: "application-id-1",
+            projectId: "project-id-1",
+            totalReceived: "1500",
+            sumOfSqrt: "70",
+            matched: "1000",
+            matchedUSD: 0,
+            matchedWithoutCap: "1360",
+            capOverflow: "360",
+            contributionsCount: "4",
+            payoutAddress: "grant-address-1",
+          },
+          {
+            applicationId: "application-id-2",
+            projectId: "project-id-2",
+            totalReceived: "1000",
+            sumOfSqrt: "80",
+            matched: "1000",
+            matchedUSD: 0,
+            matchedWithoutCap: "2160",
+            capOverflow: "1160",
+            contributionsCount: "7",
+            payoutAddress: "grant-address-2",
+          },
+          {
+            applicationId: "application-id-3",
+            projectId: "project-id-3",
+            totalReceived: "3400",
+            sumOfSqrt: "140",
+            matched: "1000",
+            matchedUSD: 0,
+            matchedWithoutCap: "6480",
+            capOverflow: "5480",
+            contributionsCount: "7",
+            payoutAddress: "grant-address-3",
+          },
+        ];
+
+        const resp = await request(app).get(
+          "/api/v1/chains/1/rounds/0x1234/matches?matchingCapAmount=1000"
+        );
+        expect(resp.statusCode).toBe(200);
+        expect(resp.body).toEqual(expectedResults);
+      });
+
+      test("should enable matching cap from round metadata", async () => {
+        const expectedResults = [
+          {
+            applicationId: "application-id-1",
+            projectId: "project-id-1",
+            totalReceived: "1500",
+            sumOfSqrt: "70",
+            matched: "1000",
+            matchedUSD: 0,
+            matchedWithoutCap: "1360",
+            capOverflow: "360",
+            contributionsCount: "4",
+            payoutAddress: "grant-address-1",
+          },
+          {
+            applicationId: "application-id-2",
+            projectId: "project-id-2",
+            totalReceived: "1000",
+            sumOfSqrt: "80",
+            matched: "1000",
+            matchedUSD: 0,
+            matchedWithoutCap: "2160",
+            capOverflow: "1160",
+            contributionsCount: "7",
+            payoutAddress: "grant-address-2",
+          },
+          {
+            applicationId: "application-id-3",
+            projectId: "project-id-3",
+            totalReceived: "3400",
+            sumOfSqrt: "140",
+            matched: "1000",
+            matchedUSD: 0,
+            matchedWithoutCap: "6480",
+            capOverflow: "5480",
+            contributionsCount: "7",
+            payoutAddress: "grant-address-3",
+          },
+        ];
+
+        const resp = await request(app).get(
+          "/api/v1/chains/1/rounds/0x3/matches"
+        );
+        expect(resp.statusCode).toBe(200);
+        expect(resp.body).toEqual(expectedResults);
+      });
+    });
   });
 });

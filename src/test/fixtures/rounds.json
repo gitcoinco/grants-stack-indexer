@@ -14,5 +14,16 @@
         "sybilDefense": true
       }
     }
+  },
+  {
+    "id": "0x3",
+    "token": "0x0000000000000000000000000000000000000000",
+    "matchAmount": "10000",
+    "metadata": {
+      "quadraticFundingConfig": {
+        "matchingCap": true,
+        "matchingCapAmount": 10
+      }
+    }
   }
 ]
