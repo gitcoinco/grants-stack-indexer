@@ -13,8 +13,8 @@ import {
   Round,
   Vote,
 } from "./types.js";
-
 import { Event } from "./events.js";
+import { RoundContract } from "./contracts.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
@@ -146,17 +146,6 @@ async function handleEvent(
     // --- ROUND
     case "RoundCreatedV1":
     case "RoundCreated": {
-      type RoundContract = ethers.Contract & {
-        matchAmount: () => Promise<ethers.BigNumber>;
-        applicationMetaPtr: () => Promise<MetaPtr>;
-        roundMetaPtr: () => Promise<MetaPtr>;
-        token: () => Promise<string>;
-        applicationsStartTime: () => Promise<string>;
-        applicationsEndTime: () => Promise<string>;
-        roundStartTime: () => Promise<string>;
-        roundEndTime: () => Promise<string>;
-      };
-
       let contract: RoundContract;
 
       let matchAmountPromise;
