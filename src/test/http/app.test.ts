@@ -1,7 +1,7 @@
 import { vi, describe, test, expect, beforeEach } from "vitest";
 import fs from "fs";
 import path from "path";
-import request from "supertest";
+import request, { Response as SupertestResponse } from "supertest";
 import { app } from "../../http/app.js";
 import { calculatorConfig } from "../../http/api/v1/matches.js";
 import {
@@ -9,6 +9,8 @@ import {
   DataProvider,
   FileNotFoundError,
 } from "../../calculator/index.js";
+
+type Response<T> = Omit<SupertestResponse, "body"> & { body: T };
 
 vi.mock("../../prices/index.js", () => {
   return {
@@ -178,7 +180,7 @@ describe("server", () => {
     });
 
     describe("calculations with round not saturated", () => {
-      beforeEach(async () => {
+      beforeEach(() => {
         calculatorConfig.dataProvider = new TestDataProvider({
           "1/rounds/0x1234/votes.json": "votes",
           "1/rounds/0x1234/applications.json": "applications",
@@ -315,14 +317,14 @@ describe("server", () => {
 
         const overridesContent = loadFixture("overrides", "csv");
 
-        const resp = await request(app)
+        const resp: Response<AugmentedResult[]> = await request(app)
           .post("/api/v1/chains/1/rounds/0x1234/matches")
           .attach("overrides", Buffer.from(overridesContent), "overrides.csv");
 
         expect(resp.statusCode).toBe(201);
 
         const matches = resp.body.reduce(
-          (acc: Record<string, string>, match: AugmentedResult) => {
+          (acc: Record<string, string>, match) => {
             acc[match.projectId] = match.matched.toString();
             return acc;
           },
@@ -349,7 +351,7 @@ describe("server", () => {
           "csv"
         );
 
-        const resp = await request(app)
+        const resp: Response<AugmentedResult[]> = await request(app)
           .post("/api/v1/chains/1/rounds/0x1234/matches")
           .attach("overrides", Buffer.from(overridesContent), "overrides.csv");
 
@@ -428,7 +430,7 @@ describe("server", () => {
     });
 
     describe("passport eligibility", () => {
-      beforeEach(async () => {
+      beforeEach(() => {
         calculatorConfig.dataProvider = new TestDataProvider({
           "1/rounds/0x1234/votes.json": "votes",
           "1/rounds/0x1234/applications.json": "applications",
@@ -439,7 +441,7 @@ describe("server", () => {
         });
       });
 
-      describe("should enable passport by query param", async () => {
+      describe("should enable passport by query param", () => {
         test("doesn't count votes without a success in evidence when no threshold is provided", async () => {
           const expectedResults = [
             {
@@ -631,7 +633,7 @@ describe("server", () => {
     });
 
     describe("matching cap", () => {
-      beforeEach(async () => {
+      beforeEach(() => {
         calculatorConfig.dataProvider = new TestDataProvider({
           "1/rounds/0x1234/votes.json": "votes",
           "1/rounds/0x1234/applications.json": "applications",
