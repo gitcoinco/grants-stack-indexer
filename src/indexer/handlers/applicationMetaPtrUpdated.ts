@@ -1,29 +1,36 @@
-import { Indexer, JsonStorage, Event } from "chainsauce";
+import { Indexer, JsonStorage } from "chainsauce";
 import { fetchJsonCached as ipfs } from "../../utils/ipfs.js";
+import { Round } from "../types.js";
+import { Events } from "../events.js";
 
 export default async function applicationMetaPtrUpdated(
   { cache, storage: db }: Indexer<JsonStorage>,
-  event: Event
+  event: Events["ApplicationMetaPtrUpdated"]
 ) {
   const id = event.address;
 
-  await db.collection("rounds").updateById(id, (round) => ({
+  const args = event.args as {
+    newMetaPtr: { pointer: string };
+  };
+
+  await db.collection<Round>("rounds").updateById(id, (round) => ({
     ...round,
-    applicationMetaPtr: event.args.newMetaPtr.pointer,
+    applicationMetaPtr: args.newMetaPtr.pointer,
     updatedAtBlock: event.blockNumber,
   }));
 
-  return async () => {
-    const metaPtr = event.args.newMetaPtr.pointer;
-    const metadata = await ipfs(metaPtr, cache);
+  const metaPtr = args.newMetaPtr.pointer;
+  const metadata = await ipfs<Round["applicationMetadata"]>(metaPtr, cache);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await db.collection("rounds").updateById(id, (round: any) => {
-      if (round.applicationMetaPtr === event.args.newMetaPtr.pointer) {
-        return { ...round, applicationMetadata: metadata };
-      }
+  if (!metadata) {
+    return;
+  }
 
-      return round;
-    });
-  };
+  await db.collection<Round>("rounds").updateById(id, (round) => {
+    if (round.applicationMetaPtr === args.newMetaPtr.pointer) {
+      return { ...round, applicationMetadata: metadata };
+    }
+
+    return round;
+  });
 }
