@@ -10,7 +10,7 @@ export function memoize<Input, Output>(
     if (cache.has(arg0)) {
       return cache.get(arg0) as Output;
     } else {
-      const ret = fn(arg0) ;
+      const ret = fn(arg0);
       cache.set(arg0, ret);
       return ret;
     }
