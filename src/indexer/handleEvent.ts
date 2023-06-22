@@ -93,7 +93,7 @@ async function handleEvent(
 
         return async () => {
           const metadata = await ipfs<Project["metadata"]>(
-            (event.args.metaPtr as MetaPtr).pointer,
+            event.args.metaPtr.pointer,
             indexer.cache
           );
 
