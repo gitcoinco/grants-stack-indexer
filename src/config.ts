@@ -7,7 +7,6 @@ export type Chain = {
   name: string;
   id: ChainId;
   tokens: { code: string; address: string; decimals: number }[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   subscriptions: {
     address: string;
     abi: string;
