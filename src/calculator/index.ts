@@ -102,8 +102,8 @@ export type AugmentedResult = Calculation & {
   projectId: string;
   applicationId: string;
   matchedUSD: number;
-  projectName: string;
-  payoutAddress: string;
+  projectName?: string;
+  payoutAddress?: string;
 };
 
 export default class Calculator {

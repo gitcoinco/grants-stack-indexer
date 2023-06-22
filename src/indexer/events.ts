@@ -1,5 +1,6 @@
 import type { Event as ChainsauceEvent } from "chainsauce";
-import { ethers } from "ethers";
+import type { MetaPtr } from "./types.js";
+import type { ethers } from "ethers";
 
 // Blockchain events and their arguments
 type EventArguments = {
@@ -75,7 +76,3 @@ export type Events = {
 };
 
 export type Event = Events[keyof Events];
-
-export type MetaPtr = {
-  pointer: string;
-};
