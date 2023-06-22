@@ -16,6 +16,14 @@ export type Chain = {
   }[];
 };
 
+if (!process.env.INFURA_API_KEY) {
+  throw new Error("INFURA_API_KEY not set");
+}
+
+if (!process.env.ALCHEMY_API_KEY) {
+  throw new Error("ALCHEMY_API_KEY not set");
+}
+
 const chains: Chain[] = [
   {
     id: 1,
