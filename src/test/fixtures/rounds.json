@@ -25,5 +25,15 @@
         "matchingCapAmount": 10
       }
     }
+  },
+  {
+    "id": "0x4",
+    "token": "0x0000000000000000000000000000000000000000",
+    "matchAmount": "10000",
+    "metadata": {
+      "quadraticFundingConfig": {
+        "minDonationThresholdAmount": "3"
+      }
+    }
   }
 ]
