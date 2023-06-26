@@ -69,7 +69,7 @@ async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
   const [applications, votes, passportScoresString] = await Promise.all([
     db.collection<Application>(`rounds/${round.id}/applications`).all(),
     db.collection<Vote>(`rounds/${round.id}/votes`).all(),
-    fs.promises.readFile(path.join(storageDir, "/data/passport_scores.json"), {
+    fs.promises.readFile(path.join(storageDir, "/passport_scores.json"), {
       encoding: "utf8",
       flag: "r",
     }),
