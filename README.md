@@ -44,10 +44,9 @@ npm start # this runs the production start script which will index all chains an
 
 **Make sure you set the environment variables before running, find a `.env` template in `.env.example`**
 
-
 ```bash
 npm install
-npm start:dev # run the typescript compiler and the HTTP server
+npm run dev # run the typescript compiler and the HTTP server
 ```
 
 The HTTP server runs on port 4000, check it here: http://localhost:4000/
