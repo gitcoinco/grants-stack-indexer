@@ -5,6 +5,7 @@ import {
 import { JsonStorage } from "chainsauce";
 import express from "express";
 import fs from "fs";
+import path from "path";
 
 import database from "../../../database.js";
 import { getPrices } from "../../../prices/index.js";
@@ -12,6 +13,7 @@ import { Round, Application, Vote } from "../../../indexer/types.js";
 import { getVotesWithCoefficients } from "../../../calculator/votes.js";
 import ClientError from "../clientError.js";
 import { PassportScore } from "../../../passport/index.js";
+import config from "../../../config.js";
 
 const router = express.Router();
 
@@ -62,10 +64,12 @@ async function exportPricesCSV(chainId: number, round: Round) {
 }
 
 async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
+  const storageDir = config.storageDir;
+
   const [applications, votes, passportScoresString] = await Promise.all([
     db.collection<Application>(`rounds/${round.id}/applications`).all(),
     db.collection<Vote>(`rounds/${round.id}/votes`).all(),
-    fs.promises.readFile("./data/passport_scores.json", {
+    fs.promises.readFile(path.join(storageDir, "/data/passport_scores.json"), {
       encoding: "utf8",
       flag: "r",
     }),
