@@ -90,6 +90,7 @@ export async function getVotesWithCoefficients(
     return [
       {
         ...vote,
+        voter,
         coefficient,
         passportScore: passportScore,
       },
