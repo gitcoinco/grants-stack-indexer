@@ -2,37 +2,69 @@ import type { Event as ChainsauceEvent } from "chainsauce";
 import type { MetaPtr } from "./types.js";
 import type { ethers } from "ethers";
 
-// Blockchain events and their arguments
-type EventArguments = {
-  RoundMetaPtrUpdated: {
+export interface RoundMetaPtrUpdatedEvent extends ChainsauceEvent {
+  name: "RoundMetaPtrUpdated";
+  args: {
     newMetaPtr: MetaPtr;
   };
-  MatchAmountUpdated: {
+}
+
+export interface MatchAmountUpdatedEvent extends ChainsauceEvent {
+  name: "MatchAmountUpdated";
+  args: {
     newAmount: ethers.BigNumber;
   };
-  ApplicationMetaPtrUpdated: {
+}
+
+export interface ApplicationMetaPtrUpdatedEvent extends ChainsauceEvent {
+  name: "ApplicationMetaPtrUpdated";
+  args: {
     newMetaPtr: MetaPtr;
   };
-  NewProjectApplication: {
+}
+
+export interface NewProjectApplicationEvent extends ChainsauceEvent {
+  name: "NewProjectApplication";
+  args: {
     projectID: ethers.BigNumber;
     project: string;
     applicationIndex: ethers.BigNumber;
     applicationMetaPtr: MetaPtr;
   };
-  ProjectsMetaPtrUpdated: {
+}
+
+export interface ProjectsMetaPtrUpdatedEvent extends ChainsauceEvent {
+  name: "ProjectsMetaPtrUpdated";
+  args: {
     newMetaPtr: MetaPtr;
   };
-  ApplicationStatusesUpdated: {
+}
+
+export interface ApplicationStatusesUpdatedEvent extends ChainsauceEvent {
+  name: "ApplicationStatusesUpdated";
+  args: {
     index: ethers.BigNumber;
     status: ethers.BigNumber;
   };
-  VotingContractCreatedV1: {
+}
+
+export interface VotingContractCreatedV1Event extends ChainsauceEvent {
+  name: "VotingContractCreatedV1";
+  args: {
     votingContractAddress: string;
   };
-  VotingContractCreated: {
+}
+
+export interface VotingContractCreatedEvent extends ChainsauceEvent {
+  name: "VotingContractCreated";
+  args: {
     votingContractAddress: string;
   };
-  Voted: {
+}
+
+export interface VotedEvent extends ChainsauceEvent {
+  name: "Voted";
+  args: {
     roundAddress: string;
     applicationIndex?: ethers.BigNumber;
     projectId: string;
@@ -42,37 +74,69 @@ type EventArguments = {
     contributor: string;
     token: string;
   };
-  ProjectCreated: {
+}
+
+export interface ProjectCreatedEvent extends ChainsauceEvent {
+  name: "ProjectCreated";
+  args: {
     projectID: ethers.BigNumber;
     owner: string;
   };
-  MetadataUpdated: {
+}
+
+export interface MetadataUpdatedEvent extends ChainsauceEvent {
+  name: "MetadataUpdated";
+  args: {
     projectID: ethers.BigNumber;
     metaPtr: MetaPtr;
   };
-  OwnerAdded: {
+}
+
+export interface OwnerAddedEvent extends ChainsauceEvent {
+  name: "OwnerAdded";
+  args: {
     projectID: ethers.BigNumber;
     owner: string;
   };
-  OwnerRemoved: {
+}
+
+export interface OwnerRemovedEvent extends ChainsauceEvent {
+  name: "OwnerRemoved";
+  args: {
     projectID: ethers.BigNumber;
     owner: string;
   };
-  RoundCreatedV1: {
+}
+
+export interface RoundCreatedV1Event extends ChainsauceEvent {
+  name: "RoundCreatedV1";
+  args: {
     roundAddress: string;
     token: string;
   };
-  RoundCreated: {
+}
+
+export interface RoundCreatedEvent extends ChainsauceEvent {
+  name: "RoundCreated";
+  args: {
     roundAddress: string;
     token: string;
   };
-};
+}
 
-export type Events = {
-  [A in keyof EventArguments]: Omit<ChainsauceEvent, "name" | "args"> & {
-    name: A;
-    args: EventArguments[A];
-  };
-};
-
-export type Event = Events[keyof Events];
+export type Event =
+  | RoundMetaPtrUpdatedEvent
+  | MatchAmountUpdatedEvent
+  | ApplicationMetaPtrUpdatedEvent
+  | NewProjectApplicationEvent
+  | ProjectsMetaPtrUpdatedEvent
+  | ApplicationStatusesUpdatedEvent
+  | VotingContractCreatedV1Event
+  | VotingContractCreatedEvent
+  | VotedEvent
+  | ProjectCreatedEvent
+  | MetadataUpdatedEvent
+  | OwnerAddedEvent
+  | OwnerRemovedEvent
+  | RoundCreatedV1Event
+  | RoundCreatedEvent;

@@ -1,11 +1,11 @@
 import { Indexer, JsonStorage } from "chainsauce";
 import { convertToUSD } from "../../prices/index.js";
 import { Round } from "../types.js";
-import { Events } from "../events.js";
+import { MatchAmountUpdatedEvent } from "../events.js";
 
 export default async function (
   { chainId, storage: db }: Indexer<JsonStorage>,
-  event: Events["MatchAmountUpdated"]
+  event: MatchAmountUpdatedEvent
 ) {
   const id = event.address;
   const matchAmount = event.args.newAmount.toString();

@@ -1,11 +1,11 @@
 import { Indexer, JsonStorage } from "chainsauce";
 import { fetchJsonCached as ipfs } from "../../utils/ipfs.js";
 import { Round } from "../types.js";
-import { Events } from "../events.js";
+import { ApplicationMetaPtrUpdatedEvent } from "../events.js";
 
 export default async function applicationMetaPtrUpdated(
   { cache, storage: db }: Indexer<JsonStorage>,
-  event: Events["ApplicationMetaPtrUpdated"]
+  event: ApplicationMetaPtrUpdatedEvent
 ) {
   const id = event.address;
 
