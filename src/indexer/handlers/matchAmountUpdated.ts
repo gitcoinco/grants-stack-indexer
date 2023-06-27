@@ -13,7 +13,7 @@ export default async function (
   const round = await db.collection<Round>("rounds").findById(id);
 
   if (!round) {
-    return;
+    throw new Error(`Round ${id} not found`);
   }
 
   const amountUSD = await convertToUSD(
