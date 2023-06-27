@@ -1,7 +1,7 @@
 import type { ethers } from "ethers";
 import type { MetaPtr } from "./types.js";
 
-export type RoundContract = ethers.Contract & {
+export interface RoundContract extends ethers.Contract {
   matchAmount: () => Promise<ethers.BigNumber>;
   applicationMetaPtr: () => Promise<MetaPtr>;
   roundMetaPtr: () => Promise<MetaPtr>;
@@ -10,4 +10,4 @@ export type RoundContract = ethers.Contract & {
   applicationsEndTime: () => Promise<ethers.BigNumber>;
   roundStartTime: () => Promise<ethers.BigNumber>;
   roundEndTime: () => Promise<ethers.BigNumber>;
-};
+}
