@@ -21,7 +21,7 @@ echo "======> Catch up successful, running indexer on follow mode!"
 
 # Once caught up, start indexers in follow mode and run HTTP server
 exec npx concurrently \
-  --restart-retires=10 \
+  --restart-tries=10 \
   --names "mainnet,optimism,goerli,fantom,passport,http" \
   'npm:index -- --chain=mainnet --follow' \
   'npm:index -- --chain=optimism --follow' \
