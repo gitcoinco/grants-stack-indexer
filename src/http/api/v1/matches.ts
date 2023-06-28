@@ -10,30 +10,10 @@ import Calculator, {
   DataProvider,
   FileSystemDataProvider,
   CalculatorOptions,
-  FileNotFoundError,
-  ResourceNotFoundError,
   parseOverrides,
-  CalculatorError,
 } from "../../../calculator/index.js";
 
 const router = express.Router();
-
-function handleError(err: unknown) {
-  if (err instanceof FileNotFoundError) {
-    throw new ClientError(err.message, 404);
-  }
-
-  if (err instanceof ResourceNotFoundError) {
-    throw new ClientError(err.message, 404);
-  }
-
-  if (err instanceof CalculatorError) {
-    throw new ClientError(err.message, 400);
-  }
-
-  // unexpected error, rethrow to upper level handler
-  throw err;
-}
 
 export const calculatorConfig: { dataProvider: DataProvider } = {
   dataProvider: new FileSystemDataProvider(config.storageDir),
@@ -88,12 +68,7 @@ async function matchesHandler(
     }
 
     const buf = file.buffer;
-    try {
-      overrides = await parseOverrides(buf);
-    } catch (e) {
-      handleError(e);
-      return;
-    }
+    overrides = await parseOverrides(buf);
   }
 
   const calculatorOptions: CalculatorOptions = {
@@ -112,18 +87,14 @@ async function matchesHandler(
     overrides,
   };
 
-  try {
-    const calculator = new Calculator(calculatorOptions);
-    const matches = await calculator.calculate();
-    const responseBody = JSON.stringify(matches, (_key, value) =>
-      typeof value === "bigint" ? value.toString() : value
-    );
-    res.setHeader("content-type", "application/json");
-    res.status(okStatusCode);
-    res.send(responseBody);
-  } catch (e) {
-    handleError(e);
-  }
+  const calculator = new Calculator(calculatorOptions);
+  const matches = await calculator.calculate();
+  const responseBody = JSON.stringify(matches, (_key, value) =>
+    typeof value === "bigint" ? value.toString() : value
+  );
+  res.setHeader("content-type", "application/json");
+  res.status(okStatusCode);
+  res.send(responseBody);
 }
 
 router.get("/chains/:chainId/rounds/:roundId/matches", async (req, res) => {
