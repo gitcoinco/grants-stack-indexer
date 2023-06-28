@@ -7,7 +7,9 @@ trap "exit 130" INT
 
 echo "======> Catching up"
 
-# Catch up indexers to latest block before starting
+# Catch up indexers to latest block first,
+# do not run the HTTP server, as we don't want to serve traffic
+# because data won't be up to date yet
 npx concurrently \
   --kill-others-on-fail \
   --names "mainnet,optimism,goerli,fantom,passport" \
@@ -19,7 +21,8 @@ npx concurrently \
 
 echo "======> Catch up successful, running indexer on follow mode!"
 
-# Once caught up, start indexers in follow mode and run HTTP server
+# Once caught up, start indexers in follow mode and run HTTP server,
+# we can now start serving traffic
 exec npx concurrently \
   --restart-tries=10 \
   --names "mainnet,optimism,goerli,fantom,passport,http" \
