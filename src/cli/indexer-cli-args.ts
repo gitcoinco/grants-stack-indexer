@@ -4,7 +4,7 @@ import { parseArgs } from "node:util";
 import config from "../config.js";
 import { IndexingServiceConfig } from "../indexer/service.js";
 
-export async function readServiceConfigFromArgs(): Promise<IndexingServiceConfig> {
+export function readServiceConfigFromArgs(): IndexingServiceConfig {
   const { values: args } = parseArgs({
     options: {
       chain: {
@@ -36,14 +36,12 @@ export async function readServiceConfigFromArgs(): Promise<IndexingServiceConfig
   const chainName = args.chain;
 
   if (!chainName) {
-    console.error("Please provide a chain name to index.");
-    process.exit(1);
+    throw new Error("Chain not provided");
   }
 
   const chain = config.chains.find((chain) => chain.name === chainName);
   if (!chain) {
-    console.error("Chain", chainName, "not configured.");
-    process.exit(1);
+    throw new Error("Chain " + chainName + " is not configured");
   }
 
   const toBlock = "to-block" in args ? Number(args["to-block"]) : "latest";
@@ -53,7 +51,6 @@ export async function readServiceConfigFromArgs(): Promise<IndexingServiceConfig
     url: chain.rpc,
     timeout: 5 * 60 * 1000,
   });
-  await provider.getNetwork();
 
   let logLevel = Log.Info;
   if (args["log-level"]) {
@@ -75,12 +72,7 @@ export async function readServiceConfigFromArgs(): Promise<IndexingServiceConfig
     }
   }
 
-  const storageDir = path.join(
-    config.storageDir,
-    // XXX could probably switch to static chainName -> chainId mappings so as not to rely on provider.getNetwork() and
-    // not have to make this function async
-    `${provider.network.chainId}`
-  );
+  const storageDir = path.join(config.storageDir, chain.id.toString());
 
   const cacheDir = config.cacheDir;
 
