@@ -21,4 +21,6 @@ COPY seed seed
 
 RUN npm run test
 
+COPY start.sh ./
+
 CMD [ "npm", "start" ]
