@@ -131,6 +131,8 @@ export async function appendPrices(
     chainId,
     currentPrices
       .concat(newPrices)
+      // HACK: all prices are requested, but only prices up to `toBlock` are
+      // written to disk
       .filter((price) => toBlock === "latest" || price.block <= toBlock)
   );
 }
