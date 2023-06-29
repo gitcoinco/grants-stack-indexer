@@ -1,15 +1,20 @@
+export type MetaPtr = {
+  pointer: string;
+};
+
 export type Round = {
   id: string;
   amountUSD: number;
   votes: number;
   token: string;
-  matchAmount: bigint;
+  matchAmount: string;
   matchAmountUSD: number;
   uniqueContributors: number;
   applicationMetaPtr: string;
   applicationMetadata: string | null;
   metaPtr: string;
   metadata: {
+    name: string;
     quadraticFundingConfig?: {
       matchingFundsAvailable?: number;
       sybilDefense?: boolean;
@@ -19,20 +24,42 @@ export type Round = {
       minDonationThresholdAmount?: number;
     };
   } | null;
-  applicationsStartTime: number;
-  applicationsEndTime: number;
-  roundStartTime: number;
-  roundEndTime: number;
+  applicationsStartTime: string;
+  applicationsEndTime: string;
+  roundStartTime: string;
+  roundEndTime: string;
   createdAtBlock: number;
   updatedAtBlock: number;
 };
+
+export type Project = {
+  id: string;
+  metaPtr: string | null;
+  owners: Array<string>;
+  createdAtBlock: number;
+  projectNumber: number;
+  metadata: {
+    title: string;
+    description: string;
+    website: string;
+    projectTwitter: string;
+    projectGithub: string;
+    userGithub: string;
+    logoImg: string;
+    bannerImg: string;
+    logoImgData: string;
+    bannerImgData: string;
+    cretedAt: number;
+  } | null;
+};
+
+export type Contributor = { id: string; amountUSD: number; votes: number };
 
 export type Application = {
   id: string;
   projectId: string;
   roundId: string;
   status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
-  payoutAddress: string;
   amountUSD: number;
   votes: number;
   uniqueContributors: number;
@@ -40,10 +67,21 @@ export type Application = {
     application: {
       project: {
         title: string;
+        website: string;
+        projectTwitter: string;
+        projectGithub: string;
+        userGithub: string;
       };
+      answers: Array<{
+        question: string;
+        answer: string;
+        encryptedAnswer: string | null;
+      }>;
       recipient: string;
     };
-  };
+  } | null;
+  createdAtBlock: number;
+  statusUpdatedAtBlock: number;
 };
 
 export type Vote = {
@@ -60,8 +98,8 @@ export type Vote = {
 };
 
 export type DetailedVote = Vote & {
-  roundName: string;
-  projectTitle: string;
-  roundStartTime: number;
-  roundEndTime: number;
+  roundName?: string;
+  projectTitle?: string;
+  roundStartTime?: string;
+  roundEndTime?: string;
 };

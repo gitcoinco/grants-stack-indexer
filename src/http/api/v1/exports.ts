@@ -49,8 +49,8 @@ async function exportPricesCSV(chainId: number, round: Round) {
 
   const pricesDuringRound = prices.filter(
     (price) =>
-      price.timestamp >= round.roundStartTime * 1000 &&
-      price.timestamp <= round.roundEndTime * 1000
+      price.timestamp >= Number(round.roundStartTime) * 1000 &&
+      price.timestamp <= Number(round.roundEndTime) * 1000
   );
 
   const csv = createObjectCsvStringifier({
