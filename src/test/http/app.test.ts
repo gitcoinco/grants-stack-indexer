@@ -10,6 +10,7 @@ import {
   FileNotFoundError,
 } from "../../calculator/index.js";
 
+// Typed version of supertest's Response
 type Response<T> = Omit<SupertestResponse, "body"> & { body: T };
 
 vi.mock("../../prices/index.js", () => {
