@@ -1,6 +1,7 @@
 import { Indexer, JsonStorage } from "chainsauce";
 import { fetchJsonCached as ipfs } from "../../utils/ipfs.js";
 import { Round } from "../types.js";
+import { RoundMetaPtrUpdatedEvent } from "../events.js";
 
 export default async function roundMetaPtrUpdated(
   { cache, storage: db }: Indexer<JsonStorage>,

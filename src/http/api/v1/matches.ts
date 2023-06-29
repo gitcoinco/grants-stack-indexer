@@ -87,18 +87,14 @@ async function matchesHandler(
     overrides,
   };
 
-  try {
-    const calculator = new Calculator(calculatorOptions);
-    const matches = await calculator.calculate();
-    const responseBody = JSON.stringify(matches, (_key, value) =>
-      typeof value === "bigint" ? value.toString() : (value as unknown)
-    );
-    res.setHeader("content-type", "application/json");
-    res.status(okStatusCode);
-    res.send(responseBody);
-  } catch (e) {
-    handleError(e);
-  }
+  const calculator = new Calculator(calculatorOptions);
+  const matches = await calculator.calculate();
+  const responseBody = JSON.stringify(matches, (_key, value) =>
+    typeof value === "bigint" ? value.toString() : (value as unknown)
+  );
+  res.setHeader("content-type", "application/json");
+  res.status(okStatusCode);
+  res.send(responseBody);
 }
 
 router.get("/chains/:chainId/rounds/:roundId/matches", async (req, res) => {

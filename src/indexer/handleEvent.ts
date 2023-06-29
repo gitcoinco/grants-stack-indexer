@@ -15,13 +15,12 @@ import {
 } from "./types.js";
 import { Event } from "./events.js";
 import { RoundContract } from "./contracts.js";
+import { importAbi } from "./utils.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
 import applicationMetaPtrUpdated from "./handlers/applicationMetaPtrUpdated.js";
 import matchAmountUpdated from "./handlers/matchAmountUpdated.js";
-
-type MetaPtr = { pointer: string };
 
 enum ApplicationStatus {
   PENDING = 0,
@@ -153,22 +152,14 @@ async function handleEvent(
       if (event.name === "RoundCreatedV1") {
         contract = indexer.subscribe(
           event.args.roundAddress,
-          (
-            await import("#abis/v1/RoundImplementation.json", {
-              assert: { type: "json" },
-            })
-          ).default,
+          await importAbi("#abis/v1/RoundImplementation.json"),
           event.blockNumber
         ) as RoundContract;
         matchAmountPromise = BigNumber.from("0");
       } else {
         contract = indexer.subscribe(
           event.args.roundAddress,
-          (
-            await import("#abis/v2/RoundImplementation.json", {
-              assert: { type: "json" },
-            })
-          ).default,
+          await importAbi("#abis/v2/RoundImplementation.json"),
           event.blockNumber
         ) as RoundContract;
         matchAmountPromise = contract.matchAmount();
@@ -405,14 +396,9 @@ async function handleEvent(
     case "VotingContractCreatedV1": {
       indexer.subscribe(
         event.args.votingContractAddress,
-        (
-          await import(
-            "#abis/v1/QuadraticFundingVotingStrategyImplementation.json",
-            {
-              assert: { type: "json" },
-            }
-          )
-        ).default,
+        await importAbi(
+          "#abis/v1/QuadraticFundingVotingStrategyImplementation.json"
+        ),
         event.blockNumber
       );
       break;
@@ -421,14 +407,9 @@ async function handleEvent(
     case "VotingContractCreated": {
       indexer.subscribe(
         event.args.votingContractAddress,
-        (
-          await import(
-            "#abis/v2/QuadraticFundingVotingStrategyImplementation.json",
-            {
-              assert: { type: "json" },
-            }
-          )
-        ).default,
+        await importAbi(
+          "#abis/v2/QuadraticFundingVotingStrategyImplementation.json"
+        ),
         event.blockNumber
       );
       break;

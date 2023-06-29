@@ -788,7 +788,7 @@ describe("server", () => {
     });
 
     describe("minimum amount", () => {
-      beforeEach(async () => {
+      beforeEach(() => {
         calculatorConfig.dataProvider = new TestDataProvider({
           "1/rounds/0x1234/votes.json": "votes",
           "1/rounds/0x1234/applications.json": "applications",
@@ -799,7 +799,7 @@ describe("server", () => {
         });
       });
 
-      describe("should enable minimum amount by query param", async () => {
+      describe("should enable minimum amount by query param", () => {
         test("doesn't count votes with value under specified amount", async () => {
           const expectedResults = [
             {
@@ -848,7 +848,7 @@ describe("server", () => {
         });
       });
 
-      describe("should enable minimum amount from round metadata", async () => {
+      describe("should enable minimum amount from round metadata", () => {
         test("doesn't count votes with value under specified amount", async () => {
           const expectedResults = [
             {
