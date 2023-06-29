@@ -30,5 +30,5 @@ exec npx concurrently \
   'npm:index -- --chain=optimism --follow' \
   'npm:index -- --chain=goerli --follow' \
   'npm:index -- --chain=fantom --follow' \
-  'npm:passport -- --restart--retries=10 --follow' \
+  'npm:passport -- --follow' \
   'npm:serve'
