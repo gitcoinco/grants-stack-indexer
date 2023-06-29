@@ -35,7 +35,10 @@ function chunkTimeBy(millis: number, chunkBy: number): [number, number][] {
   return chunks;
 }
 
-export async function updatePricesAndWrite(chain: Chain) {
+export async function updatePricesAndWrite(
+  chain: Chain,
+  toBlock: number | "latest" = "latest"
+) {
   const currentPrices = await getPrices(chain.id);
 
   // get last updated price
@@ -103,7 +106,7 @@ export async function updatePricesAndWrite(chain: Chain) {
 
       console.log("Fetched", newPrices.length, "new prices");
 
-      await appendPrices(chain.id, newPrices);
+      await appendPrices(chain.id, newPrices, toBlock);
     }
   }
 }
@@ -118,9 +121,18 @@ export async function getPrices(chainId: number): Promise<Price[]> {
   return readPricesFile(chainId);
 }
 
-export async function appendPrices(chainId: number, newPrices: Price[]) {
+export async function appendPrices(
+  chainId: number,
+  newPrices: Price[],
+  toBlock: number | "latest" = "latest"
+) {
   const currentPrices = await getPrices(chainId);
-  await writePrices(chainId, currentPrices.concat(newPrices));
+  await writePrices(
+    chainId,
+    currentPrices
+      .concat(newPrices)
+      .filter((price) => toBlock === "latest" || price.block <= toBlock)
+  );
 }
 
 function createPriceProvider(updateEvery = 2000) {

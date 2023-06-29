@@ -116,7 +116,7 @@ if (args.clear) {
 
 const storage = new JsonStorage(storageDir);
 
-await updatePricesAndWrite(chain);
+await updatePricesAndWrite(chain, toBlock);
 
 if (args.follow) {
   await updatePricesAndWriteLoop(chain);
