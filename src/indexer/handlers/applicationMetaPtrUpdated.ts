@@ -9,28 +9,15 @@ export default async function applicationMetaPtrUpdated(
 ) {
   const id = event.address;
 
-  const args = event.args as {
-    newMetaPtr: { pointer: string };
-  };
-
-  await db.collection<Round>("rounds").updateById(id, (round) => ({
-    ...round,
-    applicationMetaPtr: args.newMetaPtr.pointer,
-    updatedAtBlock: event.blockNumber,
-  }));
-
-  const metaPtr = args.newMetaPtr.pointer;
+  const metaPtr = event.args.newMetaPtr.pointer;
   const metadata = await ipfs<Round["applicationMetadata"]>(metaPtr, cache);
 
-  if (!metadata) {
-    return;
-  }
-
   await db.collection<Round>("rounds").updateById(id, (round) => {
-    if (round.applicationMetaPtr === args.newMetaPtr.pointer) {
-      return { ...round, applicationMetadata: metadata };
-    }
-
-    return round;
+    return {
+      ...round,
+      applicationMetaPtr: event.args.newMetaPtr.pointer,
+      updatedAtBlock: event.blockNumber,
+      applicationMetadata: metadata ?? null,
+    };
   });
 }
