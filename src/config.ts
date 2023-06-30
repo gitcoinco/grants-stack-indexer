@@ -1,4 +1,8 @@
 import "dotenv/config";
+import { ethers } from "ethers";
+import { parseArgs } from "node:util";
+import { RetryProvider, Log, ToBlock } from "chainsauce";
+import path from "node:path";
 
 type ChainId = number;
 
@@ -16,7 +20,7 @@ export type Chain = {
   }[];
 };
 
-const chains: Chain[] = [
+export const chains: Chain[] = [
   {
     id: 1,
     name: "mainnet",
@@ -218,14 +222,166 @@ export const eventRenames = Object.fromEntries(
   })
 );
 
-export default {
-  storageDir: process.env.STORAGE_DIR || "./data",
-  cacheDir: process.env.CACHE_DIR || "./.cache",
-  port: Number(process.env.PORT || "4000"),
-  ipfsGateway: process.env.IPFS_GATEWAY || "https://cloudflare-ipfs.com",
-  coingeckoApiKey: process.env.COINGECKO_API_KEY,
-  coingeckoApiUrl: process.env.COINGECKO_API_KEY
+export interface DatabaseConfig {
+  storageDir: string;
+}
+
+export const getDatabaseConfig = (): DatabaseConfig => {
+  const storageDir = path.join(process.env.STORAGE_DIR || "./data");
+
+  return { storageDir };
+};
+
+export type IndexerConfig = DatabaseConfig & {
+  provider: ethers.providers.StaticJsonRpcProvider;
+  cacheDir: string | null;
+  chain: Chain;
+  fromBlock: number;
+  oneShot?: boolean;
+  toBlock?: ToBlock;
+  logLevel?: Log;
+  follow?: boolean;
+  clear: boolean;
+  ipfsGateway: string;
+};
+
+export const getIndexerConfig = (): IndexerConfig => {
+  const { values: args } = parseArgs({
+    options: {
+      chain: {
+        type: "string",
+        short: "s",
+      },
+      "log-level": {
+        type: "string",
+      },
+      follow: {
+        type: "boolean",
+        short: "f",
+      },
+      "to-block": {
+        type: "string",
+      },
+      "from-block": {
+        type: "string",
+      },
+      clear: {
+        type: "boolean",
+      },
+      "no-cache": {
+        type: "boolean",
+      },
+    },
+  });
+
+  const chainName = args.chain;
+
+  if (!chainName) {
+    throw new Error("Chain not provided");
+  }
+
+  const chain = chains.find((chain) => chain.name === chainName);
+  if (!chain) {
+    throw new Error("Chain " + chainName + " is not configured");
+  }
+
+  const { storageDir: baseStorageDir } = getDatabaseConfig();
+
+  const storageDir = path.join(baseStorageDir, chain.id.toString());
+
+  const toBlock =
+    "to-block" in args ? Number(args["to-block"]) : ("latest" as const);
+  const fromBlock = "from-block" in args ? Number(args["from-block"]) : 0;
+
+  const provider = new RetryProvider({
+    url: chain.rpc,
+    timeout: 5 * 60 * 1000,
+  });
+
+  let logLevel = Log.Info;
+  if (args["log-level"]) {
+    switch (args["log-level"]) {
+      case "debug":
+        logLevel = Log.Debug;
+        break;
+      case "info":
+        logLevel = Log.Info;
+        break;
+      case "warning":
+        logLevel = Log.Warning;
+        break;
+      case "error":
+        logLevel = Log.Error;
+        break;
+      default:
+        throw new Error("Invalid log level.");
+    }
+  }
+
+  const clear = args.clear ?? false;
+
+  const follow = args.follow;
+
+  const cacheDir = args["no-cache"]
+    ? null
+    : process.env.CACHE_DIR || "./.cache";
+
+  const ipfsGateway = process.env.IPFS_GATEWAY || "https://cloudflare-ipfs.com";
+
+  return {
+    storageDir,
+    chain,
+    provider,
+    toBlock,
+    fromBlock,
+    cacheDir,
+    logLevel,
+    follow,
+    clear,
+    ipfsGateway,
+  };
+};
+
+export type PricesConfig = DatabaseConfig & {
+  coingeckoApiKey?: string;
+  coingeckoApiUrl: string;
+};
+
+export const getPricesConfig = (): PricesConfig => {
+  const coingeckoApiKey = process.env.COINGECKO_API_KEY;
+
+  const coingeckoApiUrl = process.env.COINGECKO_API_KEY
     ? "https://pro-api.coingecko.com/api/v3/"
-    : "https://api.coingecko.com/api/v3",
-  chains,
+    : "https://api.coingecko.com/api/v3";
+
+  return { ...getDatabaseConfig(), coingeckoApiKey, coingeckoApiUrl };
+};
+
+export type ApiConfig = DatabaseConfig & {
+  port: number;
+};
+
+export const getApiConfig = (): ApiConfig => {
+  const port = Number(process.env.PORT || "4000");
+
+  return {
+    ...getDatabaseConfig(),
+    port,
+  };
+};
+
+export type PassportConfig = DatabaseConfig & {
+  scorerId: number;
+};
+
+export const getPassportConfig = (): PassportConfig => {
+  if (!process.env.PASSPORT_SCORER_ID) {
+    throw new Error("PASSPORT_SCORER_ID is not set");
+  }
+  const scorerId = Number(process.env.PASSPORT_SCORER_ID);
+
+  return {
+    ...getDatabaseConfig(),
+    scorerId,
+  };
 };

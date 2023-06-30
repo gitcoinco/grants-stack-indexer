@@ -1,138 +1,51 @@
-import {
-  RetryProvider,
-  Log,
-  createIndexer,
-  JsonStorage,
-  ToBlock,
-} from "chainsauce";
-import path from "node:path";
+import { RetryProvider, createIndexer, JsonStorage } from "chainsauce";
 import fs from "node:fs/promises";
-import { parseArgs } from "node:util";
 
 import "../sentry.js";
 import handleEvent from "../indexer/handleEvent.js";
-import config from "../config.js";
+import { getIndexerConfig } from "../config.js";
 import {
   updatePricesAndWriteLoop,
   updatePricesAndWrite,
 } from "../prices/index.js";
 
-const { values: args } = parseArgs({
-  options: {
-    chain: {
-      type: "string",
-      short: "s",
-    },
-    "log-level": {
-      type: "string",
-    },
-    follow: {
-      type: "boolean",
-      short: "f",
-    },
-    "to-block": {
-      type: "string",
-    },
-    "from-block": {
-      type: "string",
-    },
-    clear: {
-      type: "boolean",
-    },
-    "no-cache": {
-      type: "boolean",
-    },
-  },
-});
-
-// Get to block parameter
-
-let toBlock: ToBlock = "latest";
-let fromBlock = 0;
-
-if (args["to-block"]) {
-  toBlock = Number(args["to-block"]);
-}
-
-if (args["from-block"]) {
-  fromBlock = Number(args["from-block"]);
-}
-
-let logLevel = Log.Info;
-
-if (args["log-level"]) {
-  switch (args["log-level"]) {
-    case "debug":
-      logLevel = Log.Debug;
-      break;
-    case "info":
-      logLevel = Log.Info;
-      break;
-    case "warning":
-      logLevel = Log.Warning;
-      break;
-    case "error":
-      logLevel = Log.Error;
-      break;
-    default:
-      console.error("Invalid log level.");
-      process.exit(1);
-  }
-}
-
-// Get chain parameter
-
-const chainName = args.chain;
-
-if (!chainName) {
-  console.error("Please provide a chain name to index.");
-  process.exit(1);
-}
-
-const chain = config.chains.find((chain) => chain.name === chainName);
-
-if (!chain) {
-  console.error("Chain", chainName, "not configured.");
-  process.exit(1);
-}
+const config = getIndexerConfig();
 
 const provider = new RetryProvider({
-  url: chain.rpc,
+  url: config.chain.rpc,
   timeout: 5 * 60 * 1000,
 });
 
 await provider.getNetwork();
 
-const storageDir = path.join(config.storageDir, `${provider.network.chainId}`);
-
-if (args.clear) {
+if (config.clear) {
   console.info("Clearing storage directory.");
   try {
-    await fs.rm(storageDir, { recursive: true });
+    await fs.rm(config.storageDir, { recursive: true });
   } catch {
     console.info("No storage to clear.");
   }
 }
 
-const storage = new JsonStorage(storageDir);
+const storage = new JsonStorage(config.storageDir);
 
-await updatePricesAndWrite(chain, toBlock);
+await updatePricesAndWrite(config.chain, config.toBlock);
 
-if (args.follow) {
-  await updatePricesAndWriteLoop(chain);
+if (config.follow) {
+  await updatePricesAndWriteLoop(config.chain);
 }
 
 const indexer = await createIndexer(provider, storage, handleEvent, {
-  toBlock,
-  logLevel,
-  eventCacheDirectory: args["no-cache"] ? null : config.cacheDir,
-  runOnce: !args.follow,
+  toBlock: config.toBlock,
+  logLevel: config.logLevel,
+  eventCacheDirectory: config.cacheDir,
+  runOnce: !config.follow,
 });
 
-for (const subscription of chain.subscriptions) {
+for (const subscription of config.chain.subscriptions) {
   indexer.subscribe(
     subscription.address,
     (await import(subscription.abi, { assert: { type: "json" } })).default,
-    Math.max(subscription.fromBlock || 0, fromBlock)
+    Math.max(subscription.fromBlock || 0, config.fromBlock)
   );
 }

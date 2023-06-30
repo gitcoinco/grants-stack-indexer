@@ -3,7 +3,7 @@ import express, { Response, Request } from "express";
 const upload = multer();
 import multer from "multer";
 import ClientError from "../clientError.js";
-import config from "../../../config.js";
+import { getApiConfig } from "../../../config.js";
 
 import Calculator, {
   Overrides,
@@ -12,6 +12,9 @@ import Calculator, {
   CalculatorOptions,
   parseOverrides,
 } from "../../../calculator/index.js";
+
+// XXX needs to be a function parameter, not a module variable
+const config = getApiConfig();
 
 const router = express.Router();
 

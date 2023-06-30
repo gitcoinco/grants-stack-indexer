@@ -5,8 +5,10 @@ import { Cache } from "chainsauce";
 import { getBlockFromTimestamp } from "../utils/getBlockFromTimestamp.js";
 import { getPricesByHour } from "./coinGecko.js";
 import { existsSync } from "fs";
-import config from "../config.js";
-import { Chain, tokenDecimals } from "../config.js";
+import { Chain, tokenDecimals, getPricesConfig } from "../config.js";
+
+// XXX needs to be a function parameter, not a module variable
+const config = getPricesConfig();
 
 export type Price = {
   token: string;

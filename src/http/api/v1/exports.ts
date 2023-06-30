@@ -13,7 +13,10 @@ import { Round, Application, Vote } from "../../../indexer/types.js";
 import { getVotesWithCoefficients } from "../../../calculator/votes.js";
 import ClientError from "../clientError.js";
 import { PassportScore } from "../../../passport/index.js";
-import config from "../../../config.js";
+import { getApiConfig } from "../../../config.js";
+
+// XXX needs to be a function parameter, not a module variable
+const config = getApiConfig();
 
 const router = express.Router();
 

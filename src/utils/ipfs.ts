@@ -1,7 +1,10 @@
 import { Cache } from "chainsauce";
 
 import fetchRetry from "./fetchRetry.js";
-import config from "../config.js";
+import { getIndexerConfig } from "../config.js";
+
+// XXX needs to be a function parameter, not a module variable
+const config = getIndexerConfig();
 
 export async function fetchJsonCached<T>(
   cid: string,
