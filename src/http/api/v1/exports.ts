@@ -240,7 +240,7 @@ router.get(
   async (req, res) => {
     const chainId = Number(req.params.chainId);
     const roundId = req.params.roundId;
-    const db = database(chainId);
+    const db = database(config.storageDir, chainId);
     const round = await db.collection<Round>("rounds").findById(roundId);
 
     if (!round) {
@@ -267,7 +267,7 @@ router.get(
     const exportName = req.params.exportName;
     let body = "";
 
-    const db = database(chainId);
+    const db = database(config.storageDir, chainId);
     const round = await db.collection<Round>("rounds").findById(roundId);
 
     if (!round) {

@@ -1,13 +1,11 @@
-import { chains, getDatabaseConfig } from "./config.js";
+import { chains } from "./config.js";
 import path from "node:path";
 import { JsonStorage } from "chainsauce";
 
-// XXX needs to be a function parameter, not a module variable
-const config = getDatabaseConfig();
-
-export default function load(chainId?: number): JsonStorage {
-  let storageDir = config.storageDir;
-
+export default function load(
+  storageDir: string,
+  chainId?: number
+): JsonStorage {
   if (chainId) {
     if (chains.find((chain) => chain.id === chainId) === undefined) {
       throw new Error(`Chain ${chainId} not foound`);
