@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { Cache } from "chainsauce";
+import { Cache, RetryProvider } from "chainsauce";
+import { ethers } from "ethers";
 
 import { getBlockFromTimestamp } from "../utils/getBlockFromTimestamp.js";
 import { getPricesByHour } from "./coinGecko.js";
@@ -38,8 +39,9 @@ function chunkTimeBy(millis: number, chunkBy: number): [number, number][] {
 }
 
 export async function updatePricesAndWrite(
-  chain: Chain,
-  toBlock: number | "latest" = "latest"
+  provider: ethers.providers.JsonRpcProvider,
+  cache: Cache,
+  chain: Chain
 ) {
   const currentPrices = await getPrices(chain.id);
 
@@ -59,6 +61,19 @@ export async function updatePricesAndWrite(
   if (timeElapsed < hours(1)) {
     return;
   }
+
+  const getBlockTimestamp = async (blockNumber: number) => {
+    const block = await cache.lazy(
+      `block-${chain.id}-${blockNumber}`,
+      async () => {
+        return await provider.getBlock(blockNumber);
+      }
+    );
+
+    return block.timestamp;
+  };
+
+  const lastBlockNumber = await provider.getBlockNumber();
 
   // get prices in 90 day chunks to get the most of Coingecko's granularity
   const timeChunks = chunkTimeBy(timeElapsed, days(90));
@@ -87,37 +102,47 @@ export async function updatePricesAndWrite(
         )
       );
 
-      const newPrices = await Promise.all(
-        prices.map(async ([timestamp, price]) => {
-          // get the closest block number to the timestamp with a 30min margin of error
-          const block = await getBlockFromTimestamp(
-            chain,
-            timestamp,
-            1000 * 60 * 30
-          );
+      const newPrices: Price[] = [];
 
-          return {
-            token: token.address.toLowerCase(),
-            code: token.code,
-            price,
-            timestamp,
-            block,
-          };
-        })
-      );
+      for (const [timestamp, price] of prices) {
+        const blockNumber = await getBlockFromTimestamp(
+          timestamp,
+          0,
+          lastBlockNumber,
+          getBlockTimestamp
+        );
+
+        if (blockNumber === undefined) {
+          throw new Error(
+            `Could not find block number for timestamp: ${timestamp}`
+          );
+        }
+
+        newPrices.push({
+          token: token.address.toLowerCase(),
+          code: token.code,
+          price,
+          timestamp,
+          block: blockNumber,
+        });
+      }
 
       console.log("Fetched", newPrices.length, "new prices");
 
-      await appendPrices(chain.id, newPrices, toBlock);
+      await appendPrices(chain.id, newPrices);
     }
   }
 }
 
-export async function updatePricesAndWriteLoop(chain: Chain) {
-  await updatePricesAndWrite(chain);
+export async function updatePricesAndWriteLoop(
+  provider: ethers.providers.JsonRpcProvider,
+  cache: Cache,
+  chain: Chain
+) {
+  await updatePricesAndWrite(provider, cache, chain);
 
   setTimeout(() => {
-    void updatePricesAndWriteLoop(chain);
+    void updatePricesAndWriteLoop(provider, cache, chain);
   }, minutes(1));
 }
 
@@ -125,20 +150,9 @@ export async function getPrices(chainId: number): Promise<Price[]> {
   return readPricesFile(chainId);
 }
 
-export async function appendPrices(
-  chainId: number,
-  newPrices: Price[],
-  toBlock: number | "latest" = "latest"
-) {
+export async function appendPrices(chainId: number, newPrices: Price[]) {
   const currentPrices = await getPrices(chainId);
-  await writePrices(
-    chainId,
-    currentPrices
-      .concat(newPrices)
-      // HACK: all prices are requested, but only prices up to `toBlock` are
-      // written to disk
-      .filter((price) => toBlock === "latest" || price.block <= toBlock)
-  );
+  await writePrices(chainId, currentPrices.concat(newPrices));
 }
 
 function createPriceProvider(updateEvery = 2000) {
@@ -274,14 +288,6 @@ async function readPricesFile(chainId: number): Promise<Price[]> {
 
   if (existsSync(filename)) {
     return JSON.parse((await fs.readFile(filename)).toString()) as Price[];
-  }
-
-  const seedPricesFilename = `./seed/${chainId}/prices.json`;
-
-  if (existsSync(seedPricesFilename)) {
-    return JSON.parse(
-      (await fs.readFile(seedPricesFilename)).toString()
-    ) as Price[];
   }
 
   return [];

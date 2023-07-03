@@ -1,4 +1,4 @@
-import { RetryProvider, createIndexer, JsonStorage } from "chainsauce";
+import { RetryProvider, createIndexer, JsonStorage, Cache } from "chainsauce";
 import fs from "node:fs/promises";
 
 import "../sentry.js";
@@ -30,10 +30,12 @@ if (config.clear) {
 
 const storage = new JsonStorage(config.storageDir);
 
-await updatePricesAndWrite(config.chain, config.toBlock);
+const cache = new Cache(config.cacheDir || "./.cache");
+
+await updatePricesAndWrite(provider, cache, config.chain);
 
 if (config.follow) {
-  await updatePricesAndWriteLoop(config.chain);
+  await updatePricesAndWriteLoop(provider, cache, config.chain);
 }
 
 const indexer = await createIndexer(provider, storage, handleEvent, {
