@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { Cache, RetryProvider } from "chainsauce";
+import { Cache } from "chainsauce";
 import { ethers } from "ethers";
 
 import { getBlockFromTimestamp } from "../utils/getBlockFromTimestamp.js";
@@ -18,8 +18,6 @@ export type Price = {
   timestamp: number;
   block: number;
 };
-
-const cache = new Cache(".cache");
 
 const getPricesFrom = new Date(Date.UTC(2022, 11, 1, 0, 0, 0)).getTime();
 
@@ -40,8 +38,9 @@ function chunkTimeBy(millis: number, chunkBy: number): [number, number][] {
 
 export async function updatePricesAndWrite(
   provider: ethers.providers.JsonRpcProvider,
-  cache: Cache,
-  chain: Chain
+  cache: Cache | null,
+  chain: Chain,
+  toBlock: number | "latest" = "latest"
 ) {
   const currentPrices = await getPrices(chain.id);
 
@@ -51,19 +50,34 @@ export async function updatePricesAndWrite(
     getPricesFrom
   );
 
-  const now = new Date();
+  let toDate = undefined;
+
+  if (toBlock === "latest") {
+    toDate = new Date();
+  } else {
+    const block = await provider.getBlock(toBlock);
+    toDate = new Date(block.timestamp * 1000);
+  }
 
   // time elapsed from the last update, rounded to hours
   const timeElapsed =
-    Math.floor((now.getTime() - lastPriceAt) / hours(1)) * hours(1);
+    Math.floor((toDate.getTime() - lastPriceAt) / hours(1)) * hours(1);
 
   // only fetch new prices every new hour
   if (timeElapsed < hours(1)) {
     return;
   }
 
+  const getCacheLazy = async <T>(cacheKey: string, fn: () => Promise<T>) => {
+    if (cache) {
+      return await cache.lazy(cacheKey, fn);
+    } else {
+      return await fn();
+    }
+  };
+
   const getBlockTimestamp = async (blockNumber: number) => {
-    const block = await cache.lazy(
+    const block = await getCacheLazy(
       `block-${chain.id}-${blockNumber}`,
       async () => {
         return await provider.getBlock(blockNumber);
@@ -93,7 +107,7 @@ export async function updatePricesAndWrite(
         new Date(lastPriceAt + chunk[1])
       );
 
-      const prices = await cache.lazy(cacheKey, () =>
+      const prices = await getCacheLazy(cacheKey, () =>
         getPricesByHour(
           token.address,
           chain.id,
@@ -136,7 +150,7 @@ export async function updatePricesAndWrite(
 
 export async function updatePricesAndWriteLoop(
   provider: ethers.providers.JsonRpcProvider,
-  cache: Cache,
+  cache: Cache | null,
   chain: Chain
 ) {
   await updatePricesAndWrite(provider, cache, chain);

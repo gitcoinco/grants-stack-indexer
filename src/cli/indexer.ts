@@ -30,12 +30,12 @@ if (config.clear) {
 
 const storage = new JsonStorage(config.storageDir);
 
-const cache = new Cache(config.cacheDir || "./.cache");
+const pricesCache = config.cacheDir ? new Cache(config.cacheDir) : null;
 
-await updatePricesAndWrite(provider, cache, config.chain);
+await updatePricesAndWrite(provider, pricesCache, config.chain, config.toBlock);
 
 if (config.follow) {
-  await updatePricesAndWriteLoop(provider, cache, config.chain);
+  await updatePricesAndWriteLoop(provider, pricesCache, config.chain);
 }
 
 const indexer = await createIndexer(provider, storage, handleEvent, {
