@@ -219,6 +219,7 @@ export const eventRenames = Object.fromEntries(
 );
 
 export default {
+  pricesStartTimestamp: new Date(Date.UTC(2022, 11, 1, 0, 0, 0)).getTime(),
   storageDir: process.env.STORAGE_DIR || "./data",
   cacheDir: process.env.CACHE_DIR || "./.cache",
   port: Number(process.env.PORT || "4000"),

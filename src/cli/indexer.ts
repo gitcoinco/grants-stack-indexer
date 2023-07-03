@@ -4,6 +4,7 @@ import {
   createIndexer,
   JsonStorage,
   ToBlock,
+  Cache,
 } from "chainsauce";
 import path from "node:path";
 import fs from "node:fs/promises";
@@ -12,10 +13,8 @@ import { parseArgs } from "node:util";
 import "../sentry.js";
 import handleEvent from "../indexer/handleEvent.js";
 import config from "../config.js";
-import {
-  updatePricesAndWriteLoop,
-  updatePricesAndWrite,
-} from "../prices/index.js";
+import { createPricesService } from "../prices/indexer.js";
+import { readPrices, writePrices } from "../prices/storage.js";
 
 const { values: args } = parseArgs({
   options: {
@@ -115,17 +114,30 @@ if (args.clear) {
 }
 
 const storage = new JsonStorage(storageDir);
+const cacheDisabled = args["no-cache"];
 
-await updatePricesAndWrite(chain);
+const pricesService = createPricesService({
+  mode: args.follow ? "realtime" : "historical",
+  chain,
+  provider,
+  cache: cacheDisabled ? undefined : new Cache(config.cacheDir),
+  fromTimestamp: config.pricesStartTimestamp,
+  storage: {
+    write: async (prices) => {
+      return await writePrices(storageDir, chain.id, prices);
+    },
+    read: async () => {
+      return await readPrices(storageDir, chain.id);
+    },
+  },
+});
 
-if (args.follow) {
-  await updatePricesAndWriteLoop(chain);
-}
+await pricesService.start();
 
 const indexer = await createIndexer(provider, storage, handleEvent, {
   toBlock,
   logLevel,
-  eventCacheDirectory: args["no-cache"] ? null : config.cacheDir,
+  eventCacheDirectory: cacheDisabled ? null : config.cacheDir,
   runOnce: !args.follow,
 });
 

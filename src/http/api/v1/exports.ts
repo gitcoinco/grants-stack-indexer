@@ -8,7 +8,7 @@ import fs from "fs";
 import path from "path";
 
 import database from "../../../database.js";
-import { getPrices } from "../../../prices/index.js";
+import { readPrices } from "../../../prices/storage.js";
 import { Round, Application, Vote } from "../../../indexer/types.js";
 import { getVotesWithCoefficients } from "../../../calculator/votes.js";
 import ClientError from "../clientError.js";
@@ -45,7 +45,7 @@ async function exportVotesCSV(db: JsonStorage, round: Round) {
 }
 
 async function exportPricesCSV(chainId: number, round: Round) {
-  const prices = await getPrices(chainId);
+  const prices = await readPrices(chainId);
 
   const pricesDuringRound = prices.filter(
     (price) =>
