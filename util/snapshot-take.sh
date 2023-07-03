@@ -3,7 +3,7 @@
 set -ue
 
 # This must be within the blocks covered by seed/<chainId>/prices.json
-SNAPSHOT_UNTIL_BLOCK=17570615
+SNAPSHOT_UNTIL_BLOCK=17199975
 
 function is_stage_empty() {
   git diff-index --quiet --cached HEAD --
