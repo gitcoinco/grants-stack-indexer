@@ -1,5 +1,5 @@
 import "express-async-errors";
-import express, { NextFunction, Request, Response, Router } from "express";
+import express, { NextFunction, Request, Response } from "express";
 
 import * as Sentry from "../../../sentry.js";
 

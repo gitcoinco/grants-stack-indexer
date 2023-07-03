@@ -56,7 +56,7 @@ export async function getPrices(
     backoff: 10000,
   });
 
-  const data = await res.json();
+  const data = (await res.json()) as { prices: Array<[Timestamp, Price]> };
 
   return data.prices;
 }

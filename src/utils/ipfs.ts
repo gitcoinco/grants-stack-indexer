@@ -32,7 +32,7 @@ export async function fetchJson<T>(cid: string): Promise<T | undefined> {
     backoff: 1000,
   });
 
-  const data = await res.json();
+  const data = (await res.json()) as T;
 
   return data;
 }

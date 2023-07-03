@@ -8,6 +8,7 @@ import {
   updatePricesAndWriteLoop,
   updatePricesAndWrite,
 } from "../prices/index.js";
+import { importAbi } from "../indexer/utils.js";
 
 const config = getIndexerConfig();
 
@@ -45,7 +46,7 @@ const indexer = await createIndexer(provider, storage, handleEvent, {
 for (const subscription of config.chain.subscriptions) {
   indexer.subscribe(
     subscription.address,
-    (await import(subscription.abi, { assert: { type: "json" } })).default,
+    await importAbi(subscription.abi),
     Math.max(subscription.fromBlock || 0, config.fromBlock)
   );
 }

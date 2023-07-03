@@ -29,5 +29,7 @@ export default async function fetchRetry(
     }
   }
 
-  throw new Error(`Failed to fetch ${input} after ${attempt} attempts`);
+  throw new Error(
+    `Failed to fetch ${input.toString()} after ${attempt} attempts`
+  );
 }

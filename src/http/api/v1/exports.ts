@@ -82,7 +82,7 @@ async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
     passportScoresString
   ) as Array<PassportScore>;
 
-  const votesWithCoefficients = await getVotesWithCoefficients(
+  const votesWithCoefficients = getVotesWithCoefficients(
     round,
     applications,
     votes,
@@ -143,7 +143,7 @@ async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
   return header.concat(csv.stringifyRecords(records));
 }
 
-async function exportRoundCSV(round: Round) {
+function exportRoundCSV(round: Round) {
   const csv = createObjectCsvStringifier({
     header: [
       "id",
@@ -174,17 +174,17 @@ async function exportRoundCSV(round: Round) {
 
 async function exportApplicationsCSV(db: JsonStorage, round: Round) {
   const applications = await db
-    .collection(`rounds/${round.id}/applications`)
+    .collection<Application>(`rounds/${round.id}/applications`)
     .all();
 
-  let questionTitles = [];
+  let questionTitles: Array<string> = [];
 
   if (
     applications.length > 0 &&
     applications[0].metadata?.application.answers
   ) {
     questionTitles = applications[0].metadata.application.answers.flatMap(
-      (answer: any) => {
+      (answer) => {
         if (answer.encryptedAnswer) {
           return [];
         }
@@ -211,7 +211,7 @@ async function exportApplicationsCSV(db: JsonStorage, round: Round) {
 
   for (const application of applications) {
     const answers =
-      application.metadata?.application.answers.flatMap((answer: any) => {
+      application.metadata?.application.answers.flatMap((answer) => {
         if (answer.encryptedAnswer) {
           return [];
         }
@@ -222,16 +222,16 @@ async function exportApplicationsCSV(db: JsonStorage, round: Round) {
       application.id,
       application.projectId,
       application.status,
-      application.metadata.application.project.title,
-      application.metadata.application.project.website,
-      application.metadata.application.project.projectTwitter,
-      application.metadata.application.project.projectGithub,
-      application.metadata.application.project.userGithub,
+      application.metadata?.application.project.title,
+      application.metadata?.application.project.website,
+      application.metadata?.application.project.projectTwitter,
+      application.metadata?.application.project.projectGithub,
+      application.metadata?.application.project.userGithub,
       ...answers,
     ]);
   }
 
-  return csv.getHeaderString() + csv.stringifyRecords(records);
+  return csv.getHeaderString()!.concat(csv.stringifyRecords(records));
 }
 
 // temporary route for backwards compatibility
@@ -288,7 +288,7 @@ router.get(
         break;
       }
       case "round": {
-        body = await exportRoundCSV(round);
+        body = exportRoundCSV(round);
         break;
       }
       case "vote_coefficients": {
