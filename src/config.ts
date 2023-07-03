@@ -7,7 +7,6 @@ export type Chain = {
   name: string;
   id: ChainId;
   tokens: { code: string; address: string; decimals: number }[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   subscriptions: {
     address: string;
     abi: string;
@@ -20,7 +19,7 @@ const chains: Chain[] = [
   {
     id: 1,
     name: "mainnet",
-    rpc: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    rpc: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY ?? ""}`,
     tokens: [
       {
         code: "USDC",
@@ -58,7 +57,7 @@ const chains: Chain[] = [
   {
     id: 5,
     name: "goerli",
-    rpc: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    rpc: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY ?? ""}`,
     tokens: [
       {
         code: "USDC",
@@ -113,7 +112,9 @@ const chains: Chain[] = [
   {
     id: 10,
     name: "optimism",
-    rpc: `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+    rpc: `https://opt-mainnet.g.alchemy.com/v2/${
+      process.env.ALCHEMY_API_KEY ?? ""
+    }`,
     tokens: [
       {
         code: "USDC",

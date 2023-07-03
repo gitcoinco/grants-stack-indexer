@@ -90,7 +90,7 @@ async function matchesHandler(
   const calculator = new Calculator(calculatorOptions);
   const matches = await calculator.calculate();
   const responseBody = JSON.stringify(matches, (_key, value) =>
-    typeof value === "bigint" ? value.toString() : value
+    typeof value === "bigint" ? value.toString() : (value as unknown)
   );
   res.setHeader("content-type", "application/json");
   res.status(okStatusCode);

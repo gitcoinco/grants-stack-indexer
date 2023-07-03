@@ -111,7 +111,9 @@ export async function updatePricesAndWrite(chain: Chain) {
 export async function updatePricesAndWriteLoop(chain: Chain) {
   await updatePricesAndWrite(chain);
 
-  setTimeout(() => updatePricesAndWriteLoop(chain), minutes(1));
+  setTimeout(() => {
+    void updatePricesAndWriteLoop(chain);
+  }, minutes(1));
 }
 
 export async function getPrices(chainId: number): Promise<Price[]> {
@@ -144,9 +146,9 @@ function createPriceProvider(updateEvery = 2000) {
   }
 
   return {
-    getPrices(chainId: number): Promise<Price[]> {
+    async getPrices(chainId: number): Promise<Price[]> {
       if (!prices[chainId] || shouldRefreshPrices(prices[chainId])) {
-        updatePrices(chainId);
+        await updatePrices(chainId);
       }
 
       return prices[chainId].prices;
