@@ -40,11 +40,6 @@ export async function fetchNewPrices(
   };
 
   const getBlockTimestamp = async (blockNumber: number) => {
-    const cacheKey = `block-${chain.id}-${blockNumber}`;
-    console.log(
-      `Fetching block ${blockNumber} for timestamp`,
-      !!(await cache?.get(cacheKey))
-    );
     const block = await getCacheLazy(
       `block-${chain.id}-${blockNumber}`,
       async () => {
@@ -109,8 +104,6 @@ export async function fetchNewPrices(
           timestamp,
           block: blockNumber,
         });
-
-        // previousBlock = blockNumber;
       }
     }
   }

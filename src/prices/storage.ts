@@ -5,15 +5,12 @@ import { existsSync } from "fs";
 
 import type { Price } from "./index.js";
 
-function pricesFilename(storageDir: string, chainId: number): string {
-  return path.join(storageDir, `${chainId}/prices.json`);
+function pricesFilename(storageDir: string): string {
+  return path.join(storageDir, `/prices.json`);
 }
 
-export async function readPrices(
-  storageDir: string,
-  chainId: number
-): Promise<Price[]> {
-  const filename = pricesFilename(storageDir, chainId);
+export async function readPrices(storageDir: string): Promise<Price[]> {
+  const filename = pricesFilename(storageDir);
 
   if (existsSync(filename)) {
     return JSON.parse((await fs.readFile(filename)).toString()) as Price[];
@@ -22,12 +19,8 @@ export async function readPrices(
   return [];
 }
 
-export async function writePrices(
-  storageDir: string,
-  chainId: number,
-  prices: Price[]
-) {
-  const filename = pricesFilename(storageDir, chainId);
+export async function writePrices(storageDir: string, prices: Price[]) {
+  const filename = pricesFilename(storageDir);
   const tempFile = `${filename}.write`;
   await fs.mkdir(path.dirname(filename), { recursive: true });
   await fs.writeFile(tempFile, JSON.stringify(prices));

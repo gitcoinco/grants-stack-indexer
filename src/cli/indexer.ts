@@ -13,7 +13,7 @@ import { parseArgs } from "node:util";
 import "../sentry.js";
 import handleEvent from "../indexer/handleEvent.js";
 import config from "../config.js";
-import { createPricesService } from "../prices/indexer.js";
+import { createPricesService } from "../prices/service.js";
 import { readPrices, writePrices } from "../prices/storage.js";
 
 const { values: args } = parseArgs({
@@ -124,10 +124,10 @@ const pricesService = createPricesService({
   fromTimestamp: config.pricesStartTimestamp,
   storage: {
     write: async (prices) => {
-      return await writePrices(storageDir, chain.id, prices);
+      return await writePrices(storageDir, prices);
     },
     read: async () => {
-      return await readPrices(storageDir, chain.id);
+      return await readPrices(storageDir);
     },
   },
 });
