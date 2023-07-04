@@ -1,4 +1,12 @@
-import { RetryProvider, createIndexer, JsonStorage, Cache } from "chainsauce";
+import {
+  RetryProvider,
+  createIndexer,
+  JsonStorage,
+  Cache,
+  Indexer,
+  Event as ChainsauceEvent,
+} from "chainsauce";
+import { fetchJsonCached as ipfs } from "../utils/ipfs.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -49,7 +57,12 @@ if (config.clear) {
 const indexer = await createIndexer(
   rpcProvider,
   new JsonStorage(path.join(config.storageDir, config.chain.id.toString())),
-  handleEvent,
+  (indexer: Indexer<JsonStorage>, event: ChainsauceEvent) =>
+    handleEvent(event, {
+      db: indexer.storage,
+      indexer,
+      ipfs,
+    }),
   {
     toBlock: config.toBlock,
     logLevel: config.logLevel,

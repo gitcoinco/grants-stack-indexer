@@ -1,8 +1,12 @@
-import { Indexer, JsonStorage, Event as ChainsauceEvent } from "chainsauce";
+import {
+  Indexer,
+  JsonStorage,
+  Event as ChainsauceEvent,
+  Cache as ChainsauceCache,
+} from "chainsauce";
 import { BigNumber, ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
 
-import { fetchJsonCached as ipfs } from "../utils/ipfs.js";
 import { convertToUSD, convertFromUSD } from "../prices/index.js";
 import { eventRenames, tokenDecimals } from "../config.js";
 import {
@@ -41,10 +45,15 @@ function fullProjectId(
 }
 
 async function handleEvent(
-  indexer: Indexer<JsonStorage>,
-  originalEvent: ChainsauceEvent
+  originalEvent: ChainsauceEvent,
+  deps: {
+    db: JsonStorage;
+    indexer: Indexer<JsonStorage>;
+    ipfs: <T>(cid: string, cache: ChainsauceCache) => Promise<T | undefined>;
+  }
 ) {
-  const db = indexer.storage;
+  const { db, indexer, ipfs } = deps;
+
   const eventName =
     eventRenames[indexer.chainId]?.[originalEvent.address]?.[
       originalEvent.name
