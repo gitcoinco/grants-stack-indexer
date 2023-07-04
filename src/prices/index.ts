@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { Cache } from "chainsauce";
+import { Cache, ToBlock } from "chainsauce";
 import { ethers } from "ethers";
 
 import { getBlockFromTimestamp } from "../utils/getBlockFromTimestamp.js";
@@ -316,4 +316,39 @@ async function writePricesFile(filename: string, prices: Price[]) {
   await fs.mkdir(path.dirname(filename), { recursive: true });
   await fs.writeFile(tempFile, JSON.stringify(prices));
   await fs.rename(tempFile, filename);
+}
+
+// XXX stepping stone. should be merged with createPriceProvider
+export function createPriceUpdater(config: {
+  rpcProvider: ethers.providers.StaticJsonRpcProvider;
+  cache: Cache | null;
+  chain: Chain;
+}): {
+  catchupAndWatch: () => Promise<void>;
+  fetchPricesUntilBlock: (toBlock: ToBlock) => Promise<void>;
+} {
+  async function start() {
+    await fetchPricesUntilBlock("latest");
+
+    watchLoop();
+  }
+
+  async function fetchPricesUntilBlock(toBlock: ToBlock) {
+    await updatePricesAndWrite(
+      config.rpcProvider,
+      config.cache,
+      config.chain,
+      toBlock
+    );
+  }
+
+  function watchLoop() {
+    updatePricesAndWrite(config.rpcProvider, config.cache, config.chain)
+      .then(() => {
+        setTimeout(watchLoop, minutes(1));
+      })
+      .catch((err) => console.error(err));
+  }
+
+  return { catchupAndWatch: start, fetchPricesUntilBlock };
 }
