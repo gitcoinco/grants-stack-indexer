@@ -1,5 +1,6 @@
 import { RetryProvider, createIndexer, JsonStorage, Cache } from "chainsauce";
 import fs from "node:fs/promises";
+import path from "node:path";
 
 import "../sentry.js";
 import handleEvent from "../indexer/handleEvent.js";
@@ -30,7 +31,9 @@ if (config.clear) {
 
 const storage = new JsonStorage(config.storageDir);
 
-const pricesCache = config.cacheDir ? new Cache(config.cacheDir) : null;
+const pricesCache = config.cacheDir
+  ? new Cache(path.join(config.cacheDir, "prices"))
+  : null;
 
 await updatePricesAndWrite(provider, pricesCache, config.chain, config.toBlock);
 
@@ -41,7 +44,9 @@ if (config.follow) {
 const indexer = await createIndexer(provider, storage, handleEvent, {
   toBlock: config.toBlock,
   logLevel: config.logLevel,
-  eventCacheDirectory: config.cacheDir,
+  eventCacheDirectory: config.cacheDir
+    ? path.join(config.cacheDir, "events")
+    : null,
   runOnce: !config.follow,
 });
 
