@@ -6,20 +6,18 @@
   "main": "dist/src/indexer/index.js",
   "types": "dist/src/indexer/index.d.ts",
   "scripts": {
-    "start": "concurrently --kill-others-on-fail 'npm:index:all -- --kill-others-on-fail -- --log-level=error --clear' 'npm:passport' && echo '======> Index successful, running server!' && concurrently 'npm:index:all -- -- --follow' 'npm:passport -- --follow' 'npm:serve'",
+    "start": "./start.sh",
     "dev": "concurrently -P --kill-others -n \"tsc,http\" \"npm:build:dev\" \"npm:serve:dev\"",
     "build": "tsc",
-    "build:dev": "tsc --watch",
+    "build:watch": "tsc --watch",
     "lint": "eslint src",
     "format": "prettier --write src",
     "test": "vitest run --reporter verbose",
-    "test:dev": "vitest watch --reporter verbose",
+    "test:watch": "vitest watch --reporter verbose",
     "serve": "node dist/src/http/server.js",
-    "serve:dev": "nodemon --delay 2 --watch dist --exec 'npm run serve -- '",
+    "serve:watch": "nodemon --delay 2 --watch dist --exec 'npm run serve -- '",
     "passport": "node dist/src/cli/passport.js",
-    "index": "node dist/src/cli/indexer.js",
-    "index:dev": "nodemon --delay 2 --watch dist --exec 'npm run index -- '",
-    "index:all": "concurrently --raw -P 'npm:index -- --chain=mainnet {@}' 'npm:index -- --chain=optimism {@}' 'npm:index -- --chain=goerli {@}' 'npm:index -- --chain=fantom {@}'"
+    "index": "node dist/src/cli/indexer.js"
   },
   "imports": {
     "#abis/*": {
@@ -54,7 +52,7 @@
     "@types/supertest": "^2.0.12",
     "@typescript-eslint/eslint-plugin": "^5.55.0",
     "@typescript-eslint/parser": "^5.55.0",
-    "concurrently": "^8.0.1",
+    "concurrently": "^8.2.0",
     "eslint": "^8.36.0",
     "nodemon": "^2.0.22",
     "prettier": "^2.8.4",
