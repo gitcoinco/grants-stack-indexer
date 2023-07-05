@@ -169,130 +169,6 @@ export async function appendPrices(chainId: number, newPrices: Price[]) {
   await writePrices(chainId, currentPrices.concat(newPrices));
 }
 
-function createPriceProvider(updateEvery = 2000) {
-  type Prices = { lastUpdatedAt: Date; prices: Promise<Price[]> };
-
-  const prices: { [key: number]: Prices } = {};
-
-  function shouldRefreshPrices(prices: Prices) {
-    return new Date().getTime() - prices.lastUpdatedAt.getTime() > updateEvery;
-  }
-
-  function updatePrices(chainId: number) {
-    const chainPrices = getPrices(chainId);
-
-    prices[chainId] = {
-      prices: chainPrices,
-      lastUpdatedAt: new Date(),
-    };
-
-    return chainPrices;
-  }
-
-  return {
-    async getPrices(chainId: number): Promise<Price[]> {
-      if (!prices[chainId] || shouldRefreshPrices(prices[chainId])) {
-        await updatePrices(chainId);
-      }
-
-      return prices[chainId].prices;
-    },
-    updatePrices,
-  };
-}
-
-export async function getUSDConversionRate(
-  chainId: number,
-  token: string,
-  blockNumber?: number
-): Promise<Price & { decimals: number }> {
-  let closestPrice: Price | null = null;
-
-  // goerli
-  if (chainId === 5) {
-    return {
-      token,
-      code: "ETH",
-      price: 1,
-      timestamp: 0,
-      block: 0,
-      decimals: 18,
-    };
-  }
-
-  if (!tokenDecimals[chainId][token]) {
-    console.error(`Unsupported token ${token} for chain ${chainId}`);
-    return {
-      token,
-      code: "Unknown",
-      price: 0,
-      timestamp: 0,
-      block: 0,
-      decimals: 18,
-    };
-  }
-
-  const prices = await priceProvider.getPrices(chainId);
-
-  for (let i = prices.length - 1; i >= 0; i--) {
-    const price = prices[i];
-    if (price.token === token && (!blockNumber || price.block < blockNumber)) {
-      closestPrice = price;
-      break;
-    }
-  }
-
-  if (!closestPrice) {
-    throw Error(`Price not found, token ${token} for chain ${chainId}`);
-  }
-
-  return { ...closestPrice, decimals: tokenDecimals[chainId][token] };
-}
-
-export async function convertToUSD(
-  chainId: number,
-  token: string,
-  amount: bigint,
-  blockNumber?: number
-): Promise<{ amount: number; price: number }> {
-  const closestPrice = await getUSDConversionRate(chainId, token, blockNumber);
-  const usdDecimalFactor = Math.pow(10, 8);
-  const decimalFactor = 10n ** BigInt(closestPrice.decimals);
-
-  const priceInDecimals = BigInt(
-    Math.trunc(closestPrice.price * usdDecimalFactor)
-  );
-
-  return {
-    amount:
-      Number((amount * priceInDecimals) / decimalFactor) / usdDecimalFactor,
-    price: closestPrice.price,
-  };
-}
-
-export async function convertFromUSD(
-  chainId: number,
-  token: string,
-  amount: number,
-  blockNumber: number
-): Promise<{ amount: bigint; price: number }> {
-  const closestPrice = await getUSDConversionRate(chainId, token, blockNumber);
-  const usdDecimalFactor = Math.pow(10, 8);
-  const decimalFactor =
-    10n ** BigInt(closestPrice.decimals) / BigInt(usdDecimalFactor);
-
-  const convertedAmountInDecimals =
-    BigInt(Math.trunc((amount / closestPrice.price) * usdDecimalFactor)) *
-    decimalFactor;
-
-  return {
-    amount: convertedAmountInDecimals,
-    price: 1 / closestPrice.price,
-  };
-}
-
-export const priceProvider = createPriceProvider();
-
 function pricesFilename(chainId: number): string {
   return path.join(config.storageDir, `${chainId}/prices.json`);
 }
@@ -318,16 +194,21 @@ async function writePricesFile(filename: string, prices: Price[]) {
   await fs.rename(tempFile, filename);
 }
 
-// XXX stepping stone. should be merged with createPriceProvider
-export function createPriceUpdater(config: {
+export interface PriceUpdaterService {
+  catchupAndWatch: () => Promise<void>;
+  fetchPricesUntilBlock: (toBlock: ToBlock) => Promise<void>;
+}
+
+interface PriceUpdaterConfig {
   rpcProvider: ethers.providers.StaticJsonRpcProvider;
   cache: Cache | null;
   chain: Chain;
-}): {
-  catchupAndWatch: () => Promise<void>;
-  fetchPricesUntilBlock: (toBlock: ToBlock) => Promise<void>;
-} {
-  async function start() {
+}
+
+export function createPriceUpdater(
+  config: PriceUpdaterConfig
+): PriceUpdaterService {
+  async function catchupAndWatch() {
     await fetchPricesUntilBlock("latest");
 
     watchLoop();
@@ -350,5 +231,167 @@ export function createPriceUpdater(config: {
       .catch((err) => console.error(err));
   }
 
-  return { catchupAndWatch: start, fetchPricesUntilBlock };
+  return {
+    catchupAndWatch,
+    fetchPricesUntilBlock,
+  };
+}
+
+interface PriceProviderConfig {
+  updateEvery?: number; // XXX hint at time type: secs? msecs?
+}
+
+export interface PriceProvider {
+  convertToUSD: (
+    chainId: number,
+    token: string,
+    amount: bigint,
+    blockNumber?: number
+  ) => Promise<{ amount: number; price: number }>;
+  convertFromUSD: (
+    chainId: number,
+    token: string,
+    amount: number,
+    blockNumber: number
+  ) => Promise<{ amount: bigint; price: number }>;
+}
+
+export function createPriceProvider(
+  config: PriceProviderConfig
+): PriceProvider {
+  type Prices = { lastUpdatedAt: Date; prices: Promise<Price[]> };
+
+  const prices: { [key: number]: Prices } = {};
+
+  function shouldRefreshPrices(prices: Prices) {
+    return (
+      new Date().getTime() - prices.lastUpdatedAt.getTime() >
+      (config.updateEvery ?? 2000)
+    );
+  }
+
+  function updatePrices(chainId: number) {
+    const chainPrices = readPricesFile(chainId);
+
+    prices[chainId] = {
+      prices: chainPrices,
+      lastUpdatedAt: new Date(),
+    };
+
+    return chainPrices;
+  }
+
+  async function getPrices(chainId: number): Promise<Price[]> {
+    if (!prices[chainId] || shouldRefreshPrices(prices[chainId])) {
+      await updatePrices(chainId);
+    }
+
+    return prices[chainId].prices;
+  }
+
+  async function convertToUSD(
+    chainId: number,
+    token: string,
+    amount: bigint,
+    blockNumber?: number
+  ): Promise<{ amount: number; price: number }> {
+    const closestPrice = await getUSDConversionRate(
+      chainId,
+      token,
+      blockNumber
+    );
+    const usdDecimalFactor = Math.pow(10, 8);
+    const decimalFactor = 10n ** BigInt(closestPrice.decimals);
+
+    const priceInDecimals = BigInt(
+      Math.trunc(closestPrice.price * usdDecimalFactor)
+    );
+
+    return {
+      amount:
+        Number((amount * priceInDecimals) / decimalFactor) / usdDecimalFactor,
+      price: closestPrice.price,
+    };
+  }
+
+  async function convertFromUSD(
+    chainId: number,
+    token: string,
+    amount: number,
+    blockNumber: number
+  ): Promise<{ amount: bigint; price: number }> {
+    const closestPrice = await getUSDConversionRate(
+      chainId,
+      token,
+      blockNumber
+    );
+    const usdDecimalFactor = Math.pow(10, 8);
+    const decimalFactor =
+      10n ** BigInt(closestPrice.decimals) / BigInt(usdDecimalFactor);
+
+    const convertedAmountInDecimals =
+      BigInt(Math.trunc((amount / closestPrice.price) * usdDecimalFactor)) *
+      decimalFactor;
+
+    return {
+      amount: convertedAmountInDecimals,
+      price: 1 / closestPrice.price,
+    };
+  }
+
+  async function getUSDConversionRate(
+    chainId: number,
+    token: string,
+    blockNumber?: number
+  ): Promise<Price & { decimals: number }> {
+    let closestPrice: Price | null = null;
+
+    // goerli
+    if (chainId === 5) {
+      return {
+        token,
+        code: "ETH",
+        price: 1,
+        timestamp: 0,
+        block: 0,
+        decimals: 18,
+      };
+    }
+
+    if (!tokenDecimals[chainId][token]) {
+      console.error(`Unsupported token ${token} for chain ${chainId}`);
+      return {
+        token,
+        code: "Unknown",
+        price: 0,
+        timestamp: 0,
+        block: 0,
+        decimals: 18,
+      };
+    }
+
+    const prices = await getPrices(chainId);
+
+    for (let i = prices.length - 1; i >= 0; i--) {
+      const price = prices[i];
+      if (
+        price.token === token &&
+        (!blockNumber || price.block < blockNumber)
+      ) {
+        closestPrice = price;
+        break;
+      }
+    }
+
+    if (!closestPrice) {
+      throw Error(`Price not found, token ${token} for chain ${chainId}`);
+    }
+
+    return { ...closestPrice, decimals: tokenDecimals[chainId][token] };
+  }
+
+  return {
+    convertToUSD,
+    convertFromUSD,
+  };
 }

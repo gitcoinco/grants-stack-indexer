@@ -12,13 +12,18 @@ import Calculator, {
   CalculatorOptions,
   parseOverrides,
 } from "../../../calculator/index.js";
+import { createPriceProvider, PriceProvider } from "../../../prices/index.js";
 
 // XXX needs to be a function parameter, not a module variable
 const config = getApiConfig();
 
 const router = express.Router();
 
-export const calculatorConfig: { dataProvider: DataProvider } = {
+export const calculatorConfig: {
+  dataProvider: DataProvider;
+  priceProvider: PriceProvider;
+} = {
+  priceProvider: createPriceProvider({}),
   dataProvider: new FileSystemDataProvider(config.storageDir),
 };
 
@@ -75,6 +80,7 @@ async function matchesHandler(
   }
 
   const calculatorOptions: CalculatorOptions = {
+    priceProvider: calculatorConfig.priceProvider,
     dataProvider: calculatorConfig.dataProvider,
     chainId: chainId,
     roundId: roundId,

@@ -2,7 +2,7 @@ import fs from "fs";
 import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
 import type { PassportScore } from "../passport/index.js";
-import { convertToUSD } from "../prices/index.js";
+import { PriceProvider } from "../prices/index.js";
 import { tokenDecimals } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
 import { getVotesWithCoefficients } from "./votes.js";
@@ -87,6 +87,7 @@ export function parseOverrides(buf: Buffer): Promise<Overrides> {
 }
 
 export type CalculatorOptions = {
+  priceProvider: PriceProvider;
   dataProvider: DataProvider;
   chainId: number;
   roundId: string;
@@ -107,6 +108,7 @@ export type AugmentedResult = Calculation & {
 };
 
 export default class Calculator {
+  private priceProvider: PriceProvider;
   private dataProvider: DataProvider;
   private chainId: number;
   private roundId: string;
@@ -118,6 +120,7 @@ export default class Calculator {
   private overrides: Overrides;
 
   constructor(options: CalculatorOptions) {
+    this.priceProvider = options.priceProvider;
     this.dataProvider = options.dataProvider;
     this.chainId = options.chainId;
     this.roundId = options.roundId;
@@ -236,7 +239,7 @@ export default class Calculator {
       const calc = results[id];
       const application = applicationsMap[id];
 
-      const conversionUSD = await convertToUSD(
+      const conversionUSD = await this.priceProvider.convertToUSD(
         this.chainId,
         round.token,
         calc.matched

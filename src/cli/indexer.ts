@@ -13,10 +13,19 @@ import path from "node:path";
 import "../sentry.js";
 import handleEvent from "../indexer/handleEvent.js";
 import { getIndexerConfig } from "../config.js";
-import { createPriceUpdater } from "../prices/index.js";
+import { createPriceProvider, createPriceUpdater } from "../prices/index.js";
 import { importAbi } from "../indexer/utils.js";
 
 const config = getIndexerConfig();
+
+if (config.clear) {
+  console.info("Clearing storage directory.");
+  try {
+    await fs.rm(config.storageDir, { recursive: true });
+  } catch {
+    console.info("No storage to clear.");
+  }
+}
 
 const rpcProvider = new RetryProvider({
   url: config.chain.rpc,
@@ -25,8 +34,7 @@ const rpcProvider = new RetryProvider({
 
 await rpcProvider.getNetwork();
 
-//////////////////////////////////////////////////////////////////////
-// PRICE PROVIDER
+// Update prices to present and optionally keep watching for updatse
 
 const priceUpdater = createPriceUpdater({
   rpcProvider,
@@ -42,27 +50,21 @@ if (config.follow) {
   await priceUpdater.fetchPricesUntilBlock(config.toBlock ?? "latest");
 }
 
-//////////////////////////////////////////////////////////////////////
-// INDEXER
+// Process blockchain events
 
-if (config.clear) {
-  console.info("Clearing storage directory.");
-  try {
-    await fs.rm(config.storageDir, { recursive: true });
-  } catch {
-    console.info("No storage to clear.");
-  }
-}
+const priceProvider = createPriceProvider({});
 
 const indexer = await createIndexer(
   rpcProvider,
   new JsonStorage(path.join(config.storageDir, config.chain.id.toString())),
-  (indexer: Indexer<JsonStorage>, event: ChainsauceEvent) =>
-    handleEvent(event, {
+  (indexer: Indexer<JsonStorage>, event: ChainsauceEvent) => {
+    return handleEvent(event, {
       db: indexer.storage,
       indexer,
       ipfs,
-    }),
+      priceProvider,
+    });
+  },
   {
     toBlock: config.toBlock,
     logLevel: config.logLevel,
