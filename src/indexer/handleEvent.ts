@@ -1,12 +1,21 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Indexer, JsonStorage, Event } from "chainsauce";
-import { ethers } from "ethers";
+import { Indexer, JsonStorage, Event as ChainsauceEvent } from "chainsauce";
+import { BigNumber, ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
 
 import { fetchJsonCached as ipfs } from "../utils/ipfs.js";
 import { convertToUSD, convertFromUSD } from "../prices/index.js";
 import { eventRenames, tokenDecimals } from "../config.js";
-import { DetailedVote } from "./types.js";
+import {
+  Application,
+  Contributor,
+  DetailedVote,
+  Project,
+  Round,
+  Vote,
+} from "./types.js";
+import { Event } from "./events.js";
+import { RoundContract } from "./contracts.js";
+import { importAbi } from "./utils.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
@@ -31,15 +40,25 @@ function fullProjectId(
   );
 }
 
-async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
+async function handleEvent(
+  indexer: Indexer<JsonStorage>,
+  originalEvent: ChainsauceEvent
+) {
   const db = indexer.storage;
   const eventName =
-    eventRenames[indexer.chainId]?.[event.address]?.[event.name] ?? event.name;
+    eventRenames[indexer.chainId]?.[originalEvent.address]?.[
+      originalEvent.name
+    ] ?? originalEvent.name;
 
-  switch (eventName) {
+  const event = {
+    ...originalEvent,
+    name: eventName,
+  } as Event;
+
+  switch (event.name) {
     // -- PROJECTS
     case "ProjectCreated": {
-      await db.collection("projects").insert({
+      await db.collection<Project>("projects").insert({
         id: fullProjectId(
           indexer.chainId,
           event.args.projectID.toNumber(),
@@ -47,6 +66,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         ),
         projectNumber: event.args.projectID.toNumber(),
         metaPtr: null,
+        metadata: null,
         owners: [event.args.owner],
         createdAtBlock: event.blockNumber,
       });
@@ -62,19 +82,25 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
       );
 
       try {
-        await db.collection("projects").updateById(id, (project) => ({
-          ...project,
-          metaPtr: event.args.metaPtr.pointer,
-        }));
+        await db.collection<Project>("projects").updateOneWhere(
+          (p) => p.projectNumber === event.args.projectID.toNumber(),
+          (project) => ({
+            ...project,
+            metaPtr: event.args.metaPtr.pointer,
+          })
+        );
 
         return async () => {
-          const metadata = await ipfs(
+          const metadata = await ipfs<Project["metadata"]>(
             event.args.metaPtr.pointer,
             indexer.cache
           );
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await db.collection("projects").updateById(id, (project: any) => {
+          if (!metadata) {
+            return;
+          }
+
+          await db.collection<Project>("projects").updateById(id, (project) => {
             if (project.metaPtr === event.args.metaPtr.pointer) {
               return { ...project, metadata };
             }
@@ -95,7 +121,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         event.address
       );
 
-      await db.collection("projects").updateById(id, (project) => ({
+      await db.collection<Project>("projects").updateById(id, (project) => ({
         ...project,
         owners: [...project.owners, event.args.owner],
       }));
@@ -109,7 +135,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         event.address
       );
 
-      await db.collection("projects").updateById(id, (project) => ({
+      await db.collection<Project>("projects").updateById(id, (project) => ({
         ...project,
         owners: project.owners.filter((o: string) => o == event.args.owner),
       }));
@@ -119,54 +145,48 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
     // --- ROUND
     case "RoundCreatedV1":
     case "RoundCreated": {
-      let contract: ethers.Contract;
-      let matchAmount;
+      let contract: RoundContract;
 
-      if (eventName === "RoundCreatedV1") {
+      let matchAmountPromise;
+
+      if (event.name === "RoundCreatedV1") {
         contract = indexer.subscribe(
           event.args.roundAddress,
-          (
-            await import("#abis/v1/RoundImplementation.json", {
-              assert: { type: "json" },
-            })
-          ).default,
+          await importAbi("#abis/v1/RoundImplementation.json"),
           event.blockNumber
-        );
-        matchAmount = "0";
+        ) as RoundContract;
+        matchAmountPromise = BigNumber.from("0");
       } else {
         contract = indexer.subscribe(
           event.args.roundAddress,
-          (
-            await import("#abis/v2/RoundImplementation.json", {
-              assert: { type: "json" },
-            })
-          ).default,
+          await importAbi("#abis/v2/RoundImplementation.json"),
           event.blockNumber
-        );
-        matchAmount = contract.matchAmount();
+        ) as RoundContract;
+        matchAmountPromise = contract.matchAmount();
       }
 
-      let applicationMetaPtr = contract.applicationMetaPtr();
-      let metaPtr = contract.roundMetaPtr();
+      const applicationMetaPtrPromise = contract.applicationMetaPtr();
+      const metaPtrPromise = contract.roundMetaPtr();
+      const tokenPromise = contract.token();
+      const applicationsStartTimePromise = contract.applicationsStartTime();
+      const applicationsEndTimePromise = contract.applicationsEndTime();
+      const roundStartTimePromise = contract.roundStartTime();
+      const roundEndTimePromise = contract.roundEndTime();
 
-      let token = contract.token();
-      let applicationsStartTime = contract.applicationsStartTime();
-      let applicationsEndTime = contract.applicationsEndTime();
-      let roundStartTime = contract.roundStartTime();
-      let roundEndTime = contract.roundEndTime();
-
-      applicationMetaPtr = (await applicationMetaPtr).pointer;
-      metaPtr = (await metaPtr).pointer;
-      token = (await token).toString().toLowerCase();
-      matchAmount = await matchAmount;
-      applicationsStartTime = (await applicationsStartTime).toString();
-      applicationsEndTime = (await applicationsEndTime).toString();
-      roundStartTime = (await roundStartTime).toString();
-      roundEndTime = (await roundEndTime).toString();
+      const applicationMetaPtr = (await applicationMetaPtrPromise).pointer;
+      const metaPtr = (await metaPtrPromise).pointer;
+      const token = (await tokenPromise).toString().toLowerCase();
+      const matchAmount = await matchAmountPromise;
+      const applicationsStartTime = (
+        await applicationsStartTimePromise
+      ).toString();
+      const applicationsEndTime = (await applicationsEndTimePromise).toString();
+      const roundStartTime = (await roundStartTimePromise).toString();
+      const roundEndTime = (await roundEndTimePromise).toString();
 
       const roundId = event.args.roundAddress;
 
-      await db.collection("rounds").insert({
+      await db.collection<Round>("rounds").insert({
         id: roundId,
         amountUSD: 0,
         votes: 0,
@@ -195,6 +215,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
       if (tokenDecimals[indexer.chainId][token]) {
         await matchAmountUpdated(indexer, {
           ...event,
+          name: "MatchAmountUpdated",
           address: event.args.roundAddress,
           args: {
             newAmount: matchAmount,
@@ -202,23 +223,25 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         });
       }
 
-      return async () => {
-        (await roundMetaPtrUpdated(indexer, {
-          ...event,
-          address: event.args.roundAddress,
-          args: {
-            newMetaPtr: { pointer: metaPtr },
-          },
-        }))!();
+      await roundMetaPtrUpdated(indexer, {
+        ...event,
+        name: "RoundMetaPtrUpdated",
+        address: event.args.roundAddress,
+        args: {
+          newMetaPtr: { pointer: metaPtr },
+        },
+      });
 
-        (await applicationMetaPtrUpdated(indexer, {
-          ...event,
-          address: event.args.roundAddress,
-          args: {
-            newMetaPtr: { pointer: applicationMetaPtr },
-          },
-        }))!();
-      };
+      await applicationMetaPtrUpdated(indexer, {
+        ...event,
+        name: "ApplicationMetaPtrUpdated",
+        address: event.args.roundAddress,
+        args: {
+          newMetaPtr: { pointer: applicationMetaPtr },
+        },
+      });
+
+      break;
     }
 
     case "MatchAmountUpdated": {
@@ -234,22 +257,21 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
     }
 
     case "NewProjectApplication": {
-      const projectId = event.args.project || event.args.projectID;
-      const project = await db.collection("projects").findById(projectId);
+      const projectId = event.args.project || event.args.projectID.toString();
 
-      const applications = db.collection(
+      const applications = db.collection<Application>(
         `rounds/${event.address}/applications`
       );
 
-      const projects = db.collection(`rounds/${event.address}/projects`);
+      const projects = db.collection<Application>(
+        `rounds/${event.address}/projects`
+      );
 
       const applicationIndex =
         event.args.applicationIndex?.toString() ?? projectId;
-
-      await applications.insert({
+      const application: Application = {
         id: applicationIndex,
         projectId: projectId,
-        projectNumber: project?.projectNumber ?? null,
         roundId: event.address,
         status: "PENDING",
         amountUSD: 0,
@@ -258,23 +280,12 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         metadata: null,
         createdAtBlock: event.blockNumber,
         statusUpdatedAtBlock: event.blockNumber,
-      });
+      };
+
+      await applications.insert(application);
 
       const isNewProject = await projects.upsertById(projectId, (p) => {
-        return (
-          p ?? {
-            id: projectId,
-            projectNumber: project?.projectNumber ?? null,
-            roundId: event.address,
-            status: "PENDING",
-            amountUSD: 0,
-            votes: 0,
-            uniqueContributors: 0,
-            metadata: null,
-            createdAtBlock: event.blockNumber,
-            statusUpdatedAtBlock: event.blockNumber,
-          }
-        );
+        return p ?? application;
       });
 
       await db
@@ -301,26 +312,29 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           .replaceAll([]);
       }
 
-      return async () => {
-        const metadata = await ipfs(
-          event.args.applicationMetaPtr.pointer,
-          indexer.cache
-        );
+      const metadata = await ipfs<Application["metadata"]>(
+        event.args.applicationMetaPtr.pointer,
+        indexer.cache
+      );
 
+      if (metadata) {
         await applications.updateById(applicationIndex, (app) => ({
           ...app,
           metadata,
         }));
+
         await projects.updateById(projectId, (project) => ({
           ...project,
           metadata,
         }));
-      };
+      }
+
+      break;
     }
 
     case "ProjectsMetaPtrUpdated": {
       const projects = await ipfs<
-        { id: string; status: string; payoutAddress: string }[]
+        { id: string; status: Application["status"]; payoutAddress: string }[]
       >(event.args.newMetaPtr.pointer, indexer.cache);
 
       if (!projects) {
@@ -331,7 +345,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         const projectId = projectApp.id.split("-")[0];
 
         await db
-          .collection(`rounds/${event.address}/projects`)
+          .collection<Application>(`rounds/${event.address}/projects`)
           .updateById(projectId, (application) => ({
             ...application,
             statusUpdatedAtBlock: event.blockNumber,
@@ -339,7 +353,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           }));
 
         await db
-          .collection(`rounds/${event.address}/applications`)
+          .collection<Application>(`rounds/${event.address}/applications`)
           .updateById(projectId, (application) => ({
             ...application,
             statusUpdatedAtBlock: event.blockNumber,
@@ -358,19 +372,19 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         const status = bitmap.getStatus(i);
         const statusString = ApplicationStatus[status];
         const application = await db
-          .collection(`rounds/${event.address}/applications`)
+          .collection<Application>(`rounds/${event.address}/applications`)
           .updateById(i.toString(), (application) => ({
             ...application,
-            status: statusString,
+            status: statusString as Application["status"],
             statusUpdatedAtBlock: event.blockNumber,
           }));
 
         if (application) {
           await db
-            .collection(`rounds/${event.address}/projects`)
+            .collection<Application>(`rounds/${event.address}/projects`)
             .updateById(application.projectId, (application) => ({
               ...application,
-              status: statusString,
+              status: statusString as Application["status"],
               statusUpdatedAtBlock: event.blockNumber,
             }));
         }
@@ -382,14 +396,9 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
     case "VotingContractCreatedV1": {
       indexer.subscribe(
         event.args.votingContractAddress,
-        (
-          await import(
-            "#abis/v1/QuadraticFundingVotingStrategyImplementation.json",
-            {
-              assert: { type: "json" },
-            }
-          )
-        ).default,
+        await importAbi(
+          "#abis/v1/QuadraticFundingVotingStrategyImplementation.json"
+        ),
         event.blockNumber
       );
       break;
@@ -398,14 +407,9 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
     case "VotingContractCreated": {
       indexer.subscribe(
         event.args.votingContractAddress,
-        (
-          await import(
-            "#abis/v2/QuadraticFundingVotingStrategyImplementation.json",
-            {
-              assert: { type: "json" },
-            }
-          )
-        ).default,
+        await importAbi(
+          "#abis/v2/QuadraticFundingVotingStrategyImplementation.json"
+        ),
         event.blockNumber
       );
       break;
@@ -420,14 +424,17 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         );
 
         const applicationId =
-          event.args.applicationIndex?.toString() ?? event.args.projectId;
+          event.args.applicationIndex?.toString() ??
+          event.args.projectId.toString();
 
         const application = await db
-          .collection(`rounds/${event.args.roundAddress}/applications`)
+          .collection<Application>(
+            `rounds/${event.args.roundAddress}/applications`
+          )
           .findById(applicationId);
 
         const round = await db
-          .collection(`rounds`)
+          .collection<Round>(`rounds`)
           .findById(event.args.roundAddress);
 
         if (
@@ -435,9 +442,6 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
           application.status !== "APPROVED" ||
           round === undefined
         ) {
-          // TODO: We seem to be ceceiving votes for projects that have been rejected? Here's an example:
-          // Project ID: 0x79f3e178005bfbe0a3defff8693009bb12e58102763501e52995162820ae3560
-          // Round ID: 0xd95a1969c41112cee9a2c931e849bcef36a16f4c
           return;
         }
 
@@ -480,7 +484,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         };
 
         // Insert or update  unique round contributor
-        const roundContributors = db.collection(
+        const roundContributors = db.collection<Contributor>(
           `rounds/${event.args.roundAddress}/contributors`
         );
 
@@ -504,7 +508,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         );
 
         // Insert or update unique project contributor
-        const projectContributors = db.collection(
+        const projectContributors = db.collection<Contributor>(
           `rounds/${event.args.roundAddress}/projects/${event.args.projectId}/contributors`
         );
 
@@ -528,7 +532,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
         );
 
         // Insert or update unique application contributor
-        const applicationContributors = db.collection(
+        const applicationContributors = db.collection<Contributor>(
           `rounds/${event.args.roundAddress}/applications/${applicationId}/contributors`
         );
 
@@ -552,19 +556,24 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
             }
           );
 
-        db.collection(
-          `rounds/${event.args.roundAddress}/applications`
-        ).updateById(applicationId, (project) => ({
-          ...project,
-          amountUSD: project.amountUSD + amountUSD,
-          votes: project.votes + 1,
-          uniqueContributors:
-            project.uniqueContributors + (isNewapplicationContributor ? 1 : 0),
-        }));
+        await db
+          .collection<Application>(
+            `rounds/${event.args.roundAddress}/applications`
+          )
+          .updateById(applicationId, (project) => ({
+            ...project,
+            amountUSD: project.amountUSD + amountUSD,
+            votes: project.votes + 1,
+            uniqueContributors:
+              project.uniqueContributors +
+              (isNewapplicationContributor ? 1 : 0),
+          }));
 
-        db.collection(
-          `rounds/${event.args.roundAddress}/applications/${applicationId}/votes`
-        ).insert(vote);
+        await db
+          .collection<Vote>(
+            `rounds/${event.args.roundAddress}/applications/${applicationId}/votes`
+          )
+          .insert(vote);
 
         const contributorPartitionedPath = vote.voter
           .split(/(.{6})/)
@@ -584,7 +593,7 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
               roundEndTime: round.roundEndTime,
             }),
           db
-            .collection("rounds")
+            .collection<Round>("rounds")
             .updateById(event.args.roundAddress, (round) => ({
               ...round,
               amountUSD: round.amountUSD + amountUSD,
@@ -593,7 +602,9 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
                 round.uniqueContributors + (isNewRoundContributor ? 1 : 0),
             })),
           db
-            .collection(`rounds/${event.args.roundAddress}/projects`)
+            .collection<Application>(
+              `rounds/${event.args.roundAddress}/projects`
+            )
             .updateById(event.args.projectId, (project) => ({
               ...project,
               amountUSD: project.amountUSD + amountUSD,
@@ -601,9 +612,11 @@ async function handleEvent(indexer: Indexer<JsonStorage>, event: Event) {
               uniqueContributors:
                 project.uniqueContributors + (isNewProjectContributor ? 1 : 0),
             })),
-          db.collection(`rounds/${event.args.roundAddress}/votes`).insert(vote),
           db
-            .collection(
+            .collection<Vote>(`rounds/${event.args.roundAddress}/votes`)
+            .insert(vote),
+          db
+            .collection<Vote>(
               `rounds/${event.args.roundAddress}/projects/${event.args.projectId}/votes`
             )
             .insert(vote),

@@ -56,7 +56,7 @@ export function parseOverrides(buf: Buffer): Promise<Overrides> {
     let rowIndex = 1;
 
     const stream = csv()
-      .on("headers", (headers) => {
+      .on("headers", (headers: string[]) => {
         if (headers.indexOf("id") < 0) {
           throw new OverridesColumnNotFoundError("id");
         }
@@ -65,7 +65,7 @@ export function parseOverrides(buf: Buffer): Promise<Overrides> {
           throw new OverridesColumnNotFoundError("coefficient");
         }
       })
-      .on("data", (data) => {
+      .on("data", (data: Record<string, string>) => {
         const coefficient = Number(data["coefficient"]);
         if (!Number.isFinite(coefficient)) {
           throw new OverridesInvalidRowError(
@@ -102,8 +102,8 @@ export type AugmentedResult = Calculation & {
   projectId: string;
   applicationId: string;
   matchedUSD: number;
-  projectName: string;
-  payoutAddress: string;
+  projectName?: string;
+  payoutAddress?: string;
 };
 
 export default class Calculator {
@@ -185,7 +185,7 @@ export default class Calculator {
         10000n;
     }
 
-    const votesWithCoefficients = await getVotesWithCoefficients(
+    const votesWithCoefficients = getVotesWithCoefficients(
       round,
       applications,
       votes,
