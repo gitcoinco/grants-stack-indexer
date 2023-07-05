@@ -6,7 +6,9 @@ import cors from "cors";
 import serveIndex from "serve-index";
 
 import api from "./api/v1/index.js";
-import config from "../config.js";
+import { getApiConfig } from "../config.js";
+
+const config = getApiConfig();
 
 export const app = express();
 

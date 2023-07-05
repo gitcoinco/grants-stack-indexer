@@ -4,7 +4,9 @@ import { parseArgs } from "node:util";
 import path from "node:path";
 
 import "../sentry.js";
-import config from "../config.js";
+import { getPassportConfig, PassportConfig } from "../config.js";
+
+const config = getPassportConfig();
 
 import {
   filterPassportByEvidence,
@@ -23,13 +25,13 @@ const { values: args } = parseArgs({
 // Update every hour
 const updateEveryMs = 60 * 60 * 1000;
 
-async function getScoresAndWrite(dir: string) {
+async function getScoresAndWrite(config: PassportConfig) {
   let isOutdated = false;
 
   try {
     const stats = await Promise.all([
-      fs.stat(path.join(dir, "passport_scores.json")),
-      fs.stat(path.join(dir, "passport_valid_addresses.json")),
+      fs.stat(path.join(config.storageDir, "passport_scores.json")),
+      fs.stat(path.join(config.storageDir, "passport_valid_addresses.json")),
     ]);
 
     isOutdated = stats.some(
@@ -46,25 +48,25 @@ async function getScoresAndWrite(dir: string) {
 
   console.log("Fetching passport scores...");
 
-  const scores = await getPassportScores();
+  const scores = await getPassportScores(config);
 
   const validAddresses = filterPassportByEvidence(scores).map((passport) => {
     return ethers.utils.getAddress(passport.address);
   });
 
-  await fs.mkdir(dir, { recursive: true });
+  await fs.mkdir(config.storageDir, { recursive: true });
   await fs.writeFile(
-    path.join(dir, "passport_scores.json"),
+    path.join(config.storageDir, "passport_scores.json"),
     JSON.stringify(scores)
   );
   await fs.writeFile(
-    path.join(dir, "passport_valid_addresses.json"),
+    path.join(config.storageDir, "passport_valid_addresses.json"),
     JSON.stringify(validAddresses)
   );
 }
 
 async function loop() {
-  await getScoresAndWrite(config.storageDir);
+  await getScoresAndWrite(config);
 
   // loop every minute
   setTimeout(loop, 60 * 1000);
@@ -73,5 +75,5 @@ async function loop() {
 if (args.follow) {
   await loop();
 } else {
-  await getScoresAndWrite(config.storageDir);
+  await getScoresAndWrite(config);
 }

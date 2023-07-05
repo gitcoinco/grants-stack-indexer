@@ -1,6 +1,9 @@
 import { ethers } from "ethers";
 import fetchRetry from "../utils/fetchRetry.js";
-import config from "../config.js";
+import { getPricesConfig } from "../config.js";
+
+// XXX needs to be a function parameter, not a module variable
+const config = getPricesConfig();
 
 const platforms: { [key: number]: string } = {
   1: "ethereum",
