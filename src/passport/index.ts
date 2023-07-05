@@ -1,3 +1,4 @@
+import { PassportConfig } from "../config.js";
 import { wait } from "../utils/index.js";
 
 export type PassportScore = {
@@ -26,12 +27,8 @@ type PassportScoresResponse = {
  *
  * @returns string[]
  */
-export const getPassportScores = async () => {
-  if (!process.env.PASSPORT_SCORER_ID) {
-    throw new Error("PASSPORT_SCORER_ID is not set");
-  }
-
-  const scorerId = Number(process.env.PASSPORT_SCORER_ID);
+export const getPassportScores = async (config: PassportConfig) => {
+  const scorerId = config.scorerId;
 
   const limit = 1000;
   let offset = 0;

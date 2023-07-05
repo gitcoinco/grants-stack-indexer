@@ -81,36 +81,19 @@ async function handleEvent(
         event.address
       );
 
-      try {
-        await db.collection<Project>("projects").updateOneWhere(
-          (p) => p.projectNumber === event.args.projectID.toNumber(),
-          (project) => ({
-            ...project,
-            metaPtr: event.args.metaPtr.pointer,
-          })
-        );
+      const metadata = await ipfs<Project["metadata"]>(
+        event.args.metaPtr.pointer,
+        indexer.cache
+      );
 
-        return async () => {
-          const metadata = await ipfs<Project["metadata"]>(
-            event.args.metaPtr.pointer,
-            indexer.cache
-          );
-
-          if (!metadata) {
-            return;
-          }
-
-          await db.collection<Project>("projects").updateById(id, (project) => {
-            if (project.metaPtr === event.args.metaPtr.pointer) {
-              return { ...project, metadata };
-            }
-
-            return project;
-          });
+      await db.collection<Project>("projects").updateById(id, (project) => {
+        return {
+          ...project,
+          metaPtr: event.args.metaPtr.pointer,
+          metadata: metadata ?? null,
         };
-      } catch (e) {
-        console.error("Project not found", event.args.projectID.toNumber());
-      }
+      });
+
       break;
     }
 
@@ -417,78 +400,126 @@ async function handleEvent(
 
     // --- Votes
     case "Voted": {
-      return async () => {
-        const voteId = ethers.utils.solidityKeccak256(
-          ["string"],
-          [`${event.blockNumber}-${event.logIndex}`]
-        );
+      const voteId = ethers.utils.solidityKeccak256(
+        ["string"],
+        [`${event.blockNumber}-${event.logIndex}`]
+      );
 
-        const applicationId =
-          event.args.applicationIndex?.toString() ??
-          event.args.projectId.toString();
+      const applicationId =
+        event.args.applicationIndex?.toString() ??
+        event.args.projectId.toString();
 
-        const application = await db
-          .collection<Application>(
-            `rounds/${event.args.roundAddress}/applications`
-          )
-          .findById(applicationId);
+      const application = await db
+        .collection<Application>(
+          `rounds/${event.args.roundAddress}/applications`
+        )
+        .findById(applicationId);
 
-        const round = await db
-          .collection<Round>(`rounds`)
-          .findById(event.args.roundAddress);
+      const round = await db
+        .collection<Round>(`rounds`)
+        .findById(event.args.roundAddress);
 
-        if (
-          application === undefined ||
-          application.status !== "APPROVED" ||
-          round === undefined
-        ) {
-          return;
+      if (
+        application === undefined ||
+        application.status !== "APPROVED" ||
+        round === undefined
+      ) {
+        return;
+      }
+
+      const token = event.args.token.toLowerCase();
+
+      const conversionUSD = await convertToUSD(
+        indexer.chainId,
+        token,
+        event.args.amount.toBigInt(),
+        event.blockNumber
+      );
+
+      const amountUSD = conversionUSD.amount;
+
+      const amountRoundToken =
+        round.token === token
+          ? event.args.amount.toString()
+          : (
+              await convertFromUSD(
+                indexer.chainId,
+                round.token,
+                conversionUSD.amount,
+                event.blockNumber
+              )
+            ).amount.toString();
+
+      const vote = {
+        id: voteId,
+        transaction: event.transactionHash,
+        blockNumber: event.blockNumber,
+        projectId: event.args.projectId,
+        applicationId: applicationId,
+        roundId: event.args.roundAddress,
+        voter: event.args.voter,
+        grantAddress: event.args.grantAddress,
+        token: event.args.token,
+        amount: event.args.amount.toString(),
+        amountUSD: amountUSD,
+        amountRoundToken,
+      };
+
+      // Insert or update  unique round contributor
+      const roundContributors = db.collection<Contributor>(
+        `rounds/${event.args.roundAddress}/contributors`
+      );
+
+      const isNewRoundContributor = await roundContributors.upsertById(
+        event.args.voter,
+        (contributor) => {
+          if (contributor) {
+            return {
+              ...contributor,
+              amountUSD: contributor.amountUSD + amountUSD,
+              votes: contributor.votes + 1,
+            };
+          } else {
+            return {
+              id: event.args.voter,
+              amountUSD,
+              votes: 1,
+            };
+          }
         }
+      );
 
-        const token = event.args.token.toLowerCase();
+      // Insert or update unique project contributor
+      const projectContributors = db.collection<Contributor>(
+        `rounds/${event.args.roundAddress}/projects/${event.args.projectId}/contributors`
+      );
 
-        const conversionUSD = await convertToUSD(
-          indexer.chainId,
-          token,
-          event.args.amount.toBigInt(),
-          event.blockNumber
-        );
+      const isNewProjectContributor = await projectContributors.upsertById(
+        event.args.voter,
+        (contributor) => {
+          if (contributor) {
+            return {
+              ...contributor,
+              amountUSD: contributor.amountUSD + amountUSD,
+              votes: contributor.votes + 1,
+            };
+          } else {
+            return {
+              id: event.args.voter,
+              amountUSD,
+              votes: 1,
+            };
+          }
+        }
+      );
 
-        const amountUSD = conversionUSD.amount;
+      // Insert or update unique application contributor
+      const applicationContributors = db.collection<Contributor>(
+        `rounds/${event.args.roundAddress}/applications/${applicationId}/contributors`
+      );
 
-        const amountRoundToken =
-          round.token === token
-            ? event.args.amount.toString()
-            : (
-                await convertFromUSD(
-                  indexer.chainId,
-                  round.token,
-                  conversionUSD.amount,
-                  event.blockNumber
-                )
-              ).amount.toString();
-
-        const vote = {
-          id: voteId,
-          transaction: event.transactionHash,
-          blockNumber: event.blockNumber,
-          projectId: event.args.projectId,
-          applicationId: applicationId,
-          roundId: event.args.roundAddress,
-          voter: event.args.voter,
-          grantAddress: event.args.grantAddress,
-          token: event.args.token,
-          amount: event.args.amount.toString(),
-          amountUSD: amountUSD,
-          amountRoundToken,
-        };
-
-        // Insert or update  unique round contributor
-        const roundContributors = db.collection<Contributor>(
-          `rounds/${event.args.roundAddress}/contributors`
-        );
-
-        const isNewRoundContributor = await roundContributors.upsertById(
+      const isNewapplicationContributor =
+        await applicationContributors.upsertById(
           event.args.voter,
           (contributor) => {
             if (contributor) {
@@ -507,121 +538,70 @@ async function handleEvent(
           }
         );
 
-        // Insert or update unique project contributor
-        const projectContributors = db.collection<Contributor>(
-          `rounds/${event.args.roundAddress}/projects/${event.args.projectId}/contributors`
-        );
+      await db
+        .collection<Application>(
+          `rounds/${event.args.roundAddress}/applications`
+        )
+        .updateById(applicationId, (project) => ({
+          ...project,
+          amountUSD: project.amountUSD + amountUSD,
+          votes: project.votes + 1,
+          uniqueContributors:
+            project.uniqueContributors + (isNewapplicationContributor ? 1 : 0),
+        }));
 
-        const isNewProjectContributor = await projectContributors.upsertById(
-          event.args.voter,
-          (contributor) => {
-            if (contributor) {
-              return {
-                ...contributor,
-                amountUSD: contributor.amountUSD + amountUSD,
-                votes: contributor.votes + 1,
-              };
-            } else {
-              return {
-                id: event.args.voter,
-                amountUSD,
-                votes: 1,
-              };
-            }
-          }
-        );
+      await db
+        .collection<Vote>(
+          `rounds/${event.args.roundAddress}/applications/${applicationId}/votes`
+        )
+        .insert(vote);
 
-        // Insert or update unique application contributor
-        const applicationContributors = db.collection<Contributor>(
-          `rounds/${event.args.roundAddress}/applications/${applicationId}/contributors`
-        );
+      const contributorPartitionedPath = vote.voter
+        .split(/(.{6})/)
+        .filter((s: string) => s.length > 0)
+        .join("/");
 
-        const isNewapplicationContributor =
-          await applicationContributors.upsertById(
-            event.args.voter,
-            (contributor) => {
-              if (contributor) {
-                return {
-                  ...contributor,
-                  amountUSD: contributor.amountUSD + amountUSD,
-                  votes: contributor.votes + 1,
-                };
-              } else {
-                return {
-                  id: event.args.voter,
-                  amountUSD,
-                  votes: 1,
-                };
-              }
-            }
-          );
-
-        await db
-          .collection<Application>(
-            `rounds/${event.args.roundAddress}/applications`
+      await Promise.all([
+        db
+          .collection<DetailedVote>(
+            `contributors/${contributorPartitionedPath}`
           )
-          .updateById(applicationId, (project) => ({
+          .insert({
+            ...vote,
+            roundName: round.metadata?.name,
+            projectTitle: application.metadata?.application.project.title,
+            roundStartTime: round.roundStartTime,
+            roundEndTime: round.roundEndTime,
+          }),
+        db
+          .collection<Round>("rounds")
+          .updateById(event.args.roundAddress, (round) => ({
+            ...round,
+            amountUSD: round.amountUSD + amountUSD,
+            votes: round.votes + 1,
+            uniqueContributors:
+              round.uniqueContributors + (isNewRoundContributor ? 1 : 0),
+          })),
+        db
+          .collection<Application>(`rounds/${event.args.roundAddress}/projects`)
+          .updateById(event.args.projectId, (project) => ({
             ...project,
             amountUSD: project.amountUSD + amountUSD,
             votes: project.votes + 1,
             uniqueContributors:
-              project.uniqueContributors +
-              (isNewapplicationContributor ? 1 : 0),
-          }));
-
-        await db
+              project.uniqueContributors + (isNewProjectContributor ? 1 : 0),
+          })),
+        db
+          .collection<Vote>(`rounds/${event.args.roundAddress}/votes`)
+          .insert(vote),
+        db
           .collection<Vote>(
-            `rounds/${event.args.roundAddress}/applications/${applicationId}/votes`
+            `rounds/${event.args.roundAddress}/projects/${event.args.projectId}/votes`
           )
-          .insert(vote);
+          .insert(vote),
+      ]);
 
-        const contributorPartitionedPath = vote.voter
-          .split(/(.{6})/)
-          .filter((s: string) => s.length > 0)
-          .join("/");
-
-        await Promise.all([
-          db
-            .collection<DetailedVote>(
-              `contributors/${contributorPartitionedPath}`
-            )
-            .insert({
-              ...vote,
-              roundName: round.metadata?.name,
-              projectTitle: application.metadata?.application.project.title,
-              roundStartTime: round.roundStartTime,
-              roundEndTime: round.roundEndTime,
-            }),
-          db
-            .collection<Round>("rounds")
-            .updateById(event.args.roundAddress, (round) => ({
-              ...round,
-              amountUSD: round.amountUSD + amountUSD,
-              votes: round.votes + 1,
-              uniqueContributors:
-                round.uniqueContributors + (isNewRoundContributor ? 1 : 0),
-            })),
-          db
-            .collection<Application>(
-              `rounds/${event.args.roundAddress}/projects`
-            )
-            .updateById(event.args.projectId, (project) => ({
-              ...project,
-              amountUSD: project.amountUSD + amountUSD,
-              votes: project.votes + 1,
-              uniqueContributors:
-                project.uniqueContributors + (isNewProjectContributor ? 1 : 0),
-            })),
-          db
-            .collection<Vote>(`rounds/${event.args.roundAddress}/votes`)
-            .insert(vote),
-          db
-            .collection<Vote>(
-              `rounds/${event.args.roundAddress}/projects/${event.args.projectId}/votes`
-            )
-            .insert(vote),
-        ]);
-      };
+      break;
     }
 
     default:

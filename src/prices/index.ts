@@ -5,8 +5,10 @@ import { Cache } from "chainsauce";
 import { getBlockFromTimestamp } from "../utils/getBlockFromTimestamp.js";
 import { getPricesByHour } from "./coinGecko.js";
 import { existsSync } from "fs";
-import config from "../config.js";
-import { Chain, tokenDecimals } from "../config.js";
+import { Chain, tokenDecimals, getPricesConfig } from "../config.js";
+
+// XXX needs to be a function parameter, not a module variable
+const config = getPricesConfig();
 
 export type Price = {
   token: string;
@@ -35,7 +37,10 @@ function chunkTimeBy(millis: number, chunkBy: number): [number, number][] {
   return chunks;
 }
 
-export async function updatePricesAndWrite(chain: Chain) {
+export async function updatePricesAndWrite(
+  chain: Chain,
+  toBlock: number | "latest" = "latest"
+) {
   const currentPrices = await getPrices(chain.id);
 
   // get last updated price
@@ -103,7 +108,7 @@ export async function updatePricesAndWrite(chain: Chain) {
 
       console.log("Fetched", newPrices.length, "new prices");
 
-      await appendPrices(chain.id, newPrices);
+      await appendPrices(chain.id, newPrices, toBlock);
     }
   }
 }
@@ -120,9 +125,20 @@ export async function getPrices(chainId: number): Promise<Price[]> {
   return readPricesFile(chainId);
 }
 
-export async function appendPrices(chainId: number, newPrices: Price[]) {
+export async function appendPrices(
+  chainId: number,
+  newPrices: Price[],
+  toBlock: number | "latest" = "latest"
+) {
   const currentPrices = await getPrices(chainId);
-  await writePrices(chainId, currentPrices.concat(newPrices));
+  await writePrices(
+    chainId,
+    currentPrices
+      .concat(newPrices)
+      // HACK: all prices are requested, but only prices up to `toBlock` are
+      // written to disk
+      .filter((price) => toBlock === "latest" || price.block <= toBlock)
+  );
 }
 
 function createPriceProvider(updateEvery = 2000) {

@@ -13,7 +13,10 @@ import { Round, Application, Vote } from "../../../indexer/types.js";
 import { getVotesWithCoefficients } from "../../../calculator/votes.js";
 import ClientError from "../clientError.js";
 import { PassportScore } from "../../../passport/index.js";
-import config from "../../../config.js";
+import { getApiConfig } from "../../../config.js";
+
+// XXX needs to be a function parameter, not a module variable
+const config = getApiConfig();
 
 const router = express.Router();
 
@@ -237,7 +240,7 @@ router.get(
   async (req, res) => {
     const chainId = Number(req.params.chainId);
     const roundId = req.params.roundId;
-    const db = database(chainId);
+    const db = database(config.storageDir, chainId);
     const round = await db.collection<Round>("rounds").findById(roundId);
 
     if (!round) {
@@ -264,7 +267,7 @@ router.get(
     const exportName = req.params.exportName;
     let body = "";
 
-    const db = database(chainId);
+    const db = database(config.storageDir, chainId);
     const round = await db.collection<Round>("rounds").findById(roundId);
 
     if (!round) {
