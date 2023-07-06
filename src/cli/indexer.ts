@@ -34,7 +34,7 @@ const rpcProvider = new RetryProvider({
 
 await rpcProvider.getNetwork();
 
-// Update prices to present and optionally keep watching for updatse
+// Update prices to present and optionally keep watching for updates
 
 const priceUpdater = createPriceUpdater({
   rpcProvider,
