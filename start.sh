@@ -5,6 +5,10 @@ set -e
 # Exit script on interrupts
 trap "exit 130" INT
 
+echo "======> Clearing cache"
+find /mnt/indexer/cache -type f | xargs rm
+
+
 echo "======> Catching up"
 
 # Catch up indexers to latest block first,
