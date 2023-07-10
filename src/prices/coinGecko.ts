@@ -27,7 +27,7 @@ export async function getPrices(
   startTime: UnixTimestamp,
   endTime: UnixTimestamp
 ): Promise<[Timestamp, Price][]> {
-  if (chainId === 5) {
+  if (chainId === 5 || chainId === 58008) {
     return [];
   }
 

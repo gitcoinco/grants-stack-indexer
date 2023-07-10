@@ -346,8 +346,12 @@ export function createPriceProvider(
   ): Promise<Price & { decimals: number }> {
     let closestPrice: Price | null = null;
 
-    // goerli
-    if (chainId === 5) {
+    if (
+      // goerli
+      chainId === 5 ||
+      // pgn-testnet
+      chainId === 58008
+    ) {
       return {
         token,
         code: "ETH",

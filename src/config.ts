@@ -194,6 +194,39 @@ export const chains: Chain[] = [
       },
     ],
   },
+  {
+    id: 58008,
+    name: "pgn-testnet",
+    rpc: "https://sepolia.publicgoods.network",
+    tokens: [
+      {
+        code: "DAI",
+        address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        decimals: 18,
+      },
+      {
+        code: "ETH",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+      },
+    ],
+    subscriptions: [
+      {
+        address: "0x6294bed5B884Ae18bf737793Ef9415069Bf4bc11",
+        abi: "#abis/v2/ProjectRegistry.json",
+      },
+      {
+        address: "0x0479b9DA9f287539FEBd597350B1eBaEBF7479ac",
+        abi: "#abis/v2/RoundFactory.json",
+        fromBlock: 0,
+      },
+      {
+        address: "0x4a850F463D1C4842937c5Bc9540dBc803D744c9F",
+        abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
+        fromBlock: 0,
+      },
+    ],
+  },
 ];
 
 // mapping of chain id => token address => decimals
