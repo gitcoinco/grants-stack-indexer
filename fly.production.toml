@@ -45,7 +45,7 @@ kill_timeout = 5
   [[services.http_checks]]
     interval = "60s"
     grace_period = "1m"
-    timeout = "30m"
+    timeout = "5s"
     method = "get"
     path = "/data/"
     protocol = "http"
