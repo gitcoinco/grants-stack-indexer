@@ -286,9 +286,7 @@ export const getIndexerConfig = (): IndexerConfig => {
     throw new Error("Chain " + chainName + " is not configured");
   }
 
-  const { storageDir: baseStorageDir } = getDatabaseConfig();
-
-  const storageDir = path.join(baseStorageDir, chain.id.toString());
+  const { storageDir } = getDatabaseConfig();
 
   const toBlock =
     "to-block" in args ? Number(args["to-block"]) : ("latest" as const);
@@ -355,7 +353,11 @@ export const getPricesConfig = (): PricesConfig => {
     ? "https://pro-api.coingecko.com/api/v3/"
     : "https://api.coingecko.com/api/v3";
 
-  return { ...getDatabaseConfig(), coingeckoApiKey, coingeckoApiUrl };
+  return {
+    ...getDatabaseConfig(),
+    coingeckoApiKey,
+    coingeckoApiUrl,
+  };
 };
 
 export type ApiConfig = DatabaseConfig & {

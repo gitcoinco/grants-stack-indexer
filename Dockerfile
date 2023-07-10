@@ -17,8 +17,6 @@ RUN npm run lint
 
 EXPOSE 8080
 
-COPY seed seed
-
 RUN npm run test
 
 COPY start.sh ./

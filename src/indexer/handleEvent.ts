@@ -1,9 +1,12 @@
-import { Indexer, JsonStorage, Event as ChainsauceEvent } from "chainsauce";
+import {
+  Indexer,
+  JsonStorage,
+  Event as ChainsauceEvent,
+  Cache as ChainsauceCache,
+} from "chainsauce";
 import { BigNumber, ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
 
-import { fetchJsonCached as ipfs } from "../utils/ipfs.js";
-import { convertToUSD, convertFromUSD } from "../prices/index.js";
 import { eventRenames, tokenDecimals } from "../config.js";
 import {
   Application,
@@ -16,6 +19,7 @@ import {
 import { Event } from "./events.js";
 import { RoundContract } from "./contracts.js";
 import { importAbi } from "./utils.js";
+import { PriceProvider } from "../prices/index.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
@@ -41,10 +45,16 @@ function fullProjectId(
 }
 
 async function handleEvent(
-  indexer: Indexer<JsonStorage>,
-  originalEvent: ChainsauceEvent
+  originalEvent: ChainsauceEvent,
+  deps: {
+    db: JsonStorage;
+    indexer: Indexer<JsonStorage>;
+    ipfs: <T>(cid: string, cache: ChainsauceCache) => Promise<T | undefined>;
+    priceProvider: PriceProvider;
+  }
 ) {
-  const db = indexer.storage;
+  const { db, indexer, ipfs, priceProvider } = deps;
+
   const eventName =
     eventRenames[indexer.chainId]?.[originalEvent.address]?.[
       originalEvent.name
@@ -196,7 +206,7 @@ async function handleEvent(
       await db.collection(`rounds/${roundId}/contributors`).replaceAll([]);
 
       if (tokenDecimals[indexer.chainId][token]) {
-        await matchAmountUpdated(indexer, {
+        await matchAmountUpdated(indexer, priceProvider, {
           ...event,
           name: "MatchAmountUpdated",
           address: event.args.roundAddress,
@@ -228,7 +238,7 @@ async function handleEvent(
     }
 
     case "MatchAmountUpdated": {
-      return matchAmountUpdated(indexer, event);
+      return matchAmountUpdated(indexer, priceProvider, event);
     }
 
     case "RoundMetaPtrUpdated": {
@@ -429,7 +439,7 @@ async function handleEvent(
 
       const token = event.args.token.toLowerCase();
 
-      const conversionUSD = await convertToUSD(
+      const conversionUSD = await priceProvider.convertToUSD(
         indexer.chainId,
         token,
         event.args.amount.toBigInt(),
@@ -442,7 +452,7 @@ async function handleEvent(
         round.token === token
           ? event.args.amount.toString()
           : (
-              await convertFromUSD(
+              await priceProvider.convertFromUSD(
                 indexer.chainId,
                 round.token,
                 conversionUSD.amount,

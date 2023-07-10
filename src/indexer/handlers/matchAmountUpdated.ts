@@ -1,10 +1,11 @@
 import { Indexer, JsonStorage } from "chainsauce";
-import { convertToUSD } from "../../prices/index.js";
 import { Round } from "../types.js";
 import { MatchAmountUpdatedEvent } from "../events.js";
+import { PriceProvider } from "../../prices/index.js";
 
 export default async function (
   { chainId, storage: db }: Indexer<JsonStorage>,
+  priceProvider: PriceProvider,
   event: MatchAmountUpdatedEvent
 ) {
   const id = event.address;
@@ -16,7 +17,7 @@ export default async function (
     throw new Error(`Round ${id} not found`);
   }
 
-  const amountUSD = await convertToUSD(
+  const amountUSD = await priceProvider.convertToUSD(
     chainId,
     round.token,
     BigInt(matchAmount),

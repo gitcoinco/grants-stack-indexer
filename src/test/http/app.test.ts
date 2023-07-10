@@ -9,13 +9,16 @@ import {
   DataProvider,
   FileNotFoundError,
 } from "../../calculator/index.js";
+import { PriceProvider } from "../../prices/index.js";
 
 // Typed version of supertest's Response
 type Response<T> = Omit<SupertestResponse, "body"> & { body: T };
 
 vi.mock("../../prices/index.js", () => {
   return {
-    convertToUSD: vi.fn().mockReturnValue({ amount: 0 }),
+    createPriceProvider: () => ({
+      convertToUSD: vi.fn().mockReturnValue({ amount: 0 }),
+    }),
   };
 });
 
@@ -26,6 +29,15 @@ const loadFixture = (name: string, extension = "json") => {
 };
 
 type Fixtures = { [path: string]: string | undefined | unknown[] };
+
+export class TestPriceProvider {
+  async convertToUSD() {
+    return Promise.resolve({ amount: 0 });
+  }
+  async convertFromUSD() {
+    return Promise.resolve({ amount: 0 });
+  }
+}
 
 export class TestDataProvider implements DataProvider {
   fixtures: Fixtures;
@@ -58,6 +70,8 @@ describe("server", () => {
           "1/rounds.json": [], // empty file so the round won't be found
           "passport_scores.json": "passport_scores",
         });
+        calculatorConfig.priceProvider =
+          new TestPriceProvider() as unknown as PriceProvider;
 
         const resp = await request(app).get(
           "/api/v1/chains/1/rounds/0x1234/matches"
@@ -72,6 +86,8 @@ describe("server", () => {
           "1/rounds.json": undefined,
           "passport_scores.json": "passport_scores",
         });
+        calculatorConfig.priceProvider =
+          new TestPriceProvider() as unknown as PriceProvider;
 
         const resp = await request(app).get(
           "/api/v1/chains/1/rounds/0x1234/matches"
@@ -86,6 +102,8 @@ describe("server", () => {
           "1/rounds.json": "rounds",
           "passport_scores.json": "passport_scores",
         });
+        calculatorConfig.priceProvider =
+          new TestPriceProvider() as unknown as PriceProvider;
 
         const resp = await request(app).get(
           "/api/v1/chains/1/rounds/0x1234/matches"
@@ -100,6 +118,8 @@ describe("server", () => {
           "1/rounds.json": "rounds",
           "passport_scores.json": "passport_scores",
         });
+        calculatorConfig.priceProvider =
+          new TestPriceProvider() as unknown as PriceProvider;
 
         const resp = await request(app).get(
           "/api/v1/chains/1/rounds/0x1234/matches"
@@ -114,6 +134,8 @@ describe("server", () => {
           "1/rounds.json": "rounds",
           "passport_scores.json": undefined,
         });
+        calculatorConfig.priceProvider =
+          new TestPriceProvider() as unknown as PriceProvider;
 
         const resp = await request(app).get(
           "/api/v1/chains/1/rounds/0x1234/matches"
@@ -130,6 +152,8 @@ describe("server", () => {
           "1/rounds.json": "rounds",
           "passport_scores.json": "passport_scores",
         });
+        calculatorConfig.priceProvider =
+          new TestPriceProvider() as unknown as PriceProvider;
       });
 
       test("should render calculations with ignore saturation true", async () => {
@@ -198,6 +222,8 @@ describe("server", () => {
           ],
           "passport_scores.json": "passport_scores",
         });
+        calculatorConfig.priceProvider =
+          new TestPriceProvider() as unknown as PriceProvider;
       });
 
       test("should render calculations with ignore saturation false", async () => {
@@ -257,6 +283,8 @@ describe("server", () => {
           "1/rounds.json": "rounds",
           "passport_scores.json": "passport_scores",
         });
+        calculatorConfig.priceProvider =
+          new TestPriceProvider() as unknown as PriceProvider;
       });
 
       test("should keep the same results skipping bad votes", async () => {
@@ -315,6 +343,8 @@ describe("server", () => {
           "1/rounds.json": "rounds",
           "passport_scores.json": "passport_scores",
         });
+        calculatorConfig.priceProvider =
+          new TestPriceProvider() as unknown as PriceProvider;
 
         const overridesContent = loadFixture("overrides", "csv");
 
@@ -346,6 +376,8 @@ describe("server", () => {
           "1/rounds.json": "rounds",
           "passport_scores.json": "passport_scores",
         });
+        calculatorConfig.priceProvider =
+          new TestPriceProvider() as unknown as PriceProvider;
 
         const overridesContent = loadFixture(
           "overrides-with-floating-coefficient",
@@ -440,6 +472,8 @@ describe("server", () => {
           "1/rounds.json": "rounds",
           "passport_scores.json": "passport_scores",
         });
+        calculatorConfig.priceProvider =
+          new TestPriceProvider() as unknown as PriceProvider;
       });
 
       describe("should enable passport by query param", () => {
@@ -643,6 +677,8 @@ describe("server", () => {
           "1/rounds.json": "rounds",
           "passport_scores.json": "passport_scores",
         });
+        calculatorConfig.priceProvider =
+          new TestPriceProvider() as unknown as PriceProvider;
       });
 
       test("should enable matching cap from query param", async () => {
@@ -797,6 +833,8 @@ describe("server", () => {
           "1/rounds.json": "rounds",
           "passport_scores.json": "passport_scores",
         });
+        calculatorConfig.priceProvider =
+          new TestPriceProvider() as unknown as PriceProvider;
       });
 
       describe("should enable minimum amount by query param", () => {
