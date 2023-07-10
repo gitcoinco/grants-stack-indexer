@@ -40,3 +40,11 @@ kill_timeout = 5
     interval = "30s"
     timeout = "10s"
     grace_period = "1m"
+
+  [[services.http_checks]]
+    interval = "60s"
+    grace_period = "1m"
+    timeout = "30m"
+    method = "get"
+    path = "/data/"
+    protocol = "http"
