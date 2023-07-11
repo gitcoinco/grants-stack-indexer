@@ -70,7 +70,7 @@ npm run passport # index passport scores
 
 ## Deployment
 
-We deploy the Docker image to Fly, check [fly.toml](https://github.com/gitcoinco/allo-indexer/blob/main/fly.toml) and [Dockerfile](https://github.com/gitcoinco/allo-indexer/blob/main/Dockerfile) files for more details.
+We deploy the Docker image to Fly, check [fly.production.toml](https://github.com/gitcoinco/allo-indexer/blob/main/fly.production.toml) and [Dockerfile](https://github.com/gitcoinco/allo-indexer/blob/main/Dockerfile) files for more details.
 
 **Notes about the deployment**
 
@@ -79,7 +79,7 @@ We deploy the Docker image to Fly, check [fly.toml](https://github.com/gitcoinco
 - On deploy the data directory is always cleared and everything is reindexed, we only persist the cache
 - Find the data directory at `/mnt/indexer/data` and the cache directory at `/mnt/indexer/cache`
 
-The following commands might be useful for monitoring (use the `-c [fly.toml|fly.staging.toml]` argument switch between staging and production:
+The following commands might be useful for monitoring (use the `-c [fly.production.toml|fly.staging.toml]` argument switch between staging and production:
 
 ```bash
 fly status # show general status of the app, all VMs and their status
@@ -88,5 +88,3 @@ fly logs # check logs of running VM, it also shows logs of deployments in progre
 fly -c fly.staging.toml logs # check logs of staging
 fly ssh console # open a console to the runnning VM
 ```
-
-

@@ -27,17 +27,25 @@ kill_timeout = 5
     port = 80
     handlers = ["http"]
     force_https = true
-
+    
   [[services.ports]]
     port = 443
     handlers = ["tls", "http"]
-
+    
   [services.concurrency]
     type = "connections"
     hard_limit = 25
     soft_limit = 20
-
+    
   [[services.tcp_checks]]
     interval = "30s"
     timeout = "10s"
     grace_period = "1m"
+    
+  [[services.http_checks]]
+    interval = "60s"
+    grace_period = "1m"
+    timeout = "5s"
+    method = "get"
+    path = "/data/"
+    protocol = "http"
