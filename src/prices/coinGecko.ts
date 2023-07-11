@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import fetchRetry from "../utils/fetchRetry.js";
-import { getPricesConfig } from "../config.js";
+import { getPricesConfig, Token } from "../config.js";
 
 // XXX needs to be a function parameter, not a module variable
 const config = getPricesConfig();
@@ -22,27 +22,26 @@ type UnixTimestamp = number;
 type Price = number;
 
 export async function getPrices(
-  token: string,
-  chainId: number,
+  token: Token,
   startTime: UnixTimestamp,
   endTime: UnixTimestamp
 ): Promise<[Timestamp, Price][]> {
-  if (chainId === 5 || chainId === 58008) {
+  if (token.chainId === 5 || token.chainId === 58008) {
     return [];
   }
 
-  const platform = platforms[chainId];
-  const nativeToken = nativeTokens[chainId];
+  const platform = platforms[token.chainId];
+  const nativeToken = nativeTokens[token.chainId];
 
-  // not supported
-  if (!platform) {
-    throw new Error(`Prices for chain ID ${chainId} are not supported.`);
+  if (!(token.chainId in platforms)) {
+    throw new Error(`Prices for chain ID ${token.chainId} are not supported.`);
   }
 
-  const path =
-    token === ethers.constants.AddressZero
-      ? `/coins/${nativeToken}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`
-      : `/coins/${platform}/contract/${token.toLowerCase()}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`;
+  const isNativeToken = token.address === ethers.constants.AddressZero;
+
+  const path = isNativeToken
+    ? `/coins/${nativeToken}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`
+    : `/coins/${platform}/contract/${token.address.toLowerCase()}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`;
 
   const headers: HeadersInit = config.coingeckoApiKey
     ? {
@@ -62,12 +61,11 @@ export async function getPrices(
 }
 
 export async function getPricesByHour(
-  token: string,
-  chainId: number,
+  token: Token,
   startTime: UnixTimestamp,
   endTime: UnixTimestamp
 ): Promise<[Timestamp, Price][]> {
-  const prices = await getPrices(token, chainId, startTime, endTime);
+  const prices = await getPrices(token, startTime, endTime);
   const groupedByHour: Record<number, Price[]> = {};
   const hour = 60 * 60 * 1000;
   const result: [Timestamp, Price][] = [];
@@ -89,16 +87,15 @@ export async function getPricesByHour(
 }
 
 export async function getAveragePrice(
-  token: string,
-  chainId: number,
+  token: Token,
   startTime: UnixTimestamp,
   endTime: UnixTimestamp
 ): Promise<Price> {
-  const prices = await getPrices(token, chainId, startTime, endTime);
+  const prices = await getPrices(token, startTime, endTime);
 
   if (prices.length === 0) {
     throw new Error(
-      `No prices returned for ${chainId}:${token} from ${startTime} to ${endTime}`
+      `No prices returned for ${token.chainId}:${token.address} from ${startTime} to ${endTime}`
     );
   }
 

@@ -19,7 +19,9 @@ export type Price = {
   block: number;
 };
 
-const getPricesFrom = new Date(Date.UTC(2022, 11, 1, 0, 0, 0)).getTime();
+const EARLIEST_PRICE_TIMESTAMP = new Date(
+  Date.UTC(2022, 11, 1, 0, 0, 0)
+).getTime();
 
 const minutes = (n: number) => n * 60 * 1000;
 const hours = (n: number) => minutes(60) * n;
@@ -36,7 +38,7 @@ function chunkTimeBy(millis: number, chunkBy: number): [number, number][] {
   return chunks;
 }
 
-export async function updatePricesAndWrite(
+async function updatePricesAndWrite(
   provider: ethers.providers.JsonRpcProvider,
   cache: Cache | null,
   chain: Chain,
@@ -47,7 +49,7 @@ export async function updatePricesAndWrite(
   // get last updated price
   const lastPriceAt = currentPrices.reduce(
     (acc, price) => Math.max(price.timestamp + hours(1), acc),
-    getPricesFrom
+    EARLIEST_PRICE_TIMESTAMP
   );
 
   let toDate = undefined;
@@ -109,8 +111,7 @@ export async function updatePricesAndWrite(
 
       const prices = await getCacheLazy(cacheKey, () =>
         getPricesByHour(
-          token.address,
-          chain.id,
+          token,
           (lastPriceAt + chunk[0]) / 1000,
           (lastPriceAt + chunk[1]) / 1000
         )
@@ -148,23 +149,11 @@ export async function updatePricesAndWrite(
   }
 }
 
-export async function updatePricesAndWriteLoop(
-  provider: ethers.providers.JsonRpcProvider,
-  cache: Cache | null,
-  chain: Chain
-) {
-  await updatePricesAndWrite(provider, cache, chain);
-
-  setTimeout(() => {
-    void updatePricesAndWriteLoop(provider, cache, chain);
-  }, minutes(1));
-}
-
 export async function getPrices(chainId: number): Promise<Price[]> {
   return readPricesFile(chainId);
 }
 
-export async function appendPrices(chainId: number, newPrices: Price[]) {
+async function appendPrices(chainId: number, newPrices: Price[]) {
   const currentPrices = await getPrices(chainId);
   await writePrices(chainId, currentPrices.concat(newPrices));
 }

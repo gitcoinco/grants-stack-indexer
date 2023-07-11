@@ -6,17 +6,26 @@ import path from "node:path";
 
 type ChainId = number;
 
+export type Token = {
+  code: string;
+  address: string;
+  decimals: number;
+  chainId: ChainId;
+};
+
+export type Subscription = {
+  address: string;
+  abi: string;
+  fromBlock?: number;
+  events?: Record<string, string>;
+};
+
 export type Chain = {
   rpc: string;
   name: string;
   id: ChainId;
-  tokens: { code: string; address: string; decimals: number }[];
-  subscriptions: {
-    address: string;
-    abi: string;
-    fromBlock?: number;
-    events?: Record<string, string>;
-  }[];
+  tokens: Token[];
+  subscriptions: Subscription[];
 };
 
 export const chains: Chain[] = [
@@ -29,16 +38,19 @@ export const chains: Chain[] = [
         code: "USDC",
         address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
         decimals: 6,
+        chainId: 1,
       },
       {
         code: "DAI",
         address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
         decimals: 18,
+        chainId: 1,
       },
       {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
+        chainId: 1,
       },
     ],
     subscriptions: [
@@ -67,21 +79,25 @@ export const chains: Chain[] = [
         code: "USDC",
         address: "0xd35CCeEAD182dcee0F148EbaC9447DA2c4D449c4",
         decimals: 6,
+        chainId: 5,
       },
       {
         code: "DAI",
         address: "0x73967c6a0904aA032C103b4104747E88c566B1A2",
         decimals: 18,
+        chainId: 5,
       },
       {
         code: "DAI",
         address: "0x11fE4B6AE13d2a6055C8D9cF65c55bac32B5d844",
         decimals: 18,
+        chainId: 5,
       },
       {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
+        chainId: 5,
       },
     ],
     subscriptions: [
@@ -124,16 +140,19 @@ export const chains: Chain[] = [
         code: "USDC",
         address: "0x7F5c764cBc14f9669B88837ca1490cCa17c31607",
         decimals: 6,
+        chainId: 10,
       },
       {
         code: "DAI",
         address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
         decimals: 18,
+        chainId: 10,
       },
       {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
+        chainId: 10,
       },
     ],
     subscriptions: [
@@ -162,16 +181,19 @@ export const chains: Chain[] = [
         code: "USDC",
         address: "0x04068DA6C83AFCFA0e13ba15A6696662335D5B75",
         decimals: 6,
+        chainId: 250,
       },
       {
         code: "DAI",
         address: "0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E",
         decimals: 18,
+        chainId: 250,
       },
       {
         code: "FTM",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
+        chainId: 250,
       },
     ],
     subscriptions: [
@@ -203,11 +225,13 @@ export const chains: Chain[] = [
         code: "DAI",
         address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
         decimals: 18,
+        chainId: 58008,
       },
       {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
+        chainId: 58008,
       },
     ],
     subscriptions: [
