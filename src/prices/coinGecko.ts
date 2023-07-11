@@ -1,9 +1,6 @@
 import { ethers } from "ethers";
 import fetchRetry from "../utils/fetchRetry.js";
-import { getPricesConfig, Token } from "../config.js";
-
-// XXX needs to be a function parameter, not a module variable
-const config = getPricesConfig();
+import { Token } from "../config.js";
 
 const platforms: { [key: number]: string } = {
   1: "ethereum",
@@ -21,51 +18,13 @@ type Timestamp = number;
 type UnixTimestamp = number;
 type Price = number;
 
-export async function getPrices(
-  token: Token,
-  startTime: UnixTimestamp,
-  endTime: UnixTimestamp
-): Promise<[Timestamp, Price][]> {
-  if (token.chainId === 5 || token.chainId === 58008) {
-    return [];
-  }
-
-  const platform = platforms[token.chainId];
-  const nativeToken = nativeTokens[token.chainId];
-
-  if (!(token.chainId in platforms)) {
-    throw new Error(`Prices for chain ID ${token.chainId} are not supported.`);
-  }
-
-  const isNativeToken = token.address === ethers.constants.AddressZero;
-
-  const path = isNativeToken
-    ? `/coins/${nativeToken}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`
-    : `/coins/${platform}/contract/${token.address.toLowerCase()}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`;
-
-  const headers: HeadersInit = config.coingeckoApiKey
-    ? {
-        "x-cg-pro-api-key": config.coingeckoApiKey,
-      }
-    : {};
-
-  const res = await fetchRetry(`${config.coingeckoApiUrl}${path}`, {
-    headers,
-    retries: 5,
-    backoff: 10000,
-  });
-
-  const data = (await res.json()) as { prices: Array<[Timestamp, Price]> };
-
-  return data.prices;
-}
-
 export async function getPricesByHour(
   token: Token,
   startTime: UnixTimestamp,
-  endTime: UnixTimestamp
+  endTime: UnixTimestamp,
+  config: { coingeckoApiKey: string | null; coingeckoApiUrl: string }
 ): Promise<[Timestamp, Price][]> {
-  const prices = await getPrices(token, startTime, endTime);
+  const prices = await fetchPrices(token, startTime, endTime, config);
   const groupedByHour: Record<number, Price[]> = {};
   const hour = 60 * 60 * 1000;
   const result: [Timestamp, Price][] = [];
@@ -86,20 +45,43 @@ export async function getPricesByHour(
   return result;
 }
 
-export async function getAveragePrice(
+async function fetchPrices(
   token: Token,
   startTime: UnixTimestamp,
-  endTime: UnixTimestamp
-): Promise<Price> {
-  const prices = await getPrices(token, startTime, endTime);
-
-  if (prices.length === 0) {
-    throw new Error(
-      `No prices returned for ${token.chainId}:${token.address} from ${startTime} to ${endTime}`
-    );
+  endTime: UnixTimestamp,
+  config: { coingeckoApiKey: string | null; coingeckoApiUrl: string }
+): Promise<[Timestamp, Price][]> {
+  if (token.chainId === 5 || token.chainId === 58008) {
+    return [];
   }
 
-  const total = prices.reduce((total, [_timestamp, price]) => total + price, 0);
+  const platform = platforms[token.chainId];
+  const nativeToken = nativeTokens[token.chainId];
 
-  return total / prices.length;
+  if (!(token.chainId in platforms)) {
+    throw new Error(`Prices for chain ID ${token.chainId} are not supported.`);
+  }
+
+  const isNativeToken = token.address === ethers.constants.AddressZero;
+
+  const path = isNativeToken
+    ? `/coins/${nativeToken}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`
+    : `/coins/${platform}/contract/${token.address.toLowerCase()}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`;
+
+  const headers: HeadersInit =
+    config.coingeckoApiKey === null
+      ? {}
+      : {
+          "x-cg-pro-api-key": config.coingeckoApiKey,
+        };
+
+  const res = await fetchRetry(`${config.coingeckoApiUrl}${path}`, {
+    headers,
+    retries: 5,
+    backoff: 10000,
+  });
+
+  const data = (await res.json()) as { prices: Array<[Timestamp, Price]> };
+
+  return data.prices;
 }

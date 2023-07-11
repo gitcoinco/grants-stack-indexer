@@ -280,35 +280,85 @@ export const eventRenames = Object.fromEntries(
   })
 );
 
-export interface DatabaseConfig {
+interface ChainConfig {
+  chain: Chain;
+  fromBlock: number;
+  toBlock?: ToBlock;
+}
+
+interface DatabaseConfig {
   storageDir: string;
 }
 
-export const getDatabaseConfig = (): DatabaseConfig => {
+export function getDatabaseConfig(): DatabaseConfig {
   const storageDir = path.join(process.env.STORAGE_DIR || "./data");
 
   return { storageDir };
+}
+
+export type ApiConfig = DatabaseConfig & {
+  port: number;
 };
 
-export type IndexerConfig = DatabaseConfig & {
-  provider: ethers.providers.StaticJsonRpcProvider;
-  cacheDir: string | null;
-  chain: Chain;
-  fromBlock: number;
-  oneShot?: boolean;
-  toBlock?: ToBlock;
-  logLevel?: Log;
-  follow?: boolean;
-  clear: boolean;
-  ipfsGateway: string;
+export function getApiConfig(): ApiConfig {
+  const port = Number(process.env.PORT || "4000");
+
+  return {
+    ...getDatabaseConfig(),
+    port,
+  };
+}
+
+export type PassportConfig = DatabaseConfig & {
+  scorerId: number;
 };
 
-export const getIndexerConfig = (): IndexerConfig => {
+export function getPassportConfig(): PassportConfig {
+  if (!process.env.PASSPORT_SCORER_ID) {
+    throw new Error("PASSPORT_SCORER_ID is not set");
+  }
+  const scorerId = Number(process.env.PASSPORT_SCORER_ID);
+
+  return {
+    ...getDatabaseConfig(),
+    scorerId,
+  };
+}
+
+export type IndexerConfig = DatabaseConfig &
+  ChainConfig & {
+    provider: ethers.providers.StaticJsonRpcProvider;
+    cacheDir: string | null;
+    oneShot?: boolean;
+    logLevel?: Log;
+    follow?: boolean;
+    clear: boolean;
+    ipfsGateway: string;
+    coingeckoApiKey: string | null;
+    coingeckoApiUrl: string;
+    chain: Chain;
+  };
+
+export function getIndexerConfig(): IndexerConfig {
+  const coingeckoApiKey = process.env.COINGECKO_API_KEY ?? null;
+
+  const coingeckoApiUrl = process.env.COINGECKO_API_KEY
+    ? "https://pro-api.coingecko.com/api/v3/"
+    : "https://api.coingecko.com/api/v3";
+
+  const storageDir = path.join(process.env.STORAGE_DIR || "./data");
+
   const { values: args } = parseArgs({
     options: {
       chain: {
         type: "string",
         short: "s",
+      },
+      "to-block": {
+        type: "string",
+      },
+      "from-block": {
+        type: "string",
       },
       "log-level": {
         type: "string",
@@ -316,12 +366,6 @@ export const getIndexerConfig = (): IndexerConfig => {
       follow: {
         type: "boolean",
         short: "f",
-      },
-      "to-block": {
-        type: "string",
-      },
-      "from-block": {
-        type: "string",
       },
       clear: {
         type: "boolean",
@@ -333,18 +377,13 @@ export const getIndexerConfig = (): IndexerConfig => {
   });
 
   const chainName = args.chain;
-
   if (!chainName) {
     throw new Error("Chain not provided");
   }
-
   const chain = chains.find((chain) => chain.name === chainName);
   if (!chain) {
     throw new Error("Chain " + chainName + " is not configured");
   }
-
-  const { storageDir } = getDatabaseConfig();
-
   const toBlock =
     "to-block" in args ? Number(args["to-block"]) : ("latest" as const);
   const fromBlock = "from-block" in args ? Number(args["from-block"]) : 0;
@@ -385,6 +424,8 @@ export const getIndexerConfig = (): IndexerConfig => {
   const ipfsGateway = process.env.IPFS_GATEWAY || "https://cloudflare-ipfs.com";
 
   return {
+    coingeckoApiUrl,
+    coingeckoApiKey,
     storageDir,
     chain,
     provider,
@@ -396,52 +437,4 @@ export const getIndexerConfig = (): IndexerConfig => {
     clear,
     ipfsGateway,
   };
-};
-
-export type PricesConfig = DatabaseConfig & {
-  coingeckoApiKey?: string;
-  coingeckoApiUrl: string;
-};
-
-export const getPricesConfig = (): PricesConfig => {
-  const coingeckoApiKey = process.env.COINGECKO_API_KEY;
-
-  const coingeckoApiUrl = process.env.COINGECKO_API_KEY
-    ? "https://pro-api.coingecko.com/api/v3/"
-    : "https://api.coingecko.com/api/v3";
-
-  return {
-    ...getDatabaseConfig(),
-    coingeckoApiKey,
-    coingeckoApiUrl,
-  };
-};
-
-export type ApiConfig = DatabaseConfig & {
-  port: number;
-};
-
-export const getApiConfig = (): ApiConfig => {
-  const port = Number(process.env.PORT || "4000");
-
-  return {
-    ...getDatabaseConfig(),
-    port,
-  };
-};
-
-export type PassportConfig = DatabaseConfig & {
-  scorerId: number;
-};
-
-export const getPassportConfig = (): PassportConfig => {
-  if (!process.env.PASSPORT_SCORER_ID) {
-    throw new Error("PASSPORT_SCORER_ID is not set");
-  }
-  const scorerId = Number(process.env.PASSPORT_SCORER_ID);
-
-  return {
-    ...getDatabaseConfig(),
-    scorerId,
-  };
-};
+}
