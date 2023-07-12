@@ -379,7 +379,11 @@ export function getIndexerConfig(): IndexerConfig {
     throw new Error("Chain " + chainName + " is not configured");
   }
   const toBlock =
-    "to-block" in args ? Number(args["to-block"]) : ("latest" as const);
+    "to-block" in args
+      ? args["to-block"] === "latest"
+        ? ("latest" as const)
+        : Number(args["to-block"])
+      : ("latest" as const);
   const fromBlock = "from-block" in args ? Number(args["from-block"]) : 0;
 
   const provider = new RetryProvider({
