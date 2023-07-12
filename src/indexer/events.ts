@@ -140,11 +140,11 @@ export interface PayoutContractCreatedEvent extends ChainsauceEvent {
   };
 }
 
-export interface ApplicationInReviewEvent extends ChainsauceEvent {
-  name: "ApplicationInReview";
+export interface ApplicationInReviewUpdatedEvent extends ChainsauceEvent {
+  name: "ApplicationInReviewUpdated";
   args: {
-    applicationIndex: ethers.BigNumber;
-    operator: string;
+    index: ethers.BigNumber;
+    status: ethers.BigNumber;
   };
 }
 
@@ -166,4 +166,4 @@ export type Event =
   | RoundCreatedV1Event
   | RoundCreatedEvent
   | PayoutContractCreatedEvent
-  | ApplicationInReviewEvent;
+  | ApplicationInReviewUpdatedEvent;

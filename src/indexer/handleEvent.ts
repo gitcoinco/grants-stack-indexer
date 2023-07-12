@@ -702,7 +702,7 @@ async function handleEvent(
       break;
     }
 
-    case "ApplicationInReview": {
+    case "ApplicationInReviewUpdated": {
       const contract = indexer.subscribe(
         event.address,
         (
@@ -715,25 +715,42 @@ async function handleEvent(
 
       const round = await contract.roundAddress();
 
-      const statusString = ApplicationStatus[4] as Application["status"];
-      await db
-        .collection<Application>(`rounds/${round}/applications`)
-        .updateById(event.args.applicationIndex.toString(), (application) => {
-          const newApplication = {...application}
-          const prevStatus = application.status;
-          newApplication.status = statusString;
-          newApplication.statusUpdatedAtBlock = event.blockNumber
-          newApplication.statusSnapshots = [...application.statusSnapshots]
+      const bitmap = new StatusesBitmap(256n, 1n);
+      bitmap.setRow(event.args.index.toBigInt(), event.args.status.toBigInt());
+      const startIndex = event.args.index.toBigInt() * bitmap.itemsPerRow;
 
-          if (prevStatus !== statusString) {
-            newApplication.statusSnapshots.push({
-              status: statusString,
-              statusUpdatedAtBlock: event.blockNumber,
+      for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
+        const newStatus = bitmap.getStatus(i);
+        const application = await db
+          .collection<Application>(
+            `rounds/${round}/applications`
+          )
+          .findById(i.toString());
+
+        // DirectPayoutStrategy uses status 1 for signaling IN REVIEW. In order to be considered as IN REVIEW the
+        // application must be on PENDING status on the round
+        if (newStatus == 1 && application!.status == "PENDING") {
+          const statusString = ApplicationStatus[4] as Application["status"];
+          await db
+            .collection<Application>(`rounds/${round}/applications`)
+            .updateById(i.toString(), (application) => {
+              const newApplication = {...application}
+              const prevStatus = application.status;
+              newApplication.status = statusString;
+              newApplication.statusUpdatedAtBlock = event.blockNumber
+              newApplication.statusSnapshots = [...application.statusSnapshots]
+
+              if (prevStatus !== statusString) {
+                newApplication.statusSnapshots.push({
+                  status: statusString,
+                  statusUpdatedAtBlock: event.blockNumber,
+                })
+              }
+
+              return newApplication
             })
-          }
-
-          return newApplication
-        })
+        }
+      }
 
       break;
     }
