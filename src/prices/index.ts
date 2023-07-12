@@ -336,20 +336,6 @@ export function createPriceProvider(
   ): Promise<Price & { decimals: number }> {
     let closestPrice: Price | null = null;
 
-    if (
-      // goerli
-      chainId === 5
-    ) {
-      return {
-        token,
-        code: "ETH",
-        price: 1,
-        timestamp: 0,
-        block: 0,
-        decimals: 18,
-      };
-    }
-
     if (!tokenDecimals[chainId][token]) {
       console.error(`Unsupported token ${token} for chain ${chainId}`);
       return {

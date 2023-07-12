@@ -77,27 +77,21 @@ export const chains: Chain[] = [
     tokens: [
       {
         code: "USDC",
-        address: "0xd35CCeEAD182dcee0F148EbaC9447DA2c4D449c4",
+        address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
         decimals: 6,
-        chainId: 5,
+        chainId: 1,
       },
       {
         code: "DAI",
-        address: "0x73967c6a0904aA032C103b4104747E88c566B1A2",
+        address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
         decimals: 18,
-        chainId: 5,
-      },
-      {
-        code: "DAI",
-        address: "0x11fE4B6AE13d2a6055C8D9cF65c55bac32B5d844",
-        decimals: 18,
-        chainId: 5,
+        chainId: 1,
       },
       {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
-        chainId: 5,
+        chainId: 1,
       },
     ],
     subscriptions: [

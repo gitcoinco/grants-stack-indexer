@@ -51,10 +51,6 @@ async function fetchPrices(
   endTime: UnixTimestamp,
   config: { coingeckoApiKey: string | null; coingeckoApiUrl: string }
 ): Promise<[Timestamp, Price][]> {
-  if (token.chainId === 5) {
-    return [];
-  }
-
   const platform = platforms[token.chainId];
   const nativeToken = nativeTokens[token.chainId];
 
