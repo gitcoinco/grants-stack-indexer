@@ -223,15 +223,15 @@ export const chains: Chain[] = [
     tokens: [
       {
         code: "DAI",
-        address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
         decimals: 18,
-        chainId: 58008,
+        chainId: 1,
       },
       {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
-        chainId: 58008,
+        chainId: 1,
       },
     ],
     subscriptions: [

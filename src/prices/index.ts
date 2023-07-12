@@ -338,9 +338,7 @@ export function createPriceProvider(
 
     if (
       // goerli
-      chainId === 5 ||
-      // pgn-testnet
-      chainId === 58008
+      chainId === 5
     ) {
       return {
         token,
