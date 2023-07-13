@@ -1,16 +1,16 @@
 import { Indexer, JsonStorage } from "chainsauce";
+import { fetchJsonCached as ipfs } from "../../utils/ipfs.js";
 import { Round } from "../types.js";
 import { ApplicationMetaPtrUpdatedEvent } from "../events.js";
 
 export default async function applicationMetaPtrUpdated(
-  { storage: db }: Indexer<JsonStorage>,
-  event: ApplicationMetaPtrUpdatedEvent,
-  ipfs: <T>(cid: string) => Promise<T | undefined>
+  { cache, storage: db }: Indexer<JsonStorage>,
+  event: ApplicationMetaPtrUpdatedEvent
 ) {
   const id = event.address;
 
   const metaPtr = event.args.newMetaPtr.pointer;
-  const metadata = await ipfs<Round["applicationMetadata"]>(metaPtr);
+  const metadata = await ipfs<Round["applicationMetadata"]>(metaPtr, cache);
 
   await db.collection<Round>("rounds").updateById(id, (round) => {
     return {

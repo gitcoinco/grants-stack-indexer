@@ -1,23 +1,23 @@
 import { Cache } from "chainsauce";
 
 import fetchRetry from "./fetchRetry.js";
+import { getIndexerConfig } from "../config.js";
+
+// XXX needs to be a function parameter, not a module variable
+const config = getIndexerConfig();
 
 export async function fetchJsonCached<T>(
   cid: string,
-  cache: Cache,
-  config: { ipfsGateway: string }
+  cache: Cache
 ): Promise<T | undefined> {
   return await cache.lazy<T | undefined>(`ipfs-${cid}`, () =>
-    fetchJson<T>(cid, config)
+    fetchJson<T>(cid)
   );
 }
 
 const cidRegex = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[0-9A-Za-z]{50,})$/;
 
-export async function fetchJson<T>(
-  cid: string,
-  config: { ipfsGateway: string }
-): Promise<T | undefined> {
+export async function fetchJson<T>(cid: string): Promise<T | undefined> {
   if (!cidRegex.test(cid)) {
     console.error("Invalid IPFS CID:", cid);
     return undefined;

@@ -6,26 +6,17 @@ import path from "node:path";
 
 type ChainId = number;
 
-export type Token = {
-  code: string;
-  address: string;
-  decimals: number;
-  chainId: ChainId;
-};
-
-export type Subscription = {
-  address: string;
-  abi: string;
-  fromBlock?: number;
-  events?: Record<string, string>;
-};
-
 export type Chain = {
   rpc: string;
   name: string;
   id: ChainId;
-  tokens: Token[];
-  subscriptions: Subscription[];
+  tokens: { code: string; address: string; decimals: number }[];
+  subscriptions: {
+    address: string;
+    abi: string;
+    fromBlock?: number;
+    events?: Record<string, string>;
+  }[];
 };
 
 export const chains: Chain[] = [
@@ -38,19 +29,16 @@ export const chains: Chain[] = [
         code: "USDC",
         address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
         decimals: 6,
-        chainId: 1,
       },
       {
         code: "DAI",
         address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
         decimals: 18,
-        chainId: 1,
       },
       {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
-        chainId: 1,
       },
     ],
     subscriptions: [
@@ -77,21 +65,23 @@ export const chains: Chain[] = [
     tokens: [
       {
         code: "USDC",
-        address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        address: "0xd35CCeEAD182dcee0F148EbaC9447DA2c4D449c4",
         decimals: 6,
-        chainId: 1,
       },
       {
         code: "DAI",
-        address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        address: "0x73967c6a0904aA032C103b4104747E88c566B1A2",
         decimals: 18,
-        chainId: 1,
+      },
+      {
+        code: "DAI",
+        address: "0x11fE4B6AE13d2a6055C8D9cF65c55bac32B5d844",
+        decimals: 18,
       },
       {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
-        chainId: 1,
       },
     ],
     subscriptions: [
@@ -134,19 +124,16 @@ export const chains: Chain[] = [
         code: "USDC",
         address: "0x7F5c764cBc14f9669B88837ca1490cCa17c31607",
         decimals: 6,
-        chainId: 10,
       },
       {
         code: "DAI",
         address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
         decimals: 18,
-        chainId: 10,
       },
       {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
-        chainId: 10,
       },
     ],
     subscriptions: [
@@ -175,19 +162,16 @@ export const chains: Chain[] = [
         code: "USDC",
         address: "0x04068DA6C83AFCFA0e13ba15A6696662335D5B75",
         decimals: 6,
-        chainId: 250,
       },
       {
         code: "DAI",
         address: "0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E",
         decimals: 18,
-        chainId: 250,
       },
       {
         code: "FTM",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
-        chainId: 250,
       },
     ],
     subscriptions: [
@@ -217,15 +201,13 @@ export const chains: Chain[] = [
     tokens: [
       {
         code: "DAI",
-        address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
         decimals: 18,
-        chainId: 1,
       },
       {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
-        chainId: 1,
       },
     ],
     subscriptions: [
@@ -274,85 +256,35 @@ export const eventRenames = Object.fromEntries(
   })
 );
 
-interface ChainConfig {
-  chain: Chain;
-  fromBlock: number;
-  toBlock?: ToBlock;
-}
-
-interface DatabaseConfig {
+export interface DatabaseConfig {
   storageDir: string;
 }
 
-export function getDatabaseConfig(): DatabaseConfig {
+export const getDatabaseConfig = (): DatabaseConfig => {
   const storageDir = path.join(process.env.STORAGE_DIR || "./data");
 
   return { storageDir };
-}
-
-export type ApiConfig = DatabaseConfig & {
-  port: number;
 };
 
-export function getApiConfig(): ApiConfig {
-  const port = Number(process.env.PORT || "4000");
-
-  return {
-    ...getDatabaseConfig(),
-    port,
-  };
-}
-
-export type PassportConfig = DatabaseConfig & {
-  scorerId: number;
+export type IndexerConfig = DatabaseConfig & {
+  provider: ethers.providers.StaticJsonRpcProvider;
+  cacheDir: string | null;
+  chain: Chain;
+  fromBlock: number;
+  oneShot?: boolean;
+  toBlock?: ToBlock;
+  logLevel?: Log;
+  follow?: boolean;
+  clear: boolean;
+  ipfsGateway: string;
 };
 
-export function getPassportConfig(): PassportConfig {
-  if (!process.env.PASSPORT_SCORER_ID) {
-    throw new Error("PASSPORT_SCORER_ID is not set");
-  }
-  const scorerId = Number(process.env.PASSPORT_SCORER_ID);
-
-  return {
-    ...getDatabaseConfig(),
-    scorerId,
-  };
-}
-
-export type IndexerConfig = DatabaseConfig &
-  ChainConfig & {
-    provider: ethers.providers.StaticJsonRpcProvider;
-    cacheDir: string | null;
-    oneShot?: boolean;
-    logLevel?: Log;
-    follow?: boolean;
-    clear: boolean;
-    ipfsGateway: string;
-    coingeckoApiKey: string | null;
-    coingeckoApiUrl: string;
-    chain: Chain;
-  };
-
-export function getIndexerConfig(): IndexerConfig {
-  const coingeckoApiKey = process.env.COINGECKO_API_KEY ?? null;
-
-  const coingeckoApiUrl = process.env.COINGECKO_API_KEY
-    ? "https://pro-api.coingecko.com/api/v3/"
-    : "https://api.coingecko.com/api/v3";
-
-  const storageDir = path.join(process.env.STORAGE_DIR || "./data");
-
+export const getIndexerConfig = (): IndexerConfig => {
   const { values: args } = parseArgs({
     options: {
       chain: {
         type: "string",
         short: "s",
-      },
-      "to-block": {
-        type: "string",
-      },
-      "from-block": {
-        type: "string",
       },
       "log-level": {
         type: "string",
@@ -360,6 +292,12 @@ export function getIndexerConfig(): IndexerConfig {
       follow: {
         type: "boolean",
         short: "f",
+      },
+      "to-block": {
+        type: "string",
+      },
+      "from-block": {
+        type: "string",
       },
       clear: {
         type: "boolean",
@@ -371,19 +309,20 @@ export function getIndexerConfig(): IndexerConfig {
   });
 
   const chainName = args.chain;
+
   if (!chainName) {
     throw new Error("Chain not provided");
   }
+
   const chain = chains.find((chain) => chain.name === chainName);
   if (!chain) {
     throw new Error("Chain " + chainName + " is not configured");
   }
+
+  const { storageDir } = getDatabaseConfig();
+
   const toBlock =
-    "to-block" in args
-      ? args["to-block"] === "latest"
-        ? ("latest" as const)
-        : Number(args["to-block"])
-      : ("latest" as const);
+    "to-block" in args ? Number(args["to-block"]) : ("latest" as const);
   const fromBlock = "from-block" in args ? Number(args["from-block"]) : 0;
 
   const provider = new RetryProvider({
@@ -422,8 +361,6 @@ export function getIndexerConfig(): IndexerConfig {
   const ipfsGateway = process.env.IPFS_GATEWAY || "https://cloudflare-ipfs.com";
 
   return {
-    coingeckoApiUrl,
-    coingeckoApiKey,
     storageDir,
     chain,
     provider,
@@ -435,4 +372,52 @@ export function getIndexerConfig(): IndexerConfig {
     clear,
     ipfsGateway,
   };
-}
+};
+
+export type PricesConfig = DatabaseConfig & {
+  coingeckoApiKey?: string;
+  coingeckoApiUrl: string;
+};
+
+export const getPricesConfig = (): PricesConfig => {
+  const coingeckoApiKey = process.env.COINGECKO_API_KEY;
+
+  const coingeckoApiUrl = process.env.COINGECKO_API_KEY
+    ? "https://pro-api.coingecko.com/api/v3/"
+    : "https://api.coingecko.com/api/v3";
+
+  return {
+    ...getDatabaseConfig(),
+    coingeckoApiKey,
+    coingeckoApiUrl,
+  };
+};
+
+export type ApiConfig = DatabaseConfig & {
+  port: number;
+};
+
+export const getApiConfig = (): ApiConfig => {
+  const port = Number(process.env.PORT || "4000");
+
+  return {
+    ...getDatabaseConfig(),
+    port,
+  };
+};
+
+export type PassportConfig = DatabaseConfig & {
+  scorerId: number;
+};
+
+export const getPassportConfig = (): PassportConfig => {
+  if (!process.env.PASSPORT_SCORER_ID) {
+    throw new Error("PASSPORT_SCORER_ID is not set");
+  }
+  const scorerId = Number(process.env.PASSPORT_SCORER_ID);
+
+  return {
+    ...getDatabaseConfig(),
+    scorerId,
+  };
+};
