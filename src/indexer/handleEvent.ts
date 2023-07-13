@@ -1,4 +1,9 @@
-import { Indexer, JsonStorage, Event as ChainsauceEvent } from "chainsauce";
+import {
+  Indexer,
+  JsonStorage,
+  Event as ChainsauceEvent,
+  Cache as ChainsauceCache,
+} from "chainsauce";
 import { BigNumber, ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
 
@@ -44,7 +49,7 @@ async function handleEvent(
   deps: {
     db: JsonStorage;
     indexer: Indexer<JsonStorage>;
-    ipfs: <T>(cid: string) => Promise<T | undefined>;
+    ipfs: <T>(cid: string, cache: ChainsauceCache) => Promise<T | undefined>;
     priceProvider: PriceProvider;
   }
 ) {
@@ -87,7 +92,8 @@ async function handleEvent(
       );
 
       const metadata = await ipfs<Project["metadata"]>(
-        event.args.metaPtr.pointer
+        event.args.metaPtr.pointer,
+        indexer.cache
       );
 
       await db.collection<Project>("projects").updateById(id, (project) => {
@@ -210,31 +216,23 @@ async function handleEvent(
         });
       }
 
-      await roundMetaPtrUpdated(
-        indexer,
-        {
-          ...event,
-          name: "RoundMetaPtrUpdated",
-          address: event.args.roundAddress,
-          args: {
-            newMetaPtr: { pointer: metaPtr },
-          },
+      await roundMetaPtrUpdated(indexer, {
+        ...event,
+        name: "RoundMetaPtrUpdated",
+        address: event.args.roundAddress,
+        args: {
+          newMetaPtr: { pointer: metaPtr },
         },
-        ipfs
-      );
+      });
 
-      await applicationMetaPtrUpdated(
-        indexer,
-        {
-          ...event,
-          name: "ApplicationMetaPtrUpdated",
-          address: event.args.roundAddress,
-          args: {
-            newMetaPtr: { pointer: applicationMetaPtr },
-          },
+      await applicationMetaPtrUpdated(indexer, {
+        ...event,
+        name: "ApplicationMetaPtrUpdated",
+        address: event.args.roundAddress,
+        args: {
+          newMetaPtr: { pointer: applicationMetaPtr },
         },
-        ipfs
-      );
+      });
 
       break;
     }
@@ -244,11 +242,11 @@ async function handleEvent(
     }
 
     case "RoundMetaPtrUpdated": {
-      return roundMetaPtrUpdated(indexer, event, ipfs);
+      return roundMetaPtrUpdated(indexer, event);
     }
 
     case "ApplicationMetaPtrUpdated": {
-      return applicationMetaPtrUpdated(indexer, event, ipfs);
+      return applicationMetaPtrUpdated(indexer, event);
     }
 
     case "NewProjectApplication": {
@@ -308,7 +306,8 @@ async function handleEvent(
       }
 
       const metadata = await ipfs<Application["metadata"]>(
-        event.args.applicationMetaPtr.pointer
+        event.args.applicationMetaPtr.pointer,
+        indexer.cache
       );
 
       if (metadata) {
@@ -329,7 +328,7 @@ async function handleEvent(
     case "ProjectsMetaPtrUpdated": {
       const projects = await ipfs<
         { id: string; status: Application["status"]; payoutAddress: string }[]
-      >(event.args.newMetaPtr.pointer);
+      >(event.args.newMetaPtr.pointer, indexer.cache);
 
       if (!projects) {
         return;

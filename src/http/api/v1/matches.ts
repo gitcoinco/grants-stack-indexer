@@ -23,7 +23,7 @@ export const calculatorConfig: {
   dataProvider: DataProvider;
   priceProvider: PriceProvider;
 } = {
-  priceProvider: createPriceProvider({ storageDir: "dummy" }),
+  priceProvider: createPriceProvider({}),
   dataProvider: new FileSystemDataProvider(config.storageDir),
 };
 

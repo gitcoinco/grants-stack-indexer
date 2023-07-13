@@ -6,7 +6,10 @@ import { ethers } from "ethers";
 import { getBlockFromTimestamp } from "../utils/getBlockFromTimestamp.js";
 import { getPricesByHour } from "./coinGecko.js";
 import { existsSync } from "fs";
-import { Chain, tokenDecimals } from "../config.js";
+import { Chain, tokenDecimals, getPricesConfig } from "../config.js";
+
+// XXX needs to be a function parameter, not a module variable
+const config = getPricesConfig();
 
 export type Price = {
   token: string;
@@ -16,9 +19,7 @@ export type Price = {
   block: number;
 };
 
-const EARLIEST_PRICE_TIMESTAMP = new Date(
-  Date.UTC(2022, 11, 1, 0, 0, 0)
-).getTime();
+const getPricesFrom = new Date(Date.UTC(2022, 11, 1, 0, 0, 0)).getTime();
 
 const minutes = (n: number) => n * 60 * 1000;
 const hours = (n: number) => minutes(60) * n;
@@ -35,6 +36,164 @@ function chunkTimeBy(millis: number, chunkBy: number): [number, number][] {
   return chunks;
 }
 
+export async function updatePricesAndWrite(
+  provider: ethers.providers.JsonRpcProvider,
+  cache: Cache | null,
+  chain: Chain,
+  toBlock: number | "latest" = "latest"
+) {
+  const currentPrices = await getPrices(chain.id);
+
+  // get last updated price
+  const lastPriceAt = currentPrices.reduce(
+    (acc, price) => Math.max(price.timestamp + hours(1), acc),
+    getPricesFrom
+  );
+
+  let toDate = undefined;
+
+  if (toBlock === "latest") {
+    toDate = new Date();
+  } else {
+    const block = await provider.getBlock(toBlock);
+    toDate = new Date(block.timestamp * 1000);
+  }
+
+  // time elapsed from the last update, rounded to hours
+  const timeElapsed =
+    Math.floor((toDate.getTime() - lastPriceAt) / hours(1)) * hours(1);
+
+  // only fetch new prices every new hour
+  if (timeElapsed < hours(1)) {
+    return;
+  }
+
+  const getCacheLazy = async <T>(cacheKey: string, fn: () => Promise<T>) => {
+    if (cache) {
+      return await cache.lazy(cacheKey, fn);
+    } else {
+      return await fn();
+    }
+  };
+
+  const getBlockTimestamp = async (blockNumber: number) => {
+    const block = await getCacheLazy(
+      `block-${chain.id}-${blockNumber}`,
+      async () => {
+        return await provider.getBlock(blockNumber);
+      }
+    );
+
+    return block.timestamp;
+  };
+
+  const lastBlockNumber = await provider.getBlockNumber();
+
+  // get prices in 90 day chunks to get the most of Coingecko's granularity
+  const timeChunks = chunkTimeBy(timeElapsed, days(90));
+
+  for (const chunk of timeChunks) {
+    for (const token of chain.tokens) {
+      const cacheKey = `${chain.id}-${token.address}-${
+        lastPriceAt + chunk[0]
+      }-${lastPriceAt + chunk[1]}`;
+
+      console.log(
+        "Fetching prices for",
+        token.code,
+        ":",
+        new Date(lastPriceAt + chunk[0]),
+        "-",
+        new Date(lastPriceAt + chunk[1])
+      );
+
+      const prices = await getCacheLazy(cacheKey, () =>
+        getPricesByHour(
+          token.address,
+          chain.id,
+          (lastPriceAt + chunk[0]) / 1000,
+          (lastPriceAt + chunk[1]) / 1000
+        )
+      );
+
+      const newPrices: Price[] = [];
+
+      for (const [timestamp, price] of prices) {
+        const blockNumber = await getBlockFromTimestamp(
+          timestamp,
+          0,
+          lastBlockNumber,
+          getBlockTimestamp
+        );
+
+        if (blockNumber === undefined) {
+          throw new Error(
+            `Could not find block number for timestamp: ${timestamp}`
+          );
+        }
+
+        newPrices.push({
+          token: token.address.toLowerCase(),
+          code: token.code,
+          price,
+          timestamp,
+          block: blockNumber,
+        });
+      }
+
+      console.log("Fetched", newPrices.length, "new prices");
+
+      await appendPrices(chain.id, newPrices);
+    }
+  }
+}
+
+export async function updatePricesAndWriteLoop(
+  provider: ethers.providers.JsonRpcProvider,
+  cache: Cache | null,
+  chain: Chain
+) {
+  await updatePricesAndWrite(provider, cache, chain);
+
+  setTimeout(() => {
+    void updatePricesAndWriteLoop(provider, cache, chain);
+  }, minutes(1));
+}
+
+export async function getPrices(chainId: number): Promise<Price[]> {
+  return readPricesFile(chainId);
+}
+
+export async function appendPrices(chainId: number, newPrices: Price[]) {
+  const currentPrices = await getPrices(chainId);
+  await writePrices(chainId, currentPrices.concat(newPrices));
+}
+
+function pricesFilename(chainId: number): string {
+  return path.join(config.storageDir, `${chainId}/prices.json`);
+}
+
+async function readPricesFile(chainId: number): Promise<Price[]> {
+  const filename = pricesFilename(chainId);
+
+  if (existsSync(filename)) {
+    return JSON.parse((await fs.readFile(filename)).toString()) as Price[];
+  }
+
+  return [];
+}
+
+async function writePrices(chainId: number, prices: Price[]) {
+  return writePricesFile(pricesFilename(chainId), prices);
+}
+
+async function writePricesFile(filename: string, prices: Price[]) {
+  const tempFile = `${filename}.write`;
+  await fs.mkdir(path.dirname(filename), { recursive: true });
+  await fs.writeFile(tempFile, JSON.stringify(prices));
+  await fs.rename(tempFile, filename);
+}
+
 export interface PriceUpdaterService {
   catchupAndWatch: () => Promise<void>;
   fetchPricesUntilBlock: (toBlock: ToBlock) => Promise<void>;
@@ -44,16 +203,11 @@ interface PriceUpdaterConfig {
   rpcProvider: ethers.providers.StaticJsonRpcProvider;
   cache: Cache | null;
   chain: Chain;
-  storageDir: string;
-  coingeckoApiKey: string | null;
-  coingeckoApiUrl: string;
 }
 
 export function createPriceUpdater(
   config: PriceUpdaterConfig
 ): PriceUpdaterService {
-  // PUBLIC
-
   async function catchupAndWatch() {
     await fetchPricesUntilBlock("latest");
 
@@ -69,8 +223,6 @@ export function createPriceUpdater(
     );
   }
 
-  // INTERNALS
-
   function watchLoop() {
     updatePricesAndWrite(config.rpcProvider, config.cache, config.chain)
       .then(() => {
@@ -78,136 +230,6 @@ export function createPriceUpdater(
       })
       .catch((err) => console.error(err));
   }
-
-  async function updatePricesAndWrite(
-    provider: ethers.providers.JsonRpcProvider,
-    cache: Cache | null,
-    chain: Chain,
-    toBlock: number | "latest" = "latest"
-  ) {
-    const currentPrices = await readPricesFile(chain.id, config.storageDir);
-
-    // get last updated price
-    const lastPriceAt = currentPrices.reduce(
-      (acc, price) => Math.max(price.timestamp + hours(1), acc),
-      EARLIEST_PRICE_TIMESTAMP
-    );
-
-    let toDate = undefined;
-
-    if (toBlock === "latest") {
-      toDate = new Date();
-    } else {
-      const block = await provider.getBlock(toBlock);
-      toDate = new Date(block.timestamp * 1000);
-    }
-
-    // time elapsed from the last update, rounded to hours
-    const timeElapsed =
-      Math.floor((toDate.getTime() - lastPriceAt) / hours(1)) * hours(1);
-
-    // only fetch new prices every new hour
-    if (timeElapsed < hours(1)) {
-      return;
-    }
-
-    const getCacheLazy = async <T>(cacheKey: string, fn: () => Promise<T>) => {
-      if (cache) {
-        return await cache.lazy(cacheKey, fn);
-      } else {
-        return await fn();
-      }
-    };
-
-    const getBlockTimestamp = async (blockNumber: number) => {
-      const block = await getCacheLazy(
-        `block-${chain.id}-${blockNumber}`,
-        async () => {
-          return await provider.getBlock(blockNumber);
-        }
-      );
-
-      return block.timestamp;
-    };
-
-    const lastBlockNumber = await provider.getBlockNumber();
-
-    // get prices in 90 day chunks to get the most of Coingecko's granularity
-    const timeChunks = chunkTimeBy(timeElapsed, days(90));
-
-    for (const chunk of timeChunks) {
-      for (const token of chain.tokens) {
-        const cacheKey = `${chain.id}-${token.address}-${
-          lastPriceAt + chunk[0]
-        }-${lastPriceAt + chunk[1]}`;
-
-        console.log(
-          "Fetching prices for",
-          token.code,
-          ":",
-          new Date(lastPriceAt + chunk[0]),
-          "-",
-          new Date(lastPriceAt + chunk[1])
-        );
-
-        const prices = await getCacheLazy(cacheKey, () =>
-          getPricesByHour(
-            token,
-            (lastPriceAt + chunk[0]) / 1000,
-            (lastPriceAt + chunk[1]) / 1000,
-            config
-          )
-        );
-
-        const newPrices: Price[] = [];
-
-        for (const [timestamp, price] of prices) {
-          const blockNumber = await getBlockFromTimestamp(
-            timestamp,
-            0,
-            lastBlockNumber,
-            getBlockTimestamp
-          );
-
-          if (blockNumber === undefined) {
-            throw new Error(
-              `Could not find block number for timestamp: ${timestamp}`
-            );
-          }
-
-          newPrices.push({
-            token: token.address.toLowerCase(),
-            code: token.code,
-            price,
-            timestamp,
-            block: blockNumber,
-          });
-        }
-
-        console.log("Fetched", newPrices.length, "new prices");
-
-        await appendPrices(chain.id, newPrices);
-      }
-    }
-  }
-
-  async function appendPrices(chainId: number, newPrices: Price[]) {
-    const currentPrices = await readPricesFile(chainId, config.storageDir);
-    await writePrices(chainId, currentPrices.concat(newPrices));
-  }
-
-  async function writePrices(chainId: number, prices: Price[]) {
-    return writePricesFile(pricesFilename(chainId, config.storageDir), prices);
-  }
-
-  async function writePricesFile(filename: string, prices: Price[]) {
-    const tempFile = `${filename}.write`;
-    await fs.mkdir(path.dirname(filename), { recursive: true });
-    await fs.writeFile(tempFile, JSON.stringify(prices));
-    await fs.rename(tempFile, filename);
-  }
-
-  // API
 
   return {
     catchupAndWatch,
@@ -217,7 +239,6 @@ export function createPriceUpdater(
 
 interface PriceProviderConfig {
   updateEvery?: number; // XXX hint at time type: secs? msecs?
-  storageDir: string;
 }
 
 export interface PriceProvider {
@@ -233,25 +254,14 @@ export interface PriceProvider {
     amount: number,
     blockNumber: number
   ) => Promise<{ amount: bigint; price: number }>;
-  getAllPricesForChain: (chainId: number) => Promise<Price[]>;
 }
 
 export function createPriceProvider(
   config: PriceProviderConfig
 ): PriceProvider {
-  // STATE
-
   type Prices = { lastUpdatedAt: Date; prices: Promise<Price[]> };
 
   const prices: { [key: number]: Prices } = {};
-
-  // PUBLIC
-
-  async function getAllPricesForChain(chainId: number): Promise<Price[]> {
-    return readPricesFile(chainId, config.storageDir);
-  }
-
-  // INTERNALS
 
   function shouldRefreshPrices(prices: Prices) {
     return (
@@ -261,7 +271,7 @@ export function createPriceProvider(
   }
 
   function updatePrices(chainId: number) {
-    const chainPrices = readPricesFile(chainId, config.storageDir);
+    const chainPrices = readPricesFile(chainId);
 
     prices[chainId] = {
       prices: chainPrices,
@@ -336,6 +346,22 @@ export function createPriceProvider(
   ): Promise<Price & { decimals: number }> {
     let closestPrice: Price | null = null;
 
+    if (
+      // goerli
+      chainId === 5 ||
+      // pgn-testnet
+      chainId === 58008
+    ) {
+      return {
+        token,
+        code: "ETH",
+        price: 1,
+        timestamp: 0,
+        block: 0,
+        decimals: 18,
+      };
+    }
+
     if (!tokenDecimals[chainId][token]) {
       console.error(`Unsupported token ${token} for chain ${chainId}`);
       return {
@@ -371,23 +397,5 @@ export function createPriceProvider(
   return {
     convertToUSD,
     convertFromUSD,
-    getAllPricesForChain,
   };
-}
-
-async function readPricesFile(
-  chainId: number,
-  storageDir: string
-): Promise<Price[]> {
-  const filename = pricesFilename(chainId, storageDir);
-
-  if (existsSync(filename)) {
-    return JSON.parse((await fs.readFile(filename)).toString()) as Price[];
-  }
-
-  return [];
-}
-
-function pricesFilename(chainId: number, storageDir: string): string {
-  return path.join(storageDir, `${chainId}/prices.json`);
 }
