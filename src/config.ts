@@ -287,6 +287,38 @@ export const CHAINS: Chain[] = [
       },
     ],
   },
+  {
+    id: 424,
+    name: "pgn-mainnet",
+    rpc: "https://rpc.publicgoods.network",
+    tokens: [
+      {
+        code: "ETH",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+    ],
+    subscriptions: [
+      {
+        address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
+        abi: "#abis/v2/ProjectRegistry.json",
+      },
+      {
+        address: "0x8AdFcF226dfb2fA73788Ad711C958Ba251369cb3",
+        abi: "#abis/v2/RoundFactory.json",
+        fromBlock: 0,
+      },
+      {
+        address: "0x2AFA4bE0f2468347A2F086c2167630fb1E58b725",
+        abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
+        fromBlock: 0,
+      },
+    ],
+  },
 ];
 
 // mapping of chain id => token address => decimals
