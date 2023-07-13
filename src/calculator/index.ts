@@ -5,7 +5,7 @@ import type { PassportProvider } from "../passport/index.js";
 import { PriceProvider } from "../prices/provider.js";
 import { Chain, getDecimalsForToken } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
-import { getVotesWithCoefficients } from "./votes.js";
+import { getVotesWithCoefficients, VoteWithCoefficient } from "./votes.js";
 import {
   CalculatorError,
   ResourceNotFoundError,
@@ -139,6 +139,28 @@ export default class Calculator {
     this.chain = options.chain;
   }
 
+  #votesWithCoefficientToContribution(
+    votes: VoteWithCoefficient[]
+  ): Contribution[] {
+    return votes.flatMap((vote) => {
+      const scaleFactor = 10_000;
+      const coefficient = BigInt(
+        Math.trunc((this.overrides[vote.id] ?? vote.coefficient) * scaleFactor)
+      );
+
+      const amount = BigInt(vote.amountRoundToken);
+      const multipliedAmount = (amount * coefficient) / BigInt(scaleFactor);
+
+      return [
+        {
+          contributor: vote.voter,
+          recipient: vote.applicationId,
+          amount: multipliedAmount,
+        },
+      ];
+    });
+  }
+
   async calculate(): Promise<Array<AugmentedResult>> {
     const votes = await this.parseJSONFile<Vote>(
       "votes",
@@ -205,27 +227,8 @@ export default class Calculator {
       }
     );
 
-    const contributions: Contribution[] = votesWithCoefficients.flatMap(
-      (vote) => {
-        const scaleFactor = Math.pow(10, 4);
-        const coefficient = BigInt(
-          Math.trunc(
-            (this.overrides[vote.id] ?? vote.coefficient) * scaleFactor
-          )
-        );
-
-        const amount = BigInt(vote.amountRoundToken);
-        const multipliedAmount = (amount * coefficient) / BigInt(scaleFactor);
-
-        return [
-          {
-            contributor: vote.voter,
-            recipient: vote.applicationId,
-            amount: multipliedAmount,
-          },
-        ];
-      }
-    );
+    const contributions: Contribution[] =
+      this.#votesWithCoefficientToContribution(votesWithCoefficients);
 
     const results = linearQF(contributions, matchAmount, matchTokenDecimals, {
       minimumAmount: 0n,
@@ -266,6 +269,173 @@ export default class Calculator {
     return augmented;
   }
 
+  /**
+   * Estimates matching for a given project and potential additional votes
+   * @param potentialVotes* Amount is in the roundToken */
+  async estimateMatching(
+    potentialVotes: Contribution[]
+  ): Promise<MatchingEstimateResult> {
+    const votes = await this.parseJSONFile<Vote>(
+      "votes",
+      `${this.chainId}/rounds/${this.roundId}/votes.json`
+    );
+    const applications = await this.parseJSONFile<Application>(
+      "applications",
+      `${this.chainId}/rounds/${this.roundId}/applications.json`
+    );
+
+    const rounds = await this.parseJSONFile<Round>(
+      "rounds",
+      `${this.chainId}/rounds.json`
+    );
+
+    const passportScores = await this.parseJSONFile<PassportScore>(
+      "passport scores",
+      "passport_scores.json"
+    );
+
+    const round = rounds.find((r: Round) => r.id === this.roundId);
+
+    if (round === undefined) {
+      throw new ResourceNotFoundError("round");
+    }
+
+    if (round.matchAmount === undefined) {
+      throw new ResourceNotFoundError("round match amount");
+    }
+
+    if (round.token === undefined) {
+      throw new ResourceNotFoundError("round token");
+    }
+
+    const matchAmount = BigInt(round.matchAmount);
+    const matchTokenDecimals = BigInt(tokenDecimals[this.chainId][round.token]);
+
+    let matchingCapAmount;
+
+    if (round.metadata?.quadraticFundingConfig?.matchingCap) {
+      // round.metadata.quadraticFundingConfig.matchingCapAmount is a percentage, 0 to 100, could contain decimals
+      matchingCapAmount =
+        (matchAmount *
+          BigInt(
+            Math.trunc(
+              Number(
+                round.metadata?.quadraticFundingConfig?.matchingCapAmount ?? 0
+              ) * 100
+            )
+          )) /
+        10000n;
+    }
+
+    const votesWithCoefficients = getVotesWithCoefficients(
+      round,
+      applications,
+      votes,
+      passportScores,
+      {
+        minimumAmountUSD: this.minimumAmountUSD,
+        enablePassport: this.enablePassport,
+        passportThreshold: this.passportThreshold,
+      }
+    );
+
+    const potentialVotesAugmented: Vote[] = await Promise.all(
+      potentialVotes.map(async (vote) => {
+        const { amount: amountUSD } = await this.priceProvider.convertToUSD(
+          this.chainId,
+          round.token,
+          vote.amount
+        );
+
+        /* Find the latest approved application */
+        const application = applications
+          .filter(
+            (application) =>
+              application.metadata?.application.recipient === vote.recipient
+          )
+          .filter((application) => application.status === "APPROVED")
+          .sort((a, b) => a.statusUpdatedAtBlock - b.statusUpdatedAtBlock)[0];
+        if (!application) {
+          throw "Couldn't find application for project";
+        }
+        return {
+          amount: vote.amount.toString(),
+          amountRoundToken: vote.amount.toString(),
+          amountUSD,
+          token: round.token,
+          roundId: this.roundId,
+          voter: vote.contributor,
+          grantAddress: vote.recipient,
+          projectId: application.projectId,
+          id: "",
+          applicationId: application.id,
+        };
+      })
+    );
+
+    const potentialVotesWithCoefficients = getVotesWithCoefficients(
+      round,
+      applications,
+      potentialVotesAugmented,
+      passportScores,
+      {
+        minimumAmountUSD: this.minimumAmountUSD,
+        enablePassport: this.enablePassport,
+        passportThreshold: this.passportThreshold,
+      }
+    );
+
+    const contributions: Array<Contribution> =
+      this.#votesWithCoefficientToContribution(votesWithCoefficients);
+
+    const potentialContributions: Contribution[] =
+      this.#votesWithCoefficientToContribution(potentialVotesWithCoefficients);
+
+    const contributionsWithPotentialVotes = [
+      ...potentialContributions,
+      ...contributions,
+    ];
+
+    const potentialResults = linearQF(
+      contributionsWithPotentialVotes,
+      matchAmount,
+      matchTokenDecimals,
+      {
+        minimumAmount: 0n,
+        matchingCapAmount,
+        ignoreSaturation: this.ignoreSaturation ?? false,
+      }
+    );
+
+    const currentResults = linearQF(
+      contributions,
+      matchAmount,
+      matchTokenDecimals,
+      {
+        minimumAmount: 0n,
+        matchingCapAmount,
+        ignoreSaturation: this.ignoreSaturation ?? false,
+      }
+    );
+
+    const finalResults: MatchingEstimateResult = {};
+
+    Object.keys(potentialResults).forEach((key) => {
+      const potentialResult = potentialResults[key] ?? {};
+      /** Can be undefined, but spreading an undefined is a no-op, so it's okay here */
+      const currentResult = currentResults[key] ?? {};
+      finalResults[key] = {
+        ...currentResult,
+        ...potentialResult,
+        /*Here, however, subtracting undefined from a bigint would fail,
+         * so we explicitly subtract 0 if it's undefined */
+        difference: potentialResult.matched - (currentResult.matched ?? 0n),
+      };
+    });
+
+    return finalResults;
+  }
+
   async parseJSONFile<T>(
     fileDescription: string,
     path: string
@@ -273,3 +443,7 @@ export default class Calculator {
     return this.dataProvider.loadFile<T>(fileDescription, path);
   }
 }
+
+type MatchingEstimateResult = {
+  [p: string]: Calculation & { difference: bigint };
+};

@@ -1,4 +1,6 @@
 import express, { Response, Request } from "express";
+import { z } from "zod";
+
 const upload = multer();
 import multer from "multer";
 import ClientError from "../clientError.js";
@@ -111,5 +113,52 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     res.send(responseBody);
   }
 
+  router.post("/chains/:chainId/rounds/:roundId/estimate", (req, res) => {
+    return estimateMatchesHandler(req, res, 200);
+  });
+
+  async function estimateMatchesHandler(
+    req: Request,
+    res: Response,
+    okStatusCode: number
+  ) {
+    const chainId = Number(req.params.chainId);
+    const roundId = req.params.roundId;
+    const potentialVotes = potentialVotesSchema
+      .parse((req.body as { potentialVotes: PotentialVote }).potentialVotes)
+      .map((vote) => ({
+        ...vote,
+        amount: BigInt(vote.amount),
+      }));
+
+    const calculatorOptions: CalculatorOptions = {
+      priceProvider: config.priceProvider,
+      dataProvider: config.dataProvider,
+      chainId: chainId,
+      roundId: roundId,
+      minimumAmountUSD: undefined,
+      matchingCapAmount: undefined,
+      overrides: {},
+    };
+
+    const calculator = new Calculator(calculatorOptions);
+    const matches = await calculator.estimateMatching(potentialVotes);
+    const responseBody = JSON.stringify(matches, (_key, value) =>
+      typeof value === "bigint" ? value.toString() : (value as unknown)
+    );
+    res.setHeader("content-type", "application/json");
+    res.status(okStatusCode);
+    res.send(responseBody);
+  }
+
   return router;
 };
+
+const potentialVotesSchema = z.array(
+  z.object({
+    contributor: z.string(),
+    recipient: z.string(),
+    amount: z.coerce.number(),
+  })
+);
+export type PotentialVote = z.infer<typeof potentialVotesSchema>;

@@ -13,6 +13,7 @@ import {
 } from "../../calculator/index.js";
 import { PriceProvider } from "../../prices/provider.js";
 import { Logger } from "pino";
+import { PotentialVote } from "../../http/api/v1/matches.js";
 import { PassportScore } from "../../passport/index.js";
 import { Chain } from "../../config.js";
 
@@ -36,6 +37,7 @@ export class TestPriceProvider {
   async convertToUSD() {
     return Promise.resolve({ amount: 0 });
   }
+
   async convertFromUSD() {
     return Promise.resolve({ amount: 0 });
   }
@@ -319,6 +321,61 @@ describe("server", () => {
         const resp = await request(app).get(
           "/api/v1/chains/1/rounds/0x1234/matches?ignoreSaturation=true"
         );
+        expect(resp.statusCode).toBe(200);
+        expect(resp.body).toEqual(expectedResults);
+      });
+
+      test("should estimate matching with new votes for projects", async () => {
+        const expectedResults = {
+          "application-id-1": {
+            capOverflow: "0",
+            contributionsCount: "4",
+            difference: "-171",
+            matched: "1189",
+            matchedWithoutCap: "1189",
+            sumOfSqrt: "70",
+            totalReceived: "1510",
+          },
+          "application-id-2": {
+            capOverflow: "0",
+            contributionsCount: "8",
+            difference: "964",
+            matched: "3124",
+            matchedWithoutCap: "3124",
+            sumOfSqrt: "102",
+            totalReceived: "1500",
+          },
+          "application-id-3": {
+            capOverflow: "0",
+            contributionsCount: "7",
+            difference: "-795",
+            matched: "5685",
+            matchedWithoutCap: "5685",
+            sumOfSqrt: "140",
+            totalReceived: "3400",
+          },
+        };
+
+        const potentialVotes: PotentialVote = [
+          {
+            amount: 10,
+            contributor: "voter-1",
+            recipient: "grant-address-1",
+          },
+          {
+            amount: 500,
+            contributor: "voter-2",
+            recipient: "grant-address-2",
+          },
+        ];
+
+        const resp = await request(app)
+          .post("/api/v1/chains/1/rounds/0x1234/estimate")
+          .send({
+            potentialVotes,
+          })
+          .set("Content-Type", "application/json")
+          .set("Accept", "application/json");
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
       });

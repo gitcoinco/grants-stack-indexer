@@ -11,6 +11,7 @@ import { createHandler as createApiHandler } from "./api/v1/index.js";
 import { PriceProvider } from "../prices/provider.js";
 import { PassportProvider } from "../passport/index.js";
 import { DataProvider } from "../calculator/index.js";
+import bodyParser from "body-parser";
 import { Chain } from "../config.js";
 
 export interface HttpApiConfig {
@@ -34,6 +35,7 @@ export const createHttpApi = (config: HttpApiConfig): HttpApi => {
   const api = createApiHandler(config);
 
   app.use(cors());
+  app.use(bodyParser.json());
 
   app.use((_req, res, next) => {
     if (config.buildTag !== null) {
