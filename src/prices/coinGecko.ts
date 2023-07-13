@@ -46,23 +46,23 @@ export async function getPricesByHour(
 }
 
 async function fetchPrices(
-  token: Token,
+  { priceSource: { chainId, address } }: Token,
   startTime: UnixTimestamp,
   endTime: UnixTimestamp,
   config: { coingeckoApiKey: string | null; coingeckoApiUrl: string }
 ): Promise<[Timestamp, Price][]> {
-  const platform = platforms[token.chainId];
-  const nativeToken = nativeTokens[token.chainId];
+  const platform = platforms[chainId];
+  const nativeToken = nativeTokens[chainId];
 
-  if (!(token.chainId in platforms)) {
-    throw new Error(`Prices for chain ID ${token.chainId} are not supported.`);
+  if (!(chainId in platforms)) {
+    throw new Error(`Prices for chain ID ${chainId} are not supported.`);
   }
 
-  const isNativeToken = token.address === ethers.constants.AddressZero;
+  const isNativeToken = address === ethers.constants.AddressZero;
 
   const path = isNativeToken
     ? `/coins/${nativeToken}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`
-    : `/coins/${platform}/contract/${token.address.toLowerCase()}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`;
+    : `/coins/${platform}/contract/${address.toLowerCase()}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`;
 
   const headers: HeadersInit =
     config.coingeckoApiKey === null

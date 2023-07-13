@@ -10,7 +10,7 @@ export type Token = {
   code: string;
   address: string;
   decimals: number;
-  chainId: ChainId;
+  priceSource: { chainId: ChainId; address: string };
 };
 
 export type Subscription = {
@@ -28,7 +28,7 @@ export type Chain = {
   subscriptions: Subscription[];
 };
 
-export const chains: Chain[] = [
+export const CHAINS: Chain[] = [
   {
     id: 1,
     name: "mainnet",
@@ -38,19 +38,28 @@ export const chains: Chain[] = [
         code: "USDC",
         address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
         decimals: 6,
-        chainId: 1,
+        priceSource: {
+          chainId: 1,
+          address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        },
       },
       {
         code: "DAI",
         address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
         decimals: 18,
-        chainId: 1,
+        priceSource: {
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        },
       },
       {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
-        chainId: 1,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
       },
     ],
     subscriptions: [
@@ -77,21 +86,39 @@ export const chains: Chain[] = [
     tokens: [
       {
         code: "USDC",
-        address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        address: "0xd35CCeEAD182dcee0F148EbaC9447DA2c4D449c4",
         decimals: 6,
-        chainId: 1,
+        priceSource: {
+          chainId: 1,
+          address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        },
       },
       {
         code: "DAI",
-        address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        address: "0x73967c6a0904aA032C103b4104747E88c566B1A2",
         decimals: 18,
-        chainId: 1,
+        priceSource: {
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        },
+      },
+      {
+        code: "DAI",
+        address: "0x11fE4B6AE13d2a6055C8D9cF65c55bac32B5d844",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        },
       },
       {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
-        chainId: 1,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
       },
     ],
     subscriptions: [
@@ -134,19 +161,28 @@ export const chains: Chain[] = [
         code: "USDC",
         address: "0x7F5c764cBc14f9669B88837ca1490cCa17c31607",
         decimals: 6,
-        chainId: 10,
+        priceSource: {
+          chainId: 10,
+          address: "0x7F5c764cBc14f9669B88837ca1490cCa17c31607",
+        },
       },
       {
         code: "DAI",
         address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
         decimals: 18,
-        chainId: 10,
+        priceSource: {
+          chainId: 10,
+          address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        },
       },
       {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
-        chainId: 10,
+        priceSource: {
+          chainId: 10,
+          address: "0x0000000000000000000000000000000000000000",
+        },
       },
     ],
     subscriptions: [
@@ -175,19 +211,28 @@ export const chains: Chain[] = [
         code: "USDC",
         address: "0x04068DA6C83AFCFA0e13ba15A6696662335D5B75",
         decimals: 6,
-        chainId: 250,
+        priceSource: {
+          chainId: 250,
+          address: "0x04068DA6C83AFCFA0e13ba15A6696662335D5B75",
+        },
       },
       {
         code: "DAI",
         address: "0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E",
         decimals: 18,
-        chainId: 250,
+        priceSource: {
+          chainId: 250,
+          address: "0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E",
+        },
       },
       {
         code: "FTM",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
-        chainId: 250,
+        priceSource: {
+          chainId: 250,
+          address: "0x0000000000000000000000000000000000000000",
+        },
       },
     ],
     subscriptions: [
@@ -217,15 +262,21 @@ export const chains: Chain[] = [
     tokens: [
       {
         code: "DAI",
-        address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        address: "???",
         decimals: 18,
-        chainId: 1,
+        priceSource: {
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        },
       },
       {
         code: "ETH",
-        address: "0x0000000000000000000000000000000000000000",
+        address: "???",
         decimals: 18,
-        chainId: 1,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
       },
     ],
     subscriptions: [
@@ -249,7 +300,7 @@ export const chains: Chain[] = [
 
 // mapping of chain id => token address => decimals
 export const tokenDecimals = Object.fromEntries(
-  chains.map((chain) => {
+  CHAINS.map((chain) => {
     return [
       chain.id,
       Object.fromEntries(
@@ -264,7 +315,7 @@ export const tokenDecimals = Object.fromEntries(
 
 // mapping of chain id => address => event name => renamed event name
 export const eventRenames = Object.fromEntries(
-  chains.map((chain) => {
+  CHAINS.map((chain) => {
     return [
       chain.id,
       Object.fromEntries(
@@ -374,7 +425,7 @@ export function getIndexerConfig(): IndexerConfig {
   if (!chainName) {
     throw new Error("Chain not provided");
   }
-  const chain = chains.find((chain) => chain.name === chainName);
+  const chain = CHAINS.find((chain) => chain.name === chainName);
   if (!chain) {
     throw new Error("Chain " + chainName + " is not configured");
   }

@@ -1,4 +1,4 @@
-import { chains } from "./config.js";
+import { CHAINS } from "./config.js";
 import path from "node:path";
 import { JsonStorage } from "chainsauce";
 
@@ -7,7 +7,7 @@ export default function load(
   chainId?: number
 ): JsonStorage {
   if (chainId) {
-    if (chains.find((chain) => chain.id === chainId) === undefined) {
+    if (CHAINS.find((chain) => chain.id === chainId) === undefined) {
       throw new Error(`Chain ${chainId} not foound`);
     }
 

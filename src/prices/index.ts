@@ -6,7 +6,7 @@ import { ethers } from "ethers";
 import { getBlockFromTimestamp } from "../utils/getBlockFromTimestamp.js";
 import { getPricesByHour } from "./coinGecko.js";
 import { existsSync } from "fs";
-import { Chain, tokenDecimals } from "../config.js";
+import { Chain, CHAINS } from "../config.js";
 
 export type Price = {
   token: string;
@@ -331,15 +331,22 @@ export function createPriceProvider(
 
   async function getUSDConversionRate(
     chainId: number,
-    token: string,
+    tokenAddress: string,
     blockNumber?: number
   ): Promise<Price & { decimals: number }> {
     let closestPrice: Price | null = null;
 
-    if (!tokenDecimals[chainId][token]) {
-      console.error(`Unsupported token ${token} for chain ${chainId}`);
+    const chain = CHAINS.find((c) => c.id === chainId);
+    if (chain === undefined) {
+      throw new Error(`Unsupported chain: ${chainId}`);
+    }
+
+    const token = chain.tokens.find((t) => t.code === tokenAddress);
+    if (token === undefined) {
+      // XXX Should throw here and it should be up to caller to deal with it
+      // throw new Error(`Token ${tokenCode} not defined for chain ${chainId}`)
       return {
-        token,
+        token: tokenAddress,
         code: "Unknown",
         price: 0,
         timestamp: 0,
@@ -353,7 +360,7 @@ export function createPriceProvider(
     for (let i = prices.length - 1; i >= 0; i--) {
       const price = prices[i];
       if (
-        price.token === token &&
+        price.token === tokenAddress &&
         (!blockNumber || price.block < blockNumber)
       ) {
         closestPrice = price;
@@ -361,11 +368,13 @@ export function createPriceProvider(
       }
     }
 
-    if (!closestPrice) {
-      throw Error(`Price not found, token ${token} for chain ${chainId}`);
+    if (closestPrice === null) {
+      throw Error(
+        `Price not found for token ${tokenAddress} on chain ${chainId}`
+      );
     }
 
-    return { ...closestPrice, decimals: tokenDecimals[chainId][token] };
+    return { ...closestPrice, decimals: token.decimals };
   }
 
   return {
