@@ -261,17 +261,8 @@ export const CHAINS: Chain[] = [
     rpc: "https://sepolia.publicgoods.network",
     tokens: [
       {
-        code: "DAI",
-        address: "???",
-        decimals: 18,
-        priceSource: {
-          chainId: 1,
-          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-        },
-      },
-      {
         code: "ETH",
-        address: "???",
+        address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
         decimals: 18,
         priceSource: {
           chainId: 1,
