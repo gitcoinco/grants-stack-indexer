@@ -12,7 +12,7 @@ kill_timeout = 5
   CACHE_DIR = "/mnt/indexer/cache"
 
 [processes]
-  web = "sh -c 'rm -rf $STORAGE_DIR/* && npm start'"
+  web = "npm start"
 
 [mounts]
   source="indexer_production"

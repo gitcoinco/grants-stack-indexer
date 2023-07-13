@@ -1,8 +1,8 @@
-import { Indexer, JsonStorage, Event as ChainsauceEvent } from "chainsauce";
+import { JsonStorage, Event as ChainsauceEvent } from "chainsauce";
 import { BigNumber, ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
 
-import { eventRenames, tokenDecimals } from "../config.js";
+import { CHAINS, tokenDecimals } from "../config.js";
 import {
   Application,
   Contributor,
@@ -14,7 +14,7 @@ import {
 import { Event } from "./events.js";
 import { RoundContract } from "./contracts.js";
 import { importAbi } from "./utils.js";
-import { PriceProvider } from "../prices/index.js";
+import { PriceProvider } from "../prices/provider.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
@@ -39,21 +39,37 @@ function fullProjectId(
   );
 }
 
+// mapping of chain id => address => event name => renamed event name
+const eventRenames = Object.fromEntries(
+  CHAINS.map((chain) => {
+    return [
+      chain.id,
+      Object.fromEntries(
+        chain.subscriptions.map((sub) => [sub.address, sub.events])
+      ),
+    ];
+  })
+);
+
 async function handleEvent(
   originalEvent: ChainsauceEvent,
   deps: {
+    chainId: number;
     db: JsonStorage;
-    indexer: Indexer<JsonStorage>;
-    ipfs: <T>(cid: string) => Promise<T | undefined>;
+    subscribe: (
+      address: string,
+      abi: ethers.ContractInterface,
+      fromBlock?: number | undefined
+    ) => ethers.Contract;
+    ipfsGet: <T>(cid: string) => Promise<T | undefined>;
     priceProvider: PriceProvider;
   }
 ) {
-  const { db, indexer, ipfs, priceProvider } = deps;
+  const { db, subscribe, ipfsGet, priceProvider, chainId } = deps;
 
   const eventName =
-    eventRenames[indexer.chainId]?.[originalEvent.address]?.[
-      originalEvent.name
-    ] ?? originalEvent.name;
+    eventRenames[chainId]?.[originalEvent.address]?.[originalEvent.name] ??
+    originalEvent.name;
 
   const event = {
     ...originalEvent,
@@ -65,7 +81,7 @@ async function handleEvent(
     case "ProjectCreated": {
       await db.collection<Project>("projects").insert({
         id: fullProjectId(
-          indexer.chainId,
+          chainId,
           event.args.projectID.toNumber(),
           event.address
         ),
@@ -81,12 +97,12 @@ async function handleEvent(
 
     case "MetadataUpdated": {
       const id = fullProjectId(
-        indexer.chainId,
+        chainId,
         event.args.projectID.toNumber(),
         event.address
       );
 
-      const metadata = await ipfs<Project["metadata"]>(
+      const metadata = await ipfsGet<Project["metadata"]>(
         event.args.metaPtr.pointer
       );
 
@@ -103,7 +119,7 @@ async function handleEvent(
 
     case "OwnerAdded": {
       const id = fullProjectId(
-        indexer.chainId,
+        chainId,
         event.args.projectID.toNumber(),
         event.address
       );
@@ -117,7 +133,7 @@ async function handleEvent(
 
     case "OwnerRemoved": {
       const id = fullProjectId(
-        indexer.chainId,
+        chainId,
         event.args.projectID.toNumber(),
         event.address
       );
@@ -137,14 +153,14 @@ async function handleEvent(
       let matchAmountPromise;
 
       if (event.name === "RoundCreatedV1") {
-        contract = indexer.subscribe(
+        contract = subscribe(
           event.args.roundAddress,
           await importAbi("#abis/v1/RoundImplementation.json"),
           event.blockNumber
         ) as RoundContract;
         matchAmountPromise = BigNumber.from("0");
       } else {
-        contract = indexer.subscribe(
+        contract = subscribe(
           event.args.roundAddress,
           await importAbi("#abis/v2/RoundImplementation.json"),
           event.blockNumber
@@ -199,19 +215,21 @@ async function handleEvent(
       await db.collection(`rounds/${roundId}/votes`).replaceAll([]);
       await db.collection(`rounds/${roundId}/contributors`).replaceAll([]);
 
-      if (tokenDecimals[indexer.chainId][token]) {
-        await matchAmountUpdated(indexer, priceProvider, {
-          ...event,
-          name: "MatchAmountUpdated",
-          address: event.args.roundAddress,
-          args: {
-            newAmount: matchAmount,
+      if (tokenDecimals[chainId][token]) {
+        await matchAmountUpdated(
+          {
+            ...event,
+            name: "MatchAmountUpdated",
+            address: event.args.roundAddress,
+            args: {
+              newAmount: matchAmount,
+            },
           },
-        });
+          { priceProvider, db, chainId }
+        );
       }
 
       await roundMetaPtrUpdated(
-        indexer,
         {
           ...event,
           name: "RoundMetaPtrUpdated",
@@ -220,11 +238,10 @@ async function handleEvent(
             newMetaPtr: { pointer: metaPtr },
           },
         },
-        ipfs
+        { ipfsGet, db }
       );
 
       await applicationMetaPtrUpdated(
-        indexer,
         {
           ...event,
           name: "ApplicationMetaPtrUpdated",
@@ -233,22 +250,22 @@ async function handleEvent(
             newMetaPtr: { pointer: applicationMetaPtr },
           },
         },
-        ipfs
+        { ipfsGet, db }
       );
 
       break;
     }
 
     case "MatchAmountUpdated": {
-      return matchAmountUpdated(indexer, priceProvider, event);
+      return matchAmountUpdated(event, { priceProvider, db, chainId });
     }
 
     case "RoundMetaPtrUpdated": {
-      return roundMetaPtrUpdated(indexer, event, ipfs);
+      return roundMetaPtrUpdated(event, { ipfsGet, db });
     }
 
     case "ApplicationMetaPtrUpdated": {
-      return applicationMetaPtrUpdated(indexer, event, ipfs);
+      return applicationMetaPtrUpdated(event, { ipfsGet, db });
     }
 
     case "NewProjectApplication": {
@@ -307,7 +324,7 @@ async function handleEvent(
           .replaceAll([]);
       }
 
-      const metadata = await ipfs<Application["metadata"]>(
+      const metadata = await ipfsGet<Application["metadata"]>(
         event.args.applicationMetaPtr.pointer
       );
 
@@ -327,7 +344,7 @@ async function handleEvent(
     }
 
     case "ProjectsMetaPtrUpdated": {
-      const projects = await ipfs<
+      const projects = await ipfsGet<
         { id: string; status: Application["status"]; payoutAddress: string }[]
       >(event.args.newMetaPtr.pointer);
 
@@ -388,7 +405,7 @@ async function handleEvent(
 
     // --- Voting Strategy
     case "VotingContractCreatedV1": {
-      indexer.subscribe(
+      subscribe(
         event.args.votingContractAddress,
         await importAbi(
           "#abis/v1/QuadraticFundingVotingStrategyImplementation.json"
@@ -399,7 +416,7 @@ async function handleEvent(
     }
 
     case "VotingContractCreated": {
-      indexer.subscribe(
+      subscribe(
         event.args.votingContractAddress,
         await importAbi(
           "#abis/v2/QuadraticFundingVotingStrategyImplementation.json"
@@ -441,7 +458,7 @@ async function handleEvent(
       const token = event.args.token.toLowerCase();
 
       const conversionUSD = await priceProvider.convertToUSD(
-        indexer.chainId,
+        chainId,
         token,
         event.args.amount.toBigInt(),
         event.blockNumber
@@ -454,7 +471,7 @@ async function handleEvent(
           ? event.args.amount.toString()
           : (
               await priceProvider.convertFromUSD(
-                indexer.chainId,
+                chainId,
                 round.token,
                 conversionUSD.amount,
                 event.blockNumber

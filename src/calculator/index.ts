@@ -2,7 +2,7 @@ import fs from "fs";
 import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
 import type { PassportScore } from "../passport/index.js";
-import { PriceProvider } from "../prices/index.js";
+import { PriceProvider } from "../prices/provider.js";
 import { tokenDecimals } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
 import { getVotesWithCoefficients } from "./votes.js";

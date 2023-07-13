@@ -1,16 +1,4 @@
-import { Cache } from "chainsauce";
-
 import fetchRetry from "./fetchRetry.js";
-
-export async function fetchJsonCached<T>(
-  cid: string,
-  cache: Cache,
-  config: { ipfsGateway: string }
-): Promise<T | undefined> {
-  return await cache.lazy<T | undefined>(`ipfs-${cid}`, () =>
-    fetchJson<T>(cid, config)
-  );
-}
 
 const cidRegex = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[0-9A-Za-z]{50,})$/;
 

@@ -1,0 +1,14 @@
+app = "indexer-log-shipper"
+primary_region = "den"
+
+[build]
+  image = "ghcr.io/superfly/fly-log-shipper:latest"
+
+[services]
+  http_checks = []
+  internal_port = 8686
+
+[env]
+  ORG = "gtc"
+  DATADOG_SITE = "datadoghq.eu"
+  SUBJECT = "logs.indexer-staging.>"

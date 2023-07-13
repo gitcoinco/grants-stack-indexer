@@ -1,5 +1,10 @@
-import { PassportConfig } from "../config.js";
-import { wait } from "../utils/index.js";
+/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+import { ethers } from "ethers";
+import fetch from "make-fetch-happen";
+import { Logger } from "pino";
+
+const PASSPORT_API_MAX_ITEMS_LIMIT = 1000;
+const DELAY_BETWEEN_UPDATES_MS = 60 * 1000;
 
 export type PassportScore = {
   address: string;
@@ -16,113 +21,133 @@ export type PassportScore = {
   detail?: string;
 };
 
-type PassportScoresResponse = {
-  count: number;
-  passports: PassportScore[];
-};
+interface PassportConfig {
+  apiKey: string;
+  scorerId: string;
+  logger: Logger;
+  persist: (data: {
+    passports: PassportScore[];
+    validAddresses: string[];
+  }) => Promise<void>;
+  load: () => Promise<PassportScore[] | null>;
+}
 
-/**
- * Fetches list of contributors who have score above the threshold
- * as reported by the ThresholdScoreCheck from passport scorer
- *
- * @returns string[]
- */
-export const getPassportScores = async (config: PassportConfig) => {
-  const scorerId = config.scorerId;
+interface PassportUpdater {
+  start: (opts?: { watch: boolean }) => Promise<void>;
+}
 
-  const limit = 1000;
-  let offset = 0;
+export const createPassportUpdater = (
+  config: PassportConfig
+): PassportUpdater => {
+  // CONFIG
 
-  const { passports, count } = await fetchPassportScores(
-    scorerId,
-    limit,
-    offset
-  );
+  const baseRequestUri = `https://api.scorer.gitcoin.co/registry/score/${config.scorerId}`;
+  const { logger } = config;
 
-  const allPassports: PassportScore[] = passports;
+  // STATE
 
-  const paginationCount = count / limit;
+  let passports: PassportScore[] = [];
 
-  for (let i = 0; i < paginationCount; i++) {
-    // increase offset
-    offset += limit;
+  // API
 
-    console.log("Fetching", offset, "/", count, "passports...");
+  const start = async (opts = { watch: true }) => {
+    logger.info("starting");
 
-    // fetch next set of passports
-    const { passports } = await fetchPassportScores(scorerId, limit, offset);
+    logger.debug("loading locally persisted passports...");
+    passports = (await config.load()) ?? [];
 
-    allPassports.push(...passports);
-  }
+    if (passports.length === 0) {
+      logger.debug("no passports found locally, will do initial update");
+      // If nothing was read from storage, don't return until
+      await updateEntireDataset();
+    } else {
+      logger.debug(`loaded ${passports.length} passports`);
+    }
 
-  return allPassports;
-};
+    if (opts.watch) {
+      setTimeout(poll, DELAY_BETWEEN_UPDATES_MS);
+    }
+  };
 
-/**
- * Filters passports having evidence.success as true
- *
- * @param passports PassportResponse[]
- * @returns PassportResponse[]
- */
-export const filterPassportByEvidence = (
-  passports: PassportScore[]
-): PassportScore[] => {
-  return passports.filter(
-    (passport) => passport.evidence && passport.evidence.success
-  );
-};
+  // INTERNALS
 
-/**
- * Fetches passport scores of a given community based on limit and offset
- *
- * @param scorerId number
- * @param limit number
- * @param offset number
- * @param maxAttempts
- * @returns Promise<PassportScoresResponse>
- */
-export const fetchPassportScores = async (
-  scorerId: number,
-  limit: number,
-  offset: number,
-  maxAttempts = 5
-): Promise<PassportScoresResponse> => {
-  const passportURL = `https://api.scorer.gitcoin.co/registry/score/${scorerId}?limit=${limit}&offset=${offset}`;
-  let attempt = 0;
+  const poll = async (): Promise<void> => {
+    // Can be switched to incremental updates once https://github.com/gitcoinco/passport/issues/1414 is fixed
+    await updateEntireDataset();
+    setTimeout(poll, DELAY_BETWEEN_UPDATES_MS);
+  };
 
-  if (!process.env.PASSPORT_API_KEY) {
-    throw new Error("PASSPORT_API_KEY is not set");
-  }
+  const updateEntireDataset = async (): Promise<void> => {
+    passports.length = 0;
+    await updateIncrementally();
+  };
 
-  while (attempt < maxAttempts) {
-    try {
-      const response = await fetch(passportURL, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.PASSPORT_API_KEY}`,
-        },
+  const updateIncrementally = async (): Promise<void> => {
+    logger.debug("updating passports...");
+    const remotePassportCount = await fetchRemotePassportCount();
+
+    const newPassportCount = remotePassportCount - passports.length;
+    if (newPassportCount > 0) {
+      logger.debug(
+        `found ${newPassportCount} new passports remotely; fetching...`
+      );
+
+      let offset = passports.length;
+      while (offset < newPassportCount) {
+        const requestUri = `${baseRequestUri}?offset=${offset}&limit=${PASSPORT_API_MAX_ITEMS_LIMIT}`;
+
+        if (offset % 20000 === 0) {
+          // Only log every 10000 scores to reduce log noise
+          logger.debug({
+            msg: `fetching from ${offset} up to ${remotePassportCount} in batches of ${PASSPORT_API_MAX_ITEMS_LIMIT}`,
+            requestUri,
+          });
+        }
+
+        // @ts-ignore
+        const res = await fetch(requestUri, {
+          headers: { authorization: `Bearer ${config.apiKey}` },
+          retry: {
+            retries: 5,
+            randomize: true,
+            maxTimeout: 5000,
+          },
+        });
+
+        const { items: passportBatch } = (await res.json()) as {
+          items: PassportScore[];
+        };
+
+        passports.push(...passportBatch);
+
+        offset += PASSPORT_API_MAX_ITEMS_LIMIT;
+      }
+    }
+
+    const validAddresses = passports
+      .filter((passport) => passport.evidence && passport.evidence.success)
+      .map((passport) => {
+        return ethers.utils.getAddress(passport.address);
       });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
+    logger.debug(
+      `persisting ${passports.length} passports (${validAddresses.length} valid addresses)`
+    );
+    await config.persist({ passports, validAddresses });
+  };
 
-      const jsonResponse = (await response.json()) as {
-        count: number;
-        items: PassportScore[];
-      };
+  const fetchRemotePassportCount = async (): Promise<number> => {
+    // @ts-ignore
+    const res = await fetch(`${baseRequestUri}?limit=1`, {
+      headers: {
+        authorization: `Bearer ${config.apiKey}`,
+      },
+    });
+    const { count } = (await res.json()) as { count: number };
+    return count;
+  };
 
-      return {
-        passports: jsonResponse.items,
-        count: jsonResponse.count,
-      };
-    } catch (e) {
-      attempt = attempt + 1;
-      await wait(attempt * 5000);
-      console.log("[Passport] Retrying, attempt:", attempt, e);
-    }
-  }
+  // EXPORTS
 
-  throw new Error("Failed to load passport scores");
+  return { start };
 };
