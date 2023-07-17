@@ -2,8 +2,10 @@ import { Logger } from "pino";
 import { CHAINS } from "../config.js";
 import { Price, readPricesFile } from "./common.js";
 
+const DEFAULT_REFRESH_PRICE_INTERVAL_MS = 2000;
+
 interface PriceProviderConfig {
-  updateEvery?: number; // XXX hint at time type: secs? msecs?
+  updateEveryMs?: number;
   storageDir: string;
   logger: Logger;
 }
@@ -46,7 +48,7 @@ export function createPriceProvider(
   function shouldRefreshPrices(prices: Prices) {
     return (
       new Date().getTime() - prices.lastUpdatedAt.getTime() >
-      (config.updateEvery ?? 2000)
+      (config.updateEveryMs ?? DEFAULT_REFRESH_PRICE_INTERVAL_MS)
     );
   }
 
@@ -62,7 +64,7 @@ export function createPriceProvider(
   }
 
   async function getPrices(chainId: number): Promise<Price[]> {
-    if (!prices[chainId] || shouldRefreshPrices(prices[chainId])) {
+    if (!("chainId" in prices) || shouldRefreshPrices(prices[chainId])) {
       await updatePrices(chainId);
     }
 
