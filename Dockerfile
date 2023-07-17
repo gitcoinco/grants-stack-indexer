@@ -19,6 +19,4 @@ EXPOSE 8080
 
 RUN npm run test
 
-COPY start.sh ./
-
 CMD [ "npm", "start" ]

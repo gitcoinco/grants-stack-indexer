@@ -37,7 +37,7 @@ The indexer is monitoring the following chains with their respective chain IDs:
 ```bash
 npm install
 npm run build
-npm start # this runs the production start script which will index all chains and start the HTTP server
+npm run start
 ```
 
 ### Development:
@@ -46,7 +46,8 @@ npm start # this runs the production start script which will index all chains an
 
 ```bash
 npm install
-npm run dev # run the typescript compiler and the HTTP server
+npm run build:watch
+npm run dev
 ```
 
 The HTTP server runs on port 4000, check it here: http://localhost:4000/
@@ -57,15 +58,10 @@ It shouldn't have any data because you probably haven't indexed anything yet. Ch
 
 Indexed JSON data is found in the `data` directory.
 
-Run the standalone index script to just index data, use the follwing options to change it's behaviour:
+To only index data without tracking new events nor starting a server, provide the `--run-once` option:
 
-```bash
-npm run index -- --chain=mainnet --to-block=16833357 # run only to the specified block, useful to maximize cache usage
-npm run index -- --chain=mainnet --from-block=16994526 # run only from the specified block, useful to index only the latest events
-npm run index -- --chain=mainnet --follow # follow the blockchain, this runs as a long running process indexing events as they happen
-npm run index -- --chain=mainnet --clear # clear the indexed data before indexing
-npm run index -- --chain=mainnet --no-cache # run without a cache
-npm run passport # index passport scores
+```
+npm run start -- --chains=mainnet,goerli --run-once
 ```
 
 ## Deployment

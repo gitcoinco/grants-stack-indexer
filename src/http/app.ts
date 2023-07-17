@@ -5,31 +5,41 @@ import express from "express";
 import cors from "cors";
 import serveIndex from "serve-index";
 
-import api from "./api/v1/index.js";
-import { getApiConfig } from "../config.js";
+import { createHandler as createApiHandler } from "./api/v1/index.js";
+import { PriceProvider } from "../prices/provider.js";
+import { DataProvider } from "../calculator/index.js";
 
-const config = getApiConfig();
+export interface HttpApiConfig {
+  storageDir: string;
+  getPriceProvider: (chainId: number) => PriceProvider;
+  getDataProvider: (chainId: number) => DataProvider;
+}
 
-export const app = express();
+export const createHttpApi = (config: HttpApiConfig): express.Application => {
+  const app = express();
+  const api = createApiHandler(config);
 
-app.use(cors());
+  app.use(cors());
 
-app.use(
-  "/data",
-  express.static(config.storageDir, {
-    acceptRanges: true,
-    setHeaders: (res) => {
-      res.setHeader("Accept-Ranges", "bytes");
-    },
-  }),
-  serveIndex(config.storageDir, { icons: true, view: "details" })
-);
+  app.use(
+    "/data",
+    express.static(config.storageDir, {
+      acceptRanges: true,
+      setHeaders: (res) => {
+        res.setHeader("Accept-Ranges", "bytes");
+      },
+    }),
+    serveIndex(config.storageDir, { icons: true, view: "details" })
+  );
 
-app.get("/", (_req, res) => {
-  res.redirect("/data");
-});
+  app.get("/", (_req, res) => {
+    res.redirect("/data");
+  });
 
-app.use("/api/v1", api);
+  app.use("/api/v1", api);
 
-// temporary route for backwards compatibility
-app.use("/", api);
+  // temporary route for backwards compatibility
+  app.use("/", api);
+
+  return app;
+};

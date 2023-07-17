@@ -1,16 +1,19 @@
-import { Indexer, JsonStorage } from "chainsauce";
+import { JsonStorage } from "chainsauce";
 import { Round } from "../types.js";
 import { ApplicationMetaPtrUpdatedEvent } from "../events.js";
 
 export default async function applicationMetaPtrUpdated(
-  { storage: db }: Indexer<JsonStorage>,
   event: ApplicationMetaPtrUpdatedEvent,
-  ipfs: <T>(cid: string) => Promise<T | undefined>
+  deps: {
+    db: JsonStorage;
+    ipfsGet: <T>(cid: string) => Promise<T | undefined>;
+  }
 ) {
+  const { db, ipfsGet } = deps;
   const id = event.address;
 
   const metaPtr = event.args.newMetaPtr.pointer;
-  const metadata = await ipfs<Round["applicationMetadata"]>(metaPtr);
+  const metadata = await ipfsGet<Round["applicationMetadata"]>(metaPtr);
 
   await db.collection<Round>("rounds").updateById(id, (round) => {
     return {

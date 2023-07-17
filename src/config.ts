@@ -1,7 +1,6 @@
 import "dotenv/config";
-import { ethers } from "ethers";
 import { parseArgs } from "node:util";
-import { RetryProvider, Log, ToBlock } from "chainsauce";
+import { ToBlock } from "chainsauce";
 import path from "node:path";
 
 type ChainId = number;
@@ -118,6 +117,15 @@ export const CHAINS: Chain[] = [
         priceSource: {
           chainId: 1,
           address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "BUSD",
+        address: "0xa7c3bf25ffea8605b516cf878b7435fe1768c89b",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x4fabb145d64652a948d72533023f6e7a623c7c53",
         },
       },
     ],
@@ -336,78 +344,36 @@ export const tokenDecimals = Object.fromEntries(
   })
 );
 
-// mapping of chain id => address => event name => renamed event name
-export const eventRenames = Object.fromEntries(
-  CHAINS.map((chain) => {
-    return [
-      chain.id,
-      Object.fromEntries(
-        chain.subscriptions.map((sub) => [sub.address, sub.events])
-      ),
-    ];
-  })
-);
-
-interface ChainConfig {
-  chain: Chain;
-  fromBlock: number;
-  toBlock?: ToBlock;
-}
-
-interface DatabaseConfig {
+export type Config = {
   storageDir: string;
-}
-
-export function getDatabaseConfig(): DatabaseConfig {
-  const storageDir = path.join(process.env.STORAGE_DIR || "./data");
-
-  return { storageDir };
-}
-
-export type ApiConfig = DatabaseConfig & {
-  port: number;
+  fromBlock: number;
+  toBlock: ToBlock;
+  passportScorerId: string;
+  passportApiKey: string;
+  cacheDir: string | null;
+  logLevel: "trace" | "debug" | "info" | "warn" | "error";
+  clear: boolean;
+  ipfsGateway: string;
+  coingeckoApiKey: string | null;
+  coingeckoApiUrl: string;
+  chains: Chain[];
+  runOnce: boolean;
+  apiHttpPort: number;
+  sentryDsn: string | null;
 };
 
-export function getApiConfig(): ApiConfig {
-  const port = Number(process.env.PORT || "4000");
+export function getConfig(): Config {
+  const apiHttpPort = Number(process.env.PORT || "4000");
 
-  return {
-    ...getDatabaseConfig(),
-    port,
-  };
-}
-
-export type PassportConfig = DatabaseConfig & {
-  scorerId: number;
-};
-
-export function getPassportConfig(): PassportConfig {
   if (!process.env.PASSPORT_SCORER_ID) {
     throw new Error("PASSPORT_SCORER_ID is not set");
   }
-  const scorerId = Number(process.env.PASSPORT_SCORER_ID);
+  if (!process.env.PASSPORT_API_KEY) {
+    throw new Error("PASSPORT_SCORER_ID is not set");
+  }
+  const passportScorerId = process.env.PASSPORT_SCORER_ID;
+  const passportApiKey = process.env.PASSPORT_API_KEY;
 
-  return {
-    ...getDatabaseConfig(),
-    scorerId,
-  };
-}
-
-export type IndexerConfig = DatabaseConfig &
-  ChainConfig & {
-    provider: ethers.providers.StaticJsonRpcProvider;
-    cacheDir: string | null;
-    oneShot?: boolean;
-    logLevel?: Log;
-    follow?: boolean;
-    clear: boolean;
-    ipfsGateway: string;
-    coingeckoApiKey: string | null;
-    coingeckoApiUrl: string;
-    chain: Chain;
-  };
-
-export function getIndexerConfig(): IndexerConfig {
   const coingeckoApiKey = process.env.COINGECKO_API_KEY ?? null;
 
   const coingeckoApiUrl = process.env.COINGECKO_API_KEY
@@ -418,9 +384,8 @@ export function getIndexerConfig(): IndexerConfig {
 
   const { values: args } = parseArgs({
     options: {
-      chain: {
+      chains: {
         type: "string",
-        short: "s",
       },
       "to-block": {
         type: "string",
@@ -431,9 +396,8 @@ export function getIndexerConfig(): IndexerConfig {
       "log-level": {
         type: "string",
       },
-      follow: {
+      "run-once": {
         type: "boolean",
-        short: "f",
       },
       clear: {
         type: "boolean",
@@ -444,50 +408,41 @@ export function getIndexerConfig(): IndexerConfig {
     },
   });
 
-  const chainName = args.chain;
-  if (!chainName) {
-    throw new Error("Chain not provided");
+  if (typeof args.chains !== "string") {
+    throw new Error("Chains not provided");
   }
-  const chain = CHAINS.find((chain) => chain.name === chainName);
-  if (!chain) {
-    throw new Error("Chain " + chainName + " is not configured");
-  }
+
+  const chains = args.chains.split(",").map((chainName: string) => {
+    const c = CHAINS.find((chain) => chain.name === chainName);
+    if (c === undefined) {
+      throw new Error(`Chain ${chainName} not configured`);
+    }
+    return c;
+  });
+
   const toBlock =
     "to-block" in args
       ? args["to-block"] === "latest"
         ? ("latest" as const)
         : Number(args["to-block"])
       : ("latest" as const);
+
   const fromBlock = "from-block" in args ? Number(args["from-block"]) : 0;
 
-  const provider = new RetryProvider({
-    url: chain.rpc,
-    timeout: 5 * 60 * 1000,
-  });
-
-  let logLevel = Log.Info;
-  if (args["log-level"]) {
-    switch (args["log-level"]) {
-      case "debug":
-        logLevel = Log.Debug;
-        break;
-      case "info":
-        logLevel = Log.Info;
-        break;
-      case "warning":
-        logLevel = Log.Warning;
-        break;
-      case "error":
-        logLevel = Log.Error;
-        break;
-      default:
-        throw new Error("Invalid log level.");
-    }
+  const logLevel = args["log-level"] ?? "info";
+  if (
+    logLevel !== "trace" &&
+    logLevel !== "debug" &&
+    logLevel !== "info" &&
+    logLevel !== "warn" &&
+    logLevel !== "error"
+  ) {
+    throw new Error(`Invalid log level: ${logLevel}`);
   }
 
   const clear = args.clear ?? false;
 
-  const follow = args.follow;
+  const runOnce = args["run-once"] ?? false;
 
   const cacheDir = args["no-cache"]
     ? null
@@ -495,18 +450,23 @@ export function getIndexerConfig(): IndexerConfig {
 
   const ipfsGateway = process.env.IPFS_GATEWAY || "https://cloudflare-ipfs.com";
 
+  const sentryDsn = process.env.SENTRY_DSN ?? null;
+
   return {
+    sentryDsn,
     coingeckoApiUrl,
     coingeckoApiKey,
     storageDir,
-    chain,
-    provider,
+    chains,
     toBlock,
     fromBlock,
     cacheDir,
     logLevel,
-    follow,
+    runOnce,
     clear,
     ipfsGateway,
+    passportApiKey,
+    passportScorerId,
+    apiHttpPort,
   };
 }

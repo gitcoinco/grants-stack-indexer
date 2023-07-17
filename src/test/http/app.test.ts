@@ -1,26 +1,17 @@
-import { vi, describe, test, expect, beforeEach } from "vitest";
+import { describe, test, expect, beforeEach } from "vitest";
 import fs from "fs";
 import path from "path";
 import request, { Response as SupertestResponse } from "supertest";
-import { app } from "../../http/app.js";
-import { calculatorConfig } from "../../http/api/v1/matches.js";
+import { createHttpApi } from "../../http/app.js";
 import {
   AugmentedResult,
   DataProvider,
   FileNotFoundError,
 } from "../../calculator/index.js";
-import { PriceProvider } from "../../prices/index.js";
+import { PriceProvider } from "../../prices/provider.js";
 
 // Typed version of supertest's Response
 type Response<T> = Omit<SupertestResponse, "body"> & { body: T };
-
-vi.mock("../../prices/index.js", () => {
-  return {
-    createPriceProvider: () => ({
-      convertToUSD: vi.fn().mockReturnValue({ amount: 0 }),
-    }),
-  };
-});
 
 const loadFixture = (name: string, extension = "json") => {
   const p = path.resolve(__dirname, "../fixtures", `${name}.${extension}`);
@@ -64,14 +55,18 @@ describe("server", () => {
   describe("/matches", () => {
     describe("resources not found", () => {
       test("should render 404 if round is not present in rounds.json", async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": [], // empty file so the round won't be found
-          "passport_scores.json": "passport_scores",
+        const app = createHttpApi({
+          storageDir: "/dev/null",
+          getPriceProvider: (_chainId) =>
+            new TestPriceProvider() as unknown as PriceProvider,
+          getDataProvider: (_chainId) =>
+            new TestDataProvider({
+              "1/rounds/0x1234/votes.json": "votes",
+              "1/rounds/0x1234/applications.json": "applications",
+              "1/rounds.json": [], // empty file so the round won't be found
+              "passport_scores.json": "passport_scores",
+            }),
         });
-        calculatorConfig.priceProvider =
-          new TestPriceProvider() as unknown as PriceProvider;
 
         const resp = await request(app).get(
           "/api/v1/chains/1/rounds/0x1234/matches"
@@ -80,14 +75,18 @@ describe("server", () => {
       });
 
       test("should render 404 if rounds file doesn't exist", async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": undefined,
-          "passport_scores.json": "passport_scores",
+        const app = createHttpApi({
+          storageDir: "/dev/null",
+          getPriceProvider: (_chainId) =>
+            new TestPriceProvider() as unknown as PriceProvider,
+          getDataProvider: (_chainId) =>
+            new TestDataProvider({
+              "1/rounds/0x1234/votes.json": "votes",
+              "1/rounds/0x1234/applications.json": "applications",
+              "1/rounds.json": [], // empty file so the round won't be found
+              "passport_scores.json": "passport_scores",
+            }),
         });
-        calculatorConfig.priceProvider =
-          new TestPriceProvider() as unknown as PriceProvider;
 
         const resp = await request(app).get(
           "/api/v1/chains/1/rounds/0x1234/matches"
@@ -96,14 +95,18 @@ describe("server", () => {
       });
 
       test("should render 404 if votes file doesn't exist", async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": undefined,
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
+        const app = createHttpApi({
+          storageDir: "/dev/null",
+          getPriceProvider: (_chainId) =>
+            new TestPriceProvider() as unknown as PriceProvider,
+          getDataProvider: (_chainId) =>
+            new TestDataProvider({
+              "1/rounds/0x1234/votes.json": "votes",
+              "1/rounds/0x1234/applications.json": "applications",
+              "1/rounds.json": [], // empty file so the round won't be found
+              "passport_scores.json": "passport_scores",
+            }),
         });
-        calculatorConfig.priceProvider =
-          new TestPriceProvider() as unknown as PriceProvider;
 
         const resp = await request(app).get(
           "/api/v1/chains/1/rounds/0x1234/matches"
@@ -112,14 +115,18 @@ describe("server", () => {
       });
 
       test("should render 404 if applications file doesn't exist", async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": undefined,
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
+        const app = createHttpApi({
+          storageDir: "/dev/null",
+          getPriceProvider: (_chainId) =>
+            new TestPriceProvider() as unknown as PriceProvider,
+          getDataProvider: (_chainId) =>
+            new TestDataProvider({
+              "1/rounds/0x1234/votes.json": "votes",
+              "1/rounds/0x1234/applications.json": "applications",
+              "1/rounds.json": [], // empty file so the round won't be found
+              "passport_scores.json": "passport_scores",
+            }),
         });
-        calculatorConfig.priceProvider =
-          new TestPriceProvider() as unknown as PriceProvider;
 
         const resp = await request(app).get(
           "/api/v1/chains/1/rounds/0x1234/matches"
@@ -128,14 +135,18 @@ describe("server", () => {
       });
 
       test("should render 404 if passport_scores file doesn't exist", async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": undefined,
+        const app = createHttpApi({
+          storageDir: "/dev/null",
+          getPriceProvider: (_chainId) =>
+            new TestPriceProvider() as unknown as PriceProvider,
+          getDataProvider: (_chainId) =>
+            new TestDataProvider({
+              "1/rounds/0x1234/votes.json": "votes",
+              "1/rounds/0x1234/applications.json": "applications",
+              "1/rounds.json": [], // empty file so the round won't be found
+              "passport_scores.json": "passport_scores",
+            }),
         });
-        calculatorConfig.priceProvider =
-          new TestPriceProvider() as unknown as PriceProvider;
 
         const resp = await request(app).get(
           "/api/v1/chains/1/rounds/0x1234/matches"
@@ -145,15 +156,20 @@ describe("server", () => {
     });
 
     describe("calculations", () => {
+      let app: ReturnType<typeof createHttpApi>;
       beforeEach(() => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
+        app = createHttpApi({
+          storageDir: "/dev/null",
+          getPriceProvider: (_chainId) =>
+            new TestPriceProvider() as unknown as PriceProvider,
+          getDataProvider: (_chainId) =>
+            new TestDataProvider({
+              "1/rounds/0x1234/votes.json": "votes",
+              "1/rounds/0x1234/applications.json": "applications",
+              "1/rounds.json": "rounds",
+              "passport_scores.json": "passport_scores",
+            }),
         });
-        calculatorConfig.priceProvider =
-          new TestPriceProvider() as unknown as PriceProvider;
       });
 
       test("should render calculations with ignore saturation true", async () => {
@@ -205,25 +221,30 @@ describe("server", () => {
     });
 
     describe("calculations with round not saturated", () => {
+      let app: ReturnType<typeof createHttpApi>;
       beforeEach(() => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": [
-            {
-              id: "0x1234",
-              token: "0x0000000000000000000000000000000000000000",
-              // instead of 100 like in the previous test
-              // this round has a pot of 1000,
-              // so it's not saturated because the sum of matches is 250
-              matchAmount: "100000",
-              metadata: {},
-            },
-          ],
-          "passport_scores.json": "passport_scores",
+        app = createHttpApi({
+          storageDir: "/dev/null",
+          getPriceProvider: (_chainId) =>
+            new TestPriceProvider() as unknown as PriceProvider,
+          getDataProvider: (_chainId) =>
+            new TestDataProvider({
+              "1/rounds/0x1234/votes.json": "votes",
+              "1/rounds/0x1234/applications.json": "applications",
+              "1/rounds.json": [
+                {
+                  id: "0x1234",
+                  token: "0x0000000000000000000000000000000000000000",
+                  // instead of 100 like in the previous test
+                  // this round has a pot of 1000,
+                  // so it's not saturated because the sum of matches is 250
+                  matchAmount: "100000",
+                  metadata: {},
+                },
+              ],
+              "passport_scores.json": "passport_scores",
+            }),
         });
-        calculatorConfig.priceProvider =
-          new TestPriceProvider() as unknown as PriceProvider;
       });
 
       test("should render calculations with ignore saturation false", async () => {
@@ -276,15 +297,20 @@ describe("server", () => {
     });
 
     describe("calculations with bad votes", () => {
+      let app: ReturnType<typeof createHttpApi>;
       beforeEach(() => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes-with-bad-recipient",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
+        app = createHttpApi({
+          storageDir: "/dev/null",
+          getPriceProvider: (_chainId) =>
+            new TestPriceProvider() as unknown as PriceProvider,
+          getDataProvider: (_chainId) =>
+            new TestDataProvider({
+              "1/rounds/0x1234/votes.json": "votes-with-bad-recipient",
+              "1/rounds/0x1234/applications.json": "applications",
+              "1/rounds.json": "rounds",
+              "passport_scores.json": "passport_scores",
+            }),
         });
-        calculatorConfig.priceProvider =
-          new TestPriceProvider() as unknown as PriceProvider;
       });
 
       test("should keep the same results skipping bad votes", async () => {
@@ -336,16 +362,23 @@ describe("server", () => {
     });
 
     describe("calculations with overrides", () => {
-      test("should render calculations", async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
+      let app: ReturnType<typeof createHttpApi>;
+      beforeEach(() => {
+        app = createHttpApi({
+          storageDir: "/dev/null",
+          getPriceProvider: (_chainId) =>
+            new TestPriceProvider() as unknown as PriceProvider,
+          getDataProvider: (_chainId) =>
+            new TestDataProvider({
+              "1/rounds/0x1234/votes.json": "votes",
+              "1/rounds/0x1234/applications.json": "applications",
+              "1/rounds.json": "rounds",
+              "passport_scores.json": "passport_scores",
+            }),
         });
-        calculatorConfig.priceProvider =
-          new TestPriceProvider() as unknown as PriceProvider;
+      });
 
+      test("should render calculations", async () => {
         const overridesContent = loadFixture("overrides", "csv");
 
         const resp: Response<AugmentedResult[]> = await request(app)
@@ -370,15 +403,6 @@ describe("server", () => {
       });
 
       test("coefficients should multiply votes", async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
-        });
-        calculatorConfig.priceProvider =
-          new TestPriceProvider() as unknown as PriceProvider;
-
         const overridesContent = loadFixture(
           "overrides-with-floating-coefficient",
           "csv"
@@ -463,17 +487,22 @@ describe("server", () => {
     });
 
     describe("passport eligibility", () => {
+      let app: ReturnType<typeof createHttpApi>;
       beforeEach(() => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds/0x2/votes.json": "votes",
-          "1/rounds/0x2/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
+        app = createHttpApi({
+          storageDir: "/dev/null",
+          getPriceProvider: (_chainId) =>
+            new TestPriceProvider() as unknown as PriceProvider,
+          getDataProvider: (_chainId) =>
+            new TestDataProvider({
+              "1/rounds/0x1234/votes.json": "votes",
+              "1/rounds/0x1234/applications.json": "applications",
+              "1/rounds/0x2/votes.json": "votes",
+              "1/rounds/0x2/applications.json": "applications",
+              "1/rounds.json": "rounds",
+              "passport_scores.json": "passport_scores",
+            }),
         });
-        calculatorConfig.priceProvider =
-          new TestPriceProvider() as unknown as PriceProvider;
       });
 
       describe("should enable passport by query param", () => {
@@ -668,17 +697,22 @@ describe("server", () => {
     });
 
     describe("matching cap", () => {
+      let app: ReturnType<typeof createHttpApi>;
       beforeEach(() => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds/0x3/votes.json": "votes",
-          "1/rounds/0x3/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
+        app = createHttpApi({
+          storageDir: "/dev/null",
+          getPriceProvider: (_chainId) =>
+            new TestPriceProvider() as unknown as PriceProvider,
+          getDataProvider: (_chainId) =>
+            new TestDataProvider({
+              "1/rounds/0x1234/votes.json": "votes",
+              "1/rounds/0x1234/applications.json": "applications",
+              "1/rounds/0x3/votes.json": "votes",
+              "1/rounds/0x3/applications.json": "applications",
+              "1/rounds.json": "rounds",
+              "passport_scores.json": "passport_scores",
+            }),
         });
-        calculatorConfig.priceProvider =
-          new TestPriceProvider() as unknown as PriceProvider;
       });
 
       test("should enable matching cap from query param", async () => {
@@ -824,17 +858,22 @@ describe("server", () => {
     });
 
     describe("minimum amount", () => {
+      let app: ReturnType<typeof createHttpApi>;
       beforeEach(() => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds/0x4/votes.json": "votes",
-          "1/rounds/0x4/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
+        app = createHttpApi({
+          storageDir: "/dev/null",
+          getPriceProvider: (_chainId) =>
+            new TestPriceProvider() as unknown as PriceProvider,
+          getDataProvider: (_chainId) =>
+            new TestDataProvider({
+              "1/rounds/0x1234/votes.json": "votes",
+              "1/rounds/0x1234/applications.json": "applications",
+              "1/rounds/0x4/votes.json": "votes",
+              "1/rounds/0x4/applications.json": "applications",
+              "1/rounds.json": "rounds",
+              "passport_scores.json": "passport_scores",
+            }),
         });
-        calculatorConfig.priceProvider =
-          new TestPriceProvider() as unknown as PriceProvider;
       });
 
       describe("should enable minimum amount by query param", () => {

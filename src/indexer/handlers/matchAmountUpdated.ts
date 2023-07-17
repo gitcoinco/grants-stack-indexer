@@ -1,13 +1,17 @@
-import { Indexer, JsonStorage } from "chainsauce";
+import { JsonStorage } from "chainsauce";
 import { Round } from "../types.js";
 import { MatchAmountUpdatedEvent } from "../events.js";
-import { PriceProvider } from "../../prices/index.js";
+import { PriceProvider } from "../../prices/provider.js";
 
 export default async function (
-  { chainId, storage: db }: Indexer<JsonStorage>,
-  priceProvider: PriceProvider,
-  event: MatchAmountUpdatedEvent
+  event: MatchAmountUpdatedEvent,
+  deps: {
+    chainId: number;
+    priceProvider: PriceProvider;
+    db: JsonStorage;
+  }
 ) {
+  const { db, priceProvider, chainId } = deps;
   const id = event.address;
   const matchAmount = event.args.newAmount.toString();
 

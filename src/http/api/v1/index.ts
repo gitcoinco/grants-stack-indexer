@@ -1,34 +1,38 @@
 import "express-async-errors";
 import express, { NextFunction, Request, Response } from "express";
-
-import * as Sentry from "../../../sentry.js";
+import * as Sentry from "@sentry/node";
 
 import ClientError from "../clientError.js";
-import exports from "./exports.js";
-import matches from "./matches.js";
+import { createHandler as createExportsHandler } from "./exports.js";
+import { createHandler as createMatchesHandler } from "./matches.js";
+import { HttpApiConfig } from "../../app.js";
 
-const router = express.Router();
+export const createHandler = (config: HttpApiConfig): express.Router => {
+  const router = express.Router();
 
-router.use(exports);
-router.use(matches);
+  router.use(createMatchesHandler(config));
+  router.use(createExportsHandler(config));
 
-// handle uncaught errors
-router.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  // return client errors
-  if (err instanceof ClientError) {
-    res.status(err.status);
-    res.send({ error: err.message });
-    return;
-  }
+  // handle uncaught errors
+  router.use(
+    (err: Error, _req: Request, res: Response, _next: NextFunction) => {
+      // return client errors
+      if (err instanceof ClientError) {
+        res.status(err.status);
+        res.send({ error: err.message });
+        return;
+      }
 
-  console.error("Unexpected exception", err);
+      console.error("Unexpected exception", err);
 
-  Sentry.captureException(err);
+      Sentry.captureException(err);
 
-  res.statusCode = 500;
-  res.send({
-    error: "Internal server error",
-  });
-});
+      res.statusCode = 500;
+      res.send({
+        error: "Internal server error",
+      });
+    }
+  );
 
-export default router;
+  return router;
+};
