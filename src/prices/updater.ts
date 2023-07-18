@@ -121,7 +121,7 @@ export function createPriceUpdater(
         logger.debug(
           `fetching prices for ${token.code} from ${new Date(
             lastPriceAt + chunk[0]
-          ).toString()} to ${new Date(lastPriceAt + chunk[1]).toString()}`
+          ).toISOString()} to ${new Date(lastPriceAt + chunk[1]).toISOString()}`
         );
 
         const prices = await withCacheMaybe(cacheKey, () =>
