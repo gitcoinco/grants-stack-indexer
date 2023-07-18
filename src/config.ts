@@ -270,7 +270,7 @@ export const CHAINS: Chain[] = [
     tokens: [
       {
         code: "ETH",
-        address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
         priceSource: {
           chainId: 1,
