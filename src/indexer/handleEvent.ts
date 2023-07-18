@@ -415,6 +415,17 @@ async function handleEvent(
       break;
     }
 
+    case "VotingContractCreatedV3": {
+      subscribe(
+        event.args.votingContractAddress,
+        await importAbi(
+          "#abis/v3/QuadraticFundingVotingStrategyImplementation.json"
+        ),
+        event.blockNumber
+      );
+      break;
+    }
+
     case "VotingContractCreated": {
       subscribe(
         event.args.votingContractAddress,
