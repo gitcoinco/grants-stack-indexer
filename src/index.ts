@@ -52,22 +52,24 @@ async function main(): Promise<void> {
   ]);
   baseLogger.info("initial catchup done, starting api");
 
-  const httpApi = createHttpApi({
-    storageDir: config.storageDir,
-    getPriceProvider: (chainId) =>
-      createPriceProvider({
-        storageDir: path.join(config.storageDir, chainId.toString()),
-        logger: baseLogger.child({ subsystem: "PriceProvider" }),
-      }),
-    getDataProvider: (chainId) =>
-      new FileSystemDataProvider(
-        path.join(config.storageDir, chainId.toString())
-      ),
-  });
+  if (!config.runOnce) {
+    const httpApi = createHttpApi({
+      storageDir: config.storageDir,
+      getPriceProvider: (chainId) =>
+        createPriceProvider({
+          storageDir: path.join(config.storageDir, chainId.toString()),
+          logger: baseLogger.child({ subsystem: "PriceProvider" }),
+        }),
+      getDataProvider: (chainId) =>
+        new FileSystemDataProvider(
+          path.join(config.storageDir, chainId.toString())
+        ),
+      port: config.apiHttpPort,
+      logger: baseLogger.child({ subsystem: "HttpApi" }),
+    });
 
-  httpApi.listen(config.apiHttpPort, () => {
-    baseLogger.info(`http api listening on port ${config.apiHttpPort}`);
-  });
+    await httpApi.start();
+  }
 }
 
 await main();

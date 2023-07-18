@@ -1,4 +1,5 @@
 import { describe, test, expect, beforeEach } from "vitest";
+import express from "express";
 import fs from "fs";
 import path from "path";
 import request, { Response as SupertestResponse } from "supertest";
@@ -9,6 +10,7 @@ import {
   FileNotFoundError,
 } from "../../calculator/index.js";
 import { PriceProvider } from "../../prices/provider.js";
+import { Logger } from "pino";
 
 // Typed version of supertest's Response
 type Response<T> = Omit<SupertestResponse, "body"> & { body: T };
@@ -51,11 +53,20 @@ export class TestDataProvider implements DataProvider {
   }
 }
 
+const DUMMY_LOGGER = {
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+} as unknown as Logger;
+
 describe("server", () => {
   describe("/matches", () => {
     describe("resources not found", () => {
       test("should render 404 if round is not present in rounds.json", async () => {
-        const app = createHttpApi({
+        const { app } = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
           storageDir: "/dev/null",
           getPriceProvider: (_chainId) =>
             new TestPriceProvider() as unknown as PriceProvider,
@@ -75,7 +86,9 @@ describe("server", () => {
       });
 
       test("should render 404 if rounds file doesn't exist", async () => {
-        const app = createHttpApi({
+        const { app } = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
           storageDir: "/dev/null",
           getPriceProvider: (_chainId) =>
             new TestPriceProvider() as unknown as PriceProvider,
@@ -95,7 +108,9 @@ describe("server", () => {
       });
 
       test("should render 404 if votes file doesn't exist", async () => {
-        const app = createHttpApi({
+        const { app } = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
           storageDir: "/dev/null",
           getPriceProvider: (_chainId) =>
             new TestPriceProvider() as unknown as PriceProvider,
@@ -115,7 +130,9 @@ describe("server", () => {
       });
 
       test("should render 404 if applications file doesn't exist", async () => {
-        const app = createHttpApi({
+        const { app } = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
           storageDir: "/dev/null",
           getPriceProvider: (_chainId) =>
             new TestPriceProvider() as unknown as PriceProvider,
@@ -135,7 +152,9 @@ describe("server", () => {
       });
 
       test("should render 404 if passport_scores file doesn't exist", async () => {
-        const app = createHttpApi({
+        const { app } = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
           storageDir: "/dev/null",
           getPriceProvider: (_chainId) =>
             new TestPriceProvider() as unknown as PriceProvider,
@@ -156,9 +175,11 @@ describe("server", () => {
     });
 
     describe("calculations", () => {
-      let app: ReturnType<typeof createHttpApi>;
+      let app: express.Application;
       beforeEach(() => {
         app = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
           storageDir: "/dev/null",
           getPriceProvider: (_chainId) =>
             new TestPriceProvider() as unknown as PriceProvider,
@@ -169,7 +190,7 @@ describe("server", () => {
               "1/rounds.json": "rounds",
               "passport_scores.json": "passport_scores",
             }),
-        });
+        }).app;
       });
 
       test("should render calculations with ignore saturation true", async () => {
@@ -221,9 +242,11 @@ describe("server", () => {
     });
 
     describe("calculations with round not saturated", () => {
-      let app: ReturnType<typeof createHttpApi>;
+      let app: express.Application;
       beforeEach(() => {
         app = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
           storageDir: "/dev/null",
           getPriceProvider: (_chainId) =>
             new TestPriceProvider() as unknown as PriceProvider,
@@ -244,7 +267,7 @@ describe("server", () => {
               ],
               "passport_scores.json": "passport_scores",
             }),
-        });
+        }).app;
       });
 
       test("should render calculations with ignore saturation false", async () => {
@@ -297,9 +320,11 @@ describe("server", () => {
     });
 
     describe("calculations with bad votes", () => {
-      let app: ReturnType<typeof createHttpApi>;
+      let app: express.Application;
       beforeEach(() => {
         app = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
           storageDir: "/dev/null",
           getPriceProvider: (_chainId) =>
             new TestPriceProvider() as unknown as PriceProvider,
@@ -310,7 +335,7 @@ describe("server", () => {
               "1/rounds.json": "rounds",
               "passport_scores.json": "passport_scores",
             }),
-        });
+        }).app;
       });
 
       test("should keep the same results skipping bad votes", async () => {
@@ -362,9 +387,11 @@ describe("server", () => {
     });
 
     describe("calculations with overrides", () => {
-      let app: ReturnType<typeof createHttpApi>;
+      let app: express.Application;
       beforeEach(() => {
         app = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
           storageDir: "/dev/null",
           getPriceProvider: (_chainId) =>
             new TestPriceProvider() as unknown as PriceProvider,
@@ -375,7 +402,7 @@ describe("server", () => {
               "1/rounds.json": "rounds",
               "passport_scores.json": "passport_scores",
             }),
-        });
+        }).app;
       });
 
       test("should render calculations", async () => {
@@ -487,9 +514,11 @@ describe("server", () => {
     });
 
     describe("passport eligibility", () => {
-      let app: ReturnType<typeof createHttpApi>;
+      let app: express.Application;
       beforeEach(() => {
         app = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
           storageDir: "/dev/null",
           getPriceProvider: (_chainId) =>
             new TestPriceProvider() as unknown as PriceProvider,
@@ -502,7 +531,7 @@ describe("server", () => {
               "1/rounds.json": "rounds",
               "passport_scores.json": "passport_scores",
             }),
-        });
+        }).app;
       });
 
       describe("should enable passport by query param", () => {
@@ -697,9 +726,11 @@ describe("server", () => {
     });
 
     describe("matching cap", () => {
-      let app: ReturnType<typeof createHttpApi>;
+      let app: express.Application;
       beforeEach(() => {
         app = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
           storageDir: "/dev/null",
           getPriceProvider: (_chainId) =>
             new TestPriceProvider() as unknown as PriceProvider,
@@ -712,7 +743,7 @@ describe("server", () => {
               "1/rounds.json": "rounds",
               "passport_scores.json": "passport_scores",
             }),
-        });
+        }).app;
       });
 
       test("should enable matching cap from query param", async () => {
@@ -858,9 +889,11 @@ describe("server", () => {
     });
 
     describe("minimum amount", () => {
-      let app: ReturnType<typeof createHttpApi>;
+      let app: express.Application;
       beforeEach(() => {
         app = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
           storageDir: "/dev/null",
           getPriceProvider: (_chainId) =>
             new TestPriceProvider() as unknown as PriceProvider,
@@ -873,7 +906,7 @@ describe("server", () => {
               "1/rounds.json": "rounds",
               "passport_scores.json": "passport_scores",
             }),
-        });
+        }).app;
       });
 
       describe("should enable minimum amount by query param", () => {

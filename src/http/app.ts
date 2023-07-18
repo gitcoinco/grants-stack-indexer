@@ -2,6 +2,7 @@
 import "express-async-errors";
 
 import express from "express";
+import { Logger } from "pino";
 import cors from "cors";
 import serveIndex from "serve-index";
 
@@ -10,12 +11,19 @@ import { PriceProvider } from "../prices/provider.js";
 import { DataProvider } from "../calculator/index.js";
 
 export interface HttpApiConfig {
+  logger: Logger;
+  port: number;
   storageDir: string;
   getPriceProvider: (chainId: number) => PriceProvider;
   getDataProvider: (chainId: number) => DataProvider;
 }
 
-export const createHttpApi = (config: HttpApiConfig): express.Application => {
+interface HttpApi {
+  start: () => Promise<void>;
+  app: express.Application;
+}
+
+export const createHttpApi = (config: HttpApiConfig): HttpApi => {
   const app = express();
   const api = createApiHandler(config);
 
@@ -41,5 +49,15 @@ export const createHttpApi = (config: HttpApiConfig): express.Application => {
   // temporary route for backwards compatibility
   app.use("/", api);
 
-  return app;
+  return {
+    app,
+    start() {
+      return new Promise<void>((resolve) => {
+        app.listen(config.port, () => {
+          config.logger.info(`http api listening on port ${config.port}`);
+          resolve();
+        });
+      });
+    },
+  };
 };
