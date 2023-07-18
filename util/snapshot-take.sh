@@ -4,6 +4,7 @@ set -ue
 
 # This must be within the blocks covered by seed/<chainId>/prices.json
 SNAPSHOT_UNTIL_BLOCK=17199975
+CHAINS=mainnet
 
 function is_stage_empty() {
   git diff-index --quiet --cached HEAD --
@@ -35,4 +36,5 @@ mkdir -p "$STORAGE_DIR" "$CACHE_DIR"
 message "Snapping to $SNAPSHOT_DIR..."
 
 npm run build
-npm run index -- --chain mainnet --to-block "$SNAPSHOT_UNTIL_BLOCK"
+npm run start -- --chains "$CHAINS" --to-block "$SNAPSHOT_UNTIL_BLOCK" --run-once
+
