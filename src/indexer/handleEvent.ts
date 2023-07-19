@@ -52,6 +52,27 @@ const eventRenames = Object.fromEntries(
   })
 );
 
+function updateApplicationStatus(
+  application: Application,
+  newStatus: Application["status"],
+  blockNumber: number
+): Application {
+    const newApplication: Application = {...application}
+    const prevStatus = application.status;
+    newApplication.status = newStatus;
+    newApplication.statusUpdatedAtBlock = blockNumber
+    newApplication.statusSnapshots = [...application.statusSnapshots]
+
+    if (prevStatus !== newStatus) {
+      newApplication.statusSnapshots.push({
+        status: newStatus,
+        statusUpdatedAtBlock: blockNumber,
+      })
+    }
+
+    return newApplication
+}
+
 async function handleEvent(
   originalEvent: ChainsauceEvent,
   deps: {
@@ -402,42 +423,16 @@ async function handleEvent(
         const statusString = ApplicationStatus[status] as Application["status"];
         const application = await db
           .collection<Application>(`rounds/${event.address}/applications`)
-          .updateById(i.toString(), (application) => {
-            const newApplication = {...application}
-            const prevStatus = application.status;
-            newApplication.status = statusString;
-            newApplication.statusUpdatedAtBlock = event.blockNumber
-            newApplication.statusSnapshots = [...application.statusSnapshots]
-
-            if (prevStatus !== statusString) {
-              newApplication.statusSnapshots.push({
-                status: statusString,
-                statusUpdatedAtBlock: event.blockNumber,
-              })
-            }
-
-            return newApplication
-          });
+          .updateById(i.toString(), (application) => updateApplicationStatus(
+            application, statusString, event.blockNumber
+          ));
 
         if (application) {
           await db
             .collection<Application>(`rounds/${event.address}/projects`)
-            .updateById(application.projectId, (application) => {
-              const newApplication = {...application}
-              const prevStatus = application.status;
-              newApplication.status = statusString;
-              newApplication.statusUpdatedAtBlock = event.blockNumber
-              newApplication.statusSnapshots = [...application.statusSnapshots]
-
-              if (prevStatus !== statusString) {
-                newApplication.statusSnapshots.push({
-                  status: statusString,
-                  statusUpdatedAtBlock: event.blockNumber,
-                })
-              }
-
-              return newApplication
-            });
+            .updateById(application.projectId, (application) => updateApplicationStatus(
+              application, statusString, event.blockNumber
+            ));
         }
       }
       break;
@@ -733,22 +728,9 @@ async function handleEvent(
           const statusString = ApplicationStatus[4] as Application["status"];
           await db
             .collection<Application>(`rounds/${round}/applications`)
-            .updateById(i.toString(), (application) => {
-              const newApplication = {...application}
-              const prevStatus = application.status;
-              newApplication.status = statusString;
-              newApplication.statusUpdatedAtBlock = event.blockNumber
-              newApplication.statusSnapshots = [...application.statusSnapshots]
-
-              if (prevStatus !== statusString) {
-                newApplication.statusSnapshots.push({
-                  status: statusString,
-                  statusUpdatedAtBlock: event.blockNumber,
-                })
-              }
-
-              return newApplication
-            })
+            .updateById(i.toString(), (application) => updateApplicationStatus(
+              application, statusString, event.blockNumber
+            ))
         }
       }
 
