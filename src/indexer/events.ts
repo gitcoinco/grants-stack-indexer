@@ -55,6 +55,13 @@ export interface VotingContractCreatedV1Event extends ChainsauceEvent {
   };
 }
 
+export interface VotingContractCreatedV3Event extends ChainsauceEvent {
+  name: "VotingContractCreatedV3";
+  args: {
+    votingContractAddress: string;
+  };
+}
+
 export interface VotingContractCreatedEvent extends ChainsauceEvent {
   name: "VotingContractCreated";
   args: {
@@ -132,6 +139,7 @@ export type Event =
   | ProjectsMetaPtrUpdatedEvent
   | ApplicationStatusesUpdatedEvent
   | VotingContractCreatedV1Event
+  | VotingContractCreatedV3Event
   | VotingContractCreatedEvent
   | VotedEvent
   | ProjectCreatedEvent

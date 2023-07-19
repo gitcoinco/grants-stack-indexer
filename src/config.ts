@@ -292,6 +292,9 @@ export const CHAINS: Chain[] = [
         address: "0xE8027a807Bb85e57da4B7A5ecE65b0aBDf231ce8",
         abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
         fromBlock: 0,
+        events: {
+          VotingContractCreated: "VotingContractCreatedV3",
+        },
       },
     ],
   },
