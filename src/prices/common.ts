@@ -1,6 +1,5 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { existsSync } from "fs";
 
 export type Price = {
   token: string;
@@ -16,12 +15,11 @@ export async function readPricesFile(
 ): Promise<Price[]> {
   const filename = pricesFilename(chainId, storageDir);
 
-  // XXX remove sync function
-  if (existsSync(filename)) {
+  try {
     return JSON.parse((await fs.readFile(filename)).toString()) as Price[];
+  } catch (err) {
+    return [];
   }
-
-  return [];
 }
 
 export function pricesFilename(chainId: number, storageDir: string): string {
