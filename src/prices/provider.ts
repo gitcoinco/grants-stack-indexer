@@ -64,7 +64,7 @@ export function createPriceProvider(
   }
 
   async function getPrices(chainId: number): Promise<Price[]> {
-    if (!("chainId" in prices) || shouldRefreshPrices(prices[chainId])) {
+    if (!(chainId in prices) || shouldRefreshPrices(prices[chainId])) {
       await updatePrices(chainId);
     }
 
