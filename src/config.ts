@@ -289,7 +289,7 @@ export const CHAINS: Chain[] = [
         fromBlock: 0,
       },
       {
-        address: "0x4a850F463D1C4842937c5Bc9540dBc803D744c9F",
+        address: "0xE8027a807Bb85e57da4B7A5ecE65b0aBDf231ce8",
         abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
         fromBlock: 0,
       },
