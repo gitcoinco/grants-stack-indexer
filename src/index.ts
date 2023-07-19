@@ -10,6 +10,7 @@ import { Logger, pino } from "pino";
 import path from "node:path";
 import * as Sentry from "@sentry/node";
 import fs from "node:fs/promises";
+import fetch from "make-fetch-happen";
 
 import { createPassportUpdater, PassportScore } from "./passport/index.js";
 
@@ -18,7 +19,6 @@ import { Chain, getConfig, Config } from "./config.js";
 import { createPriceUpdater } from "./prices/updater.js";
 import { createPriceProvider } from "./prices/provider.js";
 import { importAbi } from "./indexer/utils.js";
-import { fetchJson } from "./utils/ipfs.js";
 import { createHttpApi } from "./http/app.js";
 import { FileSystemDataProvider } from "./calculator/index.js";
 
@@ -50,7 +50,6 @@ async function main(): Promise<void> {
       })
     ),
   ]);
-  baseLogger.info("initial catchup done, starting api");
 
   if (!config.runOnce) {
     const httpApi = createHttpApi({
@@ -140,15 +139,26 @@ async function catchupAndWatchChain(
     timeout: 5 * 60 * 1000,
   });
 
-  const ipfsGet = <T>(cid: string) => fetchJson<T>(cid, config);
+  const cachedIpfsGet = async <T>(cid: string): Promise<T | undefined> => {
+    const cidRegex = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[0-9A-Za-z]{50,})$/;
+    if (!cidRegex.test(cid)) {
+      chainLogger.warn(`Invalid IPFS CID: ${cid}`);
+      return undefined;
+    }
 
-  // const ipfsCache: Cache | null = null;
-  // const ipfsGet = <T>(cid: string) =>
-  //   ipfsCache === null
-  //     ? fetchJson<T>(cid, config)
-  //     : ipfsCache.lazy<T | undefined>(`ipfs-${cid}`, () =>
-  //         fetchJson<T>(cid, config)
-  //       );
+    const res = await fetch(`${config.ipfsGateway}/ipfs/${cid}`, {
+      timeout: 2000,
+      retry: { retries: 10, maxTimeout: 60 * 1000 },
+      // IPFS data is immutable, we can rely entirely on the cache when present
+      cache: "force-cache",
+      cachePath:
+        config.cacheDir !== null
+          ? path.join(config.cacheDir, "ipfs")
+          : undefined,
+    });
+
+    return (await res.json()) as T;
+  };
 
   await rpcProvider.getNetwork();
 
@@ -181,7 +191,7 @@ async function catchupAndWatchChain(
         chainId: config.chain.id,
         db: storage,
         subscribe: (...args) => indexer.subscribe(...args),
-        ipfsGet: ipfsGet,
+        ipfsGet: cachedIpfsGet,
         priceProvider,
       });
     },
@@ -195,7 +205,7 @@ async function catchupAndWatchChain(
     }
   );
 
-  chainLogger.debug("subcribing to contracts");
+  chainLogger.debug("subscribing to contracts");
   for (const subscription of config.chain.subscriptions) {
     indexer.subscribe(
       subscription.address,
