@@ -1,4 +1,4 @@
-import { ContractInterface } from "ethers";
+import * as ethers from "ethers";
 import "dotenv/config";
 import { parseArgs } from "node:util";
 import { ToBlock } from "chainsauce";
@@ -16,7 +16,7 @@ export type Token = {
 
 export type Subscription = {
   address: string;
-  abi: ContractInterface;
+  abi: ethers.ContractInterface;
   fromBlock?: number;
   events?: Record<string, string>;
 };
