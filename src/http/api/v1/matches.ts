@@ -79,8 +79,8 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     }
 
     const calculatorOptions: CalculatorOptions = {
-      priceProvider: config.getPriceProvider(chainId),
-      dataProvider: config.getDataProvider(chainId),
+      priceProvider: config.priceProvider,
+      dataProvider: config.dataProvider,
       chainId: chainId,
       roundId: roundId,
       minimumAmountUSD: minimumAmountUSD ? Number(minimumAmountUSD) : undefined,

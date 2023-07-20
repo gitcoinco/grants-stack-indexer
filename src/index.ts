@@ -54,15 +54,11 @@ async function main(): Promise<void> {
   if (!config.runOnce) {
     const httpApi = createHttpApi({
       storageDir: config.storageDir,
-      getPriceProvider: (chainId) =>
-        createPriceProvider({
-          storageDir: path.join(config.storageDir, chainId.toString()),
-          logger: baseLogger.child({ subsystem: "PriceProvider" }),
-        }),
-      getDataProvider: (chainId) =>
-        new FileSystemDataProvider(
-          path.join(config.storageDir, chainId.toString())
-        ),
+      priceProvider: createPriceProvider({
+        storageDir: config.storageDir,
+        logger: baseLogger.child({ subsystem: "PriceProvider" }),
+      }),
+      dataProvider: new FileSystemDataProvider(config.storageDir),
       port: config.apiHttpPort,
       logger: baseLogger.child({ subsystem: "HttpApi" }),
     });

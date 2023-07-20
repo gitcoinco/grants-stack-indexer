@@ -14,8 +14,8 @@ export interface HttpApiConfig {
   logger: Logger;
   port: number;
   storageDir: string;
-  getPriceProvider: (chainId: number) => PriceProvider;
-  getDataProvider: (chainId: number) => DataProvider;
+  priceProvider: PriceProvider;
+  dataProvider: DataProvider;
 }
 
 interface HttpApi {
