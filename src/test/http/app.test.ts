@@ -71,15 +71,13 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           storageDir: "/dev/null",
-          getPriceProvider: (_chainId) =>
-            new TestPriceProvider() as unknown as PriceProvider,
-          getDataProvider: (_chainId) =>
-            new TestDataProvider({
-              "1/rounds/0x1234/votes.json": "votes",
-              "1/rounds/0x1234/applications.json": "applications",
-              "1/rounds.json": [], // empty file so the round won't be found
-              "passport_scores.json": "passport_scores",
-            }),
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": [], // empty file so the round won't be found
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
         });
 
         const resp = await request(app).get(
@@ -93,15 +91,13 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           storageDir: "/dev/null",
-          getPriceProvider: (_chainId) =>
-            new TestPriceProvider() as unknown as PriceProvider,
-          getDataProvider: (_chainId) =>
-            new TestDataProvider({
-              "1/rounds/0x1234/votes.json": "votes",
-              "1/rounds/0x1234/applications.json": "applications",
-              "1/rounds.json": [], // empty file so the round won't be found
-              "passport_scores.json": "passport_scores",
-            }),
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": [], // empty file so the round won't be found
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
         });
 
         const resp = await request(app).get(
@@ -115,15 +111,13 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           storageDir: "/dev/null",
-          getPriceProvider: (_chainId) =>
-            new TestPriceProvider() as unknown as PriceProvider,
-          getDataProvider: (_chainId) =>
-            new TestDataProvider({
-              "1/rounds/0x1234/votes.json": "votes",
-              "1/rounds/0x1234/applications.json": "applications",
-              "1/rounds.json": [], // empty file so the round won't be found
-              "passport_scores.json": "passport_scores",
-            }),
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": [], // empty file so the round won't be found
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
         });
 
         const resp = await request(app).get(
@@ -137,15 +131,13 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           storageDir: "/dev/null",
-          getPriceProvider: (_chainId) =>
-            new TestPriceProvider() as unknown as PriceProvider,
-          getDataProvider: (_chainId) =>
-            new TestDataProvider({
-              "1/rounds/0x1234/votes.json": "votes",
-              "1/rounds/0x1234/applications.json": "applications",
-              "1/rounds.json": [], // empty file so the round won't be found
-              "passport_scores.json": "passport_scores",
-            }),
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": [], // empty file so the round won't be found
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
         });
 
         const resp = await request(app).get(
@@ -159,15 +151,13 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           storageDir: "/dev/null",
-          getPriceProvider: (_chainId) =>
-            new TestPriceProvider() as unknown as PriceProvider,
-          getDataProvider: (_chainId) =>
-            new TestDataProvider({
-              "1/rounds/0x1234/votes.json": "votes",
-              "1/rounds/0x1234/applications.json": "applications",
-              "1/rounds.json": [], // empty file so the round won't be found
-              "passport_scores.json": "passport_scores",
-            }),
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": [], // empty file so the round won't be found
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
         });
 
         const resp = await request(app).get(
@@ -184,15 +174,13 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           storageDir: "/dev/null",
-          getPriceProvider: (_chainId) =>
-            new TestPriceProvider() as unknown as PriceProvider,
-          getDataProvider: (_chainId) =>
-            new TestDataProvider({
-              "1/rounds/0x1234/votes.json": "votes",
-              "1/rounds/0x1234/applications.json": "applications",
-              "1/rounds.json": "rounds",
-              "passport_scores.json": "passport_scores",
-            }),
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": "rounds",
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
         }).app;
       });
 
@@ -251,25 +239,23 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           storageDir: "/dev/null",
-          getPriceProvider: (_chainId) =>
-            new TestPriceProvider() as unknown as PriceProvider,
-          getDataProvider: (_chainId) =>
-            new TestDataProvider({
-              "1/rounds/0x1234/votes.json": "votes",
-              "1/rounds/0x1234/applications.json": "applications",
-              "1/rounds.json": [
-                {
-                  id: "0x1234",
-                  token: "0x0000000000000000000000000000000000000000",
-                  // instead of 100 like in the previous test
-                  // this round has a pot of 1000,
-                  // so it's not saturated because the sum of matches is 250
-                  matchAmount: "100000",
-                  metadata: {},
-                },
-              ],
-              "passport_scores.json": "passport_scores",
-            }),
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": [
+              {
+                id: "0x1234",
+                token: "0x0000000000000000000000000000000000000000",
+                // instead of 100 like in the previous test
+                // this round has a pot of 1000,
+                // so it's not saturated because the sum of matches is 250
+                matchAmount: "100000",
+                metadata: {},
+              },
+            ],
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
         }).app;
       });
 
@@ -329,15 +315,13 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           storageDir: "/dev/null",
-          getPriceProvider: (_chainId) =>
-            new TestPriceProvider() as unknown as PriceProvider,
-          getDataProvider: (_chainId) =>
-            new TestDataProvider({
-              "1/rounds/0x1234/votes.json": "votes-with-bad-recipient",
-              "1/rounds/0x1234/applications.json": "applications",
-              "1/rounds.json": "rounds",
-              "passport_scores.json": "passport_scores",
-            }),
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes-with-bad-recipient",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": "rounds",
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
         }).app;
       });
 
@@ -396,15 +380,13 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           storageDir: "/dev/null",
-          getPriceProvider: (_chainId) =>
-            new TestPriceProvider() as unknown as PriceProvider,
-          getDataProvider: (_chainId) =>
-            new TestDataProvider({
-              "1/rounds/0x1234/votes.json": "votes",
-              "1/rounds/0x1234/applications.json": "applications",
-              "1/rounds.json": "rounds",
-              "passport_scores.json": "passport_scores",
-            }),
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": "rounds",
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
         }).app;
       });
 
@@ -523,17 +505,15 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           storageDir: "/dev/null",
-          getPriceProvider: (_chainId) =>
-            new TestPriceProvider() as unknown as PriceProvider,
-          getDataProvider: (_chainId) =>
-            new TestDataProvider({
-              "1/rounds/0x1234/votes.json": "votes",
-              "1/rounds/0x1234/applications.json": "applications",
-              "1/rounds/0x2/votes.json": "votes",
-              "1/rounds/0x2/applications.json": "applications",
-              "1/rounds.json": "rounds",
-              "passport_scores.json": "passport_scores",
-            }),
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds/0x2/votes.json": "votes",
+            "1/rounds/0x2/applications.json": "applications",
+            "1/rounds.json": "rounds",
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
         }).app;
       });
 
@@ -735,17 +715,15 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           storageDir: "/dev/null",
-          getPriceProvider: (_chainId) =>
-            new TestPriceProvider() as unknown as PriceProvider,
-          getDataProvider: (_chainId) =>
-            new TestDataProvider({
-              "1/rounds/0x1234/votes.json": "votes",
-              "1/rounds/0x1234/applications.json": "applications",
-              "1/rounds/0x3/votes.json": "votes",
-              "1/rounds/0x3/applications.json": "applications",
-              "1/rounds.json": "rounds",
-              "passport_scores.json": "passport_scores",
-            }),
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds/0x3/votes.json": "votes",
+            "1/rounds/0x3/applications.json": "applications",
+            "1/rounds.json": "rounds",
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
         }).app;
       });
 
@@ -898,17 +876,15 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           storageDir: "/dev/null",
-          getPriceProvider: (_chainId) =>
-            new TestPriceProvider() as unknown as PriceProvider,
-          getDataProvider: (_chainId) =>
-            new TestDataProvider({
-              "1/rounds/0x1234/votes.json": "votes",
-              "1/rounds/0x1234/applications.json": "applications",
-              "1/rounds/0x4/votes.json": "votes",
-              "1/rounds/0x4/applications.json": "applications",
-              "1/rounds.json": "rounds",
-              "passport_scores.json": "passport_scores",
-            }),
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds/0x4/votes.json": "votes",
+            "1/rounds/0x4/applications.json": "applications",
+            "1/rounds.json": "rounds",
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
         }).app;
       });
 
