@@ -1,5 +1,3 @@
-export { default as ProjectRegistryV2 } from "./v2/ProjectRegistry.json";
-
-import { default as MyABIv1 } from "./v1/MyABI.json";
-import { default as MyABIv2 } from "./v2/MyABI.json";
-export const MyABICombined = merge(MyABIv1, MyABIv2);
+export * as v1 from "./v1/index.js";
+export * as v2 from "./v1/index.js";
+export * as v3 from "./v1/index.js";
