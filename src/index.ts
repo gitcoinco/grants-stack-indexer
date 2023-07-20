@@ -205,7 +205,7 @@ async function catchupAndWatchChain(
   for (const subscription of config.chain.subscriptions) {
     indexer.subscribe(
       subscription.address,
-      await importAbi(subscription.abi),
+      subscription.abi,
       Math.max(subscription.fromBlock || 0, config.fromBlock)
     );
   }

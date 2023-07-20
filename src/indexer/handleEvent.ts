@@ -437,7 +437,6 @@ async function handleEvent(
       break;
     }
 
-    // --- Votes
     case "Voted": {
       const voteId = ethers.utils.solidityKeccak256(
         ["string"],

@@ -28,6 +28,12 @@
         "type": "uint256"
       },
       {
+        "indexed": false,
+        "internalType": "address",
+        "name": "origin",
+        "type": "address"
+      },
+      {
         "indexed": true,
         "internalType": "address",
         "name": "voter",

@@ -6,7 +6,7 @@
   "main": "dist/src/indexer/index.js",
   "types": "dist/src/indexer/index.d.ts",
   "scripts": {
-    "start": "node dist/src/index.js --chains=mainnet,optimism,goerli,fantom,pgn-testnet,pgn-mainnet",
+    "start": "node dist/src/index.js --chains=optimism,pgn-testnet",
     "dev": "nodemon --delay 2 --watch dist --exec 'npm run start'",
     "build": "tsc",
     "build:watch": "tsc --watch",
@@ -14,7 +14,7 @@
     "format": "prettier --write src",
     "test": "vitest run --reporter verbose",
     "test:watch": "vitest watch --reporter verbose",
-    "deploy:staging": "docker buildx build . -t registry.fly.io/indexer-staging:latest && docker push registry.fly.io/indexer-staging:latest && flyctl -c fly.staging.toml --app indexer-staging deploy -i registry.fly.io/indexer-staging:latest" 
+    "deploy:staging": "docker buildx build . -t registry.fly.io/indexer-staging:latest && docker push registry.fly.io/indexer-staging:latest && flyctl -c fly.staging.toml --app indexer-staging deploy -i registry.fly.io/indexer-staging:latest"
   },
   "imports": {
     "#abis/*": {
