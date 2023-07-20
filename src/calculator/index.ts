@@ -135,21 +135,18 @@ export default class Calculator {
   async calculate(): Promise<Array<AugmentedResult>> {
     const votes = this.parseJSONFile<Vote>(
       "votes",
-      `${this.chainId}/rounds/${this.roundId}/votes.json`
+      `rounds/${this.roundId}/votes.json`
     );
     const applications = this.parseJSONFile<Application>(
       "applications",
-      `${this.chainId}/rounds/${this.roundId}/applications.json`
+      `rounds/${this.roundId}/applications.json`
     );
 
-    const rounds = this.parseJSONFile<Round>(
-      "rounds",
-      `${this.chainId}/rounds.json`
-    );
+    const rounds = this.parseJSONFile<Round>("rounds", `rounds.json`);
 
     const passportScores = this.parseJSONFile<PassportScore>(
       "passport scores",
-      "passport_scores.json"
+      "../passport_scores.json"
     );
 
     const round = rounds.find((r: Round) => r.id === this.roundId);
