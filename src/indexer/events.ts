@@ -80,6 +80,7 @@ export interface VotedEvent extends ChainsauceEvent {
     voter: string;
     contributor: string;
     token: string;
+    origin?: string;
   };
 }
 
