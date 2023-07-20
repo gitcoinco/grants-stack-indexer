@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "fs/promises";
 import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
 import type { PassportScore } from "../passport/index.js";
@@ -23,7 +23,7 @@ export {
 };
 
 export interface DataProvider {
-  loadFile<T>(description: string, path: string): Array<T>;
+  loadFile<T>(description: string, path: string): Promise<Array<T>>;
 }
 
 export type Overrides = Record<string, number>;
@@ -35,16 +35,10 @@ export class FileSystemDataProvider implements DataProvider {
     this.basePath = basePath;
   }
 
-  loadFile<T>(description: string, path: string): Array<T> {
+  async loadFile<T>(description: string, path: string): Promise<Array<T>> {
     const fullPath = `${this.basePath}/${path}`;
-    if (!fs.existsSync(fullPath)) {
-      throw new FileNotFoundError(description);
-    }
 
-    const data = fs.readFileSync(fullPath, {
-      encoding: "utf8",
-      flag: "r",
-    });
+    const data = await fs.readFile(fullPath, "utf8");
 
     return JSON.parse(data) as Array<T>;
   }
@@ -133,21 +127,21 @@ export default class Calculator {
   }
 
   async calculate(): Promise<Array<AugmentedResult>> {
-    const votes = this.parseJSONFile<Vote>(
+    const votes = await this.parseJSONFile<Vote>(
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
-    const applications = this.parseJSONFile<Application>(
+    const applications = await this.parseJSONFile<Application>(
       "applications",
       `${this.chainId}/rounds/${this.roundId}/applications.json`
     );
 
-    const rounds = this.parseJSONFile<Round>(
+    const rounds = await this.parseJSONFile<Round>(
       "rounds",
       `${this.chainId}/rounds.json`
     );
 
-    const passportScores = this.parseJSONFile<PassportScore>(
+    const passportScores = await this.parseJSONFile<PassportScore>(
       "passport scores",
       "passport_scores.json"
     );
@@ -258,7 +252,10 @@ export default class Calculator {
     return augmented;
   }
 
-  parseJSONFile<T>(fileDescription: string, path: string): Array<T> {
+  async parseJSONFile<T>(
+    fileDescription: string,
+    path: string
+  ): Promise<Array<T>> {
     return this.dataProvider.loadFile<T>(fileDescription, path);
   }
 }

@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from "vitest";
 import express from "express";
-import fs from "fs";
+import fs from "fs/promises";
 import path from "path";
 import request, { Response as SupertestResponse } from "supertest";
 import { createHttpApi } from "../../http/app.js";
@@ -15,9 +15,12 @@ import { Logger } from "pino";
 // Typed version of supertest's Response
 type Response<T> = Omit<SupertestResponse, "body"> & { body: T };
 
-const loadFixture = (name: string, extension = "json") => {
+const loadFixture = async (
+  name: string,
+  extension = "json"
+): Promise<string> => {
   const p = path.resolve(__dirname, "../fixtures", `${name}.${extension}`);
-  const data = fs.readFileSync(p, { encoding: "utf8", flag: "r" });
+  const data = await fs.readFile(p, "utf8");
   return data;
 };
 
@@ -39,7 +42,7 @@ export class TestDataProvider implements DataProvider {
     this.fixtures = fixtures;
   }
 
-  loadFile<T>(description: string, path: string): Array<T> {
+  async loadFile<T>(description: string, path: string): Promise<Array<T>> {
     const fixture = this.fixtures[path];
     if (fixture === undefined) {
       throw new FileNotFoundError(description);
@@ -49,7 +52,7 @@ export class TestDataProvider implements DataProvider {
       return fixture as Array<T>;
     }
 
-    return JSON.parse(loadFixture(fixture)) as Array<T>;
+    return JSON.parse(await loadFixture(fixture)) as Array<T>;
   }
 }
 
@@ -406,7 +409,7 @@ describe("server", () => {
       });
 
       test("should render calculations", async () => {
-        const overridesContent = loadFixture("overrides", "csv");
+        const overridesContent = await loadFixture("overrides", "csv");
 
         const resp: Response<AugmentedResult[]> = await request(app)
           .post("/api/v1/chains/1/rounds/0x1234/matches")
@@ -430,7 +433,7 @@ describe("server", () => {
       });
 
       test("coefficients should multiply votes", async () => {
-        const overridesContent = loadFixture(
+        const overridesContent = await loadFixture(
           "overrides-with-floating-coefficient",
           "csv"
         );
@@ -470,7 +473,7 @@ describe("server", () => {
       });
 
       test("should render 400 if the overrides file doesn't have the id column", async () => {
-        const overridesContent = loadFixture(
+        const overridesContent = await loadFixture(
           "overrides-without-transaction-id",
           "csv"
         );
@@ -484,7 +487,7 @@ describe("server", () => {
       });
 
       test("should render 400 if the overrides file doesn't have the coefficient column", async () => {
-        const overridesContent = loadFixture(
+        const overridesContent = await loadFixture(
           "overrides-without-coefficient",
           "csv"
         );
@@ -498,7 +501,7 @@ describe("server", () => {
       });
 
       test("should render 400 if the overrides file has invalid coefficients", async () => {
-        const overridesContent = loadFixture(
+        const overridesContent = await loadFixture(
           "overrides-with-invalid-coefficient",
           "csv"
         );
