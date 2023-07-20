@@ -3,6 +3,8 @@ import { parseArgs } from "node:util";
 import { ToBlock } from "chainsauce";
 import path from "node:path";
 
+import * as abis from "./indexer/abis/index.js";
+
 type ChainId = number;
 
 export type Token = {
@@ -64,7 +66,7 @@ export const CHAINS: Chain[] = [
     subscriptions: [
       {
         address: "0x03506eD3f57892C85DB20C36846e9c808aFe9ef4",
-        abi: "#abis/v2/ProjectRegistry.json",
+        abi: abis.MyABICombined,
       },
       {
         address: "0x9Cb7f434aD3250d1656854A9eC7A71EceC6eE1EF",
