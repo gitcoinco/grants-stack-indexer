@@ -496,7 +496,7 @@ async function handleEvent(
         projectId: event.args.projectId,
         applicationId: applicationId,
         roundId: event.args.roundAddress,
-        voter: event.args.voter,
+        voter: event.args.origin ?? event.args.voter,
         grantAddress: event.args.grantAddress,
         token: event.args.token,
         amount: event.args.amount.toString(),
