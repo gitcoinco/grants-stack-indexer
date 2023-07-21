@@ -8,6 +8,8 @@ kill_timeout = 5
 
 [env]
   PORT = "8080"
+  DEPLOYMENT_ENVIRONMENT = "production"
+  LOG_LEVEL = "info"
   STORAGE_DIR = "/mnt/indexer/data"
   CACHE_DIR = "/mnt/indexer/cache"
 

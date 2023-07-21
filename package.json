@@ -41,7 +41,8 @@
     "pluralistic": "github:gitcoinco/pluralistic.js#644d14fff65100f005d7afc18799b0f99b72ae24",
     "serve-index": "^1.9.1",
     "statuses-bitmap": "github:gitcoinco/statuses-bitmap#3d8fd370f209ccbaffd3781cf2b6d2895237c21c",
-    "write-file-atomic": "^5.0.1"
+    "write-file-atomic": "^5.0.1",
+    "zod": "^3.21.4"
   },
   "devDependencies": {
     "@types/cors": "^2.8.13",

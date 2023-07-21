@@ -32,10 +32,12 @@ async function main(): Promise<void> {
     });
   }
 
-  const baseLogger = pino({ level: "trace" }).child({
-    service: "indexer-staging", // XXX TODO grab environment name from env variable
+  const baseLogger = pino({ level: config.logLevel }).child({
+    service: `indexer-${config.deploymentEnvironment}`,
   });
 
+  // Promise will be resolved once the catchup is done. Afterwards, services
+  // will still be in listen-and-update mode
   await Promise.all([
     catchupAndWatchPassport({
       ...config,
