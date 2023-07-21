@@ -168,90 +168,98 @@ async function handleEvent(
         matchAmountPromise = contract.matchAmount();
       }
 
-      const applicationMetaPtrPromise = contract.applicationMetaPtr();
-      const metaPtrPromise = contract.roundMetaPtr();
-      const tokenPromise = contract.token();
-      const applicationsStartTimePromise = contract.applicationsStartTime();
-      const applicationsEndTimePromise = contract.applicationsEndTime();
-      const roundStartTimePromise = contract.roundStartTime();
-      const roundEndTimePromise = contract.roundEndTime();
+      const [
+        applicationMetaPtrResolved,
+        metaPtrResolved,
+        tokenResolved,
+        applicationsStartTimeResolved,
+        applicationsEndTimeResolved,
+        roundStartTimeResolved,
+        roundEndTimeResolved,
+        matchAmountResolved,
+      ] = await Promise.all([
+        contract.applicationMetaPtr(),
+        contract.roundMetaPtr(),
+        contract.token(),
+        contract.applicationsStartTime(),
+        contract.applicationsEndTime(),
+        contract.roundStartTime(),
+        contract.roundEndTime(),
+        matchAmountPromise,
+      ]);
 
-      const applicationMetaPtr = (await applicationMetaPtrPromise).pointer;
-      const metaPtr = (await metaPtrPromise).pointer;
-      const token = (await tokenPromise).toString().toLowerCase();
-      const matchAmount = await matchAmountPromise;
-      const applicationsStartTime = (
-        await applicationsStartTimePromise
-      ).toString();
-      const applicationsEndTime = (await applicationsEndTimePromise).toString();
-      const roundStartTime = (await roundStartTimePromise).toString();
-      const roundEndTime = (await roundEndTimePromise).toString();
+      const applicationMetaPtr = applicationMetaPtrResolved.pointer;
+      const metaPtr = metaPtrResolved.pointer;
+      const token = tokenResolved.toString().toLowerCase();
+      const matchAmount = matchAmountResolved;
+      const applicationsStartTime = applicationsStartTimeResolved.toString();
+      const applicationsEndTime = applicationsEndTimeResolved.toString();
+      const roundStartTime = roundStartTimeResolved.toString();
+      const roundEndTime = roundEndTimeResolved.toString();
 
       const roundId = event.args.roundAddress;
 
-      await db.collection<Round>("rounds").insert({
-        id: roundId,
-        amountUSD: 0,
-        votes: 0,
-        token,
-        matchAmount: "0",
-        matchAmountUSD: 0,
-        uniqueContributors: 0,
-        applicationMetaPtr,
-        applicationMetadata: null,
-        metaPtr,
-        metadata: null,
-        applicationsStartTime,
-        applicationsEndTime,
-        roundStartTime,
-        roundEndTime,
-        createdAtBlock: event.blockNumber,
-        updatedAtBlock: event.blockNumber,
-      });
-
-      // create empty sub collections
-      await db.collection(`rounds/${roundId}/projects`).replaceAll([]);
-      await db.collection(`rounds/${roundId}/applications`).replaceAll([]);
-      await db.collection(`rounds/${roundId}/votes`).replaceAll([]);
-      await db.collection(`rounds/${roundId}/contributors`).replaceAll([]);
-
-      if (tokenDecimals[chainId][token]) {
-        await matchAmountUpdated(
+      await Promise.all([
+        db.collection<Round>("rounds").insert({
+          id: roundId,
+          amountUSD: 0,
+          votes: 0,
+          token,
+          matchAmount: "0",
+          matchAmountUSD: 0,
+          uniqueContributors: 0,
+          applicationMetaPtr,
+          applicationMetadata: null,
+          metaPtr,
+          metadata: null,
+          applicationsStartTime,
+          applicationsEndTime,
+          roundStartTime,
+          roundEndTime,
+          createdAtBlock: event.blockNumber,
+          updatedAtBlock: event.blockNumber,
+        }),
+        // create empty sub collections
+        db.collection(`rounds/${roundId}/projects`).replaceAll([]),
+        db.collection(`rounds/${roundId}/applications`).replaceAll([]),
+        db.collection(`rounds/${roundId}/votes`).replaceAll([]),
+        db.collection(`rounds/${roundId}/contributors`).replaceAll([]),
+        tokenDecimals[chainId][token]
+          ? matchAmountUpdated(
+              {
+                ...event,
+                name: "MatchAmountUpdated",
+                address: event.args.roundAddress,
+                args: {
+                  newAmount: matchAmount,
+                },
+              },
+              { priceProvider, db, chainId }
+            )
+          : null,
+        roundMetaPtrUpdated(
           {
             ...event,
-            name: "MatchAmountUpdated",
+            name: "RoundMetaPtrUpdated",
             address: event.args.roundAddress,
             args: {
-              newAmount: matchAmount,
+              newMetaPtr: { pointer: metaPtr },
             },
           },
-          { priceProvider, db, chainId }
-        );
-      }
-
-      await roundMetaPtrUpdated(
-        {
-          ...event,
-          name: "RoundMetaPtrUpdated",
-          address: event.args.roundAddress,
-          args: {
-            newMetaPtr: { pointer: metaPtr },
+          { ipfsGet, db }
+        ),
+        applicationMetaPtrUpdated(
+          {
+            ...event,
+            name: "ApplicationMetaPtrUpdated",
+            address: event.args.roundAddress,
+            args: {
+              newMetaPtr: { pointer: applicationMetaPtr },
+            },
           },
-        },
-        { ipfsGet, db }
-      );
-
-      await applicationMetaPtrUpdated(
-        {
-          ...event,
-          name: "ApplicationMetaPtrUpdated",
-          address: event.args.roundAddress,
-          args: {
-            newMetaPtr: { pointer: applicationMetaPtr },
-          },
-        },
-        { ipfsGet, db }
-      );
+          { ipfsGet, db }
+        ),
+      ]);
 
       break;
     }
@@ -300,28 +308,30 @@ async function handleEvent(
         return p ?? application;
       });
 
-      await db
-        .collection(
-          `rounds/${event.address}/applications/${applicationIndex}/votes`
-        )
-        .replaceAll([]);
-
-      await db
-        .collection(
-          `rounds/${event.address}/applications/${applicationIndex}/contributors`
-        )
-        .replaceAll([]);
+      await Promise.all([
+        db
+          .collection(
+            `rounds/${event.address}/applications/${applicationIndex}/votes`
+          )
+          .replaceAll([]),
+        db
+          .collection(
+            `rounds/${event.address}/applications/${applicationIndex}/contributors`
+          )
+          .replaceAll([]),
+      ]);
 
       if (isNewProject) {
-        await db
-          .collection(`rounds/${event.address}/projects/${projectId}/votes`)
-          .replaceAll([]);
-
-        await db
-          .collection(
-            `rounds/${event.address}/projects/${projectId}/contributors`
-          )
-          .replaceAll([]);
+        await Promise.all([
+          db
+            .collection(`rounds/${event.address}/projects/${projectId}/votes`)
+            .replaceAll([]),
+          await db
+            .collection(
+              `rounds/${event.address}/projects/${projectId}/contributors`
+            )
+            .replaceAll([]),
+        ]);
       }
 
       const metadata = await ipfsGet<Application["metadata"]>(
@@ -329,15 +339,16 @@ async function handleEvent(
       );
 
       if (metadata) {
-        await applications.updateById(applicationIndex, (app) => ({
-          ...app,
-          metadata,
-        }));
-
-        await projects.updateById(projectId, (project) => ({
-          ...project,
-          metadata,
-        }));
+        await Promise.all([
+          applications.updateById(applicationIndex, (app) => ({
+            ...app,
+            metadata,
+          })),
+          projects.updateById(projectId, (project) => ({
+            ...project,
+            metadata,
+          })),
+        ]);
       }
 
       break;
@@ -355,21 +366,22 @@ async function handleEvent(
       for (const projectApp of projects) {
         const projectId = projectApp.id.split("-")[0];
 
-        await db
-          .collection<Application>(`rounds/${event.address}/projects`)
-          .updateById(projectId, (application) => ({
-            ...application,
-            statusUpdatedAtBlock: event.blockNumber,
-            status: projectApp.status ?? application.status,
-          }));
-
-        await db
-          .collection<Application>(`rounds/${event.address}/applications`)
-          .updateById(projectId, (application) => ({
-            ...application,
-            statusUpdatedAtBlock: event.blockNumber,
-            status: projectApp.status ?? application.status,
-          }));
+        await Promise.all([
+          db
+            .collection<Application>(`rounds/${event.address}/projects`)
+            .updateById(projectId, (application) => ({
+              ...application,
+              statusUpdatedAtBlock: event.blockNumber,
+              status: projectApp.status ?? application.status,
+            })),
+          db
+            .collection<Application>(`rounds/${event.address}/applications`)
+            .updateById(projectId, (application) => ({
+              ...application,
+              statusUpdatedAtBlock: event.blockNumber,
+              status: projectApp.status ?? application.status,
+            })),
+        ]);
       }
       break;
     }
@@ -379,6 +391,7 @@ async function handleEvent(
       bitmap.setRow(event.args.index.toBigInt(), event.args.status.toBigInt());
       const startIndex = event.args.index.toBigInt() * bitmap.itemsPerRow;
 
+      // XXX should be translatable to Promise.all([/* ... */].map(...)) but leaving for later as it's non-straightforward
       for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
         const status = bitmap.getStatus(i);
         const statusString = ApplicationStatus[status];
@@ -577,23 +590,25 @@ async function handleEvent(
           }
         );
 
-      await db
-        .collection<Application>(
-          `rounds/${event.args.roundAddress}/applications`
-        )
-        .updateById(applicationId, (project) => ({
-          ...project,
-          amountUSD: project.amountUSD + amountUSD,
-          votes: project.votes + 1,
-          uniqueContributors:
-            project.uniqueContributors + (isNewapplicationContributor ? 1 : 0),
-        }));
-
-      await db
-        .collection<Vote>(
-          `rounds/${event.args.roundAddress}/applications/${applicationId}/votes`
-        )
-        .insert(vote);
+      await Promise.all([
+        db
+          .collection<Application>(
+            `rounds/${event.args.roundAddress}/applications`
+          )
+          .updateById(applicationId, (project) => ({
+            ...project,
+            amountUSD: project.amountUSD + amountUSD,
+            votes: project.votes + 1,
+            uniqueContributors:
+              project.uniqueContributors +
+              (isNewapplicationContributor ? 1 : 0),
+          })),
+        db
+          .collection<Vote>(
+            `rounds/${event.args.roundAddress}/applications/${applicationId}/votes`
+          )
+          .insert(vote),
+      ]);
 
       const contributorPartitionedPath = vote.voter
         .split(/(.{6})/)
