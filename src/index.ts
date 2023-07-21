@@ -32,7 +32,7 @@ async function main(): Promise<void> {
     });
   }
 
-  const baseLogger = pino({ level: "trace" }).child({
+  const baseLogger = pino({ level: config.logLevel }).child({
     service: `indexer-${config.deploymentEnvironment}`,
   });
 

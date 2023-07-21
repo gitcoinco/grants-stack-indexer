@@ -1,7 +1,6 @@
 import "dotenv/config";
 import { parseArgs } from "node:util";
 import { ToBlock } from "chainsauce";
-import path from "node:path";
 import { z } from "zod";
 
 type ChainId = number;
@@ -356,7 +355,6 @@ export type Config = {
   passportApiKey: string;
   cacheDir: string | null;
   logLevel: "trace" | "debug" | "info" | "warn" | "error";
-  clear: boolean;
   ipfsGateway: string;
   coingeckoApiKey: string | null;
   coingeckoApiUrl: string;
@@ -368,7 +366,7 @@ export type Config = {
 };
 
 export function getConfig(): Config {
-  const apiHttpPort = Number(process.env.PORT || "4000");
+  const apiHttpPort = z.coerce.number().parse(process.env.PORT);
 
   const deploymentEnvironment = z
     .union([
@@ -379,22 +377,24 @@ export function getConfig(): Config {
     ])
     .parse(process.env.DEPLOYMENT_ENVIRONMENT);
 
-  if (!process.env.PASSPORT_SCORER_ID) {
-    throw new Error("PASSPORT_SCORER_ID is not set");
-  }
-  if (!process.env.PASSPORT_API_KEY) {
-    throw new Error("PASSPORT_SCORER_ID is not set");
-  }
-  const passportScorerId = process.env.PASSPORT_SCORER_ID;
-  const passportApiKey = process.env.PASSPORT_API_KEY;
+  const passportScorerId = z.string().parse(process.env.PASSPORT_SCORER_ID);
 
-  const coingeckoApiKey = process.env.COINGECKO_API_KEY ?? null;
+  const passportApiKey = z.string().parse(process.env.PASSPORT_API_KEY);
 
-  const coingeckoApiUrl = process.env.COINGECKO_API_KEY
-    ? "https://pro-api.coingecko.com/api/v3/"
-    : "https://api.coingecko.com/api/v3";
+  const coingeckoApiKey = z
+    .union([z.string(), z.null()])
+    .default(null)
+    .parse(process.env.COINGECKO_API_KEY);
 
-  const storageDir = path.join(process.env.STORAGE_DIR || "./data");
+  const coingeckoApiUrl =
+    coingeckoApiKey === null
+      ? "https://api.coingecko.com/api/v3"
+      : "https://pro-api.coingecko.com/api/v3/";
+
+  const storageDir = z
+    .string()
+    .default("./data")
+    .parse(process.env.STORAGE_DIR);
 
   const { values: args } = parseArgs({
     options: {
@@ -411,9 +411,6 @@ export function getConfig(): Config {
         type: "string",
       },
       "run-once": {
-        type: "boolean",
-      },
-      clear: {
         type: "boolean",
       },
       "no-cache": {
@@ -434,37 +431,40 @@ export function getConfig(): Config {
     return c;
   });
 
-  const toBlock =
-    "to-block" in args
-      ? args["to-block"] === "latest"
-        ? ("latest" as const)
-        : Number(args["to-block"])
-      : ("latest" as const);
+  const toBlock = z
+    .union([z.coerce.number(), z.literal("latest")])
+    .default("latest")
+    .parse(args["to-block"]);
 
-  const fromBlock = "from-block" in args ? Number(args["from-block"]) : 0;
+  const fromBlock = z.coerce.number().default(0).parse(args["from-block"]);
 
-  const logLevel = args["log-level"] ?? "info";
-  if (
-    logLevel !== "trace" &&
-    logLevel !== "debug" &&
-    logLevel !== "info" &&
-    logLevel !== "warn" &&
-    logLevel !== "error"
-  ) {
-    throw new Error(`Invalid log level: ${logLevel}`);
-  }
+  const logLevel = z
+    .union([
+      z.literal("trace"),
+      z.literal("debug"),
+      z.literal("info"),
+      z.literal("warn"),
+      z.literal("error"),
+    ])
+    .default("info")
+    .parse(process.env.LOG_LEVEL);
 
-  const clear = args.clear ?? false;
+  const runOnce = z.boolean().default(false).parse(args["run-once"]);
 
-  const runOnce = args["run-once"] ?? false;
+  const cacheDir = z
+    .union([z.string(), z.null()])
+    .default("./.cache")
+    .parse(process.env.CACHE_DIR);
 
-  const cacheDir = args["no-cache"]
-    ? null
-    : process.env.CACHE_DIR || "./.cache";
+  const ipfsGateway = z
+    .string()
+    .default("https://cloudflare-ipfs.com")
+    .parse(process.env.IPFS_GATEWAY);
 
-  const ipfsGateway = process.env.IPFS_GATEWAY || "https://cloudflare-ipfs.com";
-
-  const sentryDsn = process.env.SENTRY_DSN ?? null;
+  const sentryDsn = z
+    .union([z.string(), z.null()])
+    .default(null)
+    .parse(process.env.SENTRY_DSN);
 
   return {
     sentryDsn,
@@ -477,7 +477,6 @@ export function getConfig(): Config {
     cacheDir,
     logLevel,
     runOnce,
-    clear,
     ipfsGateway,
     passportApiKey,
     passportScorerId,
