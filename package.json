@@ -14,7 +14,7 @@
     "format": "prettier --write src",
     "test": "vitest run --reporter verbose",
     "test:watch": "vitest watch --reporter verbose",
-    "deploy:staging": "docker buildx build . -t registry.fly.io/indexer-staging:latest && docker push registry.fly.io/indexer-staging:latest && flyctl -c fly.staging.toml --app indexer-staging deploy -i registry.fly.io/indexer-staging:latest" 
+    "deploy:development": "docker buildx build . -t registry.fly.io/indexer-development:latest && docker push registry.fly.io/indexer-development:latest && flyctl -c fly.development.toml --app indexer-development deploy -i registry.fly.io/indexer-development:latest"
   },
   "imports": {
     "#abis/*": {
