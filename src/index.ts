@@ -21,6 +21,7 @@ import { createPriceProvider } from "./prices/provider.js";
 import { importAbi } from "./indexer/utils.js";
 import { createHttpApi } from "./http/app.js";
 import { FileSystemDataProvider } from "./calculator/index.js";
+import { AsyncSentinel } from "./utils/asyncSentinel.js";
 
 async function main(): Promise<void> {
   const config = getConfig();
@@ -186,9 +187,9 @@ async function catchupAndWatchChain(
     toBlock: config.toBlock,
   });
 
-  // Update blockchain-dependent state to present and optionally keep watching for updates
-
   chainLogger.info("catching up with blockchain events");
+  const catchupSentinel = new AsyncSentinel();
+
   const indexer = await createIndexer(
     rpcProvider,
     storage,
@@ -207,16 +208,30 @@ async function catchupAndWatchChain(
       eventCacheDirectory: config.cacheDir
         ? path.join(config.cacheDir, "events")
         : null,
-      runOnce: config.runOnce,
+      onProgress: ({ currentBlock, lastBlock }) => {
+        // Due to the way chainsauce works, the first time onProgress returns
+        // and currentBlock matches lastBlock, it means that we've caught up the
+        // chain state as it was when we started.
+        if (currentBlock === lastBlock && !catchupSentinel.isDone()) {
+          catchupSentinel.declareDone();
+        }
+      },
     }
   );
 
-  chainLogger.debug("subscribing to contracts");
   for (const subscription of config.chain.subscriptions) {
     indexer.subscribe(
       subscription.address,
       await importAbi(subscription.abi),
       Math.max(subscription.fromBlock || 0, config.fromBlock)
     );
+  }
+
+  await catchupSentinel.untilDone();
+
+  if (config.runOnce) {
+    indexer.stop();
+  } else {
+    chainLogger.info("listening to new blockchain events");
   }
 }
