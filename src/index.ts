@@ -115,6 +115,11 @@ async function catchupAndWatchPassport(
 async function catchupAndWatchChain(
   config: Omit<Config, "chains"> & { chain: Chain; baseLogger: Logger }
 ): Promise<void> {
+  const CHAIN_DIR_PATH = path.join(
+    config.storageDir,
+    config.chain.id.toString()
+  );
+
   const chainLogger = config.baseLogger.child({
     chain: config.chain.id,
   });
@@ -123,9 +128,12 @@ async function catchupAndWatchChain(
     ? new Cache(path.join(config.cacheDir, "prices"))
     : null;
 
-  const storage = new JsonStorage(
-    path.join(config.storageDir, config.chain.id.toString())
-  );
+  // Force a full re-indexing on every startup.
+  // XXX For the longer term, verify whether ChainSauce supports
+  // any sort of stop-and-resume.
+  await fs.rm(CHAIN_DIR_PATH, { force: true, recursive: true });
+
+  const storage = new JsonStorage(CHAIN_DIR_PATH);
 
   const priceProvider = createPriceProvider({
     ...config,
