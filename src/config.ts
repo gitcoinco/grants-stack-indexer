@@ -2,6 +2,7 @@ import "dotenv/config";
 import { parseArgs } from "node:util";
 import { ToBlock } from "chainsauce";
 import path from "node:path";
+import { z } from "zod";
 
 type ChainId = number;
 
@@ -363,10 +364,20 @@ export type Config = {
   runOnce: boolean;
   apiHttpPort: number;
   sentryDsn: string | null;
+  deploymentEnvironment: "local" | "development" | "staging" | "production";
 };
 
 export function getConfig(): Config {
   const apiHttpPort = Number(process.env.PORT || "4000");
+
+  const deploymentEnvironment = z
+    .union([
+      z.literal("local"),
+      z.literal("development"),
+      z.literal("staging"),
+      z.literal("production"),
+    ])
+    .parse(process.env.DEPLOYMENT_ENVIRONMENT);
 
   if (!process.env.PASSPORT_SCORER_ID) {
     throw new Error("PASSPORT_SCORER_ID is not set");
@@ -471,5 +482,6 @@ export function getConfig(): Config {
     passportApiKey,
     passportScorerId,
     apiHttpPort,
+    deploymentEnvironment,
   };
 }
