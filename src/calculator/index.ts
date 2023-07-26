@@ -1,8 +1,8 @@
-import fs from "fs";
+import fs from "fs/promises";
 import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
 import type { PassportScore } from "../passport/index.js";
-import { convertToUSD } from "../prices/index.js";
+import { PriceProvider } from "../prices/provider.js";
 import { tokenDecimals } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
 import { getVotesWithCoefficients } from "./votes.js";
@@ -23,7 +23,7 @@ export {
 };
 
 export interface DataProvider {
-  loadFile<T>(description: string, path: string): Array<T>;
+  loadFile<T>(description: string, path: string): Promise<Array<T>>;
 }
 
 export type Overrides = Record<string, number>;
@@ -35,16 +35,10 @@ export class FileSystemDataProvider implements DataProvider {
     this.basePath = basePath;
   }
 
-  loadFile<T>(description: string, path: string): Array<T> {
+  async loadFile<T>(description: string, path: string): Promise<Array<T>> {
     const fullPath = `${this.basePath}/${path}`;
-    if (!fs.existsSync(fullPath)) {
-      throw new FileNotFoundError(description);
-    }
 
-    const data = fs.readFileSync(fullPath, {
-      encoding: "utf8",
-      flag: "r",
-    });
+    const data = await fs.readFile(fullPath, "utf8");
 
     return JSON.parse(data) as Array<T>;
   }
@@ -56,7 +50,7 @@ export function parseOverrides(buf: Buffer): Promise<Overrides> {
     let rowIndex = 1;
 
     const stream = csv()
-      .on("headers", (headers) => {
+      .on("headers", (headers: string[]) => {
         if (headers.indexOf("id") < 0) {
           throw new OverridesColumnNotFoundError("id");
         }
@@ -65,7 +59,7 @@ export function parseOverrides(buf: Buffer): Promise<Overrides> {
           throw new OverridesColumnNotFoundError("coefficient");
         }
       })
-      .on("data", (data) => {
+      .on("data", (data: Record<string, string>) => {
         const coefficient = Number(data["coefficient"]);
         if (!Number.isFinite(coefficient)) {
           throw new OverridesInvalidRowError(
@@ -87,6 +81,7 @@ export function parseOverrides(buf: Buffer): Promise<Overrides> {
 }
 
 export type CalculatorOptions = {
+  priceProvider: PriceProvider;
   dataProvider: DataProvider;
   chainId: number;
   roundId: string;
@@ -102,11 +97,12 @@ export type AugmentedResult = Calculation & {
   projectId: string;
   applicationId: string;
   matchedUSD: number;
-  projectName: string;
-  payoutAddress: string;
+  projectName?: string;
+  payoutAddress?: string;
 };
 
 export default class Calculator {
+  private priceProvider: PriceProvider;
   private dataProvider: DataProvider;
   private chainId: number;
   private roundId: string;
@@ -118,6 +114,7 @@ export default class Calculator {
   private overrides: Overrides;
 
   constructor(options: CalculatorOptions) {
+    this.priceProvider = options.priceProvider;
     this.dataProvider = options.dataProvider;
     this.chainId = options.chainId;
     this.roundId = options.roundId;
@@ -130,21 +127,21 @@ export default class Calculator {
   }
 
   async calculate(): Promise<Array<AugmentedResult>> {
-    const votes = this.parseJSONFile<Vote>(
+    const votes = await this.parseJSONFile<Vote>(
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
-    const applications = this.parseJSONFile<Application>(
+    const applications = await this.parseJSONFile<Application>(
       "applications",
       `${this.chainId}/rounds/${this.roundId}/applications.json`
     );
 
-    const rounds = this.parseJSONFile<Round>(
+    const rounds = await this.parseJSONFile<Round>(
       "rounds",
       `${this.chainId}/rounds.json`
     );
 
-    const passportScores = this.parseJSONFile<PassportScore>(
+    const passportScores = await this.parseJSONFile<PassportScore>(
       "passport scores",
       "passport_scores.json"
     );
@@ -185,7 +182,7 @@ export default class Calculator {
         10000n;
     }
 
-    const votesWithCoefficients = await getVotesWithCoefficients(
+    const votesWithCoefficients = getVotesWithCoefficients(
       round,
       applications,
       votes,
@@ -236,7 +233,7 @@ export default class Calculator {
       const calc = results[id];
       const application = applicationsMap[id];
 
-      const conversionUSD = await convertToUSD(
+      const conversionUSD = await this.priceProvider.convertToUSD(
         this.chainId,
         round.token,
         calc.matched
@@ -255,7 +252,10 @@ export default class Calculator {
     return augmented;
   }
 
-  parseJSONFile<T>(fileDescription: string, path: string): Array<T> {
+  async parseJSONFile<T>(
+    fileDescription: string,
+    path: string
+  ): Promise<Array<T>> {
     return this.dataProvider.loadFile<T>(fileDescription, path);
   }
 }

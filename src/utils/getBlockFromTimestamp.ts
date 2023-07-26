@@ -1,119 +1,112 @@
-import { RetryProvider } from "chainsauce";
-import { Chain } from "../config.js";
+// estimates block number for a given timestamp using block speed
+async function estimateBlockNumber(
+  targetTimestamp: number,
+  startBlock: number,
+  endBlock: number,
+  getBlockTimestamp: (blockNumber: number) => Promise<number>
+): Promise<number> {
+  const blockDistance = Math.abs(endBlock - startBlock);
+  const startTimestamp = await getBlockTimestamp(startBlock);
+  const endTimestamp = await getBlockTimestamp(endBlock);
+  const timeDistanceInSeconds = Math.abs(endTimestamp - startTimestamp);
 
-const cache: Map<number, Map<number, number>> = new Map();
+  // Estimate blocks per second
+  const blocksPerSecond = blockDistance / timeDistanceInSeconds;
 
-function getCacheForChain(chain: Chain): Map<number, number> {
-  let chainCache = cache.get(chain.id);
+  // Now, you can use `blocksPerSecond` to adjust your block number estimation.
+  // For instance, if you know the target timestamp is X seconds away from startTimestamp, you could estimate:
+  const secondsToTarget = Math.abs(targetTimestamp - startTimestamp);
+  const estimatedBlocksToTarget = blocksPerSecond * secondsToTarget;
+  const estimatedBlockNumber = startBlock + Math.round(estimatedBlocksToTarget);
 
-  if (!chainCache) {
-    chainCache = new Map();
-    cache.set(chain.id, chainCache);
-  }
-
-  return chainCache;
+  return estimatedBlockNumber;
 }
 
+/**
+ * Finds the closest block number for a given timestamp,
+ * this binary searches for a range of blockEstimationThreshold
+ * and then estimates the block number using the block speed
+ * inside that range.
+ *
+ * @param timestampInMs timestamp in milliseconds
+ * @param startBlock the block number to start searching from
+ * @param endBlock the block number to end searching at
+ * @param getBlockTimestamp a function that returns the timestamp for a given block number,
+ * cache the block timestamps to increase performance
+ * @returns the closest block number for the given timestamp
+ */
 export async function getBlockFromTimestamp(
-  chain: Chain,
-  timestampMs: number,
-  marginMs = 0
-): Promise<number> {
-  const provider = new RetryProvider(
-    {
-      url: chain.rpc,
-      timeout: 5 * 60 * 1000,
-    },
-    5,
-    10
-  );
-
-  const chainCache = getCacheForChain(chain);
-
-  // Get a block timestamp from the cache or the provider
-  async function getBlockTimestamp(number: number): Promise<number> {
-    const cachedBlock = chainCache.get(number);
-
-    if (cachedBlock) {
-      return cachedBlock;
-    }
-
-    const block = await provider.getBlock(number);
-
-    chainCache.set(block.number, block.timestamp);
-
-    return block.timestamp;
-  }
-
-  const targetTimestamp = Math.floor(timestampMs / 1000);
-
-  // Get the current block number
-  const currentBlockNumber = await provider._getInternalBlockNumber(1000 * 30);
+  timestampInMs: number,
+  startBlock: number,
+  endBlock: number,
+  getBlockTimestamp: (blockNumber: number) => Promise<number>
+): Promise<number | undefined> {
+  const blockEstimationThreshold = 10000;
+  const targetTimestamp = Math.floor(timestampInMs / 1000);
 
   // by default we binary search from 0 to the current block number
-  let start = 0;
-  let end = currentBlockNumber;
+  let start = startBlock;
+  let end = endBlock;
 
-  // try and find a closer range to search in
-  for (const entry of chainCache.entries()) {
-    const differenceMs = Math.abs(entry[1] - targetTimestamp) * 1000;
+  let blockNumber = undefined;
 
-    // early exit if we find a block with a matching timestamp
-    if (differenceMs <= marginMs) {
-      return entry[0];
-    }
-
-    if (entry[1] < targetTimestamp) {
-      start = Math.max(start, entry[0]);
-    }
-
-    if (entry[1] > targetTimestamp) {
-      end = Math.min(end, entry[0]);
-    }
-  }
-
-  let blockNumber = null;
+  // If the block range during binary search is less than the threshold,
+  // we estimate the block using the block speed
 
   // Perform binary search
   while (start <= end) {
-    blockNumber = Math.floor((start + end) / 2);
+    const blockDistance = Math.abs(end - start);
 
-    // get the current block timestamp (could be cached)
-    const blockTimestamp = await getBlockTimestamp(blockNumber);
+    // Check the difference and set the rounding base
+    let base = 1;
 
-    const differenceMs = Math.abs(blockTimestamp - targetTimestamp) * 1000;
-
-    // If the difference is within the margin, we found the block
-    if (differenceMs <= marginMs) {
-      break;
+    if (blockDistance > 1000000) {
+      base = 100000;
+    } else if (blockDistance > 100000) {
+      base = 10000;
+    } else if (blockDistance > 10000) {
+      base = 1000;
+    } else if (blockDistance > 1000) {
+      base = 100;
     }
+
+    blockNumber = (start + end) / 2;
+
+    // Round to the nearest base to make the calls to getBlockTimestamp
+    // cache friendly
+    blockNumber = Math.round(blockNumber / base) * base;
+
+    // get the current block timestamp
+    const blockTimestamp = await getBlockTimestamp(blockNumber);
 
     if (blockTimestamp < targetTimestamp) {
       // The target timestamp is in the second half of the search range
+
+      if (end - blockNumber < blockEstimationThreshold) {
+        return estimateBlockNumber(
+          targetTimestamp,
+          blockNumber,
+          end,
+          getBlockTimestamp
+        );
+      }
+
       start = blockNumber + 1;
     } else if (blockTimestamp > targetTimestamp) {
+      if (blockNumber - start < blockEstimationThreshold) {
+        return estimateBlockNumber(
+          targetTimestamp,
+          start,
+          blockNumber,
+          getBlockTimestamp
+        );
+      }
       // The target timestamp is in the first half of the search range
       end = blockNumber - 1;
     } else {
       // Found a block with a timestamp exact to the target timestamp
       break;
     }
-  }
-
-  if (!blockNumber) {
-    throw new Error(
-      `Could not find block for timestamp ${targetTimestamp} and chain ${chain.name}`
-    );
-  }
-
-  // just an assertion for safety, it should never happen
-  const differenceMs =
-    Math.abs((await getBlockTimestamp(blockNumber)) - targetTimestamp) * 1000;
-
-  if (differenceMs > marginMs) {
-    throw new Error(
-      `Could not find block for timestamp ${targetTimestamp} and chain ${chain.name}`
-    );
   }
 
   return blockNumber;

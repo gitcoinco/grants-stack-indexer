@@ -37,7 +37,7 @@ The indexer is monitoring the following chains with their respective chain IDs:
 ```bash
 npm install
 npm run build
-npm start # this runs the production start script which will index all chains and start the HTTP server
+npm run start
 ```
 
 ### Development:
@@ -46,7 +46,8 @@ npm start # this runs the production start script which will index all chains an
 
 ```bash
 npm install
-npm run dev # run the typescript compiler and the HTTP server
+npm run build:watch
+npm run dev
 ```
 
 The HTTP server runs on port 4000, check it here: http://localhost:4000/
@@ -57,20 +58,15 @@ It shouldn't have any data because you probably haven't indexed anything yet. Ch
 
 Indexed JSON data is found in the `data` directory.
 
-Run the standalone index script to just index data, use the follwing options to change it's behaviour:
+To only index data without tracking new events nor starting a server, provide the `--run-once` option:
 
-```bash
-npm run index -- --chain=mainnet --to-block=16833357 # run only to the specified block, useful to maximize cache usage
-npm run index -- --chain=mainnet --from-block=16994526 # run only from the specified block, useful to index only the latest events
-npm run index -- --chain=mainnet --follow # follow the blockchain, this runs as a long running process indexing events as they happen
-npm run index -- --chain=mainnet --clear # clear the indexed data before indexing
-npm run index -- --chain=mainnet --no-cache # run without a cache
-npm run passport # index passport scores
+```
+npm run start -- --chains=mainnet,goerli --run-once
 ```
 
 ## Deployment
 
-We deploy the Docker image to Fly, check [fly.toml](https://github.com/gitcoinco/allo-indexer/blob/main/fly.toml) and [Dockerfile](https://github.com/gitcoinco/allo-indexer/blob/main/Dockerfile) files for more details.
+We deploy the Docker image to Fly, check [fly.production.toml](https://github.com/gitcoinco/allo-indexer/blob/main/fly.production.toml) and [Dockerfile](https://github.com/gitcoinco/allo-indexer/blob/main/Dockerfile) files for more details.
 
 **Notes about the deployment**
 
@@ -79,7 +75,7 @@ We deploy the Docker image to Fly, check [fly.toml](https://github.com/gitcoinco
 - On deploy the data directory is always cleared and everything is reindexed, we only persist the cache
 - Find the data directory at `/mnt/indexer/data` and the cache directory at `/mnt/indexer/cache`
 
-The following commands might be useful for monitoring (use the `-c [fly.toml|fly.staging.toml]` argument switch between staging and production:
+The following commands might be useful for monitoring (use the `-c [fly.production.toml|fly.staging.toml]` argument switch between staging and production:
 
 ```bash
 fly status # show general status of the app, all VMs and their status
@@ -88,5 +84,3 @@ fly logs # check logs of running VM, it also shows logs of deployments in progre
 fly -c fly.staging.toml logs # check logs of staging
 fly ssh console # open a console to the runnning VM
 ```
-
-

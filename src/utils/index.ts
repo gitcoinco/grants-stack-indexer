@@ -8,7 +8,7 @@ export function memoize<Input, Output>(
   const cache = new Map();
   return (arg0: Input) => {
     if (cache.has(arg0)) {
-      return cache.get(arg0);
+      return cache.get(arg0) as Output;
     } else {
       const ret = fn(arg0);
       cache.set(arg0, ret);

@@ -12,12 +12,11 @@
     "skipLibCheck": true,
     "outDir": "dist",
     "rootDir": "./",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "declaration": false
   },
   "exclude": [
     "node_modules",
     "dist",
-    "src/*.test.*",
-    "src/**/*.test.*"
   ]
 }

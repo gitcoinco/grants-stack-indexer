@@ -2,32 +2,62 @@
 import "express-async-errors";
 
 import express from "express";
+import { Logger } from "pino";
 import cors from "cors";
 import serveIndex from "serve-index";
 
-import api from "./api/v1/index.js";
-import config from "../config.js";
+import { createHandler as createApiHandler } from "./api/v1/index.js";
+import { PriceProvider } from "../prices/provider.js";
+import { DataProvider } from "../calculator/index.js";
 
-export const app = express();
+export interface HttpApiConfig {
+  logger: Logger;
+  port: number;
+  storageDir: string;
+  priceProvider: PriceProvider;
+  dataProvider: DataProvider;
+}
 
-app.use(cors());
+interface HttpApi {
+  start: () => Promise<void>;
+  app: express.Application;
+}
 
-app.use(
-  "/data",
-  express.static(config.storageDir, {
-    acceptRanges: true,
-    setHeaders: (res) => {
-      res.setHeader("Accept-Ranges", "bytes");
+export const createHttpApi = (config: HttpApiConfig): HttpApi => {
+  const app = express();
+  const api = createApiHandler(config);
+
+  app.use(cors());
+
+  app.use(
+    "/data",
+    express.static(config.storageDir, {
+      acceptRanges: true,
+      setHeaders: (res) => {
+        res.setHeader("Accept-Ranges", "bytes");
+      },
+    }),
+    serveIndex(config.storageDir, { icons: true, view: "details" })
+  );
+
+  app.get("/", (_req, res) => {
+    res.redirect("/data");
+  });
+
+  app.use("/api/v1", api);
+
+  // temporary route for backwards compatibility
+  app.use("/", api);
+
+  return {
+    app,
+    start() {
+      return new Promise<void>((resolve) => {
+        app.listen(config.port, () => {
+          config.logger.info(`http api listening on port ${config.port}`);
+          resolve();
+        });
+      });
     },
-  }),
-  serveIndex(config.storageDir, { icons: true, view: "details" })
-);
-
-app.get("/", (_req, res) => {
-  res.redirect("/data");
-});
-
-app.use("/api/v1", api);
-
-// temporary route for backwards compatibility
-app.use("/", api);
+  };
+};

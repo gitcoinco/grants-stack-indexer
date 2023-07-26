@@ -1,28 +1,39 @@
-import { vi, describe, test, expect, beforeEach } from "vitest";
-import fs from "fs";
+import { describe, test, expect, beforeEach } from "vitest";
+import express from "express";
+import fs from "fs/promises";
 import path from "path";
-import request from "supertest";
-import { app } from "../../http/app.js";
-import { calculatorConfig } from "../../http/api/v1/matches.js";
+import request, { Response as SupertestResponse } from "supertest";
+import { createHttpApi } from "../../http/app.js";
 import {
   AugmentedResult,
   DataProvider,
   FileNotFoundError,
 } from "../../calculator/index.js";
+import { PriceProvider } from "../../prices/provider.js";
+import { Logger } from "pino";
 
-vi.mock("../../prices/index.js", () => {
-  return {
-    convertToUSD: vi.fn().mockReturnValue({ amount: 0 }),
-  };
-});
+// Typed version of supertest's Response
+type Response<T> = Omit<SupertestResponse, "body"> & { body: T };
 
-const loadFixture = (name: string, extension = "json") => {
+const loadFixture = async (
+  name: string,
+  extension = "json"
+): Promise<string> => {
   const p = path.resolve(__dirname, "../fixtures", `${name}.${extension}`);
-  const data = fs.readFileSync(p, { encoding: "utf8", flag: "r" });
+  const data = await fs.readFile(p, "utf8");
   return data;
 };
 
 type Fixtures = { [path: string]: string | undefined | unknown[] };
+
+export class TestPriceProvider {
+  async convertToUSD() {
+    return Promise.resolve({ amount: 0 });
+  }
+  async convertFromUSD() {
+    return Promise.resolve({ amount: 0 });
+  }
+}
 
 export class TestDataProvider implements DataProvider {
   fixtures: Fixtures;
@@ -31,7 +42,7 @@ export class TestDataProvider implements DataProvider {
     this.fixtures = fixtures;
   }
 
-  loadFile<T>(description: string, path: string): Array<T> {
+  async loadFile<T>(description: string, path: string): Promise<Array<T>> {
     const fixture = this.fixtures[path];
     if (fixture === undefined) {
       throw new FileNotFoundError(description);
@@ -41,19 +52,32 @@ export class TestDataProvider implements DataProvider {
       return fixture as Array<T>;
     }
 
-    return JSON.parse(loadFixture(fixture)) as Array<T>;
+    return JSON.parse(await loadFixture(fixture)) as Array<T>;
   }
 }
+
+const DUMMY_LOGGER = {
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+} as unknown as Logger;
 
 describe("server", () => {
   describe("/matches", () => {
     describe("resources not found", () => {
       test("should render 404 if round is not present in rounds.json", async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": [], // empty file so the round won't be found
-          "passport_scores.json": "passport_scores",
+        const { app } = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
+          storageDir: "/dev/null",
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": [], // empty file so the round won't be found
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
         });
 
         const resp = await request(app).get(
@@ -63,11 +87,17 @@ describe("server", () => {
       });
 
       test("should render 404 if rounds file doesn't exist", async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": undefined,
-          "passport_scores.json": "passport_scores",
+        const { app } = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
+          storageDir: "/dev/null",
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": [], // empty file so the round won't be found
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
         });
 
         const resp = await request(app).get(
@@ -77,11 +107,17 @@ describe("server", () => {
       });
 
       test("should render 404 if votes file doesn't exist", async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": undefined,
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
+        const { app } = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
+          storageDir: "/dev/null",
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": [], // empty file so the round won't be found
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
         });
 
         const resp = await request(app).get(
@@ -91,11 +127,17 @@ describe("server", () => {
       });
 
       test("should render 404 if applications file doesn't exist", async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": undefined,
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
+        const { app } = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
+          storageDir: "/dev/null",
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": [], // empty file so the round won't be found
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
         });
 
         const resp = await request(app).get(
@@ -105,11 +147,17 @@ describe("server", () => {
       });
 
       test("should render 404 if passport_scores file doesn't exist", async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": undefined,
+        const { app } = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
+          storageDir: "/dev/null",
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": [], // empty file so the round won't be found
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
         });
 
         const resp = await request(app).get(
@@ -120,13 +168,20 @@ describe("server", () => {
     });
 
     describe("calculations", () => {
-      beforeEach(async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
-        });
+      let app: express.Application;
+      beforeEach(() => {
+        app = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
+          storageDir: "/dev/null",
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": "rounds",
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
+        }).app;
       });
 
       test("should render calculations with ignore saturation true", async () => {
@@ -178,23 +233,30 @@ describe("server", () => {
     });
 
     describe("calculations with round not saturated", () => {
-      beforeEach(async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": [
-            {
-              id: "0x1234",
-              token: "0x0000000000000000000000000000000000000000",
-              // instead of 100 like in the previous test
-              // this round has a pot of 1000,
-              // so it's not saturated because the sum of matches is 250
-              matchAmount: "100000",
-              metadata: {},
-            },
-          ],
-          "passport_scores.json": "passport_scores",
-        });
+      let app: express.Application;
+      beforeEach(() => {
+        app = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
+          storageDir: "/dev/null",
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": [
+              {
+                id: "0x1234",
+                token: "0x0000000000000000000000000000000000000000",
+                // instead of 100 like in the previous test
+                // this round has a pot of 1000,
+                // so it's not saturated because the sum of matches is 250
+                matchAmount: "100000",
+                metadata: {},
+              },
+            ],
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
+        }).app;
       });
 
       test("should render calculations with ignore saturation false", async () => {
@@ -247,13 +309,20 @@ describe("server", () => {
     });
 
     describe("calculations with bad votes", () => {
-      beforeEach(async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes-with-bad-recipient",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
-        });
+      let app: express.Application;
+      beforeEach(() => {
+        app = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
+          storageDir: "/dev/null",
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes-with-bad-recipient",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": "rounds",
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
+        }).app;
       });
 
       test("should keep the same results skipping bad votes", async () => {
@@ -305,24 +374,33 @@ describe("server", () => {
     });
 
     describe("calculations with overrides", () => {
+      let app: express.Application;
+      beforeEach(() => {
+        app = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
+          storageDir: "/dev/null",
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": "rounds",
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
+        }).app;
+      });
+
       test("should render calculations", async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
-        });
+        const overridesContent = await loadFixture("overrides", "csv");
 
-        const overridesContent = loadFixture("overrides", "csv");
-
-        const resp = await request(app)
+        const resp: Response<AugmentedResult[]> = await request(app)
           .post("/api/v1/chains/1/rounds/0x1234/matches")
           .attach("overrides", Buffer.from(overridesContent), "overrides.csv");
 
         expect(resp.statusCode).toBe(201);
 
         const matches = resp.body.reduce(
-          (acc: Record<string, string>, match: AugmentedResult) => {
+          (acc: Record<string, string>, match) => {
             acc[match.projectId] = match.matched.toString();
             return acc;
           },
@@ -337,19 +415,12 @@ describe("server", () => {
       });
 
       test("coefficients should multiply votes", async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
-        });
-
-        const overridesContent = loadFixture(
+        const overridesContent = await loadFixture(
           "overrides-with-floating-coefficient",
           "csv"
         );
 
-        const resp = await request(app)
+        const resp: Response<AugmentedResult[]> = await request(app)
           .post("/api/v1/chains/1/rounds/0x1234/matches")
           .attach("overrides", Buffer.from(overridesContent), "overrides.csv");
 
@@ -384,7 +455,7 @@ describe("server", () => {
       });
 
       test("should render 400 if the overrides file doesn't have the id column", async () => {
-        const overridesContent = loadFixture(
+        const overridesContent = await loadFixture(
           "overrides-without-transaction-id",
           "csv"
         );
@@ -398,7 +469,7 @@ describe("server", () => {
       });
 
       test("should render 400 if the overrides file doesn't have the coefficient column", async () => {
-        const overridesContent = loadFixture(
+        const overridesContent = await loadFixture(
           "overrides-without-coefficient",
           "csv"
         );
@@ -412,7 +483,7 @@ describe("server", () => {
       });
 
       test("should render 400 if the overrides file has invalid coefficients", async () => {
-        const overridesContent = loadFixture(
+        const overridesContent = await loadFixture(
           "overrides-with-invalid-coefficient",
           "csv"
         );
@@ -428,18 +499,25 @@ describe("server", () => {
     });
 
     describe("passport eligibility", () => {
-      beforeEach(async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds/0x2/votes.json": "votes",
-          "1/rounds/0x2/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
-        });
+      let app: express.Application;
+      beforeEach(() => {
+        app = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
+          storageDir: "/dev/null",
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds/0x2/votes.json": "votes",
+            "1/rounds/0x2/applications.json": "applications",
+            "1/rounds.json": "rounds",
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
+        }).app;
       });
 
-      describe("should enable passport by query param", async () => {
+      describe("should enable passport by query param", () => {
         test("doesn't count votes without a success in evidence when no threshold is provided", async () => {
           const expectedResults = [
             {
@@ -631,15 +709,22 @@ describe("server", () => {
     });
 
     describe("matching cap", () => {
-      beforeEach(async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds/0x3/votes.json": "votes",
-          "1/rounds/0x3/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
-        });
+      let app: express.Application;
+      beforeEach(() => {
+        app = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
+          storageDir: "/dev/null",
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds/0x3/votes.json": "votes",
+            "1/rounds/0x3/applications.json": "applications",
+            "1/rounds.json": "rounds",
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
+        }).app;
       });
 
       test("should enable matching cap from query param", async () => {
@@ -785,18 +870,25 @@ describe("server", () => {
     });
 
     describe("minimum amount", () => {
-      beforeEach(async () => {
-        calculatorConfig.dataProvider = new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
-          "1/rounds/0x4/votes.json": "votes",
-          "1/rounds/0x4/applications.json": "applications",
-          "1/rounds.json": "rounds",
-          "passport_scores.json": "passport_scores",
-        });
+      let app: express.Application;
+      beforeEach(() => {
+        app = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
+          storageDir: "/dev/null",
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds/0x4/votes.json": "votes",
+            "1/rounds/0x4/applications.json": "applications",
+            "1/rounds.json": "rounds",
+            "passport_scores.json": "passport_scores",
+          }) as DataProvider,
+        }).app;
       });
 
-      describe("should enable minimum amount by query param", async () => {
+      describe("should enable minimum amount by query param", () => {
         test("doesn't count votes with value under specified amount", async () => {
           const expectedResults = [
             {
@@ -845,7 +937,7 @@ describe("server", () => {
         });
       });
 
-      describe("should enable minimum amount from round metadata", async () => {
+      describe("should enable minimum amount from round metadata", () => {
         test("doesn't count votes with value under specified amount", async () => {
           const expectedResults = [
             {

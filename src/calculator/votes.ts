@@ -6,7 +6,7 @@ type VoteWithCoefficient = Vote & {
   passportScore?: PassportScore;
 };
 
-export async function getVotesWithCoefficients(
+export function getVotesWithCoefficients(
   round: Round,
   applications: Array<Application>,
   votes: Array<Vote>,
@@ -16,7 +16,7 @@ export async function getVotesWithCoefficients(
     enablePassport?: boolean;
     passportThreshold?: number;
   }
-): Promise<Array<VoteWithCoefficient>> {
+): Array<VoteWithCoefficient> {
   const passportScoresMap = passportScores.reduce((map, score) => {
     map[score.address.toLowerCase()] = score;
     return map;
@@ -90,6 +90,7 @@ export async function getVotesWithCoefficients(
     return [
       {
         ...vote,
+        voter,
         coefficient,
         passportScore: passportScore,
       },
