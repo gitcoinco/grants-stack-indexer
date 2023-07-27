@@ -5,6 +5,7 @@ import * as Sentry from "@sentry/node";
 import ClientError from "../clientError.js";
 import { createHandler as createExportsHandler } from "./exports.js";
 import { createHandler as createMatchesHandler } from "./matches.js";
+import { createHandler as createStatusHandler } from "./status.js";
 import { HttpApiConfig } from "../../app.js";
 
 export const createHandler = (config: HttpApiConfig): express.Router => {
@@ -12,6 +13,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
 
   router.use(createMatchesHandler(config));
   router.use(createExportsHandler(config));
+  router.use(createStatusHandler(config));
 
   // handle uncaught errors
   router.use(

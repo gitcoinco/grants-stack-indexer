@@ -14,6 +14,7 @@ export interface HttpApiConfig {
   logger: Logger;
   port: number;
   storageDir: string;
+  buildTag: string | null;
   priceProvider: PriceProvider;
   dataProvider: DataProvider;
 }

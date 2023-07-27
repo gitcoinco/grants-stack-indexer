@@ -345,6 +345,7 @@ export const tokenDecimals = Object.fromEntries(
 );
 
 export type Config = {
+  buildTag: string | null;
   storageDir: string;
   fromBlock: number;
   toBlock: ToBlock;
@@ -363,6 +364,11 @@ export type Config = {
 };
 
 export function getConfig(): Config {
+  const buildTag = z
+    .union([z.string(), z.null()])
+    .default(null)
+    .parse(process.env.BUILD_TAG);
+
   const apiHttpPort = z.coerce.number().parse(process.env.PORT);
 
   const deploymentEnvironment = z
@@ -464,6 +470,7 @@ export function getConfig(): Config {
     .parse(process.env.SENTRY_DSN);
 
   return {
+    buildTag: buildTag,
     sentryDsn,
     coingeckoApiUrl,
     coingeckoApiKey,
