@@ -64,6 +64,7 @@ async function main(): Promise<void> {
       dataProvider: new FileSystemDataProvider(config.storageDir),
       port: config.apiHttpPort,
       logger: baseLogger.child({ subsystem: "HttpApi" }),
+      buildTag: config.buildTag,
     });
 
     await httpApi.start();
