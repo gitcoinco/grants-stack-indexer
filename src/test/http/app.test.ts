@@ -3,13 +3,13 @@ import express from "express";
 import fs from "fs/promises";
 import path from "path";
 import request, { Response as SupertestResponse } from "supertest";
-import { createHttpApi } from "./app.js";
+import { createHttpApi } from "../../http/app.js";
 import {
   AugmentedResult,
   DataProvider,
   FileNotFoundError,
-} from "../calculator/index.js";
-import { PriceProvider } from "../prices/provider.js";
+} from "../../calculator/index.js";
+import { PriceProvider } from "../../prices/provider.js";
 import { Logger } from "pino";
 
 // Typed version of supertest's Response
@@ -19,11 +19,7 @@ const loadFixture = async (
   name: string,
   extension = "json"
 ): Promise<string> => {
-  const p = path.resolve(
-    __dirname,
-    "./app.test.fixtures",
-    `${name}.${extension}`
-  );
+  const p = path.resolve(__dirname, "../fixtures", `${name}.${extension}`);
   const data = await fs.readFile(p, "utf8");
   return data;
 };
