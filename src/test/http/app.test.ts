@@ -64,6 +64,48 @@ const DUMMY_LOGGER = {
 } as unknown as Logger;
 
 describe("server", () => {
+  describe("/status", () => {
+    let app: express.Application;
+    beforeEach(() => {
+      app = createHttpApi({
+        logger: DUMMY_LOGGER,
+        port: 0,
+        storageDir: "/dev/null",
+        buildTag: "123abc",
+        priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+        dataProvider: new TestDataProvider({
+          "1/rounds/0x1234/votes.json": "votes",
+          "1/rounds/0x1234/applications.json": "applications",
+          "1/rounds.json": "rounds",
+          "passport_scores.json": "passport_scores",
+        }) as DataProvider,
+      }).app;
+    });
+
+    test("responds with 200", async () => {
+      const resp = await request(app).get("/api/v1/status");
+
+      expect(resp.status).toEqual(200);
+    });
+
+    test("mentions hostname", async () => {
+      const resp = await request(app).get("/api/v1/status");
+
+      expect(resp.body).toMatchObject({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        hostname: expect.any(String),
+      });
+    });
+
+    test("mentions build tag", async () => {
+      const resp = await request(app).get("/api/v1/status");
+
+      expect(resp.body).toMatchObject({
+        buildTag: "123abc",
+      });
+    });
+  });
+
   describe("/matches", () => {
     describe("resources not found", () => {
       test("should render 404 if round is not present in rounds.json", async () => {
@@ -78,6 +120,7 @@ describe("server", () => {
             "1/rounds.json": [], // empty file so the round won't be found
             "passport_scores.json": "passport_scores",
           }) as DataProvider,
+          buildTag: "123abc",
         });
 
         const resp = await request(app).get(
@@ -98,6 +141,7 @@ describe("server", () => {
             "1/rounds.json": [], // empty file so the round won't be found
             "passport_scores.json": "passport_scores",
           }) as DataProvider,
+          buildTag: "123abc",
         });
 
         const resp = await request(app).get(
@@ -118,6 +162,7 @@ describe("server", () => {
             "1/rounds.json": [], // empty file so the round won't be found
             "passport_scores.json": "passport_scores",
           }) as DataProvider,
+          buildTag: "123abc",
         });
 
         const resp = await request(app).get(
@@ -138,6 +183,7 @@ describe("server", () => {
             "1/rounds.json": [], // empty file so the round won't be found
             "passport_scores.json": "passport_scores",
           }) as DataProvider,
+          buildTag: "123abc",
         });
 
         const resp = await request(app).get(
@@ -158,6 +204,7 @@ describe("server", () => {
             "1/rounds.json": [], // empty file so the round won't be found
             "passport_scores.json": "passport_scores",
           }) as DataProvider,
+          buildTag: "123abc",
         });
 
         const resp = await request(app).get(
@@ -181,6 +228,7 @@ describe("server", () => {
             "1/rounds.json": "rounds",
             "passport_scores.json": "passport_scores",
           }) as DataProvider,
+          buildTag: "123abc",
         }).app;
       });
 
@@ -256,6 +304,7 @@ describe("server", () => {
             ],
             "passport_scores.json": "passport_scores",
           }) as DataProvider,
+          buildTag: "123abc",
         }).app;
       });
 
@@ -322,6 +371,7 @@ describe("server", () => {
             "1/rounds.json": "rounds",
             "passport_scores.json": "passport_scores",
           }) as DataProvider,
+          buildTag: "123abc",
         }).app;
       });
 
@@ -387,6 +437,7 @@ describe("server", () => {
             "1/rounds.json": "rounds",
             "passport_scores.json": "passport_scores",
           }) as DataProvider,
+          buildTag: "123abc",
         }).app;
       });
 
@@ -514,6 +565,7 @@ describe("server", () => {
             "1/rounds.json": "rounds",
             "passport_scores.json": "passport_scores",
           }) as DataProvider,
+          buildTag: "123abc",
         }).app;
       });
 
@@ -724,6 +776,7 @@ describe("server", () => {
             "1/rounds.json": "rounds",
             "passport_scores.json": "passport_scores",
           }) as DataProvider,
+          buildTag: "123abc",
         }).app;
       });
 
@@ -885,6 +938,7 @@ describe("server", () => {
             "1/rounds.json": "rounds",
             "passport_scores.json": "passport_scores",
           }) as DataProvider,
+          buildTag: "123abc",
         }).app;
       });
 

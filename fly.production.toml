@@ -49,5 +49,5 @@ kill_timeout = 5
     grace_period = "1m"
     timeout = "5s"
     method = "get"
-    path = "/data/"
+    path = "/api/v1/status"
     protocol = "http"

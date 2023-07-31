@@ -128,6 +128,15 @@ export const CHAINS: Chain[] = [
           address: "0x4fabb145d64652a948d72533023f6e7a623c7c53",
         },
       },
+      {
+        code: "TEST",
+        address: "0xbaa146619512b97216991ba37ae74de213605f8e",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        },
+      },
     ],
     subscriptions: [
       {
@@ -345,6 +354,7 @@ export const tokenDecimals = Object.fromEntries(
 );
 
 export type Config = {
+  buildTag: string | null;
   storageDir: string;
   fromBlock: number;
   toBlock: ToBlock;
@@ -363,6 +373,11 @@ export type Config = {
 };
 
 export function getConfig(): Config {
+  const buildTag = z
+    .union([z.string(), z.null()])
+    .default(null)
+    .parse(process.env.BUILD_TAG);
+
   const apiHttpPort = z.coerce.number().parse(process.env.PORT);
 
   const deploymentEnvironment = z
@@ -464,6 +479,7 @@ export function getConfig(): Config {
     .parse(process.env.SENTRY_DSN);
 
   return {
+    buildTag: buildTag,
     sentryDsn,
     coingeckoApiUrl,
     coingeckoApiKey,
