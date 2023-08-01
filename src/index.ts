@@ -45,6 +45,8 @@ async function main(): Promise<void> {
     service: `indexer-${config.deploymentEnvironment}`,
   });
 
+  baseLogger.info("starting");
+
   // Promise will be resolved once the catchup is done. Afterwards, services
   // will still be in listen-and-update mode
   await Promise.all([
@@ -218,10 +220,11 @@ async function catchupAndWatchChain(
         ? path.join(config.cacheDir, "events")
         : null,
       onProgress: ({ currentBlock, lastBlock }) => {
-        // Due to the way chainsauce works, the first time onProgress returns
-        // and currentBlock matches lastBlock, it means that we've caught up the
-        // chain state as it was when we started.
+        chainLogger.debug(
+          `indexed to block ${currentBlock}; last block on chain: ${lastBlock}`
+        );
         if (currentBlock === lastBlock && !catchupSentinel.isDone()) {
+          chainLogger.info("caught up with blockchain events");
           catchupSentinel.declareDone();
         }
       },
