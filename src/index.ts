@@ -28,6 +28,7 @@ async function main(): Promise<void> {
 
   if (config.sentryDsn !== null) {
     Sentry.init({
+      environment: config.deploymentEnvironment,
       dsn: config.sentryDsn,
       tracesSampleRate: 1.0,
     });
