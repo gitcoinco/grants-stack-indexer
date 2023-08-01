@@ -10,8 +10,10 @@ import { Logger, pino } from "pino";
 import path from "node:path";
 import * as Sentry from "@sentry/node";
 import fs from "node:fs/promises";
+import { createReadStream, createWriteStream } from "node:fs";
+import readline from "node:readline";
 import fetch from "make-fetch-happen";
-import { throttle } from "throttle-debounce";
+import { ethers } from "ethers";
 
 import { createPassportProvider, PassportProvider } from "./passport/index.js";
 
@@ -23,6 +25,7 @@ import { importAbi } from "./indexer/utils.js";
 import { createHttpApi } from "./http/app.js";
 import { FileSystemDataProvider } from "./calculator/index.js";
 import { AsyncSentinel } from "./utils/asyncSentinel.js";
+import { BigNumber } from "ethers";
 
 // If, during reindexing, a chain has these many blocks left to index, consider
 // it caught up and start serving
@@ -124,6 +127,8 @@ async function catchupAndWatchChain(
     config.chain.id.toString()
   );
 
+  const EVENT_LOG_PATH = `/tmp/events-${config.chain.id}.ndjson`;
+
   const chainLogger = config.baseLogger.child({
     chain: config.chain.id,
   });
@@ -195,20 +200,18 @@ async function catchupAndWatchChain(
 
   const indexerLogger = chainLogger.child({ subsystem: "DataUpdater" });
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-  const throttledLogProgress = throttle(
-    5000,
-    (currentBlock: number, lastBlock: number, blocksLeft: number) => {
-      indexerLogger.info(
-        `indexed to block ${currentBlock}; last block on chain: ${lastBlock}; left: ${blocksLeft}`
-      );
-    }
-  );
+  const eventLogStream = createWriteStream(EVENT_LOG_PATH, { flags: "a" });
 
   const indexer = await createIndexer(
     rpcProvider,
     storage,
-    (indexer: Indexer<JsonStorage>, event: ChainsauceEvent) => {
+    (indexer: Indexer<JsonStorage>, chainsauceEvent: ChainsauceEvent) => {
+      const event = fixChainsauceEvent(chainsauceEvent);
+      chainLogger.debug(
+        `handling LIVE event at block number ${event.blockNumber}`
+      );
+      eventLogStream.write(JSON.stringify(event) + "\n");
+
       return handleEvent(event, {
         chainId: config.chain.id,
         db: storage,
@@ -243,13 +246,72 @@ async function catchupAndWatchChain(
     }
   );
 
+  let lastReplayedEventBlockNumber: number | null = null;
+  const replayedSubscriptions: Array<{
+    address: string;
+    abi: ethers.ContractInterface;
+    fromBlock: number | undefined;
+  }> = [];
+  try {
+    const eventLogReadStream = createReadStream(EVENT_LOG_PATH);
+    const rl = readline.createInterface({
+      input: eventLogReadStream,
+      crlfDelay: Infinity,
+    });
+
+    for await (const line of rl) {
+      const event = JSON.parse(
+        line,
+        withBigNumberJSONParsing
+      ) as ChainsauceEvent;
+      chainLogger.debug(
+        `handling REPLAYED event at block number ${event.blockNumber}`
+      );
+      try {
+        await handleEvent(event, {
+          chainId: config.chain.id,
+          db: storage,
+          subscribe: (address, abi, fromBlock) => {
+            replayedSubscriptions.push({ address, abi, fromBlock });
+            return new ethers.Contract(address, abi, rpcProvider);
+          },
+          ipfsGet: cachedIpfsGet,
+          priceProvider,
+        });
+      } catch (err) {
+        chainLogger.error({ err });
+      }
+      lastReplayedEventBlockNumber = event.blockNumber;
+    }
+  } catch (err) {
+    console.log(err);
+  }
+
+  if (
+    replayedSubscriptions.length > 0 &&
+    lastReplayedEventBlockNumber !== null
+  ) {
+    for (const subscription of replayedSubscriptions) {
+      indexer.subscribe(
+        subscription.address,
+        subscription.abi,
+        lastReplayedEventBlockNumber + 1
+      );
+    }
+  }
+
   for (const subscription of config.chain.subscriptions) {
     indexer.subscribe(
       subscription.address,
       await importAbi(subscription.abi),
-      Math.max(subscription.fromBlock || 0, config.fromBlock)
+      Math.max(
+        subscription.fromBlock ?? 0,
+        lastReplayedEventBlockNumber ? lastReplayedEventBlockNumber + 1 : 0
+      )
     );
   }
+
+  indexer.update();
 
   await catchupSentinel.untilDone();
 
@@ -257,5 +319,49 @@ async function catchupAndWatchChain(
     indexer.stop();
   } else {
     chainLogger.info("listening to new blockchain events");
+  }
+}
+
+function withBigNumberJSONParsing(key: string, value: any): any {
+  if (
+    value !== null &&
+    typeof value === "object" &&
+    "type" in value &&
+    value.type === "BigNumber"
+  ) {
+    return BigNumber.from(value);
+  } else {
+    return value;
+  }
+}
+
+/**
+ *  Chainsauce events have args as arrays with named properties, e.g.
+ *
+ *    ["foo", "bar", prop1: "foo", prop2: "bar"]
+ *
+ *  This throws off JSON serialization, so we convert that to a proper object
+ *  here.
+ */
+
+function fixChainsauceEvent(obj) {
+  if (Array.isArray(obj)) {
+    if (Object.keys(obj).length !== obj.length) {
+      const newObj = {};
+      for (const name in obj) {
+        newObj[name] = fixChainsauceEvent(obj[name]);
+      }
+      return newObj;
+    } else {
+      return obj.map(fixChainsauceEvent);
+    }
+  } else if (typeof obj === "object" && obj !== null) {
+    const newObj = {};
+    for (const name in obj) {
+      newObj[name] = fixChainsauceEvent(obj[name]);
+    }
+    return newObj;
+  } else {
+    return obj;
   }
 }
