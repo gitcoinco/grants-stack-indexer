@@ -11,4 +11,3 @@ primary_region = "den"
 [env]
   ORG = "gtc"
   DATADOG_SITE = "datadoghq.eu"
-  SUBJECT = "logs.indexer-staging.>"
