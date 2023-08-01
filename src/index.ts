@@ -33,7 +33,15 @@ async function main(): Promise<void> {
     });
   }
 
-  const baseLogger = pino({ level: config.logLevel }).child({
+  const baseLogger = pino({
+    level: config.logLevel,
+    formatters: {
+      level(level) {
+        // represent severity as strings so that DataDog can recognize it
+        return { level };
+      },
+    },
+  }).child({
     service: `indexer-${config.deploymentEnvironment}`,
   });
 
