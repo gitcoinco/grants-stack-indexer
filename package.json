@@ -7,7 +7,7 @@
   "types": "dist/src/indexer/index.d.ts",
   "scripts": {
     "start": "node dist/src/index.js --chains=mainnet,optimism,goerli,fantom,pgn-testnet,pgn-mainnet",
-    "dev": "tsx watch src/index.ts --chains=mainnet,optimism,goerli,fantom,pgn-testnet,pgn-mainnet",
+    "dev": "tsx watch src/index.ts --chains=mainnet,optimism,goerli,fantom,pgn-testnet,pgn-mainnet | pino-pretty",
     "build": "tsc",
     "lint": "eslint src",
     "format": "prettier --write src",
