@@ -1,6 +1,7 @@
 //  this catches async errors so uncaught promise rejects call the error handler
 import "express-async-errors";
 
+import os from "os";
 import express from "express";
 import { Logger } from "pino";
 import cors from "cors";
@@ -29,6 +30,14 @@ export const createHttpApi = (config: HttpApiConfig): HttpApi => {
   const api = createApiHandler(config);
 
   app.use(cors());
+
+  app.use((_req, res, next) => {
+    if (config.buildTag !== null) {
+      res.setHeader("x-build-tag", config.buildTag);
+    }
+    res.setHeader("x-machine-hostname", os.hostname());
+    next();
+  });
 
   app.use(
     "/data",

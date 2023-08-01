@@ -1,5 +1,7 @@
-import { describe, test, expect, beforeEach } from "vitest";
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { describe, test, expect, beforeEach, vi } from "vitest";
 import express from "express";
+import os from "os";
 import fs from "fs/promises";
 import path from "path";
 import request, { Response as SupertestResponse } from "supertest";
@@ -11,6 +13,8 @@ import {
 } from "../../calculator/index.js";
 import { PriceProvider } from "../../prices/provider.js";
 import { Logger } from "pino";
+
+vi.spyOn(os, "hostname").mockReturnValue("dummy-hostname");
 
 // Typed version of supertest's Response
 type Response<T> = Omit<SupertestResponse, "body"> & { body: T };
@@ -88,18 +92,19 @@ describe("server", () => {
       expect(resp.status).toEqual(200);
     });
 
-    test("mentions hostname", async () => {
+    test("mentions hostname in body and header", async () => {
       const resp = await request(app).get("/api/v1/status");
 
+      expect(resp.headers["x-machine-hostname"]).toEqual("dummy-hostname");
       expect(resp.body).toMatchObject({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        hostname: expect.any(String),
+        hostname: "dummy-hostname",
       });
     });
 
-    test("mentions build tag", async () => {
+    test("mentions build tag in body and header", async () => {
       const resp = await request(app).get("/api/v1/status");
 
+      expect(resp.headers["x-build-tag"]).toEqual("123abc");
       expect(resp.body).toMatchObject({
         buildTag: "123abc",
       });
