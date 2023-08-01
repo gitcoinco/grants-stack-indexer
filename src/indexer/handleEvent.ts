@@ -682,7 +682,7 @@ async function handleEvent(
 
     // --- Direct Payout Strategy
     case "PayoutContractCreated": {
-      indexer.subscribe(
+      subscribe(
         event.args.payoutContractAddress,
         (
           await import(
@@ -698,7 +698,7 @@ async function handleEvent(
     }
 
     case "ApplicationInReviewUpdated": {
-      const contract = indexer.subscribe(
+      const contract = subscribe(
         event.address,
         (
           await import("#abis/v2/DirectPayoutStrategyImplementation.json", {
@@ -714,6 +714,7 @@ async function handleEvent(
       bitmap.setRow(event.args.index.toBigInt(), event.args.status.toBigInt());
       const startIndex = event.args.index.toBigInt() * bitmap.itemsPerRow;
 
+      // XXX should be translatable to Promise.all([/* ... */].map(...)) but leaving for later as it's non-straightforward
       for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
         const newStatus = bitmap.getStatus(i);
         const application = await db
@@ -724,7 +725,7 @@ async function handleEvent(
 
         // DirectPayoutStrategy uses status 1 for signaling IN REVIEW. In order to be considered as IN REVIEW the
         // application must be on PENDING status on the round
-        if (newStatus == 1 && application!.status == "PENDING") {
+        if (application && application.status == "PENDING" && newStatus == 1) {
           const statusString = ApplicationStatus[4] as Application["status"];
           await db
             .collection<Application>(`rounds/${round}/applications`)
