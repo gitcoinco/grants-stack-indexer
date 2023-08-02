@@ -25,7 +25,11 @@ import { importAbi } from "./indexer/utils.js";
 import { createHttpApi } from "./http/app.js";
 import { FileSystemDataProvider } from "./calculator/index.js";
 import { AsyncSentinel } from "./utils/asyncSentinel.js";
-import { BigNumber } from "ethers";
+import {
+  fixChainsauceEvent,
+  withBigNumberJSONParsing,
+  createBlockchainListener,
+} from "./indexer/listener.js";
 
 // If, during reindexing, a chain has these many blocks left to index, consider
 // it caught up and start serving
@@ -70,7 +74,7 @@ async function main(): Promise<void> {
       runOnce: config.runOnce,
     }),
     ...config.chains.map((chain) =>
-      catchupAndWatchChain({
+      catchupAndWatchChain_new({
         chain,
         baseLogger,
         ...config,
@@ -119,7 +123,237 @@ async function catchupAndWatchPassport(
   return passportProvider;
 }
 
-async function catchupAndWatchChain(
+//////////////////////////////////////////////////////////////////////
+
+async function catchupAndWatchChain_old(
+  config: Omit<Config, "chains"> & { chain: Chain; baseLogger: Logger }
+): Promise<void> {
+  const CHAIN_DIR_PATH = path.join(
+    config.storageDir,
+    config.chain.id.toString()
+  );
+
+  const chainLogger = config.baseLogger.child({
+    chain: config.chain.id,
+  });
+
+  const pricesCache: Cache | null = config.cacheDir
+    ? new Cache(path.join(config.cacheDir, "prices"))
+    : null;
+
+  // Force a full re-indexing on every startup.
+  // XXX For the longer term, verify whether ChainSauce supports
+  // any sort of stop-and-resume.
+  await fs.rm(CHAIN_DIR_PATH, { force: true, recursive: true });
+
+  const storage = new JsonStorage(CHAIN_DIR_PATH);
+
+  const priceProvider = createPriceProvider({
+    ...config,
+    logger: chainLogger.child({ subsystem: "PriceProvider" }),
+  });
+
+  const rpcProvider = new RetryProvider({
+    url: config.chain.rpc,
+    timeout: 5 * 60 * 1000,
+  });
+
+  const cachedIpfsGet = async <T>(cid: string): Promise<T | undefined> => {
+    const cidRegex = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[0-9A-Za-z]{50,})$/;
+    if (!cidRegex.test(cid)) {
+      chainLogger.warn(`Invalid IPFS CID: ${cid}`);
+      return undefined;
+    }
+
+    const res = await fetch(`${config.ipfsGateway}/ipfs/${cid}`, {
+      timeout: 2000,
+      retry: { retries: 10, maxTimeout: 60 * 1000 },
+      // IPFS data is immutable, we can rely entirely on the cache when present
+      cache: "force-cache",
+      cachePath:
+        config.cacheDir !== null
+          ? path.join(config.cacheDir, "ipfs")
+          : undefined,
+    });
+
+    return (await res.json()) as T;
+  };
+
+  await rpcProvider.getNetwork();
+
+  // Update prices to present and optionally keep watching for updates
+
+  const priceUpdater = createPriceUpdater({
+    ...config,
+    rpcProvider,
+    chain: config.chain,
+    logger: chainLogger.child({ subsystem: "PriceUpdater" }),
+    withCacheFn:
+      pricesCache === null
+        ? undefined
+        : (cacheKey, fn) => pricesCache.lazy(cacheKey, fn),
+  });
+
+  await priceUpdater.start({
+    watch: !config.runOnce,
+    toBlock: config.toBlock,
+  });
+
+  chainLogger.info("catching up with blockchain events");
+  const catchupSentinel = new AsyncSentinel();
+
+  const indexer = await createIndexer(
+    rpcProvider,
+    storage,
+    (indexer: Indexer<JsonStorage>, event: ChainsauceEvent) => {
+      return handleEvent(event, {
+        chainId: config.chain.id,
+        db: storage,
+        subscribe: (...args) => indexer.subscribe(...args),
+        ipfsGet: cachedIpfsGet,
+        priceProvider,
+      });
+    },
+    {
+      toBlock: config.toBlock,
+      logger: chainLogger.child({ subsystem: "DataUpdater" }),
+      eventCacheDirectory: config.cacheDir
+        ? path.join(config.cacheDir, "events")
+        : null,
+      onProgress: ({ currentBlock, lastBlock }) => {
+        // Due to the way chainsauce works, the first time onProgress returns
+        // and currentBlock matches lastBlock, it means that we've caught up the
+        // chain state as it was when we started.
+        if (currentBlock === lastBlock && !catchupSentinel.isDone()) {
+          catchupSentinel.declareDone();
+        }
+      },
+    }
+  );
+
+  for (const subscription of config.chain.subscriptions) {
+    indexer.subscribe(
+      subscription.address,
+      await importAbi(subscription.abi),
+      Math.max(subscription.fromBlock || 0, config.fromBlock)
+    );
+  }
+
+  await catchupSentinel.untilDone();
+
+  if (config.runOnce) {
+    indexer.stop();
+  } else {
+    chainLogger.info("listening to new blockchain events");
+  }
+}
+
+//////////////////////////////////////////////////////////////////////
+
+async function catchupAndWatchChain_new(
+  config: Omit<Config, "chains"> & { chain: Chain; baseLogger: Logger }
+): Promise<void> {
+  const CHAIN_DIR_PATH = path.join(
+    config.storageDir,
+    config.chain.id.toString()
+  );
+
+  const chainLogger = config.baseLogger.child({
+    chain: config.chain.id,
+  });
+
+  const rpcProvider = new RetryProvider({
+    url: config.chain.rpc,
+    timeout: 5 * 60 * 1000,
+  });
+
+  const priceProvider = createPriceProvider({
+    ...config,
+    logger: chainLogger.child({ subsystem: "PriceProvider" }),
+  });
+
+  const storage = new JsonStorage(CHAIN_DIR_PATH);
+
+  const cachedIpfsGet = async <T>(cid: string): Promise<T | undefined> => {
+    const cidRegex = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[0-9A-Za-z]{50,})$/;
+    if (!cidRegex.test(cid)) {
+      chainLogger.warn(`Invalid IPFS CID: ${cid}`);
+      return undefined;
+    }
+
+    const res = await fetch(`${config.ipfsGateway}/ipfs/${cid}`, {
+      timeout: 2000,
+      retry: { retries: 10, maxTimeout: 60 * 1000 },
+      // IPFS data is immutable, we can rely entirely on the cache when present
+      cache: "force-cache",
+      cachePath:
+        config.cacheDir !== null
+          ? path.join(config.cacheDir, "ipfs")
+          : undefined,
+    });
+
+    return (await res.json()) as T;
+  };
+
+  const pricesCache: Cache | null = config.cacheDir
+    ? new Cache(path.join(config.cacheDir, "prices"))
+    : null;
+
+  const priceUpdater = createPriceUpdater({
+    ...config,
+    rpcProvider,
+    chain: config.chain,
+    logger: chainLogger.child({ subsystem: "PriceUpdater" }),
+    withCacheFn:
+      pricesCache === null
+        ? undefined
+        : (cacheKey, fn) => pricesCache.lazy(cacheKey, fn),
+  });
+
+  // Force a full re-indexing on every startup.
+  // XXX For the longer term, verify whether ChainSauce supports
+  // any sort of stop-and-resume.
+  chainLogger.debug(`removing data dir (${CHAIN_DIR_PATH}) to start fresh`);
+  await fs.rm(CHAIN_DIR_PATH, { force: true, recursive: true });
+
+  await priceUpdater.start({
+    watch: !config.runOnce,
+    toBlock: config.toBlock,
+  });
+
+  return new Promise<void>((resolve) => {
+    const blockchainListener = createBlockchainListener({
+      logger: chainLogger.child({ subsystem: "DataUpdater" }),
+      onEvent: async (event, onContractRequested) => {
+        await handleEvent(event, {
+          chainId: config.chain.id,
+          db: storage,
+          ipfsGet: cachedIpfsGet,
+          priceProvider,
+          // XXX should rename to getContract
+          subscribe: (address, abi) => {
+            onContractRequested(address, abi);
+            return new ethers.Contract(address, abi, rpcProvider);
+          },
+        });
+      },
+      onCaughtUp: () => {
+        resolve();
+      },
+      rpcProvider,
+      eventLogPath: `/tmp/events-${config.chain.id}.ndjson`,
+      storage,
+      chain: config.chain,
+      toBlock: config.toBlock,
+    });
+
+    void blockchainListener.start();
+  });
+}
+
+//////////////////////////////////////////////////////////////////////
+
+async function catchupAndWatchChain_new_deprecated(
   config: Omit<Config, "chains"> & { chain: Chain; baseLogger: Logger }
 ): Promise<void> {
   const CHAIN_DIR_PATH = path.join(
@@ -311,57 +545,11 @@ async function catchupAndWatchChain(
     );
   }
 
-  indexer.update();
-
   await catchupSentinel.untilDone();
 
   if (config.runOnce) {
     indexer.stop();
   } else {
     chainLogger.info("listening to new blockchain events");
-  }
-}
-
-function withBigNumberJSONParsing(key: string, value: any): any {
-  if (
-    value !== null &&
-    typeof value === "object" &&
-    "type" in value &&
-    value.type === "BigNumber"
-  ) {
-    return BigNumber.from(value);
-  } else {
-    return value;
-  }
-}
-
-/**
- *  Chainsauce events have args as arrays with named properties, e.g.
- *
- *    ["foo", "bar", prop1: "foo", prop2: "bar"]
- *
- *  This throws off JSON serialization, so we convert that to a proper object
- *  here.
- */
-
-function fixChainsauceEvent(obj) {
-  if (Array.isArray(obj)) {
-    if (Object.keys(obj).length !== obj.length) {
-      const newObj = {};
-      for (const name in obj) {
-        newObj[name] = fixChainsauceEvent(obj[name]);
-      }
-      return newObj;
-    } else {
-      return obj.map(fixChainsauceEvent);
-    }
-  } else if (typeof obj === "object" && obj !== null) {
-    const newObj = {};
-    for (const name in obj) {
-      newObj[name] = fixChainsauceEvent(obj[name]);
-    }
-    return newObj;
-  } else {
-    return obj;
   }
 }
