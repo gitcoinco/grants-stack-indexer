@@ -93,6 +93,15 @@ export const CHAINS: Chain[] = [
         },
       },
       {
+        code: "USDC",
+        address: "0x07865c6E87B9F70255377e024ace6630C1Eaa37F",
+        decimals: 6,
+        priceSource: {
+          chainId: 1,
+          address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        },
+      },
+      {
         code: "DAI",
         address: "0x73967c6a0904aA032C103b4104747E88c566B1A2",
         decimals: 18,
