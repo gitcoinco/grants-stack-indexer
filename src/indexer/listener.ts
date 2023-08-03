@@ -207,7 +207,7 @@ export const createBlockchainListener = ({
  *
  *  XXX This should be fixed in chainsauce.
  */
-export function fixChainsauceEvent<T>(obj: T): T {
+function fixChainsauceEvent<T>(obj: T): T {
   if (Array.isArray(obj)) {
     if (Object.keys(obj).length !== obj.length) {
       const newObj: { [prop: string]: any } = {};
@@ -233,7 +233,7 @@ export function fixChainsauceEvent<T>(obj: T): T {
   }
 }
 
-export const withBigNumberJSONParsing = (_key: string, value: any): any => {
+const withBigNumberJSONParsing = (_key: string, value: any): any => {
   if (
     value !== null &&
     typeof value === "object" &&
