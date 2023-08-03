@@ -123,12 +123,16 @@ export const createBlockchainListener = ({
       );
     }
 
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      await indexer._update();
-      await sleep(POLL_INTERVAL_MS);
+    void poll();
+  };
+
+  const poll = async () => {
+    if (indexer === null) {
+      throw new Error("chainsauce indexer not initialized");
     }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- false negative?
+    await indexer.updateOnce();
+    pollTimeoutId = setTimeout(poll, POLL_INTERVAL_MS);
   };
 
   const onContractRequested = (
@@ -142,7 +146,7 @@ export const createBlockchainListener = ({
       }
       case "listening": {
         if (indexer === null) {
-          throw new Error("Indexer not initialized");
+          throw new Error("chainsauce indexer not initialized");
         }
         indexer.subscribe(address, abi);
         break;
@@ -185,8 +189,9 @@ export const createBlockchainListener = ({
     }
   }
 
-  return { start };
+  return { start, stop };
 };
+
 /**
  *  Chainsauce events have args as arrays with named properties, e.g.
  *
@@ -223,6 +228,7 @@ export function fixChainsauceEvent<T>(obj: T): T {
     return obj;
   }
 }
+
 export const withBigNumberJSONParsing = (_key: string, value: any): any => {
   if (
     value !== null &&
