@@ -28,14 +28,25 @@ async function main(): Promise<void> {
 
   if (config.sentryDsn !== null) {
     Sentry.init({
+      environment: config.deploymentEnvironment,
       dsn: config.sentryDsn,
       tracesSampleRate: 1.0,
     });
   }
 
-  const baseLogger = pino({ level: config.logLevel }).child({
+  const baseLogger = pino({
+    level: config.logLevel,
+    formatters: {
+      level(level) {
+        // represent severity as strings so that DataDog can recognize it
+        return { level };
+      },
+    },
+  }).child({
     service: `indexer-${config.deploymentEnvironment}`,
   });
+
+  baseLogger.info("starting");
 
   // Promise will be resolved once the catchup is done. Afterwards, services
   // will still be in listen-and-update mode
@@ -210,10 +221,11 @@ async function catchupAndWatchChain(
         ? path.join(config.cacheDir, "events")
         : null,
       onProgress: ({ currentBlock, lastBlock }) => {
-        // Due to the way chainsauce works, the first time onProgress returns
-        // and currentBlock matches lastBlock, it means that we've caught up the
-        // chain state as it was when we started.
+        chainLogger.debug(
+          `indexed to block ${currentBlock}; last block on chain: ${lastBlock}`
+        );
         if (currentBlock === lastBlock && !catchupSentinel.isDone()) {
+          chainLogger.info("caught up with blockchain events");
           catchupSentinel.declareDone();
         }
       },

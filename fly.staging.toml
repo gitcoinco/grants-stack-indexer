@@ -12,6 +12,7 @@ kill_timeout = 5
   LOG_LEVEL = "debug"
   STORAGE_DIR = "/mnt/indexer/data"
   CACHE_DIR = "/mnt/indexer/cache"
+  # BUILD_TAG = # set in deploy action
 
 [processes]
   web = "npm start"
