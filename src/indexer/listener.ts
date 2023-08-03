@@ -66,6 +66,7 @@ export const createBlockchainListener = ({
         return onEvent(event, onContractRequested);
       },
       {
+        requireExplicitStart: true,
         toBlock,
         logger: logger.child({ subsystem: "DataUpdater" }),
         eventCacheDirectory: null,
@@ -126,6 +127,9 @@ export const createBlockchainListener = ({
     void poll();
   };
 
+  // We take control of the update loop by creating the ChainSauce indexer with
+  // `requireExplicitStart: true`, *not* calling `indexer.start()`, and then
+  // calling `indexer.updateOnce` inside our own polling loop.
   const poll = async () => {
     if (indexer === null) {
       throw new Error("chainsauce indexer not initialized");
