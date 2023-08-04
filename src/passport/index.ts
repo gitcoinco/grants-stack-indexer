@@ -22,20 +22,17 @@ export type PassportScore = {
   detail?: string;
 };
 
-interface PassportProviderConfig {
+export interface PassportProviderConfig {
   apiKey: string;
   scorerId: string;
   logger: Logger;
   persist: (passports: PassportScore[]) => Promise<void>;
   load: () => Promise<PassportScore[] | null>;
+  fetch?: typeof global.fetch;
 }
 
 type PassportProviderState =
-  | {
-      type: "stopped";
-      scoresByAddressMap: null;
-      pollTimeoutId: null;
-    }
+  | { type: "empty" }
   | {
       type: "starting";
       scoresByAddressMap: null;
@@ -45,6 +42,11 @@ type PassportProviderState =
       type: "ready";
       scoresByAddressMap: { [address: string]: PassportScore };
       pollTimeoutId: NodeJS.Timeout | null;
+    }
+  | {
+      type: "stopped";
+      scoresByAddressMap: null;
+      pollTimeoutId: null;
     };
 
 export interface PassportProvider {
@@ -60,18 +62,21 @@ export const createPassportProvider = (
 
   const baseRequestUri = `https://api.scorer.gitcoin.co/registry/score/${config.scorerId}`;
   const { logger } = config;
+  const fetch = config.fetch ?? global.fetch;
 
   // STATE
 
   let state: PassportProviderState = {
-    type: "stopped",
-    scoresByAddressMap: null,
-    pollTimeoutId: null,
+    type: "empty",
   };
 
   // API
 
   const start = async (opts = { watch: true }) => {
+    if (state.type !== "empty") {
+      throw new Error(`Service not in empty state (${state.type})`);
+    }
+
     logger.info(`${state.type} => starting`);
     state = { type: "starting", scoresByAddressMap: null, pollTimeoutId: null };
 
@@ -79,8 +84,8 @@ export const createPassportProvider = (
 
     let initialPassportDataset: PassportScore[] | null = await config.load();
     if (initialPassportDataset === null) {
-      logger.debug(
-        "no passports dataset found locally, fetch remote before starting"
+      logger.info(
+        "no passports dataset found locally, fetching remote dataset before starting"
       );
       initialPassportDataset = await fetchEntireDataset();
     }
@@ -150,7 +155,7 @@ export const createPassportProvider = (
     setTimeout(poll, DELAY_BETWEEN_FULL_UPDATES_MS);
   };
 
-  const _TODO_fetchUpdates = async (): Promise<PassportScore[]> => {
+  const _TODO_fetchIncrementalUpdates = async (): Promise<PassportScore[]> => {
     // https://github.com/gitcoinco/allo-indexer/issues/191
     return Promise.resolve([]);
   };
@@ -182,14 +187,27 @@ export const createPassportProvider = (
         },
       });
 
-      const { items: passportBatch } = (await res.json()) as {
-        items: PassportScore[];
-      };
+      if (!res.ok) {
+        // continuing without modifying offset is effectively a retry
+        logger.warn(
+          `passport API responde non-success status code: ${res.status}`
+        );
+        continue;
+      }
 
-      passports.push(...passportBatch);
+      try {
+        const { items: passportBatch } = (await res.json()) as {
+          items: PassportScore[];
+        };
 
-      offset += PASSPORT_API_MAX_ITEMS_LIMIT;
-      await sleep(DELAY_BETWEEN_PAGE_REQUESTS_MS);
+        passports.push(...passportBatch);
+
+        offset += PASSPORT_API_MAX_ITEMS_LIMIT;
+        await sleep(DELAY_BETWEEN_PAGE_REQUESTS_MS);
+      } catch (err) {
+        logger.error({ msg: `Error reading response from Passport API`, err });
+        continue;
+      }
     }
 
     logger.debug(`persisting ${passports.length} passports`);
