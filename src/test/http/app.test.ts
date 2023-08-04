@@ -66,9 +66,6 @@ export class TestDataProvider implements DataProvider {
 
   async loadFile<T>(description: string, path: string): Promise<Array<T>> {
     const fixture = this.fixtures[path];
-    // XXX this is not present in the actual loadFile in the
-    // FileSystemDataProvider, so the tests that check for 404 are verifying
-    // behavior that is not implemented
     if (fixture === undefined) {
       throw new FileNotFoundError(description);
     }

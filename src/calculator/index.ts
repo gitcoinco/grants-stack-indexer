@@ -38,9 +38,16 @@ export class FileSystemDataProvider implements DataProvider {
   async loadFile<T>(description: string, path: string): Promise<Array<T>> {
     const fullPath = `${this.basePath}/${path}`;
 
-    const data = await fs.readFile(fullPath, "utf8");
-
-    return JSON.parse(data) as Array<T>;
+    try {
+      const data = await fs.readFile(fullPath, "utf8");
+      return JSON.parse(data) as Array<T>;
+    } catch (err) {
+      if (err instanceof Error && "code" in err && err.code === "ENOENT") {
+        throw new FileNotFoundError(description);
+      } else {
+        throw err;
+      }
+    }
   }
 }
 
