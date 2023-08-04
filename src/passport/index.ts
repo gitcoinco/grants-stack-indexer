@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 import sleep from "sleep-promise";
-import { ethers } from "ethers";
 import fetch from "make-fetch-happen";
 import { Logger } from "pino";
 
@@ -27,10 +26,7 @@ interface PassportProviderConfig {
   apiKey: string;
   scorerId: string;
   logger: Logger;
-  persist: (data: {
-    passports: PassportScore[];
-    validAddresses: string[];
-  }) => Promise<void>;
+  persist: (passports: PassportScore[]) => Promise<void>;
   load: () => Promise<PassportScore[] | null>;
 }
 
@@ -196,16 +192,8 @@ export const createPassportProvider = (
       await sleep(DELAY_BETWEEN_PAGE_REQUESTS_MS);
     }
 
-    const validAddresses = passports
-      .filter((passport) => passport.evidence && passport.evidence.success)
-      .map((passport) => {
-        return ethers.utils.getAddress(passport.address);
-      });
-
-    logger.debug(
-      `persisting ${passports.length} passports (${validAddresses.length} valid addresses)`
-    );
-    await config.persist({ passports, validAddresses });
+    logger.debug(`persisting ${passports.length} passports`);
+    await config.persist(passports);
 
     return passports;
   };

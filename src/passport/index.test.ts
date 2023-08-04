@@ -30,9 +30,9 @@ describe("passport provider", () => {
     });
 
     test("throws if stopping is attempted before starting", () => {
-      expect(() =>
-        passportProvider.stop()
-      ).toThrowErrorMatchingInlineSnapshot('"Service not started"');
+      expect(() => passportProvider.stop()).toThrowErrorMatchingInlineSnapshot(
+        '"Service not started"'
+      );
     });
   });
 

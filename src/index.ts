@@ -106,10 +106,6 @@ async function catchupAndWatchPassport(
 ): Promise<PassportProvider> {
   await fs.mkdir(config.storageDir, { recursive: true });
   const SCORES_FILE = path.join(config.storageDir, "passport_scores.json");
-  const VALID_ADDRESSES_FILE = path.join(
-    config.storageDir,
-    "passport_valid_addresses.json"
-  );
 
   const passportProvider = createPassportProvider({
     apiKey: config.passportApiKey,
@@ -124,16 +120,8 @@ async function catchupAndWatchPassport(
         return null;
       }
     },
-    persist: async ({ passports, validAddresses }) => {
-      await Promise.all([
-        fs.writeFile(SCORES_FILE, JSON.stringify(passports, null, 2), "utf8"),
-        fs.writeFile(
-          VALID_ADDRESSES_FILE,
-          JSON.stringify(validAddresses, null, 2),
-          "utf8"
-        ),
-      ]);
-    },
+    persist: (passports) =>
+      fs.writeFile(SCORES_FILE, JSON.stringify(passports, null, 2), "utf8"),
   });
 
   await passportProvider.start({ watch: !config.runOnce });
