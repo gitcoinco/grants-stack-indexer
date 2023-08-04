@@ -21,7 +21,7 @@ export type PassportScore = {
   detail?: string;
 };
 
-interface PassportConfig {
+interface PassportProviderConfig {
   apiKey: string;
   scorerId: string;
   logger: Logger;
@@ -32,13 +32,32 @@ interface PassportConfig {
   load: () => Promise<PassportScore[] | null>;
 }
 
-interface PassportUpdater {
+type PassportProviderState =
+  | {
+      type: "stopped";
+      scoresByAddressMap: null;
+      pollTimeoutId: null;
+    }
+  | {
+      type: "starting";
+      scoresByAddressMap: null;
+      pollTimeoutId: null;
+    }
+  | {
+      type: "ready";
+      scoresByAddressMap: { [address: string]: PassportScore };
+      pollTimeoutId: NodeJS.Timeout | null;
+    };
+
+export interface PassportProvider {
   start: (opts?: { watch: boolean }) => Promise<void>;
+  stop: () => void;
+  getScoreByAddress: (address: string) => Promise<PassportScore | undefined>;
 }
 
-export const createPassportUpdater = (
-  config: PassportConfig
-): PassportUpdater => {
+export const createPassportProvider = (
+  config: PassportProviderConfig
+): PassportProvider => {
   // CONFIG
 
   const baseRequestUri = `https://api.scorer.gitcoin.co/registry/score/${config.scorerId}`;
@@ -46,82 +65,132 @@ export const createPassportUpdater = (
 
   // STATE
 
-  let passports: PassportScore[] = [];
+  let state: PassportProviderState = {
+    type: "stopped",
+    scoresByAddressMap: null,
+    pollTimeoutId: null,
+  };
 
   // API
 
   const start = async (opts = { watch: true }) => {
-    logger.info("starting");
+    logger.info(`${state.type} => starting`);
+    state = { type: "starting", scoresByAddressMap: null, pollTimeoutId: null };
 
     logger.debug("loading locally persisted passports...");
-    passports = (await config.load()) ?? [];
 
-    if (passports.length === 0) {
-      logger.debug("no passports found locally, will do initial update");
-      // If nothing was read from storage, don't return until
-      await updateEntireDataset();
-    } else {
-      logger.debug(`loaded ${passports.length} passports`);
+    let initialPassportDataset: PassportScore[] | null = await config.load();
+    if (initialPassportDataset === null) {
+      logger.debug(
+        "no passports dataset found locally, fetch remote before starting"
+      );
+      initialPassportDataset = await fetchEntireDataset();
     }
 
+    logger.debug(`loaded ${initialPassportDataset.length} passports`);
+
+    const scoresByAddressMap = computeScoresByAddressMap(
+      initialPassportDataset
+    );
+
+    logger.info(`${state.type} => ready`);
+    state = { ...state, type: "ready", scoresByAddressMap };
     if (opts.watch) {
-      setTimeout(poll, DELAY_BETWEEN_UPDATES_MS);
+      state.pollTimeoutId = setTimeout(poll, DELAY_BETWEEN_UPDATES_MS);
     }
+  };
+
+  const stop = () => {
+    if (state.type !== "ready") {
+      throw new Error("Service not started");
+    }
+
+    if (state.pollTimeoutId !== null) {
+      clearTimeout(state.pollTimeoutId);
+    }
+
+    logger.info(`${state.type} => stopped`);
+    state = { type: "stopped", scoresByAddressMap: null, pollTimeoutId: null };
+  };
+
+  const getScoreByAddress = async (
+    address: string
+  ): Promise<PassportScore | undefined> => {
+    if (state.type !== "ready") {
+      throw new Error("Service not started");
+    }
+
+    // Async not really necessary right now because data is in memory, but this
+    // could easily be imply I/O in the future, so might as well make it async
+    // already
+    return Promise.resolve(state.scoresByAddressMap[address]);
   };
 
   // INTERNALS
 
+  const computeScoresByAddressMap = (
+    passportScores: PassportScore[]
+  ): Record<string, PassportScore> => {
+    const scoresByAddressMap: Record<string, PassportScore> = {};
+    for (const score of passportScores) {
+      scoresByAddressMap[score.address.toLocaleLowerCase()] = score;
+    }
+    return scoresByAddressMap;
+  };
+
   const poll = async (): Promise<void> => {
-    // Can be switched to incremental updates once https://github.com/gitcoinco/passport/issues/1414 is fixed
-    await updateEntireDataset();
+    if (state.type !== "ready") {
+      throw new Error("Service not started");
+    }
+
+    const passports = await fetchEntireDataset();
+
+    for (const score of passports) {
+      state.scoresByAddressMap[score.address.toLocaleLowerCase()] = score;
+    }
+
     setTimeout(poll, DELAY_BETWEEN_UPDATES_MS);
   };
 
-  const updateEntireDataset = async (): Promise<void> => {
-    passports.length = 0;
-    await updateIncrementally();
+  const _TODO_fetchUpdates = async (): Promise<PassportScore[]> => {
+    // https://github.com/gitcoinco/allo-indexer/issues/191
+    return Promise.resolve([]);
   };
 
-  const updateIncrementally = async (): Promise<void> => {
+  const fetchEntireDataset = async (): Promise<PassportScore[]> => {
     logger.debug("updating passports...");
     const remotePassportCount = await fetchRemotePassportCount();
+    const passports: PassportScore[] = [];
 
-    const newPassportCount = remotePassportCount - passports.length;
-    if (newPassportCount > 0) {
-      logger.debug(
-        `found ${newPassportCount} new passports remotely; fetching...`
-      );
+    let offset = 0;
+    while (offset < remotePassportCount) {
+      const requestUri = `${baseRequestUri}?offset=${offset}&limit=${PASSPORT_API_MAX_ITEMS_LIMIT}`;
 
-      let offset = passports.length;
-      while (offset < newPassportCount) {
-        const requestUri = `${baseRequestUri}?offset=${offset}&limit=${PASSPORT_API_MAX_ITEMS_LIMIT}`;
-
-        if (offset % 20000 === 0) {
-          // Only log every 10000 scores to reduce log noise
-          logger.debug({
-            msg: `fetching from ${offset} up to ${remotePassportCount} in batches of ${PASSPORT_API_MAX_ITEMS_LIMIT}`,
-            requestUri,
-          });
-        }
-
-        // @ts-ignore
-        const res = await fetch(requestUri, {
-          headers: { authorization: `Bearer ${config.apiKey}` },
-          retry: {
-            retries: 5,
-            randomize: true,
-            maxTimeout: 5000,
-          },
+      if (offset % 20000 === 0) {
+        // Only log every 10000 scores to reduce log noise
+        logger.debug({
+          msg: `fetching from ${offset} up to ${remotePassportCount} in batches of ${PASSPORT_API_MAX_ITEMS_LIMIT}`,
+          requestUri,
         });
-
-        const { items: passportBatch } = (await res.json()) as {
-          items: PassportScore[];
-        };
-
-        passports.push(...passportBatch);
-
-        offset += PASSPORT_API_MAX_ITEMS_LIMIT;
       }
+
+      // @ts-ignore
+      const res = await fetch(requestUri, {
+        headers: { authorization: `Bearer ${config.apiKey}` },
+        retry: {
+          retries: 5,
+          randomize: true,
+          maxTimeout: 5000,
+        },
+      });
+
+      const { items: passportBatch } = (await res.json()) as {
+        items: PassportScore[];
+      };
+
+      passports.push(...passportBatch);
+
+      offset += PASSPORT_API_MAX_ITEMS_LIMIT;
     }
 
     const validAddresses = passports
@@ -134,6 +203,8 @@ export const createPassportUpdater = (
       `persisting ${passports.length} passports (${validAddresses.length} valid addresses)`
     );
     await config.persist({ passports, validAddresses });
+
+    return passports;
   };
 
   const fetchRemotePassportCount = async (): Promise<number> => {
@@ -149,5 +220,5 @@ export const createPassportUpdater = (
 
   // EXPORTS
 
-  return { start };
+  return { start, stop, getScoreByAddress };
 };
