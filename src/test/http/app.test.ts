@@ -13,6 +13,7 @@ import {
 } from "../../calculator/index.js";
 import { PriceProvider } from "../../prices/provider.js";
 import { Logger } from "pino";
+import { PassportScore } from "../../passport/index.js";
 
 vi.spyOn(os, "hostname").mockReturnValue("dummy-hostname");
 
@@ -39,6 +40,23 @@ export class TestPriceProvider {
   }
 }
 
+class TestPassportProvider {
+  _fixture: PassportScore[] | null = null;
+
+  async start() {}
+
+  async stop() {}
+
+  async getScoreByAddress(address: string): Promise<PassportScore | undefined> {
+    if (this._fixture === null) {
+      this._fixture = JSON.parse(
+        await loadFixture("passport_scores")
+      ) as PassportScore[];
+    }
+    return this._fixture.find((score) => score.address === address);
+  }
+}
+
 export class TestDataProvider implements DataProvider {
   fixtures: Fixtures;
 
@@ -48,6 +66,9 @@ export class TestDataProvider implements DataProvider {
 
   async loadFile<T>(description: string, path: string): Promise<Array<T>> {
     const fixture = this.fixtures[path];
+    // XXX this is not present in the actual loadFile in the
+    // FileSystemDataProvider, so the tests that check for 404 are verifying
+    // behavior that is not implemented
     if (fixture === undefined) {
       throw new FileNotFoundError(description);
     }
@@ -77,6 +98,7 @@ describe("server", () => {
         storageDir: "/dev/null",
         buildTag: "123abc",
         priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+        passportProvider: new TestPassportProvider(),
         dataProvider: new TestDataProvider({
           "1/rounds/0x1234/votes.json": "votes",
           "1/rounds/0x1234/applications.json": "applications",
@@ -119,11 +141,12 @@ describe("server", () => {
           port: 0,
           storageDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
             "1/rounds/0x1234/votes.json": "votes",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds.json": [], // empty file so the round won't be found
-            "passport_scores.json": "passport_scores",
+            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         });
@@ -140,11 +163,12 @@ describe("server", () => {
           port: 0,
           storageDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
             "1/rounds/0x1234/votes.json": "votes",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds.json": [], // empty file so the round won't be found
-            "passport_scores.json": "passport_scores",
+            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         });
@@ -161,11 +185,12 @@ describe("server", () => {
           port: 0,
           storageDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
             "1/rounds/0x1234/votes.json": "votes",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds.json": [], // empty file so the round won't be found
-            "passport_scores.json": "passport_scores",
+            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         });
@@ -182,11 +207,12 @@ describe("server", () => {
           port: 0,
           storageDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
             "1/rounds/0x1234/votes.json": "votes",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds.json": [], // empty file so the round won't be found
-            "passport_scores.json": "passport_scores",
+            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         });
@@ -203,11 +229,12 @@ describe("server", () => {
           port: 0,
           storageDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
             "1/rounds/0x1234/votes.json": "votes",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds.json": [], // empty file so the round won't be found
-            "passport_scores.json": "passport_scores",
+            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         });
@@ -227,11 +254,12 @@ describe("server", () => {
           port: 0,
           storageDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
             "1/rounds/0x1234/votes.json": "votes",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds.json": "rounds",
-            "passport_scores.json": "passport_scores",
+            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         }).app;
@@ -293,6 +321,7 @@ describe("server", () => {
           port: 0,
           storageDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
             "1/rounds/0x1234/votes.json": "votes",
             "1/rounds/0x1234/applications.json": "applications",
@@ -307,7 +336,7 @@ describe("server", () => {
                 metadata: {},
               },
             ],
-            "passport_scores.json": "passport_scores",
+            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         }).app;
@@ -370,11 +399,12 @@ describe("server", () => {
           port: 0,
           storageDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
             "1/rounds/0x1234/votes.json": "votes-with-bad-recipient",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds.json": "rounds",
-            "passport_scores.json": "passport_scores",
+            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         }).app;
@@ -436,11 +466,11 @@ describe("server", () => {
           port: 0,
           storageDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
             "1/rounds/0x1234/votes.json": "votes",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds.json": "rounds",
-            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         }).app;
@@ -562,13 +592,14 @@ describe("server", () => {
           port: 0,
           storageDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
             "1/rounds/0x1234/votes.json": "votes",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds/0x2/votes.json": "votes",
             "1/rounds/0x2/applications.json": "applications",
             "1/rounds.json": "rounds",
-            "passport_scores.json": "passport_scores",
+            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         }).app;
@@ -773,13 +804,14 @@ describe("server", () => {
           port: 0,
           storageDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
             "1/rounds/0x1234/votes.json": "votes",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds/0x3/votes.json": "votes",
             "1/rounds/0x3/applications.json": "applications",
             "1/rounds.json": "rounds",
-            "passport_scores.json": "passport_scores",
+            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         }).app;
@@ -935,13 +967,15 @@ describe("server", () => {
           port: 0,
           storageDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
             "1/rounds/0x1234/votes.json": "votes",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds/0x4/votes.json": "votes",
             "1/rounds/0x4/applications.json": "applications",
             "1/rounds.json": "rounds",
-            "passport_scores.json": "passport_scores",
+
+            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         }).app;

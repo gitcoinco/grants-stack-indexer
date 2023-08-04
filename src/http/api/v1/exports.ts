@@ -73,26 +73,16 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
   }
 
   async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
-    const storageDir = config.storageDir;
-
-    const [applications, votes, passportScoresString] = await Promise.all([
+    const [applications, votes] = await Promise.all([
       db.collection<Application>(`rounds/${round.id}/applications`).all(),
       db.collection<Vote>(`rounds/${round.id}/votes`).all(),
-      fs.promises.readFile(path.join(storageDir, "/passport_scores.json"), {
-        encoding: "utf8",
-        flag: "r",
-      }),
     ]);
 
-    const passportScores = JSON.parse(
-      passportScoresString
-    ) as Array<PassportScore>;
-
-    const votesWithCoefficients = getVotesWithCoefficients(
+    const votesWithCoefficients = await getVotesWithCoefficients(
       round,
       applications,
       votes,
-      passportScores,
+      config.passportProvider,
       {}
     );
 

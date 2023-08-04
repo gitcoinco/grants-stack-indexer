@@ -9,6 +9,7 @@ import serveIndex from "serve-index";
 
 import { createHandler as createApiHandler } from "./api/v1/index.js";
 import { PriceProvider } from "../prices/provider.js";
+import { PassportProvider } from "../passport/index.js";
 import { DataProvider } from "../calculator/index.js";
 
 export interface HttpApiConfig {
@@ -18,6 +19,7 @@ export interface HttpApiConfig {
   buildTag: string | null;
   priceProvider: PriceProvider;
   dataProvider: DataProvider;
+  passportProvider: PassportProvider;
 }
 
 interface HttpApi {
