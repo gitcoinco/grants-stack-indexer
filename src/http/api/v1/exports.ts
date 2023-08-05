@@ -4,8 +4,6 @@ import {
 } from "csv-writer";
 import { JsonStorage } from "chainsauce";
 import express from "express";
-import fs from "fs";
-import path from "path";
 import { pino } from "pino";
 
 import database from "../../../database.js";
@@ -13,7 +11,6 @@ import { createPriceProvider } from "../../../prices/provider.js";
 import { Round, Application, Vote } from "../../../indexer/types.js";
 import { getVotesWithCoefficients } from "../../../calculator/votes.js";
 import ClientError from "../clientError.js";
-import { PassportScore } from "../../../passport/index.js";
 import { HttpApiConfig } from "../../app.js";
 
 export const createHandler = (config: HttpApiConfig): express.Router => {
