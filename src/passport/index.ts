@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+import enhancedFetch from "make-fetch-happen";
 import { Logger } from "pino";
 
 const PASSPORT_API_MAX_ITEMS_LIMIT = 1000;
@@ -59,7 +60,7 @@ export const createPassportProvider = (
 
   const baseRequestUri = `https://api.scorer.gitcoin.co/registry/score/${config.scorerId}`;
   const { logger } = config;
-  const fetch = config.fetch ?? global.fetch;
+  const fetch = config.fetch ?? enhancedFetch;
 
   // STATE
 
