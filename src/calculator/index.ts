@@ -199,8 +199,8 @@ export default class Calculator {
       }
     );
 
-    const contributionPromises = Promise.all(
-      votesWithCoefficients.map(async (vote) => {
+    const contributions: Contribution[] = votesWithCoefficients.flatMap(
+      (vote) => {
         const scaleFactor = Math.pow(10, 4);
         const coefficient = BigInt(
           Math.trunc(
@@ -218,12 +218,8 @@ export default class Calculator {
             amount: multipliedAmount,
           },
         ];
-      })
+      }
     );
-
-    const contributions: Array<Contribution> = (
-      await contributionPromises
-    ).flat();
 
     const results = linearQF(contributions, matchAmount, matchTokenDecimals, {
       minimumAmount: 0n,
