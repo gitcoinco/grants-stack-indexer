@@ -16,22 +16,31 @@ jobs:
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Build
+      - name: Set variables for staging
         run: |
-          flyctl -c fly.staging.toml deploy --remote-only --build-only
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-
-      - name: Deploy to Staging
-        run: |
-          flyctl -c fly.staging.toml deploy --remote-only --wait-timeout=3600 --env BUILD_TAG=`git rev-parse --short HEAD`
+          echo "DEPLOYMENT_ENVIRONMENT=staging" >> $GITHUB_ENV
+          echo "DEPLOYMENT_URL=https://indexer-staging.fly.dev/" >> $GITHUB_ENV
         if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Set variables for production
+        run: |
+          echo "DEPLOYMENT_ENVIRONMENT=production" >> $GITHUB_ENV
+          echo "DEPLOYMENT_URL=https://indexer-production.fly.dev/" >> $GITHUB_ENV
+        if: ${{ github.ref == 'refs/heads/release' }}
+        
+      - name: Build and test
+        run: |
+          flyctl -c fly.${{ env.DEPLOYMENT_ENVIRONMENT }}.toml deploy --remote-only --build-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
-      - name: Deploy to Production
+      - name: Deploy
         run: |
-          flyctl -c fly.production.toml deploy --remote-only  --wait-timeout=3600 --env BUILD_TAG=`git rev-parse --short HEAD`
-        if: ${{ github.ref == 'refs/heads/release' }}
+          flyctl -c fly.${{ env.DEPLOYMENT_ENVIRONMENT }}.toml deploy --remote-only --wait-timeout=3600 --env BUILD_TAG=`git rev-parse --short HEAD`
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Smoke test
+        run: |
+          curl --silent --show-error --fail-with-body ${{ env.DEPLOYMENT_URL }}/api/v1/status
+
