@@ -13,8 +13,8 @@ import {
 } from "./types.js";
 import { Event } from "./events.js";
 import { RoundContract, DirectPayoutContract } from "./contracts.js";
-import { importAbi } from "./utils.js";
 import { PriceProvider } from "../prices/provider.js";
+import * as abis from "./abis/index.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
@@ -57,20 +57,20 @@ function updateApplicationStatus(
   newStatus: Application["status"],
   blockNumber: number
 ): Application {
-    const newApplication: Application = {...application}
-    const prevStatus = application.status;
-    newApplication.status = newStatus;
-    newApplication.statusUpdatedAtBlock = blockNumber
-    newApplication.statusSnapshots = [...application.statusSnapshots]
+  const newApplication: Application = { ...application };
+  const prevStatus = application.status;
+  newApplication.status = newStatus;
+  newApplication.statusUpdatedAtBlock = blockNumber;
+  newApplication.statusSnapshots = [...application.statusSnapshots];
 
-    if (prevStatus !== newStatus) {
-      newApplication.statusSnapshots.push({
-        status: newStatus,
-        statusUpdatedAtBlock: blockNumber,
-      })
-    }
+  if (prevStatus !== newStatus) {
+    newApplication.statusSnapshots.push({
+      status: newStatus,
+      statusUpdatedAtBlock: blockNumber,
+    });
+  }
 
-    return newApplication
+  return newApplication;
 }
 
 async function handleEvent(
@@ -177,14 +177,14 @@ async function handleEvent(
       if (event.name === "RoundCreatedV1") {
         contract = subscribe(
           event.args.roundAddress,
-          await importAbi("#abis/v1/RoundImplementation.json"),
+          abis.v1.RoundImplementation,
           event.blockNumber
         ) as RoundContract;
         matchAmountPromise = BigNumber.from("0");
       } else {
         contract = subscribe(
           event.args.roundAddress,
-          await importAbi("#abis/v2/RoundImplementation.json"),
+          abis.v2.RoundImplementation,
           event.blockNumber
         ) as RoundContract;
         matchAmountPromise = contract.matchAmount();
@@ -322,10 +322,12 @@ async function handleEvent(
         metadata: null,
         createdAtBlock: event.blockNumber,
         statusUpdatedAtBlock: event.blockNumber,
-        statusSnapshots: [{
-          status: "PENDING",
-          statusUpdatedAtBlock: event.blockNumber,
-        }]
+        statusSnapshots: [
+          {
+            status: "PENDING",
+            statusUpdatedAtBlock: event.blockNumber,
+          },
+        ],
       };
 
       await applications.insert(application);
@@ -423,16 +425,24 @@ async function handleEvent(
         const statusString = ApplicationStatus[status] as Application["status"];
         const application = await db
           .collection<Application>(`rounds/${event.address}/applications`)
-          .updateById(i.toString(), (application) => updateApplicationStatus(
-            application, statusString, event.blockNumber
-          ));
+          .updateById(i.toString(), (application) =>
+            updateApplicationStatus(
+              application,
+              statusString,
+              event.blockNumber
+            )
+          );
 
         if (application) {
           await db
             .collection<Application>(`rounds/${event.address}/projects`)
-            .updateById(application.projectId, (application) => updateApplicationStatus(
-              application, statusString, event.blockNumber
-            ));
+            .updateById(application.projectId, (application) =>
+              updateApplicationStatus(
+                application,
+                statusString,
+                event.blockNumber
+              )
+            );
         }
       }
       break;
@@ -442,20 +452,8 @@ async function handleEvent(
     case "VotingContractCreatedV1": {
       subscribe(
         event.args.votingContractAddress,
-        await importAbi(
-          "#abis/v1/QuadraticFundingVotingStrategyImplementation.json"
-        ),
-        event.blockNumber
-      );
-      break;
-    }
 
-    case "VotingContractCreatedV3": {
-      subscribe(
-        event.args.votingContractAddress,
-        await importAbi(
-          "#abis/v3/QuadraticFundingVotingStrategyImplementation.json"
-        ),
+        abis.v1.QuadraticFundingVotingStrategyImplementation,
         event.blockNumber
       );
       break;
@@ -464,9 +462,7 @@ async function handleEvent(
     case "VotingContractCreated": {
       subscribe(
         event.args.votingContractAddress,
-        await importAbi(
-          "#abis/v2/QuadraticFundingVotingStrategyImplementation.json"
-        ),
+        abis.v2.QuadraticFundingVotingStrategyImplementation,
         event.blockNumber
       );
       break;
@@ -684,14 +680,7 @@ async function handleEvent(
     case "PayoutContractCreated": {
       subscribe(
         event.args.payoutContractAddress,
-        (
-          await import(
-            "#abis/v2/DirectPayoutStrategyImplementation.json",
-            {
-              assert: { type: "json" },
-            }
-          )
-        ).default,
+        abis.v2.DirectPayoutStrategyImplementation,
         event.blockNumber
       );
       break;
@@ -700,11 +689,7 @@ async function handleEvent(
     case "ApplicationInReviewUpdated": {
       const contract = subscribe(
         event.address,
-        (
-          await import("#abis/v2/DirectPayoutStrategyImplementation.json", {
-            assert: { type: "json" },
-          })
-        ).default,
+        abis.v2.DirectPayoutStrategyImplementation,
         event.blockNumber
       ) as DirectPayoutContract;
 
@@ -718,9 +703,7 @@ async function handleEvent(
       for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
         const newStatus = bitmap.getStatus(i);
         const application = await db
-          .collection<Application>(
-            `rounds/${round}/applications`
-          )
+          .collection<Application>(`rounds/${round}/applications`)
           .findById(i.toString());
 
         // DirectPayoutStrategy uses status 1 for signaling IN REVIEW. In order to be considered as IN REVIEW the
@@ -729,9 +712,13 @@ async function handleEvent(
           const statusString = ApplicationStatus[4] as Application["status"];
           await db
             .collection<Application>(`rounds/${round}/applications`)
-            .updateById(i.toString(), (application) => updateApplicationStatus(
-              application, statusString, event.blockNumber
-            ))
+            .updateById(i.toString(), (application) =>
+              updateApplicationStatus(
+                application,
+                statusString,
+                event.blockNumber
+              )
+            );
         }
       }
 

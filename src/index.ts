@@ -22,7 +22,6 @@ import handleEvent from "./indexer/handleEvent.js";
 import { Chain, getConfig, Config } from "./config.js";
 import { createPriceUpdater } from "./prices/updater.js";
 import { createPriceProvider } from "./prices/provider.js";
-import { importAbi } from "./indexer/utils.js";
 import { createHttpApi } from "./http/app.js";
 import { FileSystemDataProvider } from "./calculator/index.js";
 import { AsyncSentinel } from "./utils/asyncSentinel.js";
@@ -230,7 +229,7 @@ async function catchupAndWatchChain(
   for (const subscription of config.chain.subscriptions) {
     indexer.subscribe(
       subscription.address,
-      await importAbi(subscription.abi),
+      subscription.abi,
       Math.max(subscription.fromBlock || 0, config.fromBlock)
     );
   }
