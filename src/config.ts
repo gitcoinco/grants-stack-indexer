@@ -300,6 +300,24 @@ export const CHAINS: Chain[] = [
           address: "0x0000000000000000000000000000000000000000",
         },
       },
+      {
+        code: "DAI",
+        address: "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        },
+      },
+      {
+        code: "FakeDAI",
+        address: "0x278d181b9B6caE41EF4BA9cF236cB18d91a1f358",
+        decimals: 18,
+        priceSource: {
+          chainId: 58008,
+          address: "0x278d181b9B6caE41EF4BA9cF236cB18d91a1f358",
+        },
+      },
     ],
     subscriptions: [
       {
