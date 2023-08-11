@@ -23,6 +23,10 @@ import { createHttpApi } from "./http/app.js";
 import { FileSystemDataProvider } from "./calculator/index.js";
 import { AsyncSentinel } from "./utils/asyncSentinel.js";
 
+// If, during reindexing, a chain has these many blocks left to index, consider
+// it caught up and start serving
+const MINIMUM_BLOCKS_LEFT_BEFORE_STARTING = 500;
+
 async function main(): Promise<void> {
   const config = getConfig();
 
@@ -46,7 +50,12 @@ async function main(): Promise<void> {
     service: `indexer-${config.deploymentEnvironment}`,
   });
 
-  baseLogger.info("starting");
+  baseLogger.info({
+    msg: "starting",
+    buildTag: config.buildTag,
+    deploymentEnvironment: config.deploymentEnvironment,
+    chains: config.chains.map((c) => c.name),
+  });
 
   // Promise will be resolved once the catchup is done. Afterwards, services
   // will still be in listen-and-update mode
@@ -202,6 +211,7 @@ async function catchupAndWatchChain(
   chainLogger.info("catching up with blockchain events");
   const catchupSentinel = new AsyncSentinel();
 
+  const indexerLogger = chainLogger.child({ subsystem: "DataUpdater" });
   const indexer = await createIndexer(
     rpcProvider,
     storage,
@@ -216,16 +226,21 @@ async function catchupAndWatchChain(
     },
     {
       toBlock: config.toBlock,
-      logger: chainLogger.child({ subsystem: "DataUpdater" }),
+      logger: indexerLogger,
       eventCacheDirectory: config.cacheDir
         ? path.join(config.cacheDir, "events")
         : null,
       onProgress: ({ currentBlock, lastBlock }) => {
-        chainLogger.debug(
-          `indexed to block ${currentBlock}; last block on chain: ${lastBlock}`
+        indexerLogger.debug(
+          `indexed to block ${currentBlock}; last block on chain: ${lastBlock}; left: ${
+            lastBlock - currentBlock
+          }`
         );
-        if (currentBlock === lastBlock && !catchupSentinel.isDone()) {
-          chainLogger.info("caught up with blockchain events");
+        if (
+          lastBlock - currentBlock < MINIMUM_BLOCKS_LEFT_BEFORE_STARTING &&
+          !catchupSentinel.isDone()
+        ) {
+          indexerLogger.info("caught up with blockchain events");
           catchupSentinel.declareDone();
         }
       },

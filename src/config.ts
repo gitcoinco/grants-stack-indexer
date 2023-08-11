@@ -4,12 +4,13 @@ import { ToBlock } from "chainsauce";
 import { z } from "zod";
 
 type ChainId = number;
+type CoingeckoSupportedChainId = 1 | 10 | 250;
 
 export type Token = {
   code: string;
   address: string;
   decimals: number;
-  priceSource: { chainId: ChainId; address: string };
+  priceSource: { chainId: CoingeckoSupportedChainId; address: string };
 };
 
 export type Subscription = {
@@ -314,8 +315,8 @@ export const CHAINS: Chain[] = [
         address: "0x278d181b9B6caE41EF4BA9cF236cB18d91a1f358",
         decimals: 18,
         priceSource: {
-          chainId: 58008,
-          address: "0x278d181b9B6caE41EF4BA9cF236cB18d91a1f358",
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
         },
       },
     ],
