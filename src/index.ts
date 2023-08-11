@@ -232,7 +232,9 @@ async function catchupAndWatchChain(
         : null,
       onProgress: ({ currentBlock, lastBlock }) => {
         indexerLogger.debug(
-          `indexed to block ${currentBlock}; last block on chain: ${lastBlock}`
+          `indexed to block ${currentBlock}; last block on chain: ${lastBlock}; left: ${
+            lastBlock - currentBlock
+          }`
         );
         if (
           lastBlock - currentBlock < MINIMUM_BLOCKS_LEFT_BEFORE_STARTING &&
