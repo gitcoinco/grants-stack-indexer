@@ -23,6 +23,10 @@ import { createHttpApi } from "./http/app.js";
 import { FileSystemDataProvider } from "./calculator/index.js";
 import { AsyncSentinel } from "./utils/asyncSentinel.js";
 
+// If, during reindexing, a chain has these many blocks left to index, consider
+// it caught up and start serving
+const MINIMUM_BLOCKS_LEFT_BEFORE_STARTING = 500;
+
 async function main(): Promise<void> {
   const config = getConfig();
 
@@ -224,8 +228,11 @@ async function catchupAndWatchChain(
         chainLogger.debug(
           `indexed to block ${currentBlock}; last block on chain: ${lastBlock}`
         );
-        if (currentBlock === lastBlock && !catchupSentinel.isDone()) {
-          chainLogger.info("caught up with blockchain events");
+        chainLogger.info("caught up with blockchain events");
+        if (
+          lastBlock - currentBlock < MINIMUM_BLOCKS_LEFT_BEFORE_STARTING &&
+          !catchupSentinel.isDone()
+        ) {
           catchupSentinel.declareDone();
         }
       },
