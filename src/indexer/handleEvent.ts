@@ -12,7 +12,7 @@ import {
   Vote,
 } from "./types.js";
 import { Event } from "./events.js";
-import { RoundContract } from "./contracts.js";
+import { RoundContract, DirectPayoutContract } from "./contracts.js";
 import { importAbi } from "./utils.js";
 import { PriceProvider } from "../prices/provider.js";
 
@@ -26,6 +26,7 @@ enum ApplicationStatus {
   APPROVED,
   REJECTED,
   CANCELLED,
+  IN_REVIEW,
 }
 
 function fullProjectId(
@@ -50,6 +51,27 @@ const eventRenames = Object.fromEntries(
     ];
   })
 );
+
+function updateApplicationStatus(
+  application: Application,
+  newStatus: Application["status"],
+  blockNumber: number
+): Application {
+    const newApplication: Application = {...application}
+    const prevStatus = application.status;
+    newApplication.status = newStatus;
+    newApplication.statusUpdatedAtBlock = blockNumber
+    newApplication.statusSnapshots = [...application.statusSnapshots]
+
+    if (prevStatus !== newStatus) {
+      newApplication.statusSnapshots.push({
+        status: newStatus,
+        statusUpdatedAtBlock: blockNumber,
+      })
+    }
+
+    return newApplication
+}
 
 async function handleEvent(
   originalEvent: ChainsauceEvent,
@@ -300,6 +322,10 @@ async function handleEvent(
         metadata: null,
         createdAtBlock: event.blockNumber,
         statusUpdatedAtBlock: event.blockNumber,
+        statusSnapshots: [{
+          status: "PENDING",
+          statusUpdatedAtBlock: event.blockNumber,
+        }]
       };
 
       await applications.insert(application);
@@ -394,23 +420,19 @@ async function handleEvent(
       // XXX should be translatable to Promise.all([/* ... */].map(...)) but leaving for later as it's non-straightforward
       for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
         const status = bitmap.getStatus(i);
-        const statusString = ApplicationStatus[status];
+        const statusString = ApplicationStatus[status] as Application["status"];
         const application = await db
           .collection<Application>(`rounds/${event.address}/applications`)
-          .updateById(i.toString(), (application) => ({
-            ...application,
-            status: statusString as Application["status"],
-            statusUpdatedAtBlock: event.blockNumber,
-          }));
+          .updateById(i.toString(), (application) => updateApplicationStatus(
+            application, statusString, event.blockNumber
+          ));
 
         if (application) {
           await db
             .collection<Application>(`rounds/${event.address}/projects`)
-            .updateById(application.projectId, (application) => ({
-              ...application,
-              status: statusString as Application["status"],
-              statusUpdatedAtBlock: event.blockNumber,
-            }));
+            .updateById(application.projectId, (application) => updateApplicationStatus(
+              application, statusString, event.blockNumber
+            ));
         }
       }
       break;
@@ -654,6 +676,64 @@ async function handleEvent(
           )
           .insert(vote),
       ]);
+
+      break;
+    }
+
+    // --- Direct Payout Strategy
+    case "PayoutContractCreated": {
+      subscribe(
+        event.args.payoutContractAddress,
+        (
+          await import(
+            "#abis/v2/DirectPayoutStrategyImplementation.json",
+            {
+              assert: { type: "json" },
+            }
+          )
+        ).default,
+        event.blockNumber
+      );
+      break;
+    }
+
+    case "ApplicationInReviewUpdated": {
+      const contract = subscribe(
+        event.address,
+        (
+          await import("#abis/v2/DirectPayoutStrategyImplementation.json", {
+            assert: { type: "json" },
+          })
+        ).default,
+        event.blockNumber
+      ) as DirectPayoutContract;
+
+      const round = await contract.roundAddress();
+
+      const bitmap = new StatusesBitmap(256n, 1n);
+      bitmap.setRow(event.args.index.toBigInt(), event.args.status.toBigInt());
+      const startIndex = event.args.index.toBigInt() * bitmap.itemsPerRow;
+
+      // XXX should be translatable to Promise.all([/* ... */].map(...)) but leaving for later as it's non-straightforward
+      for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
+        const newStatus = bitmap.getStatus(i);
+        const application = await db
+          .collection<Application>(
+            `rounds/${round}/applications`
+          )
+          .findById(i.toString());
+
+        // DirectPayoutStrategy uses status 1 for signaling IN REVIEW. In order to be considered as IN REVIEW the
+        // application must be on PENDING status on the round
+        if (application && application.status == "PENDING" && newStatus == 1) {
+          const statusString = ApplicationStatus[4] as Application["status"];
+          await db
+            .collection<Application>(`rounds/${round}/applications`)
+            .updateById(i.toString(), (application) => updateApplicationStatus(
+              application, statusString, event.blockNumber
+            ))
+        }
+      }
 
       break;
     }

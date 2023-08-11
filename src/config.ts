@@ -4,12 +4,13 @@ import { ToBlock } from "chainsauce";
 import { z } from "zod";
 
 type ChainId = number;
+type CoingeckoSupportedChainId = 1 | 10 | 250;
 
 export type Token = {
   code: string;
   address: string;
   decimals: number;
-  priceSource: { chainId: ChainId; address: string };
+  priceSource: { chainId: CoingeckoSupportedChainId; address: string };
 };
 
 export type Subscription = {
@@ -174,6 +175,11 @@ export const CHAINS: Chain[] = [
         abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
         fromBlock: 8790265,
       },
+      {
+        address: "0x0077551e24bfB910aBABedC4336246e34B5fB0A2",
+        abi: "#abis/v2/DirectPayoutStrategyFactory.json",
+        fromBlock: 9284367,
+      },
     ],
   },
   {
@@ -293,6 +299,24 @@ export const CHAINS: Chain[] = [
         priceSource: {
           chainId: 1,
           address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "DAI",
+        address: "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        },
+      },
+      {
+        code: "FakeDAI",
+        address: "0x278d181b9B6caE41EF4BA9cF236cB18d91a1f358",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
         },
       },
     ],

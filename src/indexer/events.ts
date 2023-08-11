@@ -132,6 +132,22 @@ export interface RoundCreatedEvent extends ChainsauceEvent {
   };
 }
 
+export interface PayoutContractCreatedEvent extends ChainsauceEvent {
+  name: "PayoutContractCreated";
+  args: {
+    payoutContractAddress: string;
+    payoutImplementation: string;
+  };
+}
+
+export interface ApplicationInReviewUpdatedEvent extends ChainsauceEvent {
+  name: "ApplicationInReviewUpdated";
+  args: {
+    index: ethers.BigNumber;
+    status: ethers.BigNumber;
+  };
+}
+
 export type Event =
   | RoundMetaPtrUpdatedEvent
   | MatchAmountUpdatedEvent
@@ -148,4 +164,6 @@ export type Event =
   | OwnerAddedEvent
   | OwnerRemovedEvent
   | RoundCreatedV1Event
-  | RoundCreatedEvent;
+  | RoundCreatedEvent
+  | PayoutContractCreatedEvent
+  | ApplicationInReviewUpdatedEvent;

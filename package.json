@@ -7,13 +7,12 @@
   "types": "dist/src/indexer/index.d.ts",
   "scripts": {
     "start": "node dist/src/index.js --chains=mainnet,optimism,goerli,fantom,pgn-testnet,pgn-mainnet",
-    "dev": "nodemon --delay 2 --watch dist --exec 'npm run start'",
+    "dev": "tsx watch src/index.ts --chains=mainnet,optimism,goerli,fantom,pgn-testnet,pgn-mainnet | pino-pretty",
     "build": "tsc",
-    "build:watch": "tsc --watch",
     "lint": "eslint src",
-    "format": "prettier --write src",
     "test": "vitest run --reporter verbose",
     "test:watch": "vitest watch --reporter verbose",
+    "typecheck:watch": "tsc --noEmit --watch",
     "deploy:development": "docker buildx build . -t registry.fly.io/indexer-development:latest && docker push registry.fly.io/indexer-development:latest && flyctl -c fly.development.toml --app indexer-development deploy -i registry.fly.io/indexer-development:latest"
   },
   "imports": {
@@ -40,7 +39,7 @@
     "pino-pretty": "^10.0.1",
     "pluralistic": "github:gitcoinco/pluralistic.js#644d14fff65100f005d7afc18799b0f99b72ae24",
     "serve-index": "^1.9.1",
-    "statuses-bitmap": "github:gitcoinco/statuses-bitmap#3d8fd370f209ccbaffd3781cf2b6d2895237c21c",
+    "statuses-bitmap": "github:gitcoinco/statuses-bitmap#f123d7778e42e16adb98fff2b2ba18c0fee57227",
     "write-file-atomic": "^5.0.1",
     "zod": "^3.21.4"
   },
@@ -58,9 +57,10 @@
     "@typescript-eslint/parser": "^5.55.0",
     "concurrently": "^8.2.0",
     "eslint": "^8.36.0",
-    "nodemon": "^2.0.22",
-    "prettier": "^2.8.4",
+    "lefthook": "^1.4.8",
+    "prettier": "^3.0.1",
     "supertest": "^6.3.3",
+    "tsx": "^3.12.7",
     "typescript": "^4.9.5",
     "vitest": "^0.30.1"
   }

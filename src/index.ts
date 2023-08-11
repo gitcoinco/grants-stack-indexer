@@ -23,18 +23,38 @@ import { createHttpApi } from "./http/app.js";
 import { FileSystemDataProvider } from "./calculator/index.js";
 import { AsyncSentinel } from "./utils/asyncSentinel.js";
 
+// If, during reindexing, a chain has these many blocks left to index, consider
+// it caught up and start serving
+const MINIMUM_BLOCKS_LEFT_BEFORE_STARTING = 500;
+
 async function main(): Promise<void> {
   const config = getConfig();
 
   if (config.sentryDsn !== null) {
     Sentry.init({
+      environment: config.deploymentEnvironment,
       dsn: config.sentryDsn,
       tracesSampleRate: 1.0,
     });
   }
 
-  const baseLogger = pino({ level: config.logLevel }).child({
+  const baseLogger = pino({
+    level: config.logLevel,
+    formatters: {
+      level(level) {
+        // represent severity as strings so that DataDog can recognize it
+        return { level };
+      },
+    },
+  }).child({
     service: `indexer-${config.deploymentEnvironment}`,
+  });
+
+  baseLogger.info({
+    msg: "starting",
+    buildTag: config.buildTag,
+    deploymentEnvironment: config.deploymentEnvironment,
+    chains: config.chains.map((c) => c.name),
   });
 
   // Promise will be resolved once the catchup is done. Afterwards, services
@@ -191,6 +211,7 @@ async function catchupAndWatchChain(
   chainLogger.info("catching up with blockchain events");
   const catchupSentinel = new AsyncSentinel();
 
+  const indexerLogger = chainLogger.child({ subsystem: "DataUpdater" });
   const indexer = await createIndexer(
     rpcProvider,
     storage,
@@ -205,15 +226,21 @@ async function catchupAndWatchChain(
     },
     {
       toBlock: config.toBlock,
-      logger: chainLogger.child({ subsystem: "DataUpdater" }),
+      logger: indexerLogger,
       eventCacheDirectory: config.cacheDir
         ? path.join(config.cacheDir, "events")
         : null,
       onProgress: ({ currentBlock, lastBlock }) => {
-        // Due to the way chainsauce works, the first time onProgress returns
-        // and currentBlock matches lastBlock, it means that we've caught up the
-        // chain state as it was when we started.
-        if (currentBlock === lastBlock && !catchupSentinel.isDone()) {
+        indexerLogger.debug(
+          `indexed to block ${currentBlock}; last block on chain: ${lastBlock}; left: ${
+            lastBlock - currentBlock
+          }`
+        );
+        if (
+          lastBlock - currentBlock < MINIMUM_BLOCKS_LEFT_BEFORE_STARTING &&
+          !catchupSentinel.isDone()
+        ) {
+          indexerLogger.info("caught up with blockchain events");
           catchupSentinel.declareDone();
         }
       },
