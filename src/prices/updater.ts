@@ -17,9 +17,6 @@ import {
 } from "./common.js";
 
 const POLL_INTERVAL_MS = 60 * 1000;
-const EARLIEST_PRICE_TIMESTAMP = new Date(
-  Date.UTC(2022, 11, 1, 0, 0, 0)
-).getTime();
 
 export interface PriceUpdaterService {
   start: (opts?: { watch: boolean; toBlock: ToBlock }) => Promise<void>;
@@ -77,7 +74,7 @@ export function createPriceUpdater(
     // get last updated price
     const lastPriceAt = currentPrices.reduce(
       (acc, price) => Math.max(price.timestamp + hours(1), acc),
-      EARLIEST_PRICE_TIMESTAMP
+      config.chain.pricesFromTimestamp
     );
 
     let toDate = undefined;
