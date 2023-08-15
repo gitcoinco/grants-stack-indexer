@@ -15,7 +15,12 @@ async function estimateBlockNumber(
 
   // Now, you can use `blocksPerSecond` to adjust your block number estimation.
   // For instance, if you know the target timestamp is X seconds away from startTimestamp, you could estimate:
-  const secondsToTarget = Math.abs(targetTimestamp - startTimestamp);
+  const secondsToTarget = targetTimestamp - startTimestamp;
+  if (secondsToTarget < 0) {
+    throw new Error(
+      "Estimated block is negative, this probably means that the timestamp precedes the deployment of the chain. Check chain config and ensure that `pricesFromTimestamp` is correct."
+    );
+  }
   const estimatedBlocksToTarget = blocksPerSecond * secondsToTarget;
   const estimatedBlockNumber = startBlock + Math.round(estimatedBlocksToTarget);
 
