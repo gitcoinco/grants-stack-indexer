@@ -227,9 +227,7 @@ async function catchupAndWatchChain(
     {
       toBlock: config.toBlock,
       logger: indexerLogger,
-      eventCacheDirectory: config.cacheDir
-        ? path.join(config.cacheDir, "events")
-        : null,
+      eventCacheDirectory: null,
       onProgress: ({ currentBlock, lastBlock }) => {
         indexerLogger.debug(
           `indexed to block ${currentBlock}; last block on chain: ${lastBlock}; left: ${
