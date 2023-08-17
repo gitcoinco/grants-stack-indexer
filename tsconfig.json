@@ -1,7 +1,7 @@
 {
   "include": ["src/**/*"],
   "compilerOptions": {
-    "target": "es2021",
+    "target": "es2022",
     "module": "esnext",
     "allowJs": true,
     "esModuleInterop": true,
@@ -15,8 +15,5 @@
     "resolveJsonModule": true,
     "declaration": false
   },
-  "exclude": [
-    "node_modules",
-    "dist",
-  ]
+  "exclude": ["node_modules", "dist"]
 }

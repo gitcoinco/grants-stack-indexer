@@ -18,7 +18,16 @@ async function estimateBlockNumber(
   const secondsToTarget = targetTimestamp - startTimestamp;
   if (secondsToTarget < 0) {
     throw new Error(
-      "Estimated block is negative, this probably means that the timestamp precedes the deployment of the chain. Check chain config and ensure that `pricesFromTimestamp` is correct."
+      `Estimated block is negative, this probably means that the timestamp precedes the deployment of the chain. Check chain config and ensure that pricesFromTimestamp() is correct. (${JSON.stringify(
+        {
+          targetTimestamp,
+          startBlock,
+          endBlock,
+          startTimestamp,
+          endTimestamp,
+          timeDistanceInSeconds,
+        }
+      )})`
     );
   }
   const estimatedBlocksToTarget = blocksPerSecond * secondsToTarget;
@@ -45,7 +54,7 @@ export async function getBlockFromTimestamp(
   startBlock: number,
   endBlock: number,
   getBlockTimestamp: (blockNumber: number) => Promise<number>
-): Promise<number | undefined> {
+): Promise<number> {
   const blockEstimationThreshold = 10000;
   const targetTimestamp = Math.floor(timestampInMs / 1000);
 
@@ -112,6 +121,12 @@ export async function getBlockFromTimestamp(
       // Found a block with a timestamp exact to the target timestamp
       break;
     }
+  }
+
+  if (blockNumber === undefined) {
+    throw new Error(
+      `Could not find block number at timestamp: ${timestampInMs}`
+    );
   }
 
   return blockNumber;
