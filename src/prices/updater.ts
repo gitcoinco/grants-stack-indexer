@@ -63,102 +63,109 @@ export function createPriceUpdater(
   };
 
   async function update(toBlock: ToBlock) {
-    const { rpcProvider: provider } = config;
+    try {
+      const { rpcProvider: provider } = config;
 
-    logger.debug(`updating prices to block: ${toBlock}`);
-    const currentPrices = await readPricesFile(
-      config.chain.id,
-      config.storageDir
-    );
-
-    // get last updated price
-    const lastPriceAt = currentPrices.reduce(
-      (acc, price) => Math.max(price.timestamp + hours(1), acc),
-      config.chain.pricesFromTimestamp
-    );
-
-    let toDate = undefined;
-
-    if (toBlock === "latest") {
-      toDate = new Date();
-    } else {
-      const block = await provider.getBlock(toBlock);
-      toDate = new Date(block.timestamp * 1000);
-    }
-
-    // time elapsed from the last update, rounded to hours
-    const timeElapsed =
-      Math.floor((toDate.getTime() - lastPriceAt) / hours(1)) * hours(1);
-
-    // only fetch new prices every new hour
-    if (timeElapsed < hours(1)) {
-      return;
-    }
-
-    const getBlockTimestamp = async (blockNumber: number) => {
-      const block = await withCacheMaybe(
-        `block-${config.chain.id}-${blockNumber}`,
-        () => provider.getBlock(blockNumber)
+      logger.debug(`updating prices to block: ${toBlock}`);
+      const currentPrices = await readPricesFile(
+        config.chain.id,
+        config.storageDir
       );
 
-      return block.timestamp;
-    };
+      // get last updated price
+      const lastPriceAt = currentPrices.reduce(
+        (acc, price) => Math.max(price.timestamp + hours(1), acc),
+        config.chain.pricesFromTimestamp
+      );
 
-    const lastBlockNumber = await provider.getBlockNumber();
+      let toDate = undefined;
 
-    // get prices in 90 day chunks to get the most of Coingecko's granularity
-    const timeChunks = chunkTimeBy(timeElapsed, days(90));
+      if (toBlock === "latest") {
+        toDate = new Date();
+      } else {
+        const block = await provider.getBlock(toBlock);
+        toDate = new Date(block.timestamp * 1000);
+      }
 
-    for (const chunk of timeChunks) {
-      for (const token of config.chain.tokens) {
-        const cacheKey = `${config.chain.id}-${token.address}-${
-          lastPriceAt + chunk[0]
-        }-${lastPriceAt + chunk[1]}`;
+      // time elapsed from the last update, rounded to hours
+      const timeElapsed =
+        Math.floor((toDate.getTime() - lastPriceAt) / hours(1)) * hours(1);
 
-        logger.debug(
-          `fetching prices for ${token.code} from ${new Date(
+      // only fetch new prices every new hour
+      if (timeElapsed < hours(1)) {
+        return;
+      }
+
+      const getBlockTimestamp = async (blockNumber: number) => {
+        const block = await withCacheMaybe(
+          `block-${config.chain.id}-${blockNumber}`,
+          () => provider.getBlock(blockNumber)
+        );
+
+        return block.timestamp;
+      };
+
+      const lastBlockNumber = await provider.getBlockNumber();
+
+      // get prices in 90 day chunks to get the most of Coingecko's granularity
+      const timeChunks = chunkTimeBy(timeElapsed, days(90));
+
+      for (const chunk of timeChunks) {
+        for (const token of config.chain.tokens) {
+          const cacheKey = `${config.chain.id}-${token.address}-${
             lastPriceAt + chunk[0]
-          ).toISOString()} to ${new Date(lastPriceAt + chunk[1]).toISOString()}`
-        );
+          }-${lastPriceAt + chunk[1]}`;
 
-        const prices = await withCacheMaybe(cacheKey, () =>
-          getPricesByHour(
-            token,
-            (lastPriceAt + chunk[0]) / 1000,
-            (lastPriceAt + chunk[1]) / 1000,
-            config
-          )
-        );
-
-        const newPrices: Price[] = [];
-
-        for (const [timestamp, price] of prices) {
-          const blockNumber = await getBlockFromTimestamp(
-            timestamp,
-            0,
-            lastBlockNumber,
-            getBlockTimestamp
+          logger.debug(
+            `fetching prices for ${token.code} from ${new Date(
+              lastPriceAt + chunk[0]
+            ).toISOString()} to ${new Date(
+              lastPriceAt + chunk[1]
+            ).toISOString()}`
           );
 
-          if (blockNumber === undefined) {
-            throw new Error(
-              `Could not find block number for timestamp: ${timestamp}`
-            );
+          const prices = await withCacheMaybe(cacheKey, () =>
+            getPricesByHour(
+              token,
+              (lastPriceAt + chunk[0]) / 1000,
+              (lastPriceAt + chunk[1]) / 1000,
+              config
+            )
+          );
+
+          const newPrices: Price[] = [];
+
+          for (const [timestamp, price] of prices) {
+            try {
+              const blockNumber = await getBlockFromTimestamp(
+                timestamp,
+                0,
+                lastBlockNumber,
+                getBlockTimestamp
+              );
+
+              newPrices.push({
+                token: token.address.toLowerCase(),
+                code: token.code,
+                price,
+                timestamp,
+                block: blockNumber,
+              });
+            } catch (err) {
+              throw new Error(
+                `Error getting block number for token ${token.code} at timestamp ${timestamp}`,
+                { cause: err }
+              );
+            }
           }
 
-          newPrices.push({
-            token: token.address.toLowerCase(),
-            code: token.code,
-            price,
-            timestamp,
-            block: blockNumber,
-          });
+          logger.debug(`fetched ${newPrices.length} prices`);
+
+          await appendPrices(config.chain.id, newPrices);
         }
-
-        logger.debug(`fetched ${newPrices.length} prices`);
-
-        await appendPrices(config.chain.id, newPrices);
       }
+    } catch (err) {
+      logger.error({ msg: "error updating prices", err });
     }
   }
 
