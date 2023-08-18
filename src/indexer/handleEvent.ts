@@ -483,6 +483,10 @@ async function handleEvent(
         event.args.applicationIndex?.toString() ??
         event.args.projectId.toString();
 
+      // If an `origin` field is present, this event comes from MRC, thus ignore the
+      // `voter` field because that's the contract. See AIP-13
+      const realVoterAddress = event.args.origin ?? event.args.voter;
+
       const application = await db
         .collection<Application>(
           `rounds/${event.args.roundAddress}/applications`
@@ -531,7 +535,7 @@ async function handleEvent(
         projectId: event.args.projectId,
         applicationId: applicationId,
         roundId: event.args.roundAddress,
-        voter: event.args.origin ?? event.args.voter,
+        voter: realVoterAddress,
         grantAddress: event.args.grantAddress,
         token: event.args.token,
         amount: event.args.amount.toString(),
@@ -545,7 +549,7 @@ async function handleEvent(
       );
 
       const isNewRoundContributor = await roundContributors.upsertById(
-        event.args.voter,
+        realVoterAddress,
         (contributor) => {
           if (contributor) {
             return {
@@ -555,7 +559,7 @@ async function handleEvent(
             };
           } else {
             return {
-              id: event.args.voter,
+              id: realVoterAddress,
               amountUSD,
               votes: 1,
             };
@@ -569,7 +573,7 @@ async function handleEvent(
       );
 
       const isNewProjectContributor = await projectContributors.upsertById(
-        event.args.voter,
+        realVoterAddress,
         (contributor) => {
           if (contributor) {
             return {
@@ -579,7 +583,7 @@ async function handleEvent(
             };
           } else {
             return {
-              id: event.args.voter,
+              id: realVoterAddress,
               amountUSD,
               votes: 1,
             };
@@ -594,7 +598,7 @@ async function handleEvent(
 
       const isNewapplicationContributor =
         await applicationContributors.upsertById(
-          event.args.voter,
+          realVoterAddress,
           (contributor) => {
             if (contributor) {
               return {
@@ -604,7 +608,7 @@ async function handleEvent(
               };
             } else {
               return {
-                id: event.args.voter,
+                id: realVoterAddress,
                 amountUSD,
                 votes: 1,
               };
