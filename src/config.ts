@@ -280,24 +280,31 @@ export const CHAINS: Chain[] = [
           address: "0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E",
         },
       },
+      {
+        code: "Unknown",
+        address: "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
+        decimals: 18,
+        priceSource: {
+          chainId: 250,
+          address: "0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E",
+        },
+      },
     ],
     subscriptions: [
       {
         address: "0x8e1bD5Da87C14dd8e08F7ecc2aBf9D1d558ea174",
-        abi: "#abis/v1/ProjectRegistry.json",
+        abi: "#abis/v2/ProjectRegistry.json",
+        fromBlock: 66509340,
       },
       {
-        address: "0x3e7f72DFeDF6ba1BcBFE77A94a752C529Bb4429E",
-        abi: "#abis/v1/RoundFactory.json",
-        events: {
-          RoundCreated: "RoundCreatedV1",
-        },
-        fromBlock: 55528191,
+        address: "0xfb08d1fD3a7c693677eB096E722ABf4Ae63B0B95",
+        abi: "#abis/v2/RoundFactory.json",
+        fromBlock: 66509340,
       },
       {
-        address: "0x06A6Cc566c5A88E77B1353Cdc3110C2e6c828e38",
-        abi: "#abis/v1/QuadraticFundingVotingStrategyFactory.json",
-        fromBlock: 55528191,
+        address: "0x534d2AAc03dCd0Cb3905B591BAf04C14A95426AB",
+        abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
+        fromBlock: 66509340,
       },
     ],
   },
