@@ -294,7 +294,6 @@ export const CHAINS: Chain[] = [
       {
         address: "0x8e1bD5Da87C14dd8e08F7ecc2aBf9D1d558ea174",
         abi: "#abis/v2/ProjectRegistry.json",
-        fromBlock: 66509340,
       },
       {
         address: "0xfb08d1fD3a7c693677eB096E722ABf4Ae63B0B95",
