@@ -34,6 +34,8 @@ describe("passport provider", () => {
     scorerId: "123",
     load: async () => Promise.resolve(SAMPLE_PASSPORT_DATA.items),
     persist: async () => {},
+    delayBetweenFullUpdatesMs: 10,
+    delayBetweenPageRequestsMs: 10,
   });
 
   describe("lifecycle", () => {
@@ -71,7 +73,9 @@ describe("passport provider", () => {
         fetch: fetchMock,
       });
 
-      await passportProvider.start();
+      const starting = passportProvider.start();
+      await vi.advanceTimersToNextTimerAsync();
+      await starting;
 
       expect(fetchMock.mock.calls).toMatchInlineSnapshot(`
         [
@@ -121,7 +125,9 @@ describe("passport provider", () => {
         fetch: fetchMock,
       });
 
-      await expect(passportProvider.start()).resolves.not.toThrow();
+      const starting = passportProvider.start();
+      await vi.advanceTimersToNextTimerAsync();
+      await expect(starting).resolves.not.toThrow();
 
       expect(fetchMock.mock.calls).toMatchInlineSnapshot(`
         [
@@ -189,7 +195,9 @@ describe("passport provider", () => {
         fetch: fetchMock,
       });
 
-      await passportProvider.start();
+      const starting = passportProvider.start();
+      await vi.advanceTimersToNextTimerAsync();
+      await starting;
 
       expect(fetchMock.mock.calls).toMatchInlineSnapshot(`
         [
@@ -290,7 +298,9 @@ describe("passport provider", () => {
         fetch: fetchMock,
       });
 
-      await expect(passportProvider.start()).resolves.not.toThrow();
+      const starting = passportProvider.start();
+      await vi.advanceTimersToNextTimerAsync();
+      await expect(starting).resolves.not.toThrow();
 
       expect(fetchMock.mock.calls).toMatchInlineSnapshot(`
         [
@@ -332,7 +342,7 @@ describe("passport provider", () => {
       `);
     });
 
-    test.only("when remote dataset contains more than 1000 items, they are downloaded in batches", async () => {
+    test("when remote dataset contains more than 1000 items, they are downloaded in batches", async () => {
       const fetchMock = vi
         .fn()
         .mockResolvedValueOnce({
@@ -354,7 +364,10 @@ describe("passport provider", () => {
         fetch: fetchMock,
       });
 
-      await passportProvider.start();
+      const starting = passportProvider.start();
+      await vi.advanceTimersToNextTimerAsync();
+      await vi.advanceTimersToNextTimerAsync();
+      await starting;
 
       expect(fetchMock.mock.calls).toMatchInlineSnapshot(`
         [
@@ -404,7 +417,9 @@ describe("passport provider", () => {
   describe("querying", () => {
     beforeEach(async () => {
       passportProvider = createPassportProvider(getTestConfig());
-      await passportProvider.start();
+      const starting = passportProvider.start();
+      await vi.advanceTimersToNextTimerAsync();
+      await starting;
     });
 
     afterEach(() => {

@@ -29,6 +29,8 @@ export interface PassportProviderConfig {
   persist: (passports: PassportScore[]) => Promise<void>;
   load: () => Promise<PassportScore[] | null>;
   fetch?: typeof global.fetch;
+  delayBetweenPageRequestsMs?: number;
+  delayBetweenFullUpdatesMs?: number;
 }
 
 type PassportProviderState =
@@ -63,6 +65,10 @@ export const createPassportProvider = (
   const baseRequestUri = `https://api.scorer.gitcoin.co/registry/score/${config.scorerId}`;
   const { logger } = config;
   const fetch = config.fetch ?? enhancedFetch;
+  const delayBetweenPageRequestsMs =
+    config.delayBetweenPageRequestsMs ?? DELAY_BETWEEN_PAGE_REQUESTS_MS;
+  const delayBetweenFullUpdatesMs =
+    config.delayBetweenFullUpdatesMs ?? DELAY_BETWEEN_FULL_UPDATES_MS;
 
   // STATE
 
@@ -72,7 +78,7 @@ export const createPassportProvider = (
 
   // API
 
-  const start = async (opts = { watch: true }) => {
+  const start: PassportProvider["start"] = async (opts = { watch: true }) => {
     if (state.type !== "empty") {
       throw new Error(`Service not in empty state (${state.type})`);
     }
@@ -99,11 +105,11 @@ export const createPassportProvider = (
     logger.info(`${state.type} => ready`);
     state = { ...state, type: "ready", scoresByAddressMap };
     if (opts.watch) {
-      state.pollTimeoutId = setTimeout(poll, DELAY_BETWEEN_FULL_UPDATES_MS);
+      state.pollTimeoutId = setTimeout(poll, delayBetweenFullUpdatesMs);
     }
   };
 
-  const stop = () => {
+  const stop: PassportProvider["stop"] = () => {
     if (state.type !== "ready") {
       throw new Error("Service not started");
     }
@@ -116,7 +122,7 @@ export const createPassportProvider = (
     state = { type: "stopped", scoresByAddressMap: null, pollTimeoutId: null };
   };
 
-  const getScoreByAddress = async (
+  const getScoreByAddress: PassportProvider["getScoreByAddress"] = async (
     address: string
   ): Promise<PassportScore | undefined> => {
     if (state.type !== "ready") {
@@ -146,13 +152,22 @@ export const createPassportProvider = (
       throw new Error("Service not started");
     }
 
-    const passports = await fetchEntireDataset();
+    const passportScores = await fetchEntireDataset();
 
-    for (const score of passports) {
-      state.scoresByAddressMap[score.address.toLocaleLowerCase()] = score;
-    }
+    update(passportScores);
 
     setTimeout(poll, DELAY_BETWEEN_FULL_UPDATES_MS);
+  };
+
+  const update = (passportScores: PassportScore[]): void => {
+    if (state.type !== "ready") {
+      // Service might have been stopped while the data set was being fetched.
+      return;
+    }
+
+    for (const score of passportScores) {
+      state.scoresByAddressMap[score.address.toLocaleLowerCase()] = score;
+    }
   };
 
   const _TODO_fetchIncrementalUpdates = async (): Promise<PassportScore[]> => {
@@ -161,6 +176,10 @@ export const createPassportProvider = (
   };
 
   const fetchEntireDataset = async (): Promise<PassportScore[]> => {
+    // Strictly speaking, this should be aborted if stop() is called. However,
+    // Passport v2 API is on the horizon, and it will change the general shape
+    // of the update process, so we're just ignoring the edge case.
+
     logger.debug("updating passports...");
     const remotePassportCount = await fetchRemotePassportCount();
     const passports: PassportScore[] = [];
@@ -177,7 +196,6 @@ export const createPassportProvider = (
         });
       }
 
-      // @ts-ignore
       const res = await fetch(requestUri, {
         headers: { authorization: `Bearer ${config.apiKey}` },
         retry: {
@@ -203,7 +221,7 @@ export const createPassportProvider = (
         passports.push(...passportBatch);
 
         offset += PASSPORT_API_MAX_ITEMS_LIMIT;
-        await sleep(DELAY_BETWEEN_PAGE_REQUESTS_MS);
+        await sleep(delayBetweenPageRequestsMs);
       } catch (err) {
         logger.error({ msg: `Error reading response from Passport API`, err });
         continue;
