@@ -1,3 +1,4 @@
+import { Logger } from "pino";
 import { JsonStorage, Event as ChainsauceEvent } from "chainsauce";
 import { BigNumber, ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
@@ -13,7 +14,7 @@ import {
 } from "./types.js";
 import { Event } from "./events.js";
 import { RoundContract, DirectPayoutContract } from "./contracts.js";
-import { importAbi } from "./utils.js";
+import { UnknownTokenError, importAbi } from "./utils.js";
 import { PriceProvider } from "../prices/provider.js";
 
 // Event handlers
@@ -57,20 +58,20 @@ function updateApplicationStatus(
   newStatus: Application["status"],
   blockNumber: number
 ): Application {
-    const newApplication: Application = {...application}
-    const prevStatus = application.status;
-    newApplication.status = newStatus;
-    newApplication.statusUpdatedAtBlock = blockNumber
-    newApplication.statusSnapshots = [...application.statusSnapshots]
+  const newApplication: Application = { ...application };
+  const prevStatus = application.status;
+  newApplication.status = newStatus;
+  newApplication.statusUpdatedAtBlock = blockNumber;
+  newApplication.statusSnapshots = [...application.statusSnapshots];
 
-    if (prevStatus !== newStatus) {
-      newApplication.statusSnapshots.push({
-        status: newStatus,
-        statusUpdatedAtBlock: blockNumber,
-      })
-    }
+  if (prevStatus !== newStatus) {
+    newApplication.statusSnapshots.push({
+      status: newStatus,
+      statusUpdatedAtBlock: blockNumber,
+    });
+  }
 
-    return newApplication
+  return newApplication;
 }
 
 async function handleEvent(
@@ -85,9 +86,10 @@ async function handleEvent(
     ) => ethers.Contract;
     ipfsGet: <T>(cid: string) => Promise<T | undefined>;
     priceProvider: PriceProvider;
+    logger: Logger;
   }
 ) {
-  const { db, subscribe, ipfsGet, priceProvider, chainId } = deps;
+  const { db, subscribe, ipfsGet, priceProvider, chainId, logger } = deps;
 
   const eventName =
     eventRenames[chainId]?.[originalEvent.address]?.[originalEvent.name] ??
@@ -322,10 +324,12 @@ async function handleEvent(
         metadata: null,
         createdAtBlock: event.blockNumber,
         statusUpdatedAtBlock: event.blockNumber,
-        statusSnapshots: [{
-          status: "PENDING",
-          statusUpdatedAtBlock: event.blockNumber,
-        }]
+        statusSnapshots: [
+          {
+            status: "PENDING",
+            statusUpdatedAtBlock: event.blockNumber,
+          },
+        ],
       };
 
       await applications.insert(application);
@@ -423,16 +427,24 @@ async function handleEvent(
         const statusString = ApplicationStatus[status] as Application["status"];
         const application = await db
           .collection<Application>(`rounds/${event.address}/applications`)
-          .updateById(i.toString(), (application) => updateApplicationStatus(
-            application, statusString, event.blockNumber
-          ));
+          .updateById(i.toString(), (application) =>
+            updateApplicationStatus(
+              application,
+              statusString,
+              event.blockNumber
+            )
+          );
 
         if (application) {
           await db
             .collection<Application>(`rounds/${event.address}/projects`)
-            .updateById(application.projectId, (application) => updateApplicationStatus(
-              application, statusString, event.blockNumber
-            ));
+            .updateById(application.projectId, (application) =>
+              updateApplicationStatus(
+                application,
+                statusString,
+                event.blockNumber
+              )
+            );
         }
       }
       break;
@@ -507,26 +519,40 @@ async function handleEvent(
 
       const token = event.args.token.toLowerCase();
 
-      const conversionUSD = await priceProvider.convertToUSD(
+      const conversionToUSD = await priceProvider.convertToUSD(
         chainId,
         token,
         event.args.amount.toBigInt(),
         event.blockNumber
       );
 
-      const amountUSD = conversionUSD.amount;
+      const amountUSD = conversionToUSD.amount;
 
-      const amountRoundToken =
-        round.token === token
-          ? event.args.amount.toString()
-          : (
-              await priceProvider.convertFromUSD(
-                chainId,
-                round.token,
-                conversionUSD.amount,
-                event.blockNumber
-              )
-            ).amount.toString();
+      let amountRoundToken: string | null = null;
+      try {
+        amountRoundToken =
+          round.token === token
+            ? event.args.amount.toString()
+            : (
+                await priceProvider.convertFromUSD(
+                  chainId,
+                  round.token,
+                  conversionToUSD.amount,
+                  event.blockNumber
+                )
+              ).amount.toString();
+      } catch (err) {
+        if (err instanceof UnknownTokenError) {
+          logger.error({
+            msg: `Skipping event ${event.name} on chain ${chainId} due to unknown token ${round.token}`,
+            err,
+            event,
+          });
+          return;
+        } else {
+          throw err;
+        }
+      }
 
       const vote = {
         id: voteId,
@@ -689,12 +715,9 @@ async function handleEvent(
       subscribe(
         event.args.payoutContractAddress,
         (
-          await import(
-            "#abis/v2/DirectPayoutStrategyImplementation.json",
-            {
-              assert: { type: "json" },
-            }
-          )
+          await import("#abis/v2/DirectPayoutStrategyImplementation.json", {
+            assert: { type: "json" },
+          })
         ).default,
         event.blockNumber
       );
@@ -722,9 +745,7 @@ async function handleEvent(
       for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
         const newStatus = bitmap.getStatus(i);
         const application = await db
-          .collection<Application>(
-            `rounds/${round}/applications`
-          )
+          .collection<Application>(`rounds/${round}/applications`)
           .findById(i.toString());
 
         // DirectPayoutStrategy uses status 1 for signaling IN REVIEW. In order to be considered as IN REVIEW the
@@ -733,9 +754,13 @@ async function handleEvent(
           const statusString = ApplicationStatus[4] as Application["status"];
           await db
             .collection<Application>(`rounds/${round}/applications`)
-            .updateById(i.toString(), (application) => updateApplicationStatus(
-              application, statusString, event.blockNumber
-            ))
+            .updateById(i.toString(), (application) =>
+              updateApplicationStatus(
+                application,
+                statusString,
+                event.blockNumber
+              )
+            );
         }
       }
 
