@@ -196,6 +196,7 @@ export const createPassportProvider = (
         });
       }
 
+      // @ts-ignore types from make-fetch-happen are conflicting with types from global fetch in CI
       const res = await fetch(requestUri, {
         headers: { authorization: `Bearer ${config.apiKey}` },
         retry: {
