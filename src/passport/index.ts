@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+import sleep from "sleep-promise";
 import { ethers } from "ethers";
 import fetch from "make-fetch-happen";
 import { Logger } from "pino";
 
 const PASSPORT_API_MAX_ITEMS_LIMIT = 1000;
-const DELAY_BETWEEN_UPDATES_MS = 60 * 1000;
+const DELAY_BETWEEN_FULL_UPDATES_MS = 60 * 1000;
+const DELAY_BETWEEN_PAGE_REQUESTS_MS = 60 * 50;
 
 export type PassportScore = {
   address: string;
@@ -65,7 +67,7 @@ export const createPassportUpdater = (
     }
 
     if (opts.watch) {
-      setTimeout(poll, DELAY_BETWEEN_UPDATES_MS);
+      setTimeout(poll, DELAY_BETWEEN_FULL_UPDATES_MS);
     }
   };
 
@@ -74,7 +76,7 @@ export const createPassportUpdater = (
   const poll = async (): Promise<void> => {
     // Can be switched to incremental updates once https://github.com/gitcoinco/passport/issues/1414 is fixed
     await updateEntireDataset();
-    setTimeout(poll, DELAY_BETWEEN_UPDATES_MS);
+    setTimeout(poll, DELAY_BETWEEN_FULL_UPDATES_MS);
   };
 
   const updateEntireDataset = async (): Promise<void> => {
@@ -121,6 +123,7 @@ export const createPassportUpdater = (
         passports.push(...passportBatch);
 
         offset += PASSPORT_API_MAX_ITEMS_LIMIT;
+        await sleep(DELAY_BETWEEN_PAGE_REQUESTS_MS);
       }
     }
 

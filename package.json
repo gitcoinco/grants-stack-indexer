@@ -39,6 +39,7 @@
     "pino-pretty": "^10.0.1",
     "pluralistic": "github:gitcoinco/pluralistic.js#644d14fff65100f005d7afc18799b0f99b72ae24",
     "serve-index": "^1.9.1",
+    "sleep-promise": "^9.1.0",
     "statuses-bitmap": "github:gitcoinco/statuses-bitmap#f123d7778e42e16adb98fff2b2ba18c0fee57227",
     "write-file-atomic": "^5.0.1",
     "zod": "^3.21.4"
