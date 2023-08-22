@@ -1,7 +1,6 @@
 import { Logger } from "pino";
 import { CHAINS } from "../config.js";
-import { Price, readPricesFile } from "./common.js";
-import { UnknownTokenError } from "../indexer/utils.js";
+import { Price, readPricesFile, UnknownTokenError } from "./common.js";
 
 const DEFAULT_REFRESH_PRICE_INTERVAL_MS = 10000;
 

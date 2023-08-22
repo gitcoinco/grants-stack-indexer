@@ -14,13 +14,14 @@ import {
 } from "./types.js";
 import { Event } from "./events.js";
 import { RoundContract, DirectPayoutContract } from "./contracts.js";
-import { UnknownTokenError, importAbi } from "./utils.js";
+import { importAbi } from "./utils.js";
 import { PriceProvider } from "../prices/provider.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
 import applicationMetaPtrUpdated from "./handlers/applicationMetaPtrUpdated.js";
 import matchAmountUpdated from "./handlers/matchAmountUpdated.js";
+import { UnknownTokenError } from "../prices/common.js";
 
 enum ApplicationStatus {
   PENDING = 0,
