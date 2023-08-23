@@ -143,7 +143,6 @@ describe("server", () => {
             "1/rounds/0x1234/votes.json": "votes",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds.json": [], // empty file so the round won't be found
-            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         });
@@ -165,7 +164,6 @@ describe("server", () => {
             "1/rounds/0x1234/votes.json": "votes",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds.json": [], // empty file so the round won't be found
-            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         });
@@ -187,7 +185,6 @@ describe("server", () => {
             "1/rounds/0x1234/votes.json": "votes",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds.json": [], // empty file so the round won't be found
-            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         });
@@ -209,7 +206,6 @@ describe("server", () => {
             "1/rounds/0x1234/votes.json": "votes",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds.json": [], // empty file so the round won't be found
-            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         });
@@ -231,7 +227,6 @@ describe("server", () => {
             "1/rounds/0x1234/votes.json": "votes",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds.json": [], // empty file so the round won't be found
-            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         });
@@ -256,7 +251,6 @@ describe("server", () => {
             "1/rounds/0x1234/votes.json": "votes",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds.json": "rounds",
-            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         }).app;
@@ -333,7 +327,6 @@ describe("server", () => {
                 metadata: {},
               },
             ],
-            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         }).app;
@@ -401,7 +394,6 @@ describe("server", () => {
             "1/rounds/0x1234/votes.json": "votes-with-bad-recipient",
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds.json": "rounds",
-            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         }).app;
@@ -596,7 +588,6 @@ describe("server", () => {
             "1/rounds/0x2/votes.json": "votes",
             "1/rounds/0x2/applications.json": "applications",
             "1/rounds.json": "rounds",
-            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         }).app;
@@ -808,7 +799,6 @@ describe("server", () => {
             "1/rounds/0x3/votes.json": "votes",
             "1/rounds/0x3/applications.json": "applications",
             "1/rounds.json": "rounds",
-            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         }).app;
@@ -971,8 +961,6 @@ describe("server", () => {
             "1/rounds/0x4/votes.json": "votes",
             "1/rounds/0x4/applications.json": "applications",
             "1/rounds.json": "rounds",
-
-            //            "passport_scores.json": "passport_scores",
           }) as DataProvider,
           buildTag: "123abc",
         }).app;
