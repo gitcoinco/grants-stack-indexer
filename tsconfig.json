@@ -6,7 +6,6 @@
     "allowJs": true,
     "esModuleInterop": true,
     "moduleResolution": "nodenext",
-    "declaration": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,

@@ -12,7 +12,11 @@ import * as Sentry from "@sentry/node";
 import fs from "node:fs/promises";
 import fetch from "make-fetch-happen";
 
-import { createPassportUpdater, PassportScore } from "./passport/index.js";
+import {
+  createPassportProvider,
+  PassportScore,
+  PassportProvider,
+} from "./passport/index.js";
 
 import handleEvent from "./indexer/handleEvent.js";
 import { Chain, getConfig, Config } from "./config.js";
@@ -59,7 +63,7 @@ async function main(): Promise<void> {
 
   // Promise will be resolved once the catchup is done. Afterwards, services
   // will still be in listen-and-update mode
-  await Promise.all([
+  const [passportProvider, _] = await Promise.all([
     catchupAndWatchPassport({
       ...config,
       baseLogger,
@@ -81,6 +85,7 @@ async function main(): Promise<void> {
         storageDir: config.storageDir,
         logger: baseLogger.child({ subsystem: "PriceProvider" }),
       }),
+      passportProvider: passportProvider,
       dataProvider: new FileSystemDataProvider(config.storageDir),
       port: config.apiHttpPort,
       logger: baseLogger.child({ subsystem: "HttpApi" }),
@@ -98,17 +103,13 @@ await main();
 
 async function catchupAndWatchPassport(
   config: Config & { baseLogger: Logger; runOnce: boolean }
-): Promise<void> {
+): Promise<PassportProvider> {
   await fs.mkdir(config.storageDir, { recursive: true });
   const SCORES_FILE = path.join(config.storageDir, "passport_scores.json");
-  const VALID_ADDRESSES_FILE = path.join(
-    config.storageDir,
-    "passport_valid_addresses.json"
-  );
 
-  const passportUpdater = createPassportUpdater({
+  const passportProvider = createPassportProvider({
     apiKey: config.passportApiKey,
-    logger: config.baseLogger.child({ subsystem: "PassportUpdater" }),
+    logger: config.baseLogger.child({ subsystem: "PassportProvider" }),
     scorerId: config.passportScorerId,
     load: async () => {
       try {
@@ -119,19 +120,13 @@ async function catchupAndWatchPassport(
         return null;
       }
     },
-    persist: async ({ passports, validAddresses }) => {
-      await Promise.all([
-        fs.writeFile(SCORES_FILE, JSON.stringify(passports, null, 2), "utf8"),
-        fs.writeFile(
-          VALID_ADDRESSES_FILE,
-          JSON.stringify(validAddresses, null, 2),
-          "utf8"
-        ),
-      ]);
-    },
+    persist: (passports) =>
+      fs.writeFile(SCORES_FILE, JSON.stringify(passports, null, 2), "utf8"),
   });
 
-  await passportUpdater.start({ watch: !config.runOnce });
+  await passportProvider.start({ watch: !config.runOnce });
+
+  return passportProvider;
 }
 
 async function catchupAndWatchChain(
