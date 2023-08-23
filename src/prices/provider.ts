@@ -1,6 +1,6 @@
 import { Logger } from "pino";
 import { CHAINS } from "../config.js";
-import { Price, readPricesFile } from "./common.js";
+import { Price, readPricesFile, UnknownTokenError } from "./common.js";
 
 const DEFAULT_REFRESH_PRICE_INTERVAL_MS = 10000;
 
@@ -137,9 +137,7 @@ export function createPriceProvider(
       (t) => t.address.toLowerCase() === tokenAddress.toLowerCase()
     );
     if (token === undefined) {
-      throw new Error(
-        `Token ${tokenAddress} not configured for chain ${chainId}`
-      );
+      throw new UnknownTokenError(tokenAddress, chainId);
     }
 
     const pricesForToken = (await getPrices(chainId)).filter(

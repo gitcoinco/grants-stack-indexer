@@ -217,6 +217,7 @@ async function catchupAndWatchChain(
         subscribe: (...args) => indexer.subscribe(...args),
         ipfsGet: cachedIpfsGet,
         priceProvider,
+        logger: indexerLogger,
       });
     },
     {
