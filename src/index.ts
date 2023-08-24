@@ -16,10 +16,6 @@ import { createHttpApi } from "./http/app.js";
 import { FileSystemDataProvider } from "./calculator/index.js";
 import { createBlockchainListener } from "./indexer/listener.js";
 
-// If, during reindexing, a chain has these many blocks left to index, consider
-// it caught up and start serving
-const MINIMUM_BLOCKS_LEFT_BEFORE_STARTING = 500;
-
 async function main(): Promise<void> {
   const config = getConfig();
 
@@ -31,39 +27,34 @@ async function main(): Promise<void> {
     });
   }
 
-  const baseLogger = pino({
+  const logger = pino({
     level: config.logLevel,
     formatters: {
-      level(level) {
-        // represent severity as strings so that DataDog can recognize it
-        return { level };
-      },
+      // represent severity as strings so that DataDog can recognize it
+      level: (level) => ({ level }),
     },
   }).child({
     service: `indexer-${config.deploymentEnvironment}`,
   });
 
-  baseLogger.info({
+  logger.info({
     msg: "starting",
     buildTag: config.buildTag,
     deploymentEnvironment: config.deploymentEnvironment,
     chains: config.chains.map((c) => c.name),
   });
 
-  // Promise will be resolved once the catchup is done. Afterwards, services
-  // will still be in listen-and-update mode
+  // Chain watchers don't depend on each other or on Passport provider, so they
+  // can start in parallel. However, the HTTP API depends on all of them, so
+  // before starting the API, we make sure they're all caught up. When the
+  // promise resolves, chain watchers and Passport provider will still be
+  // listening to their respective data sources and updating their respective
+  // data sets.
+
   const [passportProvider, _] = await Promise.all([
-    catchupAndWatchPassport({
-      ...config,
-      baseLogger,
-      runOnce: config.runOnce,
-    }),
+    catchupAndWatchPassport(config, { logger }),
     ...config.chains.map((chain) =>
-      catchupAndWatchChain({
-        chain,
-        baseLogger,
-        ...config,
-      })
+      catchupAndWatchChain({ chain, ...config }, { logger })
     ),
   ]);
 
@@ -72,12 +63,12 @@ async function main(): Promise<void> {
       storageDir: config.storageDir,
       priceProvider: createPriceProvider({
         storageDir: config.storageDir,
-        logger: baseLogger.child({ subsystem: "PriceProvider" }),
+        logger: logger.child({ subsystem: "PriceProvider" }),
       }),
       passportProvider: passportProvider,
       dataProvider: new FileSystemDataProvider(config.storageDir),
       port: config.apiHttpPort,
-      logger: baseLogger.child({ subsystem: "HttpApi" }),
+      logger: logger.child({ subsystem: "HttpApi" }),
       buildTag: config.buildTag,
       chains: config.chains,
     });
@@ -92,13 +83,15 @@ await main();
 // INTERNALS
 
 async function catchupAndWatchPassport(
-  config: Config & { baseLogger: Logger; runOnce: boolean }
+  config: Config,
+  deps: { logger: Logger }
 ): Promise<PassportProvider> {
+  const { logger: parentLogger } = deps;
   await fs.mkdir(config.storageDir, { recursive: true });
 
   const passportProvider = createPassportProvider({
     apiKey: config.passportApiKey,
-    logger: config.baseLogger.child({ subsystem: "PassportProvider" }),
+    logger: parentLogger.child({ subsystem: "PassportProvider" }),
     scorerId: config.passportScorerId,
     dbPath: path.join(config.storageDir, "..", "passport_scores.leveldb"),
   });
@@ -109,14 +102,16 @@ async function catchupAndWatchPassport(
 }
 
 async function catchupAndWatchChain(
-  config: Omit<Config, "chains"> & { chain: Chain; baseLogger: Logger }
+  config: Omit<Config, "chains"> & { chain: Chain },
+  deps: { logger: Logger }
 ): Promise<void> {
+  const { logger: parentLogger } = deps;
   const CHAIN_DIR_PATH = path.join(
     config.storageDir,
     config.chain.id.toString()
   );
 
-  const chainLogger = config.baseLogger.child({
+  const chainLogger = parentLogger.child({
     chain: config.chain.id,
   });
 
@@ -179,6 +174,10 @@ async function catchupAndWatchChain(
     toBlock: config.toBlock,
   });
 
+  const blockchainListenerLogger = chainLogger.child({
+    subsystem: "DataUpdater",
+  });
+
   return new Promise<void>((resolve) => {
     const blockchainListener = createBlockchainListener({
       logger: chainLogger.child({ subsystem: "DataUpdater" }),
@@ -188,6 +187,7 @@ async function catchupAndWatchChain(
           db: storage,
           ipfsGet: cachedIpfsGet,
           priceProvider,
+          logger: blockchainListenerLogger,
           // XXX should rename to getContract
           subscribe: (address, abi) => {
             onContractRequested(address, abi);

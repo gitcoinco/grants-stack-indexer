@@ -85,7 +85,7 @@ export const createBlockchainListener = ({
 
     const { lastReplayedEventBlockNumber } = await replayLoggedEvents();
 
-    listenToLiveEvents({
+    void listenToLiveEvents({
       startingBlock:
         lastReplayedEventBlockNumber === null
           ? 0
