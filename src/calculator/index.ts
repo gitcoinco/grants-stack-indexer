@@ -188,6 +188,7 @@ export default class Calculator {
     }
 
     const votesWithCoefficients = await getVotesWithCoefficients(
+      this.chainId,
       round,
       applications,
       votes,
@@ -229,10 +230,13 @@ export default class Calculator {
 
     const augmented: Array<AugmentedResult> = [];
 
-    const applicationsMap = applications.reduce((all, current) => {
-      all[current.id] = current;
-      return all;
-    }, {} as Record<string, Application>);
+    const applicationsMap = applications.reduce(
+      (all, current) => {
+        all[current.id] = current;
+        return all;
+      },
+      {} as Record<string, Application>
+    );
 
     for (const id in results) {
       const calc = results[id];
