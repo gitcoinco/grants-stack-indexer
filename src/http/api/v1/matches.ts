@@ -1,5 +1,4 @@
 import express, { Response, Request } from "express";
-
 const upload = multer();
 import multer from "multer";
 import ClientError from "../clientError.js";
@@ -81,6 +80,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     const calculatorOptions: CalculatorOptions = {
       priceProvider: config.priceProvider,
       dataProvider: config.dataProvider,
+      passportProvider: config.passportProvider,
       chainId: chainId,
       roundId: roundId,
       minimumAmountUSD: minimumAmountUSD ? Number(minimumAmountUSD) : undefined,

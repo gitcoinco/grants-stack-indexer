@@ -1,6 +1,6 @@
 import { Logger } from "pino";
 import { CHAINS } from "../config.js";
-import { Price, readPricesFile } from "./common.js";
+import { Price, readPricesFile, UnknownTokenError } from "./common.js";
 
 const DEFAULT_REFRESH_PRICE_INTERVAL_MS = 10000;
 
@@ -29,7 +29,7 @@ export interface PriceProvider {
 export function createPriceProvider(
   config: PriceProviderConfig
 ): PriceProvider {
-  const { logger } = config;
+  const { logger: _logger } = config;
 
   // STATE
 
@@ -137,9 +137,7 @@ export function createPriceProvider(
       (t) => t.address.toLowerCase() === tokenAddress.toLowerCase()
     );
     if (token === undefined) {
-      throw new Error(
-        `Token ${tokenAddress} not configured for chain ${chainId}`
-      );
+      throw new UnknownTokenError(tokenAddress, chainId);
     }
 
     const pricesForToken = (await getPrices(chainId)).filter(
@@ -155,14 +153,16 @@ export function createPriceProvider(
     if (blockNumber === undefined) {
       closestPrice = lastAvailablePrice;
     } else if (blockNumber > lastAvailablePrice.block) {
-      logger.warn(
-        `requested price for block ${blockNumber} newer than last available ${lastAvailablePrice.block}`
-      );
+      // TODO decide how to warn about potential inconsistencies without spamming
+      // logger.warn(
+      //   `requested price for block ${blockNumber} newer than last available ${lastAvailablePrice.block}`
+      // );
       closestPrice = lastAvailablePrice;
     } else if (blockNumber < firstAvailablePrice.block) {
-      logger.warn(
-        `requested price for block ${blockNumber} older than earliest available ${firstAvailablePrice.block}`
-      );
+      // TODO decide how to warn about potential inconsistencies without spamming
+      // logger.warn(
+      //   `requested price for block ${blockNumber} older than earliest available ${firstAvailablePrice.block}`
+      // );
       closestPrice = firstAvailablePrice;
     } else {
       closestPrice =

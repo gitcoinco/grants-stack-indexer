@@ -1,27 +1,22 @@
 import type { Round, Application, Vote } from "../indexer/types.js";
-import type { PassportScore } from "../passport/index.js";
+import type { PassportScore, PassportProvider } from "../passport/index.js";
 
 type VoteWithCoefficient = Vote & {
   coefficient: number;
   passportScore?: PassportScore;
 };
 
-export function getVotesWithCoefficients(
+export async function getVotesWithCoefficients(
   round: Round,
   applications: Array<Application>,
   votes: Array<Vote>,
-  passportScores: Array<PassportScore>,
+  passportProvider: PassportProvider,
   options: {
     minimumAmountUSD?: number;
     enablePassport?: boolean;
     passportThreshold?: number;
   }
-): Array<VoteWithCoefficient> {
-  const passportScoresMap = passportScores.reduce((map, score) => {
-    map[score.address.toLowerCase()] = score;
-    return map;
-  }, {} as Record<string, PassportScore>);
-
+): Promise<Array<VoteWithCoefficient>> {
   const applicationMap = applications.reduce((map, application) => {
     map[application.id] = application;
     return map;
@@ -38,7 +33,7 @@ export function getVotesWithCoefficients(
       0
   );
 
-  return votes.flatMap((vote) => {
+  const votePromises = votes.map(async (vote) => {
     const voter = vote.voter.toLowerCase();
     const application = applicationMap[vote.applicationId];
 
@@ -60,7 +55,7 @@ export function getVotesWithCoefficients(
 
     // Passport check
 
-    const passportScore = passportScoresMap[voter];
+    const passportScore = await passportProvider.getScoreByAddress(voter);
     let passportCheckPassed = false;
 
     if (enablePassport) {
@@ -96,4 +91,6 @@ export function getVotesWithCoefficients(
       },
     ];
   });
+
+  return (await Promise.all(votePromises)).flat();
 }

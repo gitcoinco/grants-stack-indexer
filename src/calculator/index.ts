@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
-import type { PassportScore } from "../passport/index.js";
+import type { PassportProvider } from "../passport/index.js";
 import { PriceProvider } from "../prices/provider.js";
 import { tokenDecimals } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
@@ -38,9 +38,16 @@ export class FileSystemDataProvider implements DataProvider {
   async loadFile<T>(description: string, path: string): Promise<Array<T>> {
     const fullPath = `${this.basePath}/${path}`;
 
-    const data = await fs.readFile(fullPath, "utf8");
-
-    return JSON.parse(data) as Array<T>;
+    try {
+      const data = await fs.readFile(fullPath, "utf8");
+      return JSON.parse(data) as Array<T>;
+    } catch (err) {
+      if (err instanceof Error && "code" in err && err.code === "ENOENT") {
+        throw new FileNotFoundError(description);
+      } else {
+        throw err;
+      }
+    }
   }
 }
 
@@ -83,6 +90,7 @@ export function parseOverrides(buf: Buffer): Promise<Overrides> {
 export type CalculatorOptions = {
   priceProvider: PriceProvider;
   dataProvider: DataProvider;
+  passportProvider: PassportProvider;
   chainId: number;
   roundId: string;
   minimumAmountUSD?: number;
@@ -102,6 +110,7 @@ export type AugmentedResult = Calculation & {
 };
 
 export default class Calculator {
+  private passportProvider: PassportProvider;
   private priceProvider: PriceProvider;
   private dataProvider: DataProvider;
   private chainId: number;
@@ -114,6 +123,7 @@ export default class Calculator {
   private overrides: Overrides;
 
   constructor(options: CalculatorOptions) {
+    this.passportProvider = options.passportProvider;
     this.priceProvider = options.priceProvider;
     this.dataProvider = options.dataProvider;
     this.chainId = options.chainId;
@@ -139,11 +149,6 @@ export default class Calculator {
     const rounds = await this.parseJSONFile<Round>(
       "rounds",
       `${this.chainId}/rounds.json`
-    );
-
-    const passportScores = await this.parseJSONFile<PassportScore>(
-      "passport scores",
-      "passport_scores.json"
     );
 
     const round = rounds.find((r: Round) => r.id === this.roundId);
@@ -182,11 +187,11 @@ export default class Calculator {
         10000n;
     }
 
-    const votesWithCoefficients = getVotesWithCoefficients(
+    const votesWithCoefficients = await getVotesWithCoefficients(
       round,
       applications,
       votes,
-      passportScores,
+      this.passportProvider,
       {
         minimumAmountUSD: this.minimumAmountUSD,
         enablePassport: this.enablePassport,
@@ -194,7 +199,7 @@ export default class Calculator {
       }
     );
 
-    const contributions: Array<Contribution> = votesWithCoefficients.flatMap(
+    const contributions: Contribution[] = votesWithCoefficients.flatMap(
       (vote) => {
         const scaleFactor = Math.pow(10, 4);
         const coefficient = BigInt(
