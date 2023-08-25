@@ -2,6 +2,7 @@ import type { Vote, Round, Application } from "../../indexer/types.js";
 import type { PassportProvider } from "../../passport/index.js";
 import { describe, test, expect } from "vitest";
 import { getVotesWithCoefficients } from "../../calculator/votes.js";
+import { Chain } from "../../config.js";
 
 const noOpPassportProvider: PassportProvider = {
   start: (_opts?: { watch: boolean } | undefined) => Promise.resolve(undefined),
@@ -95,13 +96,28 @@ const votes: Vote[] = [
   },
 ];
 
+const MOCK_CHAIN = {
+  id: 250,
+  tokens: [
+    {
+      code: "GcV",
+      address: "0x83791638da5EB2fAa432aff1c65fbA47c5D29510",
+      voteAmountCap: BigInt(10e18),
+    },
+    {
+      code: "Dummy",
+      address: "0x1234",
+    },
+  ],
+} as unknown as Chain;
+
 describe("getVotesWithCoefficients", () => {
-  describe("should call applyVoteCap", () => {
-    test("returns capped vote", async () => {
+  describe("should take voteAmountCap into conisderation", () => {
+    test("returns capped vote if capping is defined for token", async () => {
       const testVoteIndex = 0;
 
       const res = await getVotesWithCoefficients(
-        250,
+        MOCK_CHAIN,
         round,
         applications,
         votes,
@@ -116,29 +132,11 @@ describe("getVotesWithCoefficients", () => {
       });
     });
 
-    test("doesn't cap votes with chainId not recognized", async () => {
-      const testVoteIndex = 0;
-
-      const res = await getVotesWithCoefficients(
-        9999,
-        round,
-        applications,
-        votes,
-        noOpPassportProvider,
-        {}
-      );
-
-      expect(res[testVoteIndex]).toEqual({
-        ...votes[testVoteIndex],
-        coefficient: 1,
-      });
-    });
-
-    test("doesn't cap votes with tokens not recognized", async () => {
+    test("doesn't cap votes if capping isn't defined for token", async () => {
       const testVoteIndex = 1;
 
       const res = await getVotesWithCoefficients(
-        250,
+        MOCK_CHAIN,
         round,
         applications,
         votes,

@@ -79,8 +79,13 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       db.collection<Vote>(`rounds/${round.id}/votes`).all(),
     ]);
 
+    const chainConfig = config.chains.find((c) => c.id === chainId);
+    if (chainConfig === undefined) {
+      throw new Error(`Chain ${chainId} not configured`);
+    }
+
     const votesWithCoefficients = await getVotesWithCoefficients(
-      chainId,
+      chainConfig,
       round,
       applications,
       votes,
@@ -290,7 +295,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
           break;
         }
         case "vote_coefficients": {
-          body = await exportVoteCoefficientsCSV(db, round);
+          body = await exportVoteCoefficientsCSV(chainId, db, round);
           break;
         }
         default: {

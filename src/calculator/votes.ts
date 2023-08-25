@@ -1,3 +1,4 @@
+import { Chain } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
 import type { PassportScore, PassportProvider } from "../passport/index.js";
 import { applyVoteCap } from "./tokensSettings.js";
@@ -8,7 +9,7 @@ type VoteWithCoefficient = Vote & {
 };
 
 export async function getVotesWithCoefficients(
-  chainId: number,
+  chain: Chain,
   round: Round,
   applications: Array<Application>,
   votes: Array<Vote>,
@@ -39,7 +40,7 @@ export async function getVotesWithCoefficients(
   );
 
   const votePromises = votes.map(async (originalVote) => {
-    const vote = applyVoteCap(chainId, originalVote);
+    const vote = applyVoteCap(chain, originalVote);
     const voter = vote.voter.toLowerCase();
     const application = applicationMap[vote.applicationId];
 

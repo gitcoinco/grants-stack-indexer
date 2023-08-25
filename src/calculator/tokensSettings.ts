@@ -1,3 +1,4 @@
+import { Chain } from "../config.js";
 import type { Vote } from "../indexer/types.js";
 
 enum ChainId {
@@ -29,22 +30,26 @@ export const tokensSettings: TokensSettings = {
   },
 };
 
-export function applyVoteCap(chainId: ChainId, vote: Vote): Vote {
-  const voteAmountCap =
-    tokensSettings[chainId as ChainId]?.[
-      vote.token.toLowerCase() as TokenAddress
-    ]?.voteAmountCap;
+export function applyVoteCap(chain: Chain, vote: Vote): Vote {
+  const tokenConfig = chain.tokens.find(
+    (t) => t.address.toLowerCase() === vote.token.toLowerCase()
+  );
 
-  if (voteAmountCap === undefined) {
-    return vote;
+  if (tokenConfig === undefined) {
+    throw new Error(`Unknown token: ${vote.token}`);
   }
 
-  // amount : amountRoundToken = voteAmountCap : newAmountRoundToken
-  const newAmountRoundToken =
-    (BigInt(vote.amountRoundToken) * voteAmountCap) / BigInt(vote.amount);
+  const { voteAmountCap } = tokenConfig;
+  if (voteAmountCap === undefined) {
+    return vote;
+  } else {
+    // amount : amountRoundToken = voteAmountCap : newAmountRoundToken
+    const newAmountRoundToken =
+      (BigInt(vote.amountRoundToken) * voteAmountCap) / BigInt(vote.amount);
 
-  return {
-    ...vote,
-    amountRoundToken: newAmountRoundToken.toString(),
-  };
+    return {
+      ...vote,
+      amountRoundToken: newAmountRoundToken.toString(),
+    };
+  }
 }
