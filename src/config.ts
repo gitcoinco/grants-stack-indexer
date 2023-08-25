@@ -90,29 +90,11 @@ export const CHAINS: Chain[] = [
     tokens: [
       {
         code: "USDC",
-        address: "0xd35CCeEAD182dcee0F148EbaC9447DA2c4D449c4",
-        decimals: 6,
-        priceSource: {
-          chainId: 1,
-          address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-        },
-      },
-      {
-        code: "USDC",
         address: "0x07865c6E87B9F70255377e024ace6630C1Eaa37F",
         decimals: 6,
         priceSource: {
           chainId: 1,
           address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-        },
-      },
-      {
-        code: "DAI",
-        address: "0x73967c6a0904aA032C103b4104747E88c566B1A2",
-        decimals: 18,
-        priceSource: {
-          chainId: 1,
-          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
         },
       },
       {
@@ -131,24 +113,6 @@ export const CHAINS: Chain[] = [
         priceSource: {
           chainId: 1,
           address: "0x0000000000000000000000000000000000000000",
-        },
-      },
-      {
-        code: "BUSD",
-        address: "0xa7c3bf25ffea8605b516cf878b7435fe1768c89b",
-        decimals: 18,
-        priceSource: {
-          chainId: 1,
-          address: "0x4fabb145d64652a948d72533023f6e7a623c7c53",
-        },
-      },
-      {
-        code: "TEST",
-        address: "0xbaa146619512b97216991ba37ae74de213605f8e",
-        decimals: 18,
-        priceSource: {
-          chainId: 1,
-          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
         },
       },
     ],
@@ -282,15 +246,6 @@ export const CHAINS: Chain[] = [
           address: "0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E",
         },
       },
-      {
-        code: "Unknown",
-        address: "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
-        decimals: 18,
-        priceSource: {
-          chainId: 250,
-          address: "0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E",
-        },
-      },
     ],
     subscriptions: [
       {
@@ -327,15 +282,6 @@ export const CHAINS: Chain[] = [
       {
         code: "DAI",
         address: "0x5fbdb2315678afecb367f032d93f642f64180aa3",
-        decimals: 18,
-        priceSource: {
-          chainId: 1,
-          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-        },
-      },
-      {
-        code: "FakeDAI",
-        address: "0x278d181b9B6caE41EF4BA9cF236cB18d91a1f358",
         decimals: 18,
         priceSource: {
           chainId: 1,
