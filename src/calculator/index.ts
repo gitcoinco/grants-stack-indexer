@@ -3,7 +3,7 @@ import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
 import type { PassportProvider } from "../passport/index.js";
 import { PriceProvider } from "../prices/provider.js";
-import { tokenDecimals } from "../config.js";
+import { Chain, tokenDecimals } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
 import { getVotesWithCoefficients } from "./votes.js";
 import {
@@ -99,6 +99,7 @@ export type CalculatorOptions = {
   enablePassport?: boolean;
   ignoreSaturation?: boolean;
   overrides: Overrides;
+  chain: Chain;
 };
 
 export type AugmentedResult = Calculation & {
@@ -113,7 +114,8 @@ export default class Calculator {
   private passportProvider: PassportProvider;
   private priceProvider: PriceProvider;
   private dataProvider: DataProvider;
-  private chainId: number;
+  private chainId: number; // XXX remove
+  private chain: Chain;
   private roundId: string;
   private minimumAmountUSD: number | undefined;
   private matchingCapAmount: bigint | undefined;
@@ -126,7 +128,7 @@ export default class Calculator {
     this.passportProvider = options.passportProvider;
     this.priceProvider = options.priceProvider;
     this.dataProvider = options.dataProvider;
-    this.chainId = options.chainId;
+    this.chainId = options.chainId; // XXX remove
     this.roundId = options.roundId;
     this.minimumAmountUSD = options.minimumAmountUSD;
     this.enablePassport = options.enablePassport;
@@ -134,6 +136,7 @@ export default class Calculator {
     this.matchingCapAmount = options.matchingCapAmount;
     this.overrides = options.overrides;
     this.ignoreSaturation = options.ignoreSaturation;
+    this.chain = options.chain;
   }
 
   async calculate(): Promise<Array<AugmentedResult>> {
@@ -188,6 +191,7 @@ export default class Calculator {
     }
 
     const votesWithCoefficients = await getVotesWithCoefficients(
+      this.chain,
       round,
       applications,
       votes,
@@ -229,10 +233,13 @@ export default class Calculator {
 
     const augmented: Array<AugmentedResult> = [];
 
-    const applicationsMap = applications.reduce((all, current) => {
-      all[current.id] = current;
-      return all;
-    }, {} as Record<string, Application>);
+    const applicationsMap = applications.reduce(
+      (all, current) => {
+        all[current.id] = current;
+        return all;
+      },
+      {} as Record<string, Application>
+    );
 
     for (const id in results) {
       const calc = results[id];

@@ -11,6 +11,7 @@ import { createHandler as createApiHandler } from "./api/v1/index.js";
 import { PriceProvider } from "../prices/provider.js";
 import { PassportProvider } from "../passport/index.js";
 import { DataProvider } from "../calculator/index.js";
+import { Chain } from "../config.js";
 
 export interface HttpApiConfig {
   logger: Logger;
@@ -20,6 +21,7 @@ export interface HttpApiConfig {
   priceProvider: PriceProvider;
   dataProvider: DataProvider;
   passportProvider: PassportProvider;
+  chains: Chain[];
 }
 
 interface HttpApi {

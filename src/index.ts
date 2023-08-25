@@ -90,6 +90,7 @@ async function main(): Promise<void> {
       port: config.apiHttpPort,
       logger: baseLogger.child({ subsystem: "HttpApi" }),
       buildTag: config.buildTag,
+      chains: config.chains,
     });
 
     await httpApi.start();

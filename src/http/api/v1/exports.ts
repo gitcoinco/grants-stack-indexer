@@ -69,13 +69,23 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       .concat(csv.stringifyRecords(pricesDuringRound));
   }
 
-  async function exportVoteCoefficientsCSV(db: JsonStorage, round: Round) {
+  async function exportVoteCoefficientsCSV(
+    chainId: number,
+    db: JsonStorage,
+    round: Round
+  ) {
     const [applications, votes] = await Promise.all([
       db.collection<Application>(`rounds/${round.id}/applications`).all(),
       db.collection<Vote>(`rounds/${round.id}/votes`).all(),
     ]);
 
+    const chainConfig = config.chains.find((c) => c.id === chainId);
+    if (chainConfig === undefined) {
+      throw new Error(`Chain ${chainId} not configured`);
+    }
+
     const votesWithCoefficients = await getVotesWithCoefficients(
+      chainConfig,
       round,
       applications,
       votes,
@@ -240,7 +250,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
         throw new ClientError("Round not found", 404);
       }
 
-      const body = await exportVoteCoefficientsCSV(db, round);
+      const body = await exportVoteCoefficientsCSV(chainId, db, round);
 
       res.setHeader("content-type", "text/csv");
       res.setHeader(
@@ -285,7 +295,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
           break;
         }
         case "vote_coefficients": {
-          body = await exportVoteCoefficientsCSV(db, round);
+          body = await exportVoteCoefficientsCSV(chainId, db, round);
           break;
         }
         default: {
