@@ -465,9 +465,6 @@ export function getConfig(): Config {
 
   const { values: args } = parseArgs({
     options: {
-      chains: {
-        type: "string",
-      },
       "to-block": {
         type: "string",
       },
@@ -486,17 +483,17 @@ export function getConfig(): Config {
     },
   });
 
-  if (typeof args.chains !== "string") {
-    throw new Error("Chains not provided");
-  }
-
-  const chains = args.chains.split(",").map((chainName: string) => {
-    const c = CHAINS.find((chain) => chain.name === chainName);
-    if (c === undefined) {
-      throw new Error(`Chain ${chainName} not configured`);
-    }
-    return c;
-  });
+  const chains = z
+    .string()
+    .parse(process.env.INDEXED_CHAINS)
+    .split(",")
+    .map((chainName) => {
+      const c = CHAINS.find((chain) => chain.name === chainName);
+      if (c === undefined) {
+        throw new Error(`Chain ${chainName} not configured`);
+      }
+      return c;
+    });
 
   const toBlock = z
     .union([z.coerce.number(), z.literal("latest")])
