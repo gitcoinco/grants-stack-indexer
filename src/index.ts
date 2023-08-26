@@ -210,5 +210,9 @@ async function catchupAndWatchChain(
     toBlock: config.toBlock,
   });
 
+  const startTime = Date.now();
   await blockchainListener.start({ waitForCatchup: true });
+  indexingLogger.info(
+    `initial blockchain catchup took ${(Date.now() - startTime) / 1000} seconds`
+  );
 }

@@ -12,6 +12,7 @@ import { ethers } from "ethers";
 import { Chain } from "../config.js";
 import { importAbi } from "./utils.js";
 import { BigNumber } from "ethers";
+import { throttle } from "throttle-debounce";
 
 interface BlockchainListener {
   start: (params: { waitForCatchup: boolean }) => Promise<void>;
@@ -71,6 +72,15 @@ export const createBlockchainListener = ({
     const subscriptions = await db.getSubscriptions();
     const network = await rpcProvider.getNetwork();
 
+    const throttledLogProgress = throttle(
+      5000,
+      (currentBlock: number, lastBlock: number) => {
+        logger.debug(
+          `indexed to block ${currentBlock}; last block on chain: ${lastBlock}`
+        );
+      }
+    );
+
     await new Promise<void>((resolve) => {
       indexer = new Indexer(
         rpcProvider,
@@ -82,7 +92,7 @@ export const createBlockchainListener = ({
         db,
         (_indexer: Indexer<JsonStorage>, chainsauceEvent: ChainsauceEvent) => {
           const event = fixChainsauceEvent(chainsauceEvent);
-          logger.debug(
+          logger.trace(
             `handling live event (block number ${event.blockNumber})`
           );
           eventLogStream.write(JSON.stringify(event) + "\n");
@@ -94,9 +104,7 @@ export const createBlockchainListener = ({
           logger: logger.child({ subsystem: "DataUpdater" }),
           eventCacheDirectory: null,
           onProgress: ({ currentBlock, lastBlock }) => {
-            logger.debug(
-              `indexed to block ${currentBlock}; last block on chain: ${lastBlock}`
-            );
+            throttledLogProgress(currentBlock, lastBlock);
             if (!isCaughtUp && currentBlock === lastBlock) {
               logger.info("caught up with blockchain events");
               isCaughtUp = true;
@@ -107,9 +115,9 @@ export const createBlockchainListener = ({
       );
 
       void listenToLiveEvents({
-        startingBlock:
+        lastExaminedBlockNumber:
           lastReplayedEventBlockNumber === null
-            ? 0 // GET THIS FROM CONFIG
+            ? -1
             : lastReplayedEventBlockNumber + 1,
       });
     });
@@ -120,9 +128,9 @@ export const createBlockchainListener = ({
   };
 
   const listenToLiveEvents = async ({
-    startingBlock,
+    lastExaminedBlockNumber,
   }: {
-    startingBlock: number;
+    lastExaminedBlockNumber: number;
   }) => {
     state = "listening";
     if (indexer === null) {
@@ -134,7 +142,7 @@ export const createBlockchainListener = ({
         subscription.address,
         // XXX replace with statically imported ABIs to remove async
         await importAbi(subscription.abi),
-        Math.max(startingBlock + 1, subscription.fromBlock ?? 0)
+        Math.max(lastExaminedBlockNumber + 1, subscription.fromBlock ?? 0)
       );
     }
 
@@ -142,7 +150,7 @@ export const createBlockchainListener = ({
       indexer.subscribe(
         subscription.address,
         subscription.abi,
-        startingBlock + 1
+        lastExaminedBlockNumber + 1
       );
     }
 
@@ -187,13 +195,17 @@ export const createBlockchainListener = ({
   }> => {
     state = "replaying";
 
+    const throttledLogProgress = throttle(5000, (blockNumber: number) => {
+      logger.debug(`replayed events up to ${blockNumber}`);
+    });
+
     let lastReplayedEventBlockNumber: null | number = null;
     try {
       const loggedEvents = createEventLogIterator();
 
       for await (const event of loggedEvents) {
-        logger.debug(`replaying event at block number ${event.blockNumber}`);
         await onEvent(event, onContractRequested);
+        throttledLogProgress(event.blockNumber);
         lastReplayedEventBlockNumber = event.blockNumber;
       }
     } catch (err) {
