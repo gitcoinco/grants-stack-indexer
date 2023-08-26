@@ -42,9 +42,8 @@ export const createBlockchainListener = ({
   toBlock: ToBlock;
   chain: Chain;
 }): BlockchainListener => {
-  const POLL_INTERVAL_MS = 20000;
+  const POLL_INTERVAL_MS = 2000;
   let state: "starting" | "replaying" | "listening" | "stopped" = "starting";
-  let isCaughtUp: boolean = false;
   let pollTimeoutId: NodeJS.Timeout;
   let indexer: Indexer<JsonStorage> | null = null;
 
@@ -82,6 +81,7 @@ export const createBlockchainListener = ({
     );
 
     await new Promise<void>((resolve) => {
+      let isCaughtUp: boolean = false;
       indexer = new Indexer(
         rpcProvider,
         network,
