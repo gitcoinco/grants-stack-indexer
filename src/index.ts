@@ -12,11 +12,7 @@ import * as Sentry from "@sentry/node";
 import fs from "node:fs/promises";
 import fetch from "make-fetch-happen";
 
-import {
-  createPassportProvider,
-  PassportScore,
-  PassportProvider,
-} from "./passport/index.js";
+import { createPassportProvider, PassportProvider } from "./passport/index.js";
 
 import handleEvent from "./indexer/handleEvent.js";
 import { Chain, getConfig, Config } from "./config.js";
@@ -106,23 +102,12 @@ async function catchupAndWatchPassport(
   config: Config & { baseLogger: Logger; runOnce: boolean }
 ): Promise<PassportProvider> {
   await fs.mkdir(config.storageDir, { recursive: true });
-  const SCORES_FILE = path.join(config.storageDir, "passport_scores.json");
 
   const passportProvider = createPassportProvider({
     apiKey: config.passportApiKey,
     logger: config.baseLogger.child({ subsystem: "PassportProvider" }),
     scorerId: config.passportScorerId,
-    load: async () => {
-      try {
-        return JSON.parse(
-          await fs.readFile(SCORES_FILE, "utf8")
-        ) as PassportScore[];
-      } catch (err) {
-        return null;
-      }
-    },
-    persist: (passports) =>
-      fs.writeFile(SCORES_FILE, JSON.stringify(passports, null, 2), "utf8"),
+    dbPath: path.join(config.storageDir, "..", "passport_scores.leveldb"),
   });
 
   await passportProvider.start({ watch: !config.runOnce });

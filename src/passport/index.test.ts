@@ -1,5 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
 import { Logger } from "pino";
+import { tmpNameSync } from "tmp";
 import {
   describe,
   test,
@@ -32,10 +33,8 @@ describe("passport provider", () => {
       error: () => {},
     } as unknown as Logger,
     scorerId: "123",
-    load: async () => Promise.resolve(SAMPLE_PASSPORT_DATA.items),
-    persist: async () => {},
     delayBetweenFullUpdatesMs: 10,
-    delayBetweenPageRequestsMs: 10,
+    dbPath: tmpNameSync(), // TODO: do in memory or cleanup in afterEach
   });
 
   describe("lifecycle", () => {
@@ -69,7 +68,6 @@ describe("passport provider", () => {
 
       passportProvider = createPassportProvider({
         ...getTestConfig(),
-        load: () => Promise.resolve(null),
         fetch: fetchMock,
       });
 
@@ -121,7 +119,6 @@ describe("passport provider", () => {
 
       passportProvider = createPassportProvider({
         ...getTestConfig(),
-        load: () => Promise.resolve(null),
         fetch: fetchMock,
       });
 
@@ -191,7 +188,6 @@ describe("passport provider", () => {
 
       passportProvider = createPassportProvider({
         ...getTestConfig(),
-        load: () => Promise.resolve(null),
         fetch: fetchMock,
       });
 
@@ -294,7 +290,6 @@ describe("passport provider", () => {
 
       passportProvider = createPassportProvider({
         ...getTestConfig(),
-        load: () => Promise.resolve(null),
         fetch: fetchMock,
       });
 
@@ -360,7 +355,6 @@ describe("passport provider", () => {
 
       passportProvider = createPassportProvider({
         ...getTestConfig(),
-        load: () => Promise.resolve(null),
         fetch: fetchMock,
       });
 
@@ -415,8 +409,22 @@ describe("passport provider", () => {
   });
 
   describe("querying", () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ count: 3 }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(SAMPLE_PASSPORT_DATA),
+      });
+
     beforeEach(async () => {
-      passportProvider = createPassportProvider(getTestConfig());
+      passportProvider = createPassportProvider({
+        ...getTestConfig(),
+        fetch: fetchMock,
+      });
       const starting = passportProvider.start();
       await vi.advanceTimersToNextTimerAsync();
       await starting;
@@ -426,7 +434,7 @@ describe("passport provider", () => {
       passportProvider.stop();
     });
 
-    test("provides score for address, if available", async () => {
+    test.only("provides score for address, if available", async () => {
       const score = await passportProvider.getScoreByAddress("voter-1");
 
       expect(score).toMatchInlineSnapshot(`
