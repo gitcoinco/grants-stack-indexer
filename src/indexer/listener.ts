@@ -43,6 +43,8 @@ export const createBlockchainListener = ({
   chain: Chain;
 }): BlockchainListener => {
   const POLL_INTERVAL_MS = 2000;
+  const MINIMUM_BLOCKS_LEFT_BEFORE_CONSIDERING_CAUGHT_UP = 500;
+
   let state: "starting" | "replaying" | "listening" | "stopped" = "starting";
   let pollTimeoutId: NodeJS.Timeout;
   let indexer: Indexer<JsonStorage> | null = null;
@@ -56,7 +58,6 @@ export const createBlockchainListener = ({
   const eventLogStream = createWriteStream(eventLogPath, { flags: "a" });
 
   const start = async () => {
-    // XXX take startingBlock into account?
     logger.info("Replaying logged events...");
     const { lastReplayedEventBlockNumber } = await replayLoggedEvents();
 
@@ -105,7 +106,11 @@ export const createBlockchainListener = ({
           eventCacheDirectory: null,
           onProgress: ({ currentBlock, lastBlock }) => {
             throttledLogProgress(currentBlock, lastBlock);
-            if (!isCaughtUp && currentBlock === lastBlock) {
+            if (
+              !isCaughtUp &&
+              lastBlock - currentBlock <
+                MINIMUM_BLOCKS_LEFT_BEFORE_CONSIDERING_CAUGHT_UP
+            ) {
               logger.info("caught up with blockchain events");
               isCaughtUp = true;
               resolve();
