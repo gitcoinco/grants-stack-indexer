@@ -7,6 +7,7 @@ import {
 } from "chainsauce";
 import { Logger } from "pino";
 import { createReadStream, createWriteStream } from "node:fs";
+import { access, constants } from "node:fs/promises";
 import readline from "node:readline";
 import { ethers } from "ethers";
 import { Chain } from "../config.js";
@@ -201,6 +202,16 @@ export const createBlockchainListener = ({
     lastReplayedEventBlockNumber: number | null;
   }> => {
     if (eventLogPath === null) {
+      return { lastReplayedEventBlockNumber: null };
+    }
+
+    try {
+      await access(eventLogPath, constants.F_OK);
+    } catch (err) {
+      logger.info({
+        msg: `event log not found; this is probably because none was generated yet`,
+        err,
+      });
       return { lastReplayedEventBlockNumber: null };
     }
 
