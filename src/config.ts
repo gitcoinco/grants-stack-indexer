@@ -427,6 +427,7 @@ export type Config = {
   apiHttpPort: number;
   sentryDsn: string | null;
   deploymentEnvironment: "local" | "development" | "staging" | "production";
+  useExperimentalEventLog: boolean;
 };
 
 export function getConfig(): Config {
@@ -532,8 +533,14 @@ export function getConfig(): Config {
     .default(null)
     .parse(process.env.SENTRY_DSN);
 
+  const useExperimentalEventLog =
+    z
+      .enum(["0", "1"])
+      .default("0")
+      .parse(process.env.USE_EXPERIMENTAL_EVENT_LOG) === "1";
+
   return {
-    buildTag: buildTag,
+    buildTag,
     sentryDsn,
     coingeckoApiUrl,
     coingeckoApiKey,
@@ -549,5 +556,6 @@ export function getConfig(): Config {
     passportScorerId,
     apiHttpPort,
     deploymentEnvironment,
+    useExperimentalEventLog,
   };
 }

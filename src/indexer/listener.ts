@@ -61,14 +61,14 @@ export const createBlockchainListener = ({
     : null;
 
   const start = async () => {
-    logger.info("Replaying logged events...");
+    logger.info("replaying logged events...");
     const { lastReplayedEventBlockNumber } = await replayLoggedEvents();
 
     if (lastReplayedEventBlockNumber === null) {
-      logger.info("No logged events found");
+      logger.info("no logged events found");
     } else {
       logger.info(
-        `Replayed events up to block ${lastReplayedEventBlockNumber}`
+        `replayed events up to block ${lastReplayedEventBlockNumber}`
       );
     }
 
