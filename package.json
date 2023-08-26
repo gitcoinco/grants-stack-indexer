@@ -42,6 +42,7 @@
     "serve-index": "^1.9.1",
     "sleep-promise": "^9.1.0",
     "statuses-bitmap": "github:gitcoinco/statuses-bitmap#f123d7778e42e16adb98fff2b2ba18c0fee57227",
+    "throttle-debounce": "^5.0.0",
     "tmp": "^0.2.1",
     "write-file-atomic": "^5.0.1",
     "zod": "^3.21.4"
@@ -55,6 +56,7 @@
     "@types/node": "^18.15.3",
     "@types/serve-index": "^1.9.1",
     "@types/supertest": "^2.0.12",
+    "@types/throttle-debounce": "^5.0.0",
     "@types/tmp": "^0.2.3",
     "@types/write-file-atomic": "^4.0.0",
     "@typescript-eslint/eslint-plugin": "^5.55.0",

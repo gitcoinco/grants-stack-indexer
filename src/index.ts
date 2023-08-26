@@ -11,6 +11,7 @@ import path from "node:path";
 import * as Sentry from "@sentry/node";
 import fs from "node:fs/promises";
 import fetch from "make-fetch-happen";
+import { throttle } from "throttle-debounce";
 
 import { createPassportProvider, PassportProvider } from "./passport/index.js";
 
@@ -193,6 +194,17 @@ async function catchupAndWatchChain(
   const catchupSentinel = new AsyncSentinel();
 
   const indexerLogger = chainLogger.child({ subsystem: "DataUpdater" });
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+  const throttledLogProgress = throttle(
+    5000,
+    (currentBlock: number, lastBlock: number, blocksLeft: number) => {
+      indexerLogger.info(
+        `indexed to block ${currentBlock}; last block on chain: ${lastBlock}; left: ${blocksLeft}`
+      );
+    }
+  );
+
   const indexer = await createIndexer(
     rpcProvider,
     storage,
@@ -213,7 +225,9 @@ async function catchupAndWatchChain(
         ? path.join(config.cacheDir, "events")
         : null,
       onProgress: ({ currentBlock, lastBlock }) => {
-        indexerLogger.debug(
+        throttledLogProgress(currentBlock, lastBlock, lastBlock - currentBlock);
+
+        indexerLogger.trace(
           `indexed to block ${currentBlock}; last block on chain: ${lastBlock}; left: ${
             lastBlock - currentBlock
           }`
