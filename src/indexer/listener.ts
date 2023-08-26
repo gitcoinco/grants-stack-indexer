@@ -36,7 +36,7 @@ export const createBlockchainListener = ({
       abi: ethers.ContractInterface
     ) => void
   ) => Promise<void>;
-  eventLogPath: string;
+  eventLogPath: string | null;
   rpcProvider: RetryProvider;
   db: JsonStorage;
   toBlock: ToBlock;
@@ -55,7 +55,9 @@ export const createBlockchainListener = ({
     abi: ethers.ContractInterface;
   }> = [];
 
-  const eventLogStream = createWriteStream(eventLogPath, { flags: "a" });
+  const eventLogStream = eventLogPath
+    ? createWriteStream(eventLogPath, { flags: "a" })
+    : null;
 
   const start = async () => {
     logger.info("Replaying logged events...");
@@ -96,7 +98,7 @@ export const createBlockchainListener = ({
           logger.trace(
             `handling live event (block number ${event.blockNumber})`
           );
-          eventLogStream.write(JSON.stringify(event) + "\n");
+          eventLogStream?.write(JSON.stringify(event) + "\n");
           return onEvent(event, onContractRequested);
         },
         {
@@ -198,6 +200,10 @@ export const createBlockchainListener = ({
   const replayLoggedEvents = async (): Promise<{
     lastReplayedEventBlockNumber: number | null;
   }> => {
+    if (eventLogPath === null) {
+      return { lastReplayedEventBlockNumber: null };
+    }
+
     state = "replaying";
 
     const throttledLogProgress = throttle(5000, (blockNumber: number) => {
@@ -214,12 +220,16 @@ export const createBlockchainListener = ({
         lastReplayedEventBlockNumber = event.blockNumber;
       }
     } catch (err) {
-      console.log(err);
+      logger.error({ msg: `error while replaying events`, err });
     }
     return { lastReplayedEventBlockNumber };
   };
 
   async function* createEventLogIterator() {
+    if (eventLogPath === null) {
+      // Should never happen as we're guarding against it in outer scope
+      throw new Error("event log path not set");
+    }
     const eventLogReadStream = createReadStream(eventLogPath);
 
     const rl = readline.createInterface({

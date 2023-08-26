@@ -204,7 +204,10 @@ async function catchupAndWatchChain(
     logger: indexingLogger,
     onEvent: onBlockchainEvent,
     rpcProvider,
-    eventLogPath: `/tmp/events-${config.chain.id}.ndjson`,
+    eventLogPath:
+      config.cacheDir === null
+        ? null
+        : path.join(config.cacheDir, `events-${config.chain.id}.ndjson`),
     db: db,
     chain: config.chain,
     toBlock: config.toBlock,
