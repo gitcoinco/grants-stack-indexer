@@ -1,4 +1,9 @@
-import { RetryProvider, JsonStorage, Cache } from "chainsauce";
+import {
+  RetryProvider,
+  JsonStorage,
+  Cache,
+  Event as ChainsauceEvent,
+} from "chainsauce";
 import { Logger, pino } from "pino";
 import path from "node:path";
 import * as Sentry from "@sentry/node";
@@ -52,9 +57,9 @@ async function main(): Promise<void> {
   // data sets.
 
   const [passportProvider, _] = await Promise.all([
-    catchupAndWatchPassport(config, { logger }),
+    catchupAndWatchPassport(config, { parentLogger: logger }),
     ...config.chains.map((chain) =>
-      catchupAndWatchChain({ chain, ...config }, { logger })
+      catchupAndWatchChain({ chain, ...config }, { parentLogger: logger })
     ),
   ]);
 
@@ -84,9 +89,9 @@ await main();
 
 async function catchupAndWatchPassport(
   config: Config,
-  deps: { logger: Logger }
+  deps: { parentLogger: Logger }
 ): Promise<PassportProvider> {
-  const { logger: parentLogger } = deps;
+  const { parentLogger } = deps;
   await fs.mkdir(config.storageDir, { recursive: true });
 
   const passportProvider = createPassportProvider({
@@ -103,17 +108,18 @@ async function catchupAndWatchPassport(
 
 async function catchupAndWatchChain(
   config: Omit<Config, "chains"> & { chain: Chain },
-  deps: { logger: Logger }
+  deps: { parentLogger: Logger }
 ): Promise<void> {
-  const { logger: parentLogger } = deps;
-  const CHAIN_DIR_PATH = path.join(
-    config.storageDir,
-    config.chain.id.toString()
-  );
+  const { parentLogger } = deps;
 
   const chainLogger = parentLogger.child({
     chain: config.chain.id,
   });
+
+  const CHAIN_DIR_PATH = path.join(
+    config.storageDir,
+    config.chain.id.toString()
+  );
 
   const rpcProvider = new RetryProvider({
     url: config.chain.rpc,
@@ -125,7 +131,7 @@ async function catchupAndWatchChain(
     logger: chainLogger.child({ subsystem: "PriceProvider" }),
   });
 
-  const storage = new JsonStorage(CHAIN_DIR_PATH);
+  const db = new JsonStorage(CHAIN_DIR_PATH);
 
   const cachedIpfsGet = async <T>(cid: string): Promise<T | undefined> => {
     const cidRegex = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[0-9A-Za-z]{50,})$/;
@@ -163,9 +169,6 @@ async function catchupAndWatchChain(
         : (cacheKey, fn) => pricesCache.lazy(cacheKey, fn),
   });
 
-  // Force a full re-indexing on every startup.
-  // XXX For the longer term, verify whether ChainSauce supports
-  // any sort of stop-and-resume.
   chainLogger.debug(`removing data dir (${CHAIN_DIR_PATH}) to start fresh`);
   await fs.rm(CHAIN_DIR_PATH, { force: true, recursive: true });
 
@@ -174,37 +177,38 @@ async function catchupAndWatchChain(
     toBlock: config.toBlock,
   });
 
-  const blockchainListenerLogger = chainLogger.child({
-    subsystem: "DataUpdater",
-  });
-
-  return new Promise<void>((resolve) => {
-    const blockchainListener = createBlockchainListener({
-      logger: chainLogger.child({ subsystem: "DataUpdater" }),
-      onEvent: async (event, onContractRequested) => {
-        await handleEvent(event, {
-          chainId: config.chain.id,
-          db: storage,
-          ipfsGet: cachedIpfsGet,
-          priceProvider,
-          logger: blockchainListenerLogger,
-          // XXX should rename to getContract
-          subscribe: (address, abi) => {
-            onContractRequested(address, abi);
-            return new ethers.Contract(address, abi, rpcProvider);
-          },
-        });
+  const onBlockchainEvent = async (
+    event: ChainsauceEvent,
+    onContractInterfaceRequested: (
+      address: string,
+      abi: ethers.ContractInterface
+    ) => void
+  ): Promise<void> => {
+    await handleEvent(event, {
+      chainId: config.chain.id,
+      db: db,
+      ipfsGet: cachedIpfsGet,
+      priceProvider,
+      logger: indexingLogger,
+      // XXX should rename to getContract
+      subscribe: (address, abi) => {
+        onContractInterfaceRequested(address, abi);
+        return new ethers.Contract(address, abi, rpcProvider);
       },
-      onCaughtUp: () => {
-        resolve();
-      },
-      rpcProvider,
-      eventLogPath: `/tmp/events-${config.chain.id}.ndjson`,
-      storage,
-      chain: config.chain,
-      toBlock: config.toBlock,
     });
+  };
 
-    void blockchainListener.start();
+  const indexingLogger = chainLogger.child({ subsystem: "DataUpdater" });
+
+  const blockchainListener = createBlockchainListener({
+    logger: indexingLogger,
+    onEvent: onBlockchainEvent,
+    rpcProvider,
+    eventLogPath: `/tmp/events-${config.chain.id}.ndjson`,
+    db: db,
+    chain: config.chain,
+    toBlock: config.toBlock,
   });
+
+  await blockchainListener.start({ waitForCatchup: true });
 }

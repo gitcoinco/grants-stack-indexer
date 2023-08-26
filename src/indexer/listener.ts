@@ -1,6 +1,5 @@
 import {
   RetryProvider,
-  createIndexer,
   JsonStorage,
   Indexer,
   Event as ChainsauceEvent,
@@ -14,13 +13,17 @@ import { Chain } from "../config.js";
 import { importAbi } from "./utils.js";
 import { BigNumber } from "ethers";
 
+interface BlockchainListener {
+  start: (params: { waitForCatchup: boolean }) => Promise<void>;
+  stop: () => void;
+}
+
 export const createBlockchainListener = ({
   logger,
   onEvent,
-  onCaughtUp,
   eventLogPath,
   rpcProvider,
-  storage,
+  db,
   toBlock,
   chain,
 }: {
@@ -32,13 +35,12 @@ export const createBlockchainListener = ({
       abi: ethers.ContractInterface
     ) => void
   ) => Promise<void>;
-  onCaughtUp: () => void;
   eventLogPath: string;
   rpcProvider: RetryProvider;
-  storage: JsonStorage;
+  db: JsonStorage;
   toBlock: ToBlock;
   chain: Chain;
-}) => {
+}): BlockchainListener => {
   const POLL_INTERVAL_MS = 20000;
   let state: "starting" | "replaying" | "listening" | "stopped" = "starting";
   let isCaughtUp: boolean = false;
@@ -54,42 +56,62 @@ export const createBlockchainListener = ({
   const eventLogStream = createWriteStream(eventLogPath, { flags: "a" });
 
   const start = async () => {
-    // XXX should be in the outer scope but it's async and we don't want to leak
-    // that. Longer term, make createIndexer sync
-    indexer = await createIndexer(
-      rpcProvider,
-      storage,
-      (_indexer: Indexer<JsonStorage>, chainsauceEvent: ChainsauceEvent) => {
-        const event = fixChainsauceEvent(chainsauceEvent);
-        logger.debug(`handling live event (block number ${event.blockNumber})`);
-        eventLogStream.write(JSON.stringify(event) + "\n");
-        return onEvent(event, onContractRequested);
-      },
-      {
-        requireExplicitStart: true,
-        toBlock,
-        logger: logger.child({ subsystem: "DataUpdater" }),
-        eventCacheDirectory: null,
-        onProgress: ({ currentBlock, lastBlock }) => {
-          logger.debug(
-            `indexed to block ${currentBlock}; last block on chain: ${lastBlock}`
-          );
-          if (!isCaughtUp && currentBlock === lastBlock) {
-            logger.info("caught up with blockchain events");
-            isCaughtUp = true;
-            onCaughtUp();
-          }
-        },
-      }
-    );
-
+    // XXX take startingBlock into account?
+    logger.info("Replaying logged events...");
     const { lastReplayedEventBlockNumber } = await replayLoggedEvents();
 
-    void listenToLiveEvents({
-      startingBlock:
-        lastReplayedEventBlockNumber === null
-          ? 0
-          : lastReplayedEventBlockNumber + 1,
+    if (lastReplayedEventBlockNumber === null) {
+      logger.info("No logged events found");
+    } else {
+      logger.info(
+        `Replayed events up to block ${lastReplayedEventBlockNumber}`
+      );
+    }
+
+    const subscriptions = await db.getSubscriptions();
+    const network = await rpcProvider.getNetwork();
+
+    await new Promise<void>((resolve) => {
+      indexer = new Indexer(
+        rpcProvider,
+        network,
+        // Eslint complains that an argument of type Subscription[] cannot be
+        // assigned to a parameter of type Subscription[]. Why?
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        subscriptions,
+        db,
+        (_indexer: Indexer<JsonStorage>, chainsauceEvent: ChainsauceEvent) => {
+          const event = fixChainsauceEvent(chainsauceEvent);
+          logger.debug(
+            `handling live event (block number ${event.blockNumber})`
+          );
+          eventLogStream.write(JSON.stringify(event) + "\n");
+          return onEvent(event, onContractRequested);
+        },
+        {
+          requireExplicitStart: true,
+          toBlock,
+          logger: logger.child({ subsystem: "DataUpdater" }),
+          eventCacheDirectory: null,
+          onProgress: ({ currentBlock, lastBlock }) => {
+            logger.debug(
+              `indexed to block ${currentBlock}; last block on chain: ${lastBlock}`
+            );
+            if (!isCaughtUp && currentBlock === lastBlock) {
+              logger.info("caught up with blockchain events");
+              isCaughtUp = true;
+              resolve();
+            }
+          },
+        }
+      );
+
+      void listenToLiveEvents({
+        startingBlock:
+          lastReplayedEventBlockNumber === null
+            ? 0 // GET THIS FROM CONFIG
+            : lastReplayedEventBlockNumber + 1,
+      });
     });
   };
 
