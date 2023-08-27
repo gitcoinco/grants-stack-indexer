@@ -11,12 +11,9 @@ import path from "node:path";
 import * as Sentry from "@sentry/node";
 import fs from "node:fs/promises";
 import fetch from "make-fetch-happen";
+import { throttle } from "throttle-debounce";
 
-import {
-  createPassportProvider,
-  PassportScore,
-  PassportProvider,
-} from "./passport/index.js";
+import { createPassportProvider, PassportProvider } from "./passport/index.js";
 
 import handleEvent from "./indexer/handleEvent.js";
 import { Chain, getConfig, Config } from "./config.js";
@@ -90,6 +87,7 @@ async function main(): Promise<void> {
       port: config.apiHttpPort,
       logger: baseLogger.child({ subsystem: "HttpApi" }),
       buildTag: config.buildTag,
+      chains: config.chains,
     });
 
     await httpApi.start();
@@ -105,23 +103,12 @@ async function catchupAndWatchPassport(
   config: Config & { baseLogger: Logger; runOnce: boolean }
 ): Promise<PassportProvider> {
   await fs.mkdir(config.storageDir, { recursive: true });
-  const SCORES_FILE = path.join(config.storageDir, "passport_scores.json");
 
   const passportProvider = createPassportProvider({
     apiKey: config.passportApiKey,
     logger: config.baseLogger.child({ subsystem: "PassportProvider" }),
     scorerId: config.passportScorerId,
-    load: async () => {
-      try {
-        return JSON.parse(
-          await fs.readFile(SCORES_FILE, "utf8")
-        ) as PassportScore[];
-      } catch (err) {
-        return null;
-      }
-    },
-    persist: (passports) =>
-      fs.writeFile(SCORES_FILE, JSON.stringify(passports, null, 2), "utf8"),
+    dbPath: path.join(config.storageDir, "..", "passport_scores.leveldb"),
   });
 
   await passportProvider.start({ watch: !config.runOnce });
@@ -207,6 +194,17 @@ async function catchupAndWatchChain(
   const catchupSentinel = new AsyncSentinel();
 
   const indexerLogger = chainLogger.child({ subsystem: "DataUpdater" });
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+  const throttledLogProgress = throttle(
+    5000,
+    (currentBlock: number, lastBlock: number, blocksLeft: number) => {
+      indexerLogger.info(
+        `indexed to block ${currentBlock}; last block on chain: ${lastBlock}; left: ${blocksLeft}`
+      );
+    }
+  );
+
   const indexer = await createIndexer(
     rpcProvider,
     storage,
@@ -227,7 +225,9 @@ async function catchupAndWatchChain(
         ? path.join(config.cacheDir, "events")
         : null,
       onProgress: ({ currentBlock, lastBlock }) => {
-        indexerLogger.debug(
+        throttledLogProgress(currentBlock, lastBlock, lastBlock - currentBlock);
+
+        indexerLogger.trace(
           `indexed to block ${currentBlock}; last block on chain: ${lastBlock}; left: ${
             lastBlock - currentBlock
           }`

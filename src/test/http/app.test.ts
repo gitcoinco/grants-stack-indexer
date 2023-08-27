@@ -14,6 +14,7 @@ import {
 import { PriceProvider } from "../../prices/provider.js";
 import { Logger } from "pino";
 import { PassportScore } from "../../passport/index.js";
+import { Chain } from "../../config.js";
 
 vi.spyOn(os, "hostname").mockReturnValue("dummy-hostname");
 
@@ -39,6 +40,18 @@ export class TestPriceProvider {
     return Promise.resolve({ amount: 0 });
   }
 }
+
+const MOCK_CHAINS = [
+  {
+    id: 1,
+    tokens: [
+      {
+        code: "ETH",
+        address: "0x0000000000000000000000000000000000000000",
+      },
+    ],
+  },
+] as Chain[];
 
 class TestPassportProvider {
   _fixture: PassportScore[] | null = null;
@@ -102,6 +115,7 @@ describe("server", () => {
           "1/rounds.json": "rounds",
           "passport_scores.json": "passport_scores",
         }) as DataProvider,
+        chains: MOCK_CHAINS,
       }).app;
     });
 
@@ -145,6 +159,7 @@ describe("server", () => {
             "1/rounds.json": [], // empty file so the round won't be found
           }) as DataProvider,
           buildTag: "123abc",
+          chains: MOCK_CHAINS,
         });
 
         const resp = await request(app).get(
@@ -166,6 +181,7 @@ describe("server", () => {
             "1/rounds.json": [], // empty file so the round won't be found
           }) as DataProvider,
           buildTag: "123abc",
+          chains: MOCK_CHAINS,
         });
 
         const resp = await request(app).get(
@@ -187,6 +203,7 @@ describe("server", () => {
             "1/rounds.json": [], // empty file so the round won't be found
           }) as DataProvider,
           buildTag: "123abc",
+          chains: MOCK_CHAINS,
         });
 
         const resp = await request(app).get(
@@ -208,6 +225,7 @@ describe("server", () => {
             "1/rounds.json": [], // empty file so the round won't be found
           }) as DataProvider,
           buildTag: "123abc",
+          chains: MOCK_CHAINS,
         });
 
         const resp = await request(app).get(
@@ -229,6 +247,7 @@ describe("server", () => {
             "1/rounds.json": [], // empty file so the round won't be found
           }) as DataProvider,
           buildTag: "123abc",
+          chains: MOCK_CHAINS,
         });
 
         const resp = await request(app).get(
@@ -253,6 +272,7 @@ describe("server", () => {
             "1/rounds.json": "rounds",
           }) as DataProvider,
           buildTag: "123abc",
+          chains: MOCK_CHAINS,
         }).app;
       });
 
@@ -329,6 +349,7 @@ describe("server", () => {
             ],
           }) as DataProvider,
           buildTag: "123abc",
+          chains: MOCK_CHAINS,
         }).app;
       });
 
@@ -396,6 +417,7 @@ describe("server", () => {
             "1/rounds.json": "rounds",
           }) as DataProvider,
           buildTag: "123abc",
+          chains: MOCK_CHAINS,
         }).app;
       });
 
@@ -462,6 +484,7 @@ describe("server", () => {
             "1/rounds.json": "rounds",
           }) as DataProvider,
           buildTag: "123abc",
+          chains: MOCK_CHAINS,
         }).app;
       });
 
@@ -590,6 +613,7 @@ describe("server", () => {
             "1/rounds.json": "rounds",
           }) as DataProvider,
           buildTag: "123abc",
+          chains: MOCK_CHAINS,
         }).app;
       });
 
@@ -801,6 +825,7 @@ describe("server", () => {
             "1/rounds.json": "rounds",
           }) as DataProvider,
           buildTag: "123abc",
+          chains: MOCK_CHAINS,
         }).app;
       });
 
@@ -963,6 +988,7 @@ describe("server", () => {
             "1/rounds.json": "rounds",
           }) as DataProvider,
           buildTag: "123abc",
+          chains: MOCK_CHAINS,
         }).app;
       });
 

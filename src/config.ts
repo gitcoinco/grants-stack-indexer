@@ -11,6 +11,7 @@ export type Token = {
   address: string;
   decimals: number;
   priceSource: { chainId: CoingeckoSupportedChainId; address: string };
+  voteAmountCap?: bigint;
 };
 
 export type Subscription = {
@@ -275,6 +276,7 @@ export const CHAINS: Chain[] = [
         code: "GcV",
         address: "0x83791638da5EB2fAa432aff1c65fbA47c5D29510",
         decimals: 18,
+        voteAmountCap: BigInt(10e18),
         priceSource: {
           chainId: 250,
           address: "0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E",
@@ -465,9 +467,6 @@ export function getConfig(): Config {
 
   const { values: args } = parseArgs({
     options: {
-      chains: {
-        type: "string",
-      },
       "to-block": {
         type: "string",
       },
@@ -486,17 +485,17 @@ export function getConfig(): Config {
     },
   });
 
-  if (typeof args.chains !== "string") {
-    throw new Error("Chains not provided");
-  }
-
-  const chains = args.chains.split(",").map((chainName: string) => {
-    const c = CHAINS.find((chain) => chain.name === chainName);
-    if (c === undefined) {
-      throw new Error(`Chain ${chainName} not configured`);
-    }
-    return c;
-  });
+  const chains = z
+    .string()
+    .parse(process.env.INDEXED_CHAINS)
+    .split(",")
+    .map((chainName) => {
+      const c = CHAINS.find((chain) => chain.name === chainName);
+      if (c === undefined) {
+        throw new Error(`Chain ${chainName} not configured`);
+      }
+      return c;
+    });
 
   const toBlock = z
     .union([z.coerce.number(), z.literal("latest")])
