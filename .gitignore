@@ -5,3 +5,4 @@ dist
 node_modules
 .idea
 /test/snapshot.*
+/passport_scores.leveldb

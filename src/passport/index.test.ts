@@ -1,15 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
 import { Logger } from "pino";
 import { tmpNameSync } from "tmp";
-import {
-  describe,
-  test,
-  expect,
-  beforeEach,
-  afterEach,
-  beforeAll,
-  vi,
-} from "vitest";
+import { describe, test, expect, afterEach, beforeAll, vi } from "vitest";
 import {
   createPassportProvider,
   PassportProvider,
@@ -17,40 +9,44 @@ import {
 } from "./index.js";
 import { SAMPLE_PASSPORT_DATA } from "./index.test.fixtures.js";
 
-describe("passport provider", () => {
+const getTestConfig = (): PassportProviderConfig => ({
+  apiKey: "dummy-key",
+  logger: {
+    debug: () => {},
+    info: () => {},
+    warn: () => {},
+    error: () => {},
+  } as unknown as Logger,
+  scorerId: "123",
+  delayBetweenFullUpdatesMs: 10,
+  dbPath: tmpNameSync(), // TODO: do in memory or cleanup in afterEach
+});
+
+describe("lifecycle", () => {
+  const passportProvider = createPassportProvider(getTestConfig());
+
+  test("throws if reading is attempted before starting", async () => {
+    await expect(() =>
+      passportProvider.getScoreByAddress("voter-1")
+    ).rejects.toMatchInlineSnapshot("[Error: Service not started]");
+  });
+
+  test("throws if stopping is attempted before starting", () => {
+    expect(() => passportProvider.stop()).toThrowErrorMatchingInlineSnapshot(
+      '"Service not started"'
+    );
+  });
+});
+
+describe("operation", () => {
   let passportProvider: PassportProvider;
 
   beforeAll(() => {
     vi.useFakeTimers();
   });
 
-  const getTestConfig = (): PassportProviderConfig => ({
-    apiKey: "dummy-key",
-    logger: {
-      debug: () => {},
-      info: () => {},
-      warn: () => {},
-      error: () => {},
-    } as unknown as Logger,
-    scorerId: "123",
-    delayBetweenFullUpdatesMs: 10,
-    dbPath: tmpNameSync(), // TODO: do in memory or cleanup in afterEach
-  });
-
-  describe("lifecycle", () => {
-    passportProvider = createPassportProvider(getTestConfig());
-
-    test("throws if reading is attempted before starting", async () => {
-      await expect(() =>
-        passportProvider.getScoreByAddress("voter-1")
-      ).rejects.toMatchInlineSnapshot("[Error: Service not started]");
-    });
-
-    test("throws if stopping is attempted before starting", () => {
-      expect(() => passportProvider.stop()).toThrowErrorMatchingInlineSnapshot(
-        '"Service not started"'
-      );
-    });
+  afterEach(() => {
+    passportProvider.stop();
   });
 
   describe("updating", () => {
@@ -294,7 +290,6 @@ describe("passport provider", () => {
       });
 
       const starting = passportProvider.start();
-      await vi.advanceTimersToNextTimerAsync();
       await expect(starting).resolves.not.toThrow();
 
       expect(fetchMock.mock.calls).toMatchInlineSnapshot(`
@@ -359,8 +354,6 @@ describe("passport provider", () => {
       });
 
       const starting = passportProvider.start();
-      await vi.advanceTimersToNextTimerAsync();
-      await vi.advanceTimersToNextTimerAsync();
       await starting;
 
       expect(fetchMock.mock.calls).toMatchInlineSnapshot(`
@@ -402,39 +395,27 @@ describe("passport provider", () => {
         ]
       `);
     });
-
-    afterEach(() => {
-      passportProvider.stop();
-    });
   });
 
   describe("querying", () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ count: 3 }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(SAMPLE_PASSPORT_DATA),
-      });
+    test("provides score for address, if available", async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ count: 3 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(SAMPLE_PASSPORT_DATA),
+        });
 
-    beforeEach(async () => {
       passportProvider = createPassportProvider({
         ...getTestConfig(),
         fetch: fetchMock,
       });
-      const starting = passportProvider.start();
-      await vi.advanceTimersToNextTimerAsync();
-      await starting;
-    });
+      await passportProvider.start();
 
-    afterEach(() => {
-      passportProvider.stop();
-    });
-
-    test.only("provides score for address, if available", async () => {
       const score = await passportProvider.getScoreByAddress("voter-1");
 
       expect(score).toMatchInlineSnapshot(`
@@ -455,6 +436,23 @@ describe("passport provider", () => {
     });
 
     test("returns undefined when score is not available", async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ count: 3 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(SAMPLE_PASSPORT_DATA),
+        });
+
+      passportProvider = createPassportProvider({
+        ...getTestConfig(),
+        fetch: fetchMock,
+      });
+      await passportProvider.start();
+
       const score = await passportProvider.getScoreByAddress(
         "non-existing-address"
       );
