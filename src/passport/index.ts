@@ -103,12 +103,10 @@ export const createPassportProvider = (
       };
 
       if (config.deprecatedJSONPassportDumpPath !== undefined) {
-        logger.info("writing passport JSON dump for backward compatibility");
         await writeDeprecatedCompatibilityJSONDump(
           state.db,
           config.deprecatedJSONPassportDumpPath
         );
-        logger.info(`passport JSON dump written`);
       }
     } catch (err) {
       logger.info(
@@ -241,6 +239,13 @@ export const createPassportProvider = (
         continue;
       }
     }
+
+    if (config.deprecatedJSONPassportDumpPath !== undefined) {
+      writeDeprecatedCompatibilityJSONDump(
+        state.db,
+        config.deprecatedJSONPassportDumpPath
+      );
+    }
   };
 
   const fetchRemotePassportCount = async (): Promise<number> => {
@@ -258,6 +263,8 @@ export const createPassportProvider = (
     db: Level<string, PassportScore>,
     path: string
   ): Promise<void> => {
+    logger.info("writing passport JSON dump for backward compatibility");
+
     const deprecatedCompatibilityDumpStream = createWriteStream(path);
     deprecatedCompatibilityDumpStream.write("[\n");
     let isFirst = true;
@@ -272,6 +279,8 @@ export const createPassportProvider = (
     }
     deprecatedCompatibilityDumpStream.write("\n]");
     deprecatedCompatibilityDumpStream.end();
+
+    logger.info(`passport JSON dump written`);
   };
 
   // EXPORTS
