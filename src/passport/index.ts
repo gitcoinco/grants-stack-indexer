@@ -2,6 +2,7 @@
 import { Level } from "level";
 import enhancedFetch from "make-fetch-happen";
 import { access } from "node:fs/promises";
+import { createWriteStream } from "node:fs";
 import { Logger } from "pino";
 
 const PASSPORT_API_MAX_ITEMS_LIMIT = 1000;
@@ -27,6 +28,7 @@ export interface PassportProviderConfig {
   scorerId: string;
   logger: Logger;
   dbPath: string;
+  deprecatedJSONPassportDumpPath?: string;
   fetch?: typeof global.fetch;
   delayBetweenFullUpdatesMs?: number;
 }
@@ -99,6 +101,15 @@ export const createPassportProvider = (
           valueEncoding: "json",
         }),
       };
+
+      if (config.deprecatedJSONPassportDumpPath !== undefined) {
+        logger.info("writing passport JSON dump for backward compatibility");
+        await writeDeprecatedCompatibilityJSONDump(
+          state.db,
+          config.deprecatedJSONPassportDumpPath
+        );
+        logger.info(`passport JSON dump written`);
+      }
     } catch (err) {
       logger.info(
         "no passports dataset found locally, fetching remote dataset before starting"
@@ -241,6 +252,26 @@ export const createPassportProvider = (
     });
     const { count } = (await res.json()) as { count: number };
     return count;
+  };
+
+  const writeDeprecatedCompatibilityJSONDump = async (
+    db: Level<string, PassportScore>,
+    path: string
+  ): Promise<void> => {
+    const deprecatedCompatibilityDumpStream = createWriteStream(path);
+    deprecatedCompatibilityDumpStream.write("[\n");
+    let isFirst = true;
+    for await (const passportScore of db.values()) {
+      if (isFirst) {
+        isFirst = false;
+      } else {
+        deprecatedCompatibilityDumpStream.write(",\n");
+      }
+
+      deprecatedCompatibilityDumpStream.write(JSON.stringify(passportScore));
+    }
+    deprecatedCompatibilityDumpStream.write("\n]");
+    deprecatedCompatibilityDumpStream.end();
   };
 
   // EXPORTS
