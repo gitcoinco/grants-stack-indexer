@@ -241,7 +241,7 @@ export const createPassportProvider = (
     }
 
     if (config.deprecatedJSONPassportDumpPath !== undefined) {
-      writeDeprecatedCompatibilityJSONDump(
+      await writeDeprecatedCompatibilityJSONDump(
         state.db,
         config.deprecatedJSONPassportDumpPath
       );
