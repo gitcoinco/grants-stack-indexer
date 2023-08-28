@@ -109,6 +109,10 @@ async function catchupAndWatchPassport(
     logger: config.baseLogger.child({ subsystem: "PassportProvider" }),
     scorerId: config.passportScorerId,
     dbPath: path.join(config.storageDir, "..", "passport_scores.leveldb"),
+    deprecatedJSONPassportDumpPath: path.join(
+      config.storageDir,
+      "passport_scores.json"
+    ),
   });
 
   await passportProvider.start({ watch: !config.runOnce });
