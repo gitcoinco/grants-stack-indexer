@@ -34,7 +34,7 @@ export const CHAINS: Chain[] = [
   {
     id: 1,
     name: "mainnet",
-    rpc: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY ?? ""}`,
+    rpc: z.string().parse(process.env.MAINNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -85,7 +85,7 @@ export const CHAINS: Chain[] = [
   {
     id: 5,
     name: "goerli",
-    rpc: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY ?? ""}`,
+    rpc: z.string().parse(process.env.GOERLI_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -189,9 +189,7 @@ export const CHAINS: Chain[] = [
   {
     id: 10,
     name: "optimism",
-    rpc: `https://opt-mainnet.g.alchemy.com/v2/${
-      process.env.ALCHEMY_API_KEY ?? ""
-    }`,
+    rpc: z.string().parse(process.env.OPTIMISM_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -242,7 +240,7 @@ export const CHAINS: Chain[] = [
   {
     id: 250,
     name: "fantom",
-    rpc: "https://rpcapi.fantom.network",
+    rpc: z.string().parse(process.env.FANTOM_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -312,7 +310,7 @@ export const CHAINS: Chain[] = [
   {
     id: 58008,
     name: "pgn-testnet",
-    rpc: "https://sepolia.publicgoods.network",
+    rpc: z.string().parse(process.env.PGN_TESTNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 6, 12, 0, 0, 0),
     tokens: [
       {
@@ -363,7 +361,7 @@ export const CHAINS: Chain[] = [
   {
     id: 424,
     name: "pgn-mainnet",
-    rpc: "https://rpc.publicgoods.network",
+    rpc: z.string().parse(process.env.PGN_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 6, 12, 0, 0, 0),
     tokens: [
       {
