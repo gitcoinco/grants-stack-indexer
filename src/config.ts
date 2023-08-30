@@ -4,7 +4,7 @@ import { ToBlock } from "chainsauce";
 import { z } from "zod";
 
 type ChainId = number;
-type CoingeckoSupportedChainId = 1 | 10 | 250;
+type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161;
 
 export type Token = {
   code: string;
@@ -388,6 +388,64 @@ export const CHAINS: Chain[] = [
         address: "0x2AFA4bE0f2468347A2F086c2167630fb1E58b725",
         abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
         fromBlock: 0,
+      },
+    ],
+  },
+  {
+    id: 42161,
+    name: "arbitrum",
+    rpc: z.string().parse(process.env.ARBITRUM_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2023, 8, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "USDC",
+        address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+        decimals: 6,
+        priceSource: {
+          chainId: 42161,
+          address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+        },
+      },
+      {
+        code: "ARB",
+        address: "0x912ce59144191c1204e64559fe8253a0e49e6548",
+        decimals: 18,
+        priceSource: {
+          chainId: 42161,
+          address: "0x912ce59144191c1204e64559fe8253a0e49e6548",
+        },
+      },
+      {
+        code: "DAI",
+        address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        decimals: 18,
+        priceSource: {
+          chainId: 42161,
+          address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        },
+      },
+      {
+        code: "ETH",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 42161,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+    ],
+    subscriptions: [
+      {
+        address: "0x73AB205af1476Dc22104A6B8b3d4c273B58C6E27",
+        abi: "#abis/v2/ProjectRegistry.json",
+      },
+      {
+        address: "0xF2a07728107B04266015E67b1468cA0a536956C8",
+        abi: "#abis/v2/RoundFactory.json",
+      },
+      {
+        address: "0xC3A195EEa198e74D67671732E1B8F8A23781D735",
+        abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
       },
     ],
   },
