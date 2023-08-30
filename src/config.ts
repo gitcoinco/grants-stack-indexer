@@ -34,7 +34,10 @@ export const CHAINS: Chain[] = [
   {
     id: 1,
     name: "mainnet",
-    rpc: z.string().parse(process.env.MAINNET_RPC_URL),
+    rpc: z
+      .string()
+      .default("https://mainnet.infura.io/v3/")
+      .parse(process.env.MAINNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -85,7 +88,10 @@ export const CHAINS: Chain[] = [
   {
     id: 5,
     name: "goerli",
-    rpc: z.string().parse(process.env.GOERLI_RPC_URL),
+    rpc: z
+      .string()
+      .default("https://goerli.infura.io/v3/")
+      .parse(process.env.GOERLI_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -189,7 +195,10 @@ export const CHAINS: Chain[] = [
   {
     id: 10,
     name: "optimism",
-    rpc: z.string().parse(process.env.OPTIMISM_RPC_URL),
+    rpc: z
+      .string()
+      .default("https://opt-mainnet.g.alchemy.com/v2/")
+      .parse(process.env.OPTIMISM_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -240,7 +249,10 @@ export const CHAINS: Chain[] = [
   {
     id: 250,
     name: "fantom",
-    rpc: z.string().parse(process.env.FANTOM_RPC_URL),
+    rpc: z
+      .string()
+      .default("https://rpcapi.fantom.network")
+      .parse(process.env.FANTOM_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -310,7 +322,10 @@ export const CHAINS: Chain[] = [
   {
     id: 58008,
     name: "pgn-testnet",
-    rpc: z.string().parse(process.env.PGN_TESTNET_RPC_URL),
+    rpc: z
+      .string()
+      .default("https://sepolia.publicgoods.network")
+      .parse(process.env.PGN_TESTNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 6, 12, 0, 0, 0),
     tokens: [
       {
@@ -361,7 +376,10 @@ export const CHAINS: Chain[] = [
   {
     id: 424,
     name: "pgn-mainnet",
-    rpc: z.string().parse(process.env.PGN_RPC_URL),
+    rpc: z
+      .string()
+      .default("https://rpc.publicgoods.network")
+      .parse(process.env.PGN_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 6, 12, 0, 0, 0),
     tokens: [
       {
@@ -394,7 +412,10 @@ export const CHAINS: Chain[] = [
   {
     id: 42161,
     name: "arbitrum",
-    rpc: z.string().parse(process.env.ARBITRUM_RPC_URL),
+    rpc: z
+      .string()
+      .default("https://arb-mainnet.g.alchemy.com/v2/")
+      .parse(process.env.ARBITRUM_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 8, 1, 0, 0, 0),
     tokens: [
       {
