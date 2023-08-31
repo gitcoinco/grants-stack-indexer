@@ -55,7 +55,15 @@ async function main(): Promise<void> {
     msg: "starting",
     buildTag: config.buildTag,
     deploymentEnvironment: config.deploymentEnvironment,
-    chains: config.chains.map((c) => c.name),
+    chains: config.chains.map(
+      (c) =>
+        c.name +
+        " (rpc: " +
+        c.rpc.slice(0, 25) +
+        "..." +
+        c.rpc.slice(-5, -1) +
+        ")"
+    ),
   });
 
   // Promise will be resolved once the catchup is done. Afterwards, services

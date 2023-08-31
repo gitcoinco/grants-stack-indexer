@@ -11,3 +11,6 @@ pre-push:
     eslint:
       glob: "*.{js,ts,jsx,tsx}"
       run: npm run lint {staged_files}
+    typecheck:
+      glob: "*.{js,ts,jsx,tsx}"
+      run: npm run typecheck

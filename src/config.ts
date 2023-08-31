@@ -4,7 +4,7 @@ import { ToBlock } from "chainsauce";
 import { z } from "zod";
 
 type ChainId = number;
-type CoingeckoSupportedChainId = 1 | 10 | 250;
+type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161;
 
 export type Token = {
   code: string;
@@ -34,7 +34,10 @@ export const CHAINS: Chain[] = [
   {
     id: 1,
     name: "mainnet",
-    rpc: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY ?? ""}`,
+    rpc: z
+      .string()
+      .default("https://mainnet.infura.io/v3/")
+      .parse(process.env.MAINNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -85,7 +88,10 @@ export const CHAINS: Chain[] = [
   {
     id: 5,
     name: "goerli",
-    rpc: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY ?? ""}`,
+    rpc: z
+      .string()
+      .default("https://goerli.infura.io/v3/")
+      .parse(process.env.GOERLI_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -153,9 +159,10 @@ export const CHAINS: Chain[] = [
   {
     id: 10,
     name: "optimism",
-    rpc: `https://opt-mainnet.g.alchemy.com/v2/${
-      process.env.ALCHEMY_API_KEY ?? ""
-    }`,
+    rpc: z
+      .string()
+      .default("https://opt-mainnet.g.alchemy.com/v2/")
+      .parse(process.env.OPTIMISM_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -206,7 +213,10 @@ export const CHAINS: Chain[] = [
   {
     id: 250,
     name: "fantom",
-    rpc: "https://rpcapi.fantom.network",
+    rpc: z
+      .string()
+      .default("https://rpcapi.fantom.network")
+      .parse(process.env.FANTOM_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -267,7 +277,10 @@ export const CHAINS: Chain[] = [
   {
     id: 58008,
     name: "pgn-testnet",
-    rpc: "https://sepolia.publicgoods.network",
+    rpc: z
+      .string()
+      .default("https://sepolia.publicgoods.network")
+      .parse(process.env.PGN_TESTNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 6, 12, 0, 0, 0),
     tokens: [
       {
@@ -309,7 +322,10 @@ export const CHAINS: Chain[] = [
   {
     id: 424,
     name: "pgn-mainnet",
-    rpc: "https://rpc.publicgoods.network",
+    rpc: z
+      .string()
+      .default("https://rpc.publicgoods.network")
+      .parse(process.env.PGN_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 6, 12, 0, 0, 0),
     tokens: [
       {
@@ -336,6 +352,128 @@ export const CHAINS: Chain[] = [
         address: "0x2AFA4bE0f2468347A2F086c2167630fb1E58b725",
         abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
         fromBlock: 0,
+      },
+    ],
+  },
+  {
+    id: 42161,
+    name: "arbitrum",
+    rpc: z
+      .string()
+      .default("https://arb-mainnet.g.alchemy.com/v2/")
+      .parse(process.env.ARBITRUM_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2023, 8, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "USDC",
+        address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+        decimals: 6,
+        priceSource: {
+          chainId: 42161,
+          address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+        },
+      },
+      {
+        code: "ARB",
+        address: "0x912ce59144191c1204e64559fe8253a0e49e6548",
+        decimals: 18,
+        priceSource: {
+          chainId: 42161,
+          address: "0x912ce59144191c1204e64559fe8253a0e49e6548",
+        },
+      },
+      {
+        code: "DAI",
+        address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        decimals: 18,
+        priceSource: {
+          chainId: 42161,
+          address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        },
+      },
+      {
+        code: "ETH",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 42161,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+    ],
+    subscriptions: [
+      {
+        address: "0x73AB205af1476Dc22104A6B8b3d4c273B58C6E27",
+        abi: "#abis/v2/ProjectRegistry.json",
+      },
+      {
+        address: "0xF2a07728107B04266015E67b1468cA0a536956C8",
+        abi: "#abis/v2/RoundFactory.json",
+      },
+      {
+        address: "0xC3A195EEa198e74D67671732E1B8F8A23781D735",
+        abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
+      },
+    ],
+  },
+  {
+    id: 421613,
+    name: "arbitrum-goerli",
+    rpc: z
+      .string()
+      .default("https://arb-goerli.g.alchemy.com/v2/")
+      .parse(process.env.ARBITRUM_GOERLI_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2023, 8, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "USDC",
+        address: "0xfd064A18f3BF249cf1f87FC203E90D8f650f2d63",
+        decimals: 6,
+        priceSource: {
+          chainId: 42161,
+          address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+        },
+      },
+      {
+        code: "ARB",
+        address: "0xB50721BCf8d664c30412Cfbc6cf7a15145234ad1",
+        decimals: 18,
+        priceSource: {
+          chainId: 42161,
+          address: "0x912ce59144191c1204e64559fe8253a0e49e6548",
+        },
+      },
+      {
+        code: "DAI",
+        address: "0x02668f5a60D637D21e39689B68B675ed4A7B696d",
+        decimals: 18,
+        priceSource: {
+          chainId: 42161,
+          address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        },
+      },
+      {
+        code: "ETH",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 42161,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+    ],
+    subscriptions: [
+      {
+        address: "0x0CD135777dEaB6D0Bb150bDB0592aC9Baa4d0871",
+        abi: "#abis/v2/ProjectRegistry.json",
+      },
+      {
+        address: "0xdf25423c9ec15347197Aa5D3a41c2ebE27587D59",
+        abi: "#abis/v2/RoundFactory.json",
+      },
+      {
+        address: "0x0BFA0AAF5f2D81f859e85C8E82A3fc5b624fc6E8",
+        abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
       },
     ],
   },

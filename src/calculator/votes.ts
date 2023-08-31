@@ -1,7 +1,6 @@
 import { Chain } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
 import type { PassportScore, PassportProvider } from "../passport/index.js";
-import { applyVoteCap } from "./tokensSettings.js";
 
 type VoteWithCoefficient = Vote & {
   coefficient: number;
@@ -100,4 +99,28 @@ export async function getVotesWithCoefficients(
   });
 
   return (await Promise.all(votePromises)).flat();
+}
+
+export function applyVoteCap(chain: Chain, vote: Vote): Vote {
+  const tokenConfig = chain.tokens.find(
+    (t) => t.address.toLowerCase() === vote.token.toLowerCase()
+  );
+
+  if (tokenConfig === undefined) {
+    throw new Error(`Unknown token: ${vote.token}`);
+  }
+
+  const { voteAmountCap } = tokenConfig;
+  if (voteAmountCap === undefined) {
+    return vote;
+  } else {
+    // amount : amountRoundToken = voteAmountCap : newAmountRoundToken
+    const newAmountRoundToken =
+      (BigInt(vote.amountRoundToken) * voteAmountCap) / BigInt(vote.amount);
+
+    return {
+      ...vote,
+      amountRoundToken: newAmountRoundToken.toString(),
+    };
+  }
 }

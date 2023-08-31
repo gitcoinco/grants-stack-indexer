@@ -1,6 +1,7 @@
 data
 .env
 .cache
+/storage
 dist
 node_modules
 .idea

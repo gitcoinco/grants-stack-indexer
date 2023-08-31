@@ -12,6 +12,7 @@
     "lint": "eslint src",
     "test": "vitest run --reporter verbose",
     "test:watch": "vitest watch --reporter verbose",
+    "typecheck": "tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
     "deploy:development": "docker buildx build . -t registry.fly.io/indexer-development:latest && docker push registry.fly.io/indexer-development:latest && flyctl -c fly.development.toml --app indexer-development deploy -i registry.fly.io/indexer-development:latest"
   },
