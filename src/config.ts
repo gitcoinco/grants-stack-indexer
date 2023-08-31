@@ -362,7 +362,7 @@ export const CHAINS: Chain[] = [
       .string()
       .default("https://arb-mainnet.g.alchemy.com/v2/")
       .parse(process.env.ARBITRUM_RPC_URL),
-    pricesFromTimestamp: Date.UTC(2023, 8, 1, 0, 0, 0),
+    pricesFromTimestamp: Date.UTC(2023, 7, 1, 0, 0, 0),
     tokens: [
       {
         code: "USDC",
@@ -423,7 +423,7 @@ export const CHAINS: Chain[] = [
       .string()
       .default("https://arb-goerli.g.alchemy.com/v2/")
       .parse(process.env.ARBITRUM_GOERLI_RPC_URL),
-    pricesFromTimestamp: Date.UTC(2023, 8, 1, 0, 0, 0),
+    pricesFromTimestamp: Date.UTC(2023, 7, 1, 0, 0, 0),
     tokens: [
       {
         code: "USDC",
