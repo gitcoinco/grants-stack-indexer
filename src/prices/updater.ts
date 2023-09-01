@@ -66,7 +66,10 @@ export function createPriceUpdater(
     try {
       const { rpcProvider: provider } = config;
 
-      logger.debug(`updating prices to block: ${toBlock}`);
+      logger.debug({
+        msg: `updating prices to block: ${toBlock}`,
+        fromTimestamp: new Date(config.chain.pricesFromTimestamp),
+      });
       const currentPrices = await readPricesFile(
         config.chain.id,
         config.storageDir
