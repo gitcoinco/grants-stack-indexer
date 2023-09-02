@@ -20,7 +20,7 @@ export type Subscription = {
   address: string;
   abi: ethers.ContractInterface;
   fromBlock?: number;
-  events?: Record<string, string>;
+  eventsRenames?: Record<string, string>;
 };
 
 export type Chain = {
@@ -32,12 +32,13 @@ export type Chain = {
   subscriptions: Subscription[];
 };
 
-export const CHAINS: Chain[] = [
+const rpcUrl = z.string().url();
+
+const CHAINS: Chain[] = [
   {
     id: 1,
     name: "mainnet",
-    rpc: z
-      .string()
+    rpc: rpcUrl
       .default("https://mainnet.infura.io/v3/")
       .parse(process.env.MAINNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
@@ -90,8 +91,7 @@ export const CHAINS: Chain[] = [
   {
     id: 5,
     name: "goerli",
-    rpc: z
-      .string()
+    rpc: rpcUrl
       .default("https://goerli.infura.io/v3/")
       .parse(process.env.GOERLI_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
@@ -132,7 +132,7 @@ export const CHAINS: Chain[] = [
       {
         address: "0x5770b7a57BD252FC4bB28c9a70C9572aE6400E48",
         abi: abis.v1.RoundFactory,
-        events: {
+        eventsRenames: {
           RoundCreated: "RoundCreatedV1",
         },
       },
@@ -161,8 +161,7 @@ export const CHAINS: Chain[] = [
   {
     id: 10,
     name: "optimism",
-    rpc: z
-      .string()
+    rpc: rpcUrl
       .default("https://opt-mainnet.g.alchemy.com/v2/")
       .parse(process.env.OPTIMISM_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
@@ -215,8 +214,7 @@ export const CHAINS: Chain[] = [
   {
     id: 250,
     name: "fantom",
-    rpc: z
-      .string()
+    rpc: rpcUrl
       .default("https://rpcapi.fantom.network")
       .parse(process.env.FANTOM_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
@@ -279,8 +277,7 @@ export const CHAINS: Chain[] = [
   {
     id: 58008,
     name: "pgn-testnet",
-    rpc: z
-      .string()
+    rpc: rpcUrl
       .default("https://sepolia.publicgoods.network")
       .parse(process.env.PGN_TESTNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 6, 12, 0, 0, 0),
@@ -324,8 +321,7 @@ export const CHAINS: Chain[] = [
   {
     id: 424,
     name: "pgn-mainnet",
-    rpc: z
-      .string()
+    rpc: rpcUrl
       .default("https://rpc.publicgoods.network")
       .parse(process.env.PGN_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 6, 12, 0, 0, 0),
@@ -360,8 +356,7 @@ export const CHAINS: Chain[] = [
   {
     id: 42161,
     name: "arbitrum",
-    rpc: z
-      .string()
+    rpc: rpcUrl
       .default("https://arb-mainnet.g.alchemy.com/v2/")
       .parse(process.env.ARBITRUM_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 7, 1, 0, 0, 0),
@@ -421,8 +416,7 @@ export const CHAINS: Chain[] = [
   {
     id: 421613,
     name: "arbitrum-goerli",
-    rpc: z
-      .string()
+    rpc: rpcUrl
       .default("https://arb-goerli.g.alchemy.com/v2/")
       .parse(process.env.ARBITRUM_GOERLI_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 7, 1, 0, 0, 0),
@@ -481,20 +475,34 @@ export const CHAINS: Chain[] = [
   },
 ];
 
-// mapping of chain id => token address => decimals
-export const tokenDecimals = Object.fromEntries(
-  CHAINS.map((chain) => {
-    return [
-      chain.id,
-      Object.fromEntries(
-        chain.tokens.map((token) => [
-          token.address.toLowerCase(),
-          token.decimals,
-        ])
-      ),
-    ];
-  })
-);
+export const getDecimalsForToken = (
+  chainId: ChainId,
+  tokenAddress: string
+): number => {
+  const chain = CHAINS.find((c) => c.id === chainId);
+  if (chain === undefined) {
+    throw new Error(`No such chain: ${chainId}`);
+  }
+
+  const token = chain.tokens.find(
+    (t) => t.address.toLowerCase() === tokenAddress
+  );
+  if (token === undefined) {
+    throw new Error(
+      `No such token: ${tokenAddress} configured for chain ${chainId}`
+    );
+  }
+
+  return token.decimals;
+};
+
+export const getChainConfigById = (chainId: ChainId): Chain => {
+  const chain = CHAINS.find((c) => c.id === chainId);
+  if (chain === undefined) {
+    throw new Error(`Chain not configured: ${chainId}`);
+  }
+  return chain;
+};
 
 export type Config = {
   buildTag: string | null;
