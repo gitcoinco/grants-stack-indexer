@@ -1,10 +1,12 @@
 import "dotenv/config";
+import { ethers } from "ethers";
 import { parseArgs } from "node:util";
 import { ToBlock } from "chainsauce";
 import { z } from "zod";
+import * as abis from "./indexer/abis/index.js";
 
 type ChainId = number;
-type CoingeckoSupportedChainId = 1 | 10 | 250;
+type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161;
 
 export type Token = {
   code: string;
@@ -16,7 +18,7 @@ export type Token = {
 
 export type Subscription = {
   address: string;
-  abi: string;
+  abi: ethers.ContractInterface;
   fromBlock?: number;
   events?: Record<string, string>;
 };
@@ -34,7 +36,10 @@ export const CHAINS: Chain[] = [
   {
     id: 1,
     name: "mainnet",
-    rpc: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY ?? ""}`,
+    rpc: z
+      .string()
+      .default("https://mainnet.infura.io/v3/")
+      .parse(process.env.MAINNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -68,16 +73,16 @@ export const CHAINS: Chain[] = [
     subscriptions: [
       {
         address: "0x03506eD3f57892C85DB20C36846e9c808aFe9ef4",
-        abi: "#abis/v2/ProjectRegistry.json",
+        abi: abis.v2.ProjectRegistry,
       },
       {
         address: "0x9Cb7f434aD3250d1656854A9eC7A71EceC6eE1EF",
-        abi: "#abis/v2/RoundFactory.json",
+        abi: abis.v2.RoundFactory,
         fromBlock: 16994474,
       },
       {
         address: "0x4a850F463D1C4842937c5Bc9540dBc803D744c9F",
-        abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
         fromBlock: 16994526,
       },
     ],
@@ -85,18 +90,12 @@ export const CHAINS: Chain[] = [
   {
     id: 5,
     name: "goerli",
-    rpc: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY ?? ""}`,
+    rpc: z
+      .string()
+      .default("https://goerli.infura.io/v3/")
+      .parse(process.env.GOERLI_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
-      {
-        code: "USDC",
-        address: "0xd35CCeEAD182dcee0F148EbaC9447DA2c4D449c4",
-        decimals: 6,
-        priceSource: {
-          chainId: 1,
-          address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-        },
-      },
       {
         code: "USDC",
         address: "0x07865c6E87B9F70255377e024ace6630C1Eaa37F",
@@ -104,15 +103,6 @@ export const CHAINS: Chain[] = [
         priceSource: {
           chainId: 1,
           address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-        },
-      },
-      {
-        code: "DAI",
-        address: "0x73967c6a0904aA032C103b4104747E88c566B1A2",
-        decimals: 18,
-        priceSource: {
-          chainId: 1,
-          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
         },
       },
       {
@@ -133,55 +123,37 @@ export const CHAINS: Chain[] = [
           address: "0x0000000000000000000000000000000000000000",
         },
       },
-      {
-        code: "BUSD",
-        address: "0xa7c3bf25ffea8605b516cf878b7435fe1768c89b",
-        decimals: 18,
-        priceSource: {
-          chainId: 1,
-          address: "0x4fabb145d64652a948d72533023f6e7a623c7c53",
-        },
-      },
-      {
-        code: "TEST",
-        address: "0xbaa146619512b97216991ba37ae74de213605f8e",
-        decimals: 18,
-        priceSource: {
-          chainId: 1,
-          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-        },
-      },
     ],
     subscriptions: [
       {
         address: "0x832c5391dc7931312CbdBc1046669c9c3A4A28d5",
-        abi: "#abis/v1/ProjectRegistry.json",
+        abi: abis.v1.ProjectRegistry,
       },
       {
         address: "0x5770b7a57BD252FC4bB28c9a70C9572aE6400E48",
-        abi: "#abis/v1/RoundFactory.json",
+        abi: abis.v1.RoundFactory,
         events: {
           RoundCreated: "RoundCreatedV1",
         },
       },
       {
         address: "0xa71864fAd36439C50924359ECfF23Bb185FFDf21",
-        abi: "#abis/v2/ProjectRegistry.json",
+        abi: abis.v2.ProjectRegistry,
         fromBlock: 8738420,
       },
       {
         address: "0x24F9EBFAdf095e0afe3d98635ee83CD72e49B5B0",
-        abi: "#abis/v2/RoundFactory.json",
+        abi: abis.v2.RoundFactory,
         fromBlock: 8738430,
       },
       {
         address: "0x06A6Cc566c5A88E77B1353Cdc3110C2e6c828e38",
-        abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
         fromBlock: 8790265,
       },
       {
         address: "0x0077551e24bfB910aBABedC4336246e34B5fB0A2",
-        abi: "#abis/v2/DirectPayoutStrategyFactory.json",
+        abi: abis.v2.DirectPayoutStrategyFactory,
         fromBlock: 9284367,
       },
     ],
@@ -189,9 +161,10 @@ export const CHAINS: Chain[] = [
   {
     id: 10,
     name: "optimism",
-    rpc: `https://opt-mainnet.g.alchemy.com/v2/${
-      process.env.ALCHEMY_API_KEY ?? ""
-    }`,
+    rpc: z
+      .string()
+      .default("https://opt-mainnet.g.alchemy.com/v2/")
+      .parse(process.env.OPTIMISM_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -225,16 +198,16 @@ export const CHAINS: Chain[] = [
     subscriptions: [
       {
         address: "0x8e1bD5Da87C14dd8e08F7ecc2aBf9D1d558ea174",
-        abi: "#abis/v2/ProjectRegistry.json",
+        abi: abis.v2.ProjectRegistry,
       },
       {
         address: "0x04E753cFB8c8D1D7f776f7d7A033740961b6AEC2",
-        abi: "#abis/v2/RoundFactory.json",
+        abi: abis.v2.RoundFactory,
         fromBlock: 87169287,
       },
       {
         address: "0x838C5e10dcc1e54d62761d994722367BA167AC22",
-        abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
         fromBlock: 87168143,
       },
     ],
@@ -242,7 +215,10 @@ export const CHAINS: Chain[] = [
   {
     id: 250,
     name: "fantom",
-    rpc: "https://rpcapi.fantom.network",
+    rpc: z
+      .string()
+      .default("https://rpcapi.fantom.network")
+      .parse(process.env.FANTOM_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -282,29 +258,20 @@ export const CHAINS: Chain[] = [
           address: "0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E",
         },
       },
-      {
-        code: "Unknown",
-        address: "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
-        decimals: 18,
-        priceSource: {
-          chainId: 250,
-          address: "0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E",
-        },
-      },
     ],
     subscriptions: [
       {
         address: "0x8e1bD5Da87C14dd8e08F7ecc2aBf9D1d558ea174",
-        abi: "#abis/v2/ProjectRegistry.json",
+        abi: abis.v2.ProjectRegistry,
       },
       {
         address: "0xfb08d1fD3a7c693677eB096E722ABf4Ae63B0B95",
-        abi: "#abis/v2/RoundFactory.json",
+        abi: abis.v2.RoundFactory,
         fromBlock: 66509340,
       },
       {
         address: "0x534d2AAc03dCd0Cb3905B591BAf04C14A95426AB",
-        abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
         fromBlock: 66509340,
       },
     ],
@@ -312,7 +279,10 @@ export const CHAINS: Chain[] = [
   {
     id: 58008,
     name: "pgn-testnet",
-    rpc: "https://sepolia.publicgoods.network",
+    rpc: z
+      .string()
+      .default("https://sepolia.publicgoods.network")
+      .parse(process.env.PGN_TESTNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 6, 12, 0, 0, 0),
     tokens: [
       {
@@ -333,29 +303,20 @@ export const CHAINS: Chain[] = [
           address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
         },
       },
-      {
-        code: "FakeDAI",
-        address: "0x278d181b9B6caE41EF4BA9cF236cB18d91a1f358",
-        decimals: 18,
-        priceSource: {
-          chainId: 1,
-          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-        },
-      },
     ],
     subscriptions: [
       {
         address: "0x6294bed5B884Ae18bf737793Ef9415069Bf4bc11",
-        abi: "#abis/v2/ProjectRegistry.json",
+        abi: abis.v2.ProjectRegistry,
       },
       {
         address: "0x0479b9DA9f287539FEBd597350B1eBaEBF7479ac",
-        abi: "#abis/v2/RoundFactory.json",
+        abi: abis.v2.RoundFactory,
         fromBlock: 0,
       },
       {
         address: "0xE8027a807Bb85e57da4B7A5ecE65b0aBDf231ce8",
-        abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
         fromBlock: 0,
       },
     ],
@@ -363,7 +324,10 @@ export const CHAINS: Chain[] = [
   {
     id: 424,
     name: "pgn-mainnet",
-    rpc: "https://rpc.publicgoods.network",
+    rpc: z
+      .string()
+      .default("https://rpc.publicgoods.network")
+      .parse(process.env.PGN_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 6, 12, 0, 0, 0),
     tokens: [
       {
@@ -379,17 +343,139 @@ export const CHAINS: Chain[] = [
     subscriptions: [
       {
         address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
-        abi: "#abis/v2/ProjectRegistry.json",
+        abi: abis.v2.ProjectRegistry,
       },
       {
         address: "0x8AdFcF226dfb2fA73788Ad711C958Ba251369cb3",
-        abi: "#abis/v2/RoundFactory.json",
+        abi: abis.v2.RoundFactory,
         fromBlock: 0,
       },
       {
         address: "0x2AFA4bE0f2468347A2F086c2167630fb1E58b725",
-        abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
         fromBlock: 0,
+      },
+    ],
+  },
+  {
+    id: 42161,
+    name: "arbitrum",
+    rpc: z
+      .string()
+      .default("https://arb-mainnet.g.alchemy.com/v2/")
+      .parse(process.env.ARBITRUM_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2023, 7, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "USDC",
+        address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+        decimals: 6,
+        priceSource: {
+          chainId: 42161,
+          address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+        },
+      },
+      {
+        code: "ARB",
+        address: "0x912ce59144191c1204e64559fe8253a0e49e6548",
+        decimals: 18,
+        priceSource: {
+          chainId: 42161,
+          address: "0x912ce59144191c1204e64559fe8253a0e49e6548",
+        },
+      },
+      {
+        code: "DAI",
+        address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        decimals: 18,
+        priceSource: {
+          chainId: 42161,
+          address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        },
+      },
+      {
+        code: "ETH",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 42161,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+    ],
+    subscriptions: [
+      {
+        address: "0x73AB205af1476Dc22104A6B8b3d4c273B58C6E27",
+        abi: "#abis/v2/ProjectRegistry.json",
+      },
+      {
+        address: "0xF2a07728107B04266015E67b1468cA0a536956C8",
+        abi: "#abis/v2/RoundFactory.json",
+      },
+      {
+        address: "0xC3A195EEa198e74D67671732E1B8F8A23781D735",
+        abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
+      },
+    ],
+  },
+  {
+    id: 421613,
+    name: "arbitrum-goerli",
+    rpc: z
+      .string()
+      .default("https://arb-goerli.g.alchemy.com/v2/")
+      .parse(process.env.ARBITRUM_GOERLI_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2023, 7, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "USDC",
+        address: "0xfd064A18f3BF249cf1f87FC203E90D8f650f2d63",
+        decimals: 6,
+        priceSource: {
+          chainId: 42161,
+          address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+        },
+      },
+      {
+        code: "ARB",
+        address: "0xB50721BCf8d664c30412Cfbc6cf7a15145234ad1",
+        decimals: 18,
+        priceSource: {
+          chainId: 42161,
+          address: "0x912ce59144191c1204e64559fe8253a0e49e6548",
+        },
+      },
+      {
+        code: "DAI",
+        address: "0x02668f5a60D637D21e39689B68B675ed4A7B696d",
+        decimals: 18,
+        priceSource: {
+          chainId: 42161,
+          address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        },
+      },
+      {
+        code: "ETH",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 42161,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+    ],
+    subscriptions: [
+      {
+        address: "0x0CD135777dEaB6D0Bb150bDB0592aC9Baa4d0871",
+        abi: "#abis/v2/ProjectRegistry.json",
+      },
+      {
+        address: "0xdf25423c9ec15347197Aa5D3a41c2ebE27587D59",
+        abi: "#abis/v2/RoundFactory.json",
+      },
+      {
+        address: "0x0BFA0AAF5f2D81f859e85C8E82A3fc5b624fc6E8",
+        abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
       },
     ],
   },

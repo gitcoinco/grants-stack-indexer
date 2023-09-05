@@ -11,7 +11,6 @@ import { access, constants } from "node:fs/promises";
 import readline from "node:readline";
 import { ethers } from "ethers";
 import { Chain } from "../config.js";
-import { importAbi } from "./utils.js";
 import { BigNumber } from "ethers";
 import { throttle } from "throttle-debounce";
 
@@ -135,7 +134,7 @@ export const createBlockchainListener = ({
     clearTimeout(pollTimeoutId);
   };
 
-  const listenToLiveEvents = async ({
+  const listenToLiveEvents = ({
     lastExaminedBlockNumber,
   }: {
     lastExaminedBlockNumber: number;
@@ -148,8 +147,7 @@ export const createBlockchainListener = ({
     for (const subscription of chain.subscriptions) {
       indexer.subscribe(
         subscription.address,
-        // XXX replace with statically imported ABIs to remove async
-        await importAbi(subscription.abi),
+        subscription.abi,
         Math.max(lastExaminedBlockNumber + 1, subscription.fromBlock ?? 0)
       );
     }

@@ -6,12 +6,14 @@ const platforms: { [key: number]: string } = {
   1: "ethereum",
   250: "fantom",
   10: "optimistic-ethereum",
+  42161: "arbitrum-one",
 };
 
 const nativeTokens: { [key: number]: string } = {
   1: "ethereum",
   250: "fantom",
   10: "ethereum",
+  42161: "ethereum",
 };
 
 type Timestamp = number;

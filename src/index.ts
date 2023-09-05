@@ -46,7 +46,15 @@ async function main(): Promise<void> {
     msg: "starting",
     buildTag: config.buildTag,
     deploymentEnvironment: config.deploymentEnvironment,
-    chains: config.chains.map((c) => c.name),
+    chains: config.chains.map(
+      (c) =>
+        c.name +
+        " (rpc: " +
+        c.rpc.slice(0, 25) +
+        "..." +
+        c.rpc.slice(-5, -1) +
+        ")"
+    ),
   });
 
   // Chain watchers don't depend on each other or on Passport provider, so they
@@ -91,131 +99,151 @@ async function catchupAndWatchPassport(
   config: Config,
   deps: { parentLogger: Logger }
 ): Promise<PassportProvider> {
-  const { parentLogger } = deps;
-  await fs.mkdir(config.storageDir, { recursive: true });
+  const logger = deps.parentLogger.child({ subsystem: "PassportProvider" });
+  try {
+    await fs.mkdir(config.storageDir, { recursive: true });
 
-  const passportProvider = createPassportProvider({
-    apiKey: config.passportApiKey,
-    logger: parentLogger.child({ subsystem: "PassportProvider" }),
-    scorerId: config.passportScorerId,
-    dbPath: path.join(config.storageDir, "..", "passport_scores.leveldb"),
-  });
+    const passportProvider = createPassportProvider({
+      apiKey: config.passportApiKey,
+      logger,
+      scorerId: config.passportScorerId,
+      dbPath: path.join(config.storageDir, "..", "passport_scores.leveldb"),
+      deprecatedJSONPassportDumpPath: path.join(
+        config.storageDir,
+        "passport_scores.json"
+      ),
+    });
 
-  await passportProvider.start({ watch: !config.runOnce });
+    await passportProvider.start({ watch: !config.runOnce });
 
-  return passportProvider;
+    return passportProvider;
+  } catch (err) {
+    logger.error({
+      msg: "error during initial catch up with passport",
+      err,
+    });
+    throw err;
+  }
 }
 
 async function catchupAndWatchChain(
   config: Omit<Config, "chains"> & { chain: Chain },
   deps: { parentLogger: Logger }
 ): Promise<void> {
-  const { parentLogger } = deps;
-
-  const chainLogger = parentLogger.child({
+  const logger = deps.parentLogger.child({
     chain: config.chain.id,
   });
 
-  const CHAIN_DIR_PATH = path.join(
-    config.storageDir,
-    config.chain.id.toString()
-  );
+  try {
+    const CHAIN_DIR_PATH = path.join(
+      config.storageDir,
+      config.chain.id.toString()
+    );
 
-  const rpcProvider = new RetryProvider({
-    url: config.chain.rpc,
-    timeout: 5 * 60 * 1000,
-  });
-
-  const priceProvider = createPriceProvider({
-    ...config,
-    logger: chainLogger.child({ subsystem: "PriceProvider" }),
-  });
-
-  const db = new JsonStorage(CHAIN_DIR_PATH);
-
-  const cachedIpfsGet = async <T>(cid: string): Promise<T | undefined> => {
-    const cidRegex = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[0-9A-Za-z]{50,})$/;
-    if (!cidRegex.test(cid)) {
-      chainLogger.warn(`Invalid IPFS CID: ${cid}`);
-      return undefined;
-    }
-
-    const res = await fetch(`${config.ipfsGateway}/ipfs/${cid}`, {
-      timeout: 2000,
-      retry: { retries: 10, maxTimeout: 60 * 1000 },
-      // IPFS data is immutable, we can rely entirely on the cache when present
-      cache: "force-cache",
-      cachePath:
-        config.cacheDir !== null
-          ? path.join(config.cacheDir, "ipfs")
-          : undefined,
+    const rpcProvider = new RetryProvider({
+      url: config.chain.rpc,
+      timeout: 5 * 60 * 1000,
     });
 
-    return (await res.json()) as T;
-  };
+    const priceProvider = createPriceProvider({
+      ...config,
+      logger: logger.child({ subsystem: "PriceProvider" }),
+    });
 
-  const pricesCache: Cache | null = config.cacheDir
-    ? new Cache(path.join(config.cacheDir, "prices"))
-    : null;
+    const db = new JsonStorage(CHAIN_DIR_PATH);
 
-  const priceUpdater = createPriceUpdater({
-    ...config,
-    rpcProvider,
-    chain: config.chain,
-    logger: chainLogger.child({ subsystem: "PriceUpdater" }),
-    withCacheFn:
-      pricesCache === null
-        ? undefined
-        : (cacheKey, fn) => pricesCache.lazy(cacheKey, fn),
-  });
+    const cachedIpfsGet = async <T>(cid: string): Promise<T | undefined> => {
+      const cidRegex = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[0-9A-Za-z]{50,})$/;
+      if (!cidRegex.test(cid)) {
+        logger.warn(`Invalid IPFS CID: ${cid}`);
+        return undefined;
+      }
 
-  chainLogger.debug(`removing data dir (${CHAIN_DIR_PATH}) to start fresh`);
-  await fs.rm(CHAIN_DIR_PATH, { force: true, recursive: true });
+      const res = await fetch(`${config.ipfsGateway}/ipfs/${cid}`, {
+        timeout: 2000,
+        retry: { retries: 10, maxTimeout: 60 * 1000 },
+        // IPFS data is immutable, we can rely entirely on the cache when present
+        cache: "force-cache",
+        cachePath:
+          config.cacheDir !== null
+            ? path.join(config.cacheDir, "ipfs")
+            : undefined,
+      });
 
-  await priceUpdater.start({
-    watch: !config.runOnce,
-    toBlock: config.toBlock,
-  });
+      return (await res.json()) as T;
+    };
 
-  const onBlockchainEvent = async (
-    event: ChainsauceEvent,
-    onContractInterfaceRequested: (
-      address: string,
-      abi: ethers.ContractInterface
-    ) => void
-  ): Promise<void> => {
-    await handleEvent(event, {
-      chainId: config.chain.id,
-      db: db,
-      ipfsGet: cachedIpfsGet,
-      priceProvider,
+    const pricesCache: Cache | null = config.cacheDir
+      ? new Cache(path.join(config.cacheDir, "prices"))
+      : null;
+
+    const priceUpdater = createPriceUpdater({
+      ...config,
+      rpcProvider,
+      chain: config.chain,
+      logger: logger.child({ subsystem: "PriceUpdater" }),
+      withCacheFn:
+        pricesCache === null
+          ? undefined
+          : (cacheKey, fn) => pricesCache.lazy(cacheKey, fn),
+    });
+
+    logger.debug(`removing data dir (${CHAIN_DIR_PATH}) to start fresh`);
+    await fs.rm(CHAIN_DIR_PATH, { force: true, recursive: true });
+
+    await priceUpdater.start({
+      watch: !config.runOnce,
+      toBlock: config.toBlock,
+    });
+
+    const onBlockchainEvent = async (
+      event: ChainsauceEvent,
+      onContractInterfaceRequested: (
+        address: string,
+        abi: ethers.ContractInterface
+      ) => void
+    ): Promise<void> => {
+      await handleEvent(event, {
+        chainId: config.chain.id,
+        db: db,
+        ipfsGet: cachedIpfsGet,
+        priceProvider,
+        logger: indexingLogger,
+        // XXX should rename to getContract
+        subscribe: (address, abi) => {
+          onContractInterfaceRequested(address, abi);
+          return new ethers.Contract(address, abi, rpcProvider);
+        },
+      });
+    };
+
+    const indexingLogger = logger.child({ subsystem: "DataUpdater" });
+
+    const blockchainListener = createBlockchainListener({
       logger: indexingLogger,
-      // XXX should rename to getContract
-      subscribe: (address, abi) => {
-        onContractInterfaceRequested(address, abi);
-        return new ethers.Contract(address, abi, rpcProvider);
-      },
+      onEvent: onBlockchainEvent,
+      rpcProvider,
+      eventLogPath:
+        config.cacheDir !== null && config.useExperimentalEventLog === true
+          ? path.join(config.cacheDir, `events-${config.chain.id}.ndjson`)
+          : null,
+      db: db,
+      chain: config.chain,
+      toBlock: config.toBlock,
     });
-  };
 
-  const indexingLogger = chainLogger.child({ subsystem: "DataUpdater" });
-
-  const blockchainListener = createBlockchainListener({
-    logger: indexingLogger,
-    onEvent: onBlockchainEvent,
-    rpcProvider,
-    eventLogPath:
-      config.cacheDir !== null && config.useExperimentalEventLog === true
-        ? path.join(config.cacheDir, `events-${config.chain.id}.ndjson`)
-        : null,
-    db: db,
-    chain: config.chain,
-    toBlock: config.toBlock,
-  });
-
-  const startTime = Date.now();
-  await blockchainListener.start({ waitForCatchup: true });
-  indexingLogger.info(
-    `initial blockchain catchup took ${(Date.now() - startTime) / 1000} seconds`
-  );
+    const startTime = Date.now();
+    await blockchainListener.start({ waitForCatchup: true });
+    indexingLogger.info(
+      `initial blockchain catchup took ${
+        (Date.now() - startTime) / 1000
+      } seconds`
+    );
+  } catch (err) {
+    logger.error({
+      msg: `error during initial catch up with chain ${config.chain.id}`,
+      err,
+    });
+    throw err;
+  }
 }
