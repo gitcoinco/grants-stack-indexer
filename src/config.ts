@@ -406,15 +406,15 @@ export const CHAINS: Chain[] = [
     subscriptions: [
       {
         address: "0x73AB205af1476Dc22104A6B8b3d4c273B58C6E27",
-        abi: "#abis/v2/ProjectRegistry.json",
+        abi: abis.v2.ProjectRegistry,
       },
       {
         address: "0xF2a07728107B04266015E67b1468cA0a536956C8",
-        abi: "#abis/v2/RoundFactory.json",
+        abi: abis.v2.RoundFactory,
       },
       {
         address: "0xC3A195EEa198e74D67671732E1B8F8A23781D735",
-        abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
       },
     ],
   },
@@ -467,15 +467,15 @@ export const CHAINS: Chain[] = [
     subscriptions: [
       {
         address: "0x0CD135777dEaB6D0Bb150bDB0592aC9Baa4d0871",
-        abi: "#abis/v2/ProjectRegistry.json",
+        abi: abis.v2.ProjectRegistry,
       },
       {
         address: "0xdf25423c9ec15347197Aa5D3a41c2ebE27587D59",
-        abi: "#abis/v2/RoundFactory.json",
+        abi: abis.v2.RoundFactory,
       },
       {
         address: "0x0BFA0AAF5f2D81f859e85C8E82A3fc5b624fc6E8",
-        abi: "#abis/v2/QuadraticFundingVotingStrategyFactory.json",
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
       },
     ],
   },
