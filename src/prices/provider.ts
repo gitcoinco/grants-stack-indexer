@@ -144,7 +144,9 @@ export function createPriceProvider(
       (p) => p.token === tokenAddress
     );
     if (pricesForToken.length === 0) {
-      throw new Error(`No prices found for token ${tokenAddress}`);
+      throw new Error(
+        `No prices found for token ${tokenAddress} on chain ${chainId}`
+      );
     }
 
     const firstAvailablePrice = pricesForToken.at(0)!;
