@@ -1,13 +1,52 @@
+import type { Logger } from "pino";
+
 // estimates block number for a given timestamp using block speed
-async function estimateBlockNumber(
-  targetTimestamp: number,
-  startBlock: number,
-  endBlock: number,
-  getBlockTimestamp: (blockNumber: number) => Promise<number>
-): Promise<number> {
+export const estimateBlockNumber = ({
+  logger,
+  ...params
+}: {
+  targetTimestamp: number;
+  startBlock: number;
+  endBlock: number;
+  startTimestamp: number;
+  endTimestamp: number;
+  logger?: Logger;
+}): number => {
+  const {
+    targetTimestamp,
+    startBlock,
+    endBlock,
+    startTimestamp,
+    endTimestamp,
+  } = params;
+
+  if (targetTimestamp < startTimestamp) {
+    logger?.trace({
+      msg: "Block estimation: Target timestamp is earlier than start timestamp",
+      diffSecs: startTimestamp - targetTimestamp,
+      params,
+    });
+  }
+  if (targetTimestamp > endTimestamp) {
+    logger?.trace({
+      msg: "Block estimation: Target timestamp is later than start timestamp",
+      params,
+    });
+  }
+  if (startTimestamp > endTimestamp) {
+    logger?.trace({
+      msg: "Block estimation: End timestamp is earlier than start timestamp",
+      params,
+    });
+  }
+  if (startBlock > endBlock) {
+    logger?.trace({
+      msg: "Block estimation: Start block is later than end block",
+      params,
+    });
+  }
+
   const blockDistance = Math.abs(endBlock - startBlock);
-  const startTimestamp = await getBlockTimestamp(startBlock);
-  const endTimestamp = await getBlockTimestamp(endBlock);
   const timeDistanceInSeconds = Math.abs(endTimestamp - startTimestamp);
 
   // Estimate blocks per second
@@ -16,25 +55,11 @@ async function estimateBlockNumber(
   // Now, you can use `blocksPerSecond` to adjust your block number estimation.
   // For instance, if you know the target timestamp is X seconds away from startTimestamp, you could estimate:
   const secondsToTarget = targetTimestamp - startTimestamp;
-  if (secondsToTarget < 0) {
-    throw new Error(
-      `Estimated block is negative, this probably means that the timestamp precedes the deployment of the chain. Check chain config and ensure that pricesFromTimestamp() is correct. (${JSON.stringify(
-        {
-          targetTimestamp,
-          startBlock,
-          endBlock,
-          startTimestamp,
-          endTimestamp,
-          timeDistanceInSeconds,
-        }
-      )})`
-    );
-  }
   const estimatedBlocksToTarget = blocksPerSecond * secondsToTarget;
   const estimatedBlockNumber = startBlock + Math.round(estimatedBlocksToTarget);
 
   return estimatedBlockNumber;
-}
+};
 
 /**
  * Finds the closest block number for a given timestamp,
@@ -53,7 +78,8 @@ export async function getBlockFromTimestamp(
   timestampInMs: number,
   startBlock: number,
   endBlock: number,
-  getBlockTimestamp: (blockNumber: number) => Promise<number>
+  getBlockTimestamp: (blockNumber: number) => Promise<number>,
+  logger: Logger
 ): Promise<number> {
   const blockEstimationThreshold = 10000;
   const targetTimestamp = Math.floor(timestampInMs / 1000);
@@ -90,30 +116,36 @@ export async function getBlockFromTimestamp(
     // cache friendly
     blockNumber = Math.round(blockNumber / base) * base;
 
-    // get the current block timestamp
-    const blockTimestamp = await getBlockTimestamp(blockNumber);
+    const [blockTimestamp, endTimestamp] = await Promise.all([
+      getBlockTimestamp(blockNumber),
+      getBlockTimestamp(end),
+    ]);
 
     if (blockTimestamp < targetTimestamp) {
       // The target timestamp is in the second half of the search range
 
       if (end - blockNumber < blockEstimationThreshold) {
-        return estimateBlockNumber(
+        return estimateBlockNumber({
+          startBlock: blockNumber,
+          endBlock: end,
+          startTimestamp: blockTimestamp,
           targetTimestamp,
-          blockNumber,
-          end,
-          getBlockTimestamp
-        );
+          endTimestamp,
+          logger,
+        });
       }
 
       start = blockNumber + 1;
     } else if (blockTimestamp > targetTimestamp) {
       if (blockNumber - start < blockEstimationThreshold) {
-        return estimateBlockNumber(
+        return estimateBlockNumber({
+          startBlock: start,
+          endBlock: blockNumber,
+          startTimestamp: blockTimestamp,
           targetTimestamp,
-          start,
-          blockNumber,
-          getBlockTimestamp
-        );
+          endTimestamp,
+          logger,
+        });
       }
       // The target timestamp is in the first half of the search range
       end = blockNumber - 1;

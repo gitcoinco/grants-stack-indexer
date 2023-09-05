@@ -144,7 +144,8 @@ export function createPriceUpdater(
                 timestamp,
                 0,
                 lastBlockNumber,
-                getBlockTimestamp
+                getBlockTimestamp,
+                logger
               );
 
               newPrices.push({
