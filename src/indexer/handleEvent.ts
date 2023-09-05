@@ -14,8 +14,8 @@ import {
 } from "./types.js";
 import { Event } from "./events.js";
 import { RoundContract, DirectPayoutContract } from "./contracts.js";
-import { importAbi } from "./utils.js";
 import { PriceProvider } from "../prices/provider.js";
+import * as abis from "./abis/index.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
@@ -180,14 +180,14 @@ async function handleEvent(
       if (event.name === "RoundCreatedV1") {
         contract = subscribe(
           event.args.roundAddress,
-          await importAbi("#abis/v1/RoundImplementation.json"),
+          abis.v1.RoundImplementation,
           event.blockNumber
         ) as RoundContract;
         matchAmountPromise = BigNumber.from("0");
       } else {
         contract = subscribe(
           event.args.roundAddress,
-          await importAbi("#abis/v2/RoundImplementation.json"),
+          abis.v2.RoundImplementation,
           event.blockNumber
         ) as RoundContract;
         matchAmountPromise = contract.matchAmount();
@@ -455,20 +455,7 @@ async function handleEvent(
     case "VotingContractCreatedV1": {
       subscribe(
         event.args.votingContractAddress,
-        await importAbi(
-          "#abis/v1/QuadraticFundingVotingStrategyImplementation.json"
-        ),
-        event.blockNumber
-      );
-      break;
-    }
-
-    case "VotingContractCreatedV3": {
-      subscribe(
-        event.args.votingContractAddress,
-        await importAbi(
-          "#abis/v3/QuadraticFundingVotingStrategyImplementation.json"
-        ),
+        abis.v1.QuadraticFundingVotingStrategyImplementation,
         event.blockNumber
       );
       break;
@@ -477,9 +464,7 @@ async function handleEvent(
     case "VotingContractCreated": {
       subscribe(
         event.args.votingContractAddress,
-        await importAbi(
-          "#abis/v2/QuadraticFundingVotingStrategyImplementation.json"
-        ),
+        abis.v2.QuadraticFundingVotingStrategyImplementation,
         event.blockNumber
       );
       break;
@@ -715,11 +700,7 @@ async function handleEvent(
     case "PayoutContractCreated": {
       subscribe(
         event.args.payoutContractAddress,
-        (
-          await import("#abis/v2/DirectPayoutStrategyImplementation.json", {
-            assert: { type: "json" },
-          })
-        ).default,
+        abis.v2.DirectPayoutStrategyImplementation,
         event.blockNumber
       );
       break;
@@ -728,11 +709,7 @@ async function handleEvent(
     case "ApplicationInReviewUpdated": {
       const contract = subscribe(
         event.address,
-        (
-          await import("#abis/v2/DirectPayoutStrategyImplementation.json", {
-            assert: { type: "json" },
-          })
-        ).default,
+        abis.v2.DirectPayoutStrategyImplementation,
         event.blockNumber
       ) as DirectPayoutContract;
 
