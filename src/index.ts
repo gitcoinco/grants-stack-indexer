@@ -230,14 +230,23 @@ async function catchupAndWatchChain(
       rpcProvider,
       storage,
       (indexer: Indexer<JsonStorage>, event: ChainsauceEvent) => {
-        return handleEvent(event, {
-          chainId: config.chain.id,
-          db: storage,
-          subscribe: (...args) => indexer.subscribe(...args),
-          ipfsGet: cachedIpfsGet,
-          priceProvider,
-          logger: indexerLogger,
-        });
+        try {
+          return handleEvent(event, {
+            chainId: config.chain.id,
+            db: storage,
+            subscribe: (...args) => indexer.subscribe(...args),
+            ipfsGet: cachedIpfsGet,
+            priceProvider,
+            logger: indexerLogger,
+          });
+        } catch (err) {
+          indexerLogger.warn({
+            msg: "skipping event due to error while processing",
+            err,
+            event,
+          });
+          throw err;
+        }
       },
       {
         toBlock: config.toBlock,
