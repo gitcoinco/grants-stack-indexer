@@ -290,15 +290,15 @@ async function handleEvent(
     }
 
     case "MatchAmountUpdated": {
-      return matchAmountUpdated(event, { priceProvider, db, chainId });
+      return await matchAmountUpdated(event, { priceProvider, db, chainId });
     }
 
     case "RoundMetaPtrUpdated": {
-      return roundMetaPtrUpdated(event, { ipfsGet, db });
+      return await roundMetaPtrUpdated(event, { ipfsGet, db });
     }
 
     case "ApplicationMetaPtrUpdated": {
-      return applicationMetaPtrUpdated(event, { ipfsGet, db });
+      return await applicationMetaPtrUpdated(event, { ipfsGet, db });
     }
 
     case "NewProjectApplication": {
