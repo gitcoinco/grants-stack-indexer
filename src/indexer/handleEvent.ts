@@ -3,7 +3,7 @@ import { JsonStorage, Event as ChainsauceEvent } from "chainsauce";
 import { BigNumber, ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
 
-import { CHAINS, tokenDecimals } from "../config.js";
+import { getChainConfigById } from "../config.js";
 import {
   Application,
   Contributor,
@@ -42,17 +42,21 @@ function fullProjectId(
   );
 }
 
-// mapping of chain id => address => event name => renamed event name
-const eventRenames = Object.fromEntries(
-  CHAINS.map((chain) => {
-    return [
-      chain.id,
-      Object.fromEntries(
-        chain.subscriptions.map((sub) => [sub.address, sub.events])
-      ),
-    ];
-  })
-);
+const getFinalEventName = (
+  chainId: number,
+  originalEvent: ChainsauceEvent
+): string => {
+  const chain = getChainConfigById(chainId);
+  const eventRenamesForChain = Object.fromEntries(
+    chain.subscriptions.map((sub) => [sub.address, sub.eventsRenames])
+  );
+
+  const finalName =
+    eventRenamesForChain[originalEvent.address]?.[originalEvent.name] ??
+    originalEvent.name;
+
+  return finalName;
+};
 
 function updateApplicationStatus(
   application: Application,
@@ -92,9 +96,7 @@ async function handleEvent(
 ) {
   const { db, subscribe, ipfsGet, priceProvider, chainId, logger } = deps;
 
-  const eventName =
-    eventRenames[chainId]?.[originalEvent.address]?.[originalEvent.name] ??
-    originalEvent.name;
+  const eventName = getFinalEventName(chainId, originalEvent);
 
   const event = {
     ...originalEvent,
@@ -249,19 +251,17 @@ async function handleEvent(
         db.collection(`rounds/${roundId}/applications`).replaceAll([]),
         db.collection(`rounds/${roundId}/votes`).replaceAll([]),
         db.collection(`rounds/${roundId}/contributors`).replaceAll([]),
-        tokenDecimals[chainId][token]
-          ? matchAmountUpdated(
-              {
-                ...event,
-                name: "MatchAmountUpdated",
-                address: event.args.roundAddress,
-                args: {
-                  newAmount: matchAmount,
-                },
-              },
-              { priceProvider, db, chainId }
-            )
-          : null,
+        matchAmountUpdated(
+          {
+            ...event,
+            name: "MatchAmountUpdated",
+            address: event.args.roundAddress,
+            args: {
+              newAmount: matchAmount,
+            },
+          },
+          { priceProvider, db, chainId }
+        ),
         roundMetaPtrUpdated(
           {
             ...event,

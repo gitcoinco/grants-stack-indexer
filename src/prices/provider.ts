@@ -1,5 +1,5 @@
 import { Logger } from "pino";
-import { CHAINS } from "../config.js";
+import { getChainConfigById } from "../config.js";
 import { Price, readPricesFile, UnknownTokenError } from "./common.js";
 
 const DEFAULT_REFRESH_PRICE_INTERVAL_MS = 10000;
@@ -128,10 +128,7 @@ export function createPriceProvider(
   ): Promise<Price & { decimals: number }> {
     let closestPrice: Price | null = null;
 
-    const chain = CHAINS.find((c) => c.id === chainId);
-    if (chain === undefined) {
-      throw new Error(`Unsupported chain: ${chainId}`);
-    }
+    const chain = getChainConfigById(chainId);
 
     const token = chain.tokens.find(
       (t) => t.address.toLowerCase() === tokenAddress.toLowerCase()
