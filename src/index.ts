@@ -229,9 +229,9 @@ async function catchupAndWatchChain(
     const indexer = await createIndexer(
       rpcProvider,
       storage,
-      (indexer: Indexer<JsonStorage>, event: ChainsauceEvent) => {
+      async (indexer: Indexer<JsonStorage>, event: ChainsauceEvent) => {
         try {
-          return handleEvent(event, {
+          return await handleEvent(event, {
             chainId: config.chain.id,
             db: storage,
             subscribe: (...args) => indexer.subscribe(...args),
@@ -245,7 +245,6 @@ async function catchupAndWatchChain(
             err,
             event,
           });
-          throw err;
         }
       },
       {
