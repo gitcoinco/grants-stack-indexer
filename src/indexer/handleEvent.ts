@@ -3,7 +3,7 @@ import { JsonStorage, Event as ChainsauceEvent } from "chainsauce";
 import { BigNumber, ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
 
-import { CHAINS, tokenDecimals } from "../config.js";
+import { getChainConfigById } from "../config.js";
 import {
   Application,
   Contributor,
@@ -14,8 +14,8 @@ import {
 } from "./types.js";
 import { Event } from "./events.js";
 import { RoundContract, DirectPayoutContract } from "./contracts.js";
-import { importAbi } from "./utils.js";
 import { PriceProvider } from "../prices/provider.js";
+import * as abis from "./abis/index.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
@@ -42,17 +42,21 @@ function fullProjectId(
   );
 }
 
-// mapping of chain id => address => event name => renamed event name
-const eventRenames = Object.fromEntries(
-  CHAINS.map((chain) => {
-    return [
-      chain.id,
-      Object.fromEntries(
-        chain.subscriptions.map((sub) => [sub.address, sub.events])
-      ),
-    ];
-  })
-);
+const getFinalEventName = (
+  chainId: number,
+  originalEvent: ChainsauceEvent
+): string => {
+  const chain = getChainConfigById(chainId);
+  const eventRenamesForChain = Object.fromEntries(
+    chain.subscriptions.map((sub) => [sub.address, sub.eventsRenames])
+  );
+
+  const finalName =
+    eventRenamesForChain[originalEvent.address]?.[originalEvent.name] ??
+    originalEvent.name;
+
+  return finalName;
+};
 
 function updateApplicationStatus(
   application: Application,
@@ -92,9 +96,7 @@ async function handleEvent(
 ) {
   const { db, subscribe, ipfsGet, priceProvider, chainId, logger } = deps;
 
-  const eventName =
-    eventRenames[chainId]?.[originalEvent.address]?.[originalEvent.name] ??
-    originalEvent.name;
+  const eventName = getFinalEventName(chainId, originalEvent);
 
   const event = {
     ...originalEvent,
@@ -180,14 +182,14 @@ async function handleEvent(
       if (event.name === "RoundCreatedV1") {
         contract = subscribe(
           event.args.roundAddress,
-          await importAbi("#abis/v1/RoundImplementation.json"),
+          abis.v1.RoundImplementation,
           event.blockNumber
         ) as RoundContract;
         matchAmountPromise = BigNumber.from("0");
       } else {
         contract = subscribe(
           event.args.roundAddress,
-          await importAbi("#abis/v2/RoundImplementation.json"),
+          abis.v2.RoundImplementation,
           event.blockNumber
         ) as RoundContract;
         matchAmountPromise = contract.matchAmount();
@@ -249,19 +251,17 @@ async function handleEvent(
         db.collection(`rounds/${roundId}/applications`).replaceAll([]),
         db.collection(`rounds/${roundId}/votes`).replaceAll([]),
         db.collection(`rounds/${roundId}/contributors`).replaceAll([]),
-        tokenDecimals[chainId][token]
-          ? matchAmountUpdated(
-              {
-                ...event,
-                name: "MatchAmountUpdated",
-                address: event.args.roundAddress,
-                args: {
-                  newAmount: matchAmount,
-                },
-              },
-              { priceProvider, db, chainId }
-            )
-          : null,
+        matchAmountUpdated(
+          {
+            ...event,
+            name: "MatchAmountUpdated",
+            address: event.args.roundAddress,
+            args: {
+              newAmount: matchAmount,
+            },
+          },
+          { priceProvider, db, chainId }
+        ),
         roundMetaPtrUpdated(
           {
             ...event,
@@ -290,15 +290,15 @@ async function handleEvent(
     }
 
     case "MatchAmountUpdated": {
-      return matchAmountUpdated(event, { priceProvider, db, chainId });
+      return await matchAmountUpdated(event, { priceProvider, db, chainId });
     }
 
     case "RoundMetaPtrUpdated": {
-      return roundMetaPtrUpdated(event, { ipfsGet, db });
+      return await roundMetaPtrUpdated(event, { ipfsGet, db });
     }
 
     case "ApplicationMetaPtrUpdated": {
-      return applicationMetaPtrUpdated(event, { ipfsGet, db });
+      return await applicationMetaPtrUpdated(event, { ipfsGet, db });
     }
 
     case "NewProjectApplication": {
@@ -455,20 +455,7 @@ async function handleEvent(
     case "VotingContractCreatedV1": {
       subscribe(
         event.args.votingContractAddress,
-        await importAbi(
-          "#abis/v1/QuadraticFundingVotingStrategyImplementation.json"
-        ),
-        event.blockNumber
-      );
-      break;
-    }
-
-    case "VotingContractCreatedV3": {
-      subscribe(
-        event.args.votingContractAddress,
-        await importAbi(
-          "#abis/v3/QuadraticFundingVotingStrategyImplementation.json"
-        ),
+        abis.v1.QuadraticFundingVotingStrategyImplementation,
         event.blockNumber
       );
       break;
@@ -477,9 +464,7 @@ async function handleEvent(
     case "VotingContractCreated": {
       subscribe(
         event.args.votingContractAddress,
-        await importAbi(
-          "#abis/v2/QuadraticFundingVotingStrategyImplementation.json"
-        ),
+        abis.v2.QuadraticFundingVotingStrategyImplementation,
         event.blockNumber
       );
       break;
@@ -715,11 +700,7 @@ async function handleEvent(
     case "PayoutContractCreated": {
       subscribe(
         event.args.payoutContractAddress,
-        (
-          await import("#abis/v2/DirectPayoutStrategyImplementation.json", {
-            assert: { type: "json" },
-          })
-        ).default,
+        abis.v2.DirectPayoutStrategyImplementation,
         event.blockNumber
       );
       break;
@@ -728,11 +709,7 @@ async function handleEvent(
     case "ApplicationInReviewUpdated": {
       const contract = subscribe(
         event.address,
-        (
-          await import("#abis/v2/DirectPayoutStrategyImplementation.json", {
-            assert: { type: "json" },
-          })
-        ).default,
+        abis.v2.DirectPayoutStrategyImplementation,
         event.blockNumber
       ) as DirectPayoutContract;
 

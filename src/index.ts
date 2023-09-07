@@ -19,7 +19,6 @@ import handleEvent from "./indexer/handleEvent.js";
 import { Chain, getConfig, Config } from "./config.js";
 import { createPriceUpdater } from "./prices/updater.js";
 import { createPriceProvider } from "./prices/provider.js";
-import { importAbi } from "./indexer/utils.js";
 import { createHttpApi } from "./http/app.js";
 import { FileSystemDataProvider } from "./calculator/index.js";
 import { AsyncSentinel } from "./utils/asyncSentinel.js";
@@ -230,15 +229,23 @@ async function catchupAndWatchChain(
     const indexer = await createIndexer(
       rpcProvider,
       storage,
-      (indexer: Indexer<JsonStorage>, event: ChainsauceEvent) => {
-        return handleEvent(event, {
-          chainId: config.chain.id,
-          db: storage,
-          subscribe: (...args) => indexer.subscribe(...args),
-          ipfsGet: cachedIpfsGet,
-          priceProvider,
-          logger: indexerLogger,
-        });
+      async (indexer: Indexer<JsonStorage>, event: ChainsauceEvent) => {
+        try {
+          return await handleEvent(event, {
+            chainId: config.chain.id,
+            db: storage,
+            subscribe: (...args) => indexer.subscribe(...args),
+            ipfsGet: cachedIpfsGet,
+            priceProvider,
+            logger: indexerLogger,
+          });
+        } catch (err) {
+          indexerLogger.warn({
+            msg: "skipping event due to error while processing",
+            err,
+            event,
+          });
+        }
       },
       {
         toBlock: config.toBlock,
@@ -272,7 +279,7 @@ async function catchupAndWatchChain(
     for (const subscription of config.chain.subscriptions) {
       indexer.subscribe(
         subscription.address,
-        await importAbi(subscription.abi),
+        subscription.abi,
         Math.max(subscription.fromBlock || 0, config.fromBlock)
       );
     }

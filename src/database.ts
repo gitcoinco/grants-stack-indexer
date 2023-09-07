@@ -1,4 +1,4 @@
-import { CHAINS } from "./config.js";
+import { getChainConfigById } from "./config.js";
 import path from "node:path";
 import { JsonStorage } from "chainsauce";
 
@@ -7,11 +7,9 @@ export default function load(
   chainId?: number
 ): JsonStorage {
   if (chainId) {
-    if (CHAINS.find((chain) => chain.id === chainId) === undefined) {
-      throw new Error(`Chain ${chainId} not foound`);
-    }
+    const chain = getChainConfigById(chainId);
 
-    storageDir = path.join(storageDir, chainId.toString());
+    storageDir = path.join(storageDir, chain.id.toString());
   }
 
   return new JsonStorage(storageDir);

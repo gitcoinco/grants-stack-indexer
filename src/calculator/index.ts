@@ -3,7 +3,7 @@ import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
 import type { PassportProvider } from "../passport/index.js";
 import { PriceProvider } from "../prices/provider.js";
-import { Chain, tokenDecimals } from "../config.js";
+import { Chain, getDecimalsForToken } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
 import { getVotesWithCoefficients } from "./votes.js";
 import {
@@ -169,7 +169,9 @@ export default class Calculator {
     }
 
     const matchAmount = BigInt(round.matchAmount);
-    const matchTokenDecimals = BigInt(tokenDecimals[this.chainId][round.token]);
+    const matchTokenDecimals = BigInt(
+      getDecimalsForToken(this.chainId, round.token)
+    );
 
     let matchingCapAmount = this.matchingCapAmount;
 
