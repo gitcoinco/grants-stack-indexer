@@ -65,24 +65,27 @@ async function main(): Promise<void> {
     ),
   });
 
-  // Promise will be resolved once the catchup is done. Afterwards, services
-  // will still be in listen-and-update mode
-  const [passportProvider, _] = await Promise.all([
-    catchupAndWatchPassport({
-      ...config,
-      baseLogger,
-      runOnce: config.runOnce,
-    }),
-    ...config.chains.map(async (chain) =>
-      catchupAndWatchChain({
-        chain,
-        baseLogger,
-        ...config,
-      })
-    ),
-  ]);
+  if (config.runOnce) {
+    await Promise.all(
+      config.chains.map(async (chain) =>
+        catchupAndWatchChain({ chain, baseLogger, ...config })
+      )
+    );
+  } else {
+    // Promises will be resolved once the initial catchup is done. Afterwards, services
+    // will still be in listen-and-update mode.
 
-  if (!config.runOnce) {
+    const [passportProvider] = await Promise.all([
+      catchupAndWatchPassport({
+        ...config,
+        baseLogger,
+        runOnce: config.runOnce,
+      }),
+      ...config.chains.map(async (chain) =>
+        catchupAndWatchChain({ chain, baseLogger, ...config })
+      ),
+    ]);
+
     const httpApi = createHttpApi({
       storageDir: config.storageDir,
       priceProvider: createPriceProvider({
