@@ -8,6 +8,7 @@
   "scripts": {
     "start": "node dist/src/index.js",
     "dev": "tsx watch src/index.ts | pino-pretty",
+    "dev:snap": "NODE_ENV=snapshot-testing CHAINS=mainnet STORAGE_DIR=test/snapshot.CURRENT/data CACHE_DIR=test/snapshot.CURRENT/cache tsx src/index.ts --to-block 17199975 --run-once | pino-pretty",
     "build": "tsc",
     "lint": "eslint src",
     "test": "vitest run --reporter verbose",

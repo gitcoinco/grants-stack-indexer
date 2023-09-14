@@ -20,6 +20,7 @@ const POLL_INTERVAL_MS = 60 * 1000;
 
 export interface PriceUpdaterService {
   start: (opts?: { watch: boolean; toBlock: ToBlock }) => Promise<void>;
+  stop: () => void;
 }
 
 interface PriceUpdaterConfig {
@@ -37,6 +38,7 @@ export function createPriceUpdater(
 ): PriceUpdaterService {
   const { logger } = config;
   const withCacheMaybe = config.withCacheFn ?? ((_cacheKey, fn) => fn());
+  let pollTimeoutId: NodeJS.Timeout | null = null;
 
   // PUBLIC
 
@@ -51,7 +53,13 @@ export function createPriceUpdater(
 
     if (opts.watch) {
       logger.info("begin polling for new prices");
-      setTimeout(poll, POLL_INTERVAL_MS);
+      pollTimeoutId = setTimeout(poll, POLL_INTERVAL_MS);
+    }
+  }
+
+  function stop() {
+    if (pollTimeoutId) {
+      clearTimeout(pollTimeoutId);
     }
   }
 
@@ -59,7 +67,7 @@ export function createPriceUpdater(
 
   const poll = async (): Promise<void> => {
     await update("latest");
-    setTimeout(poll, POLL_INTERVAL_MS);
+    pollTimeoutId = setTimeout(poll, POLL_INTERVAL_MS);
   };
 
   async function update(toBlock: ToBlock) {
@@ -190,7 +198,7 @@ export function createPriceUpdater(
 
   // API
 
-  return { start };
+  return { start, stop };
 }
 
 // UTILITIES

@@ -22,6 +22,7 @@ import { createPriceProvider } from "./prices/provider.js";
 import { createHttpApi } from "./http/app.js";
 import { FileSystemDataProvider } from "./calculator/index.js";
 import { AsyncSentinel } from "./utils/asyncSentinel.js";
+import { ethers } from "ethers";
 
 // If, during reindexing, a chain has these many blocks left to index, consider
 // it caught up and start serving
@@ -29,6 +30,9 @@ const MINIMUM_BLOCKS_LEFT_BEFORE_STARTING = 500;
 
 async function main(): Promise<void> {
   const config = getConfig();
+
+  // https://github.com/gitcoinco/allo-indexer/issues/215#issuecomment-1711380810
+  ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.ERROR);
 
   if (config.sentryDsn !== null) {
     Sentry.init({
@@ -71,6 +75,10 @@ async function main(): Promise<void> {
         catchupAndWatchChain({ chain, baseLogger, ...config })
       )
     );
+    // Workaround for active handles preventing process to terminate
+    // TODO investigate with console.log(process._getActiveHandles())
+    baseLogger.info("exiting");
+    process.exit(0);
   } else {
     // Promises will be resolved once the initial catchup is done. Afterwards, services
     // will still be in listen-and-update mode.
@@ -222,9 +230,9 @@ async function catchupAndWatchChain(
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const throttledLogProgress = throttle(
       5000,
-      (currentBlock: number, lastBlock: number, blocksLeft: number) => {
+      (currentBlock: number, lastBlock: number, pendingEventsCount: number) => {
         indexerLogger.info(
-          `indexed to block ${currentBlock}; last block on chain: ${lastBlock}; left: ${blocksLeft}`
+          `pending events: ${pendingEventsCount} (indexing blocks ${currentBlock}-${lastBlock})`
         );
       }
     );
@@ -256,23 +264,19 @@ async function catchupAndWatchChain(
         eventCacheDirectory: config.cacheDir
           ? path.join(config.cacheDir, "events")
           : null,
-        onProgress: ({ currentBlock, lastBlock }) => {
-          throttledLogProgress(
-            currentBlock,
-            lastBlock,
-            lastBlock - currentBlock
-          );
+        requireExplicitStart: true,
+        onProgress: ({ currentBlock, lastBlock, pendingEventsCount }) => {
+          throttledLogProgress(currentBlock, lastBlock, pendingEventsCount);
 
-          indexerLogger.trace(
-            `indexed to block ${currentBlock}; last block on chain: ${lastBlock}; left: ${
-              lastBlock - currentBlock
-            }`
-          );
           if (
             lastBlock - currentBlock < MINIMUM_BLOCKS_LEFT_BEFORE_STARTING &&
             !catchupSentinel.isDone()
           ) {
-            indexerLogger.info("caught up with blockchain events");
+            indexerLogger.info({
+              msg: "caught up with blockchain events",
+              lastBlock,
+              currentBlock,
+            });
             catchupSentinel.declareDone();
           }
         },
@@ -280,6 +284,7 @@ async function catchupAndWatchChain(
     );
 
     for (const subscription of config.chain.subscriptions) {
+      chainLogger.info(`subscribing to ${subscription.address}`);
       indexer.subscribe(
         subscription.address,
         subscription.abi,
@@ -287,9 +292,12 @@ async function catchupAndWatchChain(
       );
     }
 
+    indexer.start();
+
     await catchupSentinel.untilDone();
 
     if (config.runOnce) {
+      priceUpdater.stop();
       indexer.stop();
     } else {
       chainLogger.info("listening to new blockchain events");
