@@ -8,8 +8,8 @@
   "scripts": {
     "start": "node dist/src/index.js",
     "dev": "tsx watch src/index.ts | pino-pretty",
-    "dev:snap:before": "NODE_ENV=snapshot-testing CHAINS=mainnet STORAGE_DIR=test/snapshot.BEFORE/data CACHE_DIR=test/snapshot.BEFORE/cache tsx src/index.ts --to-block 17199975 --run-once | pino-pretty",
-    "dev:snap:after": "NODE_ENV=snapshot-testing CHAINS=mainnet STORAGE_DIR=test/snapshot.AFTER/data CACHE_DIR=test/snapshot.AFTER/cache tsx src/index.ts --to-block 17199975 --run-once | pino-pretty",
+    "dev:snap:before": "NODE_ENV=snapshot-testing INDEXED_CHAINS=mainnet STORAGE_DIR=test/snapshot.BEFORE/data CACHE_DIR=test/snapshot.BEFORE/cache tsx src/index.ts --to-block 17199975 --run-once | pino-pretty",
+    "dev:snap:after": "NODE_ENV=snapshot-testing INDEXED_CHAINS=mainnet STORAGE_DIR=test/snapshot.AFTER/data CACHE_DIR=test/snapshot.AFTER/cache tsx src/index.ts --to-block 17199975 --run-once | pino-pretty",
     "dev:snap:compare": "diff -r --brief test/snapshot.BEFORE/data test/snapshot.AFTER/data",
     "build": "tsc",
     "lint": "eslint src",
