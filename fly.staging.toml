@@ -1,4 +1,4 @@
-app = "indexer-staging-2"
+app = "indexer-staging"
 primary_region = "den"
 kill_signal = "SIGINT"
 kill_timeout = 5

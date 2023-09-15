@@ -17,7 +17,7 @@ jobs:
       - name: Set variables for staging
         run: |
           echo "DEPLOYMENT_ENVIRONMENT=staging" >> $GITHUB_ENV
-          echo "DEPLOYMENT_URL=https://indexer-staging-2.fly.dev" >> $GITHUB_ENV
+          echo "DEPLOYMENT_URL=https://indexer-staging.fly.dev" >> $GITHUB_ENV
         if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Set variables for production
