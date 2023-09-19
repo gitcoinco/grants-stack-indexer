@@ -190,18 +190,32 @@ async function catchupAndWatchChain(
         return undefined;
       }
 
-      const res = await fetch(`${config.ipfsGateway}/ipfs/${cid}`, {
-        timeout: 2000,
-        retry: { retries: 10, maxTimeout: 60 * 1000 },
-        // IPFS data is immutable, we can rely entirely on the cache when present
-        cache: "force-cache",
-        cachePath:
-          config.cacheDir !== null
-            ? path.join(config.cacheDir, "ipfs")
-            : undefined,
-      });
+      const url = `${config.ipfsGateway}/ipfs/${cid}`;
 
-      return (await res.json()) as T;
+      chainLogger.trace(`Fetching ${url}`);
+
+      try {
+        const res = await fetch(url, {
+          timeout: 2000,
+          onRetry(cause) {
+            chainLogger.debug(`Retrying IPFS request ${String(cause)}`);
+          },
+          retry: { retries: 3, minTimeout: 2000, maxTimeout: 60 * 10000 },
+          // IPFS data is immutable, we can rely entirely on the cache when present
+          cache: "force-cache",
+          cachePath:
+            config.cacheDir !== null
+              ? path.join(config.cacheDir, "ipfs")
+              : undefined,
+        });
+
+        return (await res.json()) as T;
+      } catch (err) {
+        chainLogger.warn({
+          msg: "failed to load IPFS file",
+          err,
+        });
+      }
     };
 
     await rpcProvider.getNetwork();
