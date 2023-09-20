@@ -194,28 +194,25 @@ async function catchupAndWatchChain(
 
       chainLogger.trace(`Fetching ${url}`);
 
-      try {
-        const res = await fetch(url, {
-          timeout: 2000,
-          onRetry(cause) {
-            chainLogger.debug(`Retrying IPFS request ${String(cause)}`);
-          },
-          retry: { retries: 3, minTimeout: 2000, maxTimeout: 60 * 10000 },
-          // IPFS data is immutable, we can rely entirely on the cache when present
-          cache: "force-cache",
-          cachePath:
-            config.cacheDir !== null
-              ? path.join(config.cacheDir, "ipfs")
-              : undefined,
-        });
+      const res = await fetch(url, {
+        timeout: 2000,
+        onRetry(cause) {
+          chainLogger.debug({
+            msg: "Retrying IPFS request",
+            url: url,
+            err: cause,
+          });
+        },
+        retry: { retries: 3, minTimeout: 2000, maxTimeout: 60 * 10000 },
+        // IPFS data is immutable, we can rely entirely on the cache when present
+        cache: "force-cache",
+        cachePath:
+          config.cacheDir !== null
+            ? path.join(config.cacheDir, "ipfs")
+            : undefined,
+      });
 
-        return (await res.json()) as T;
-      } catch (err) {
-        chainLogger.warn({
-          msg: "failed to load IPFS file",
-          err,
-        });
-      }
+      return (await res.json()) as T;
     };
 
     await rpcProvider.getNetwork();
