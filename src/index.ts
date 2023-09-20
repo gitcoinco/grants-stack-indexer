@@ -76,8 +76,10 @@ async function main(): Promise<void> {
       )
     );
     // Workaround for active handles preventing process to terminate
-    // TODO investigate with console.log(process._getActiveHandles())
+    // (to investigate: console.log(process._getActiveHandles()))
+    // Note: the delay is necessary to allow completing writes.
     baseLogger.info("exiting");
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     process.exit(0);
   } else {
     // Promises will be resolved once the initial catchup is done. Afterwards, services
