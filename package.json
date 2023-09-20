@@ -29,7 +29,7 @@
   "license": "ISC",
   "dependencies": {
     "@sentry/node": "^7.51.0",
-    "chainsauce": "github:gitcoinco/chainsauce#49bee375cc230097ef024c0f7107c13393f5c2ac",
+    "chainsauce": "github:gitcoinco/chainsauce#main",
     "cors": "^2.8.5",
     "csv-parser": "^3.0.0",
     "csv-writer": "^1.6.0",
