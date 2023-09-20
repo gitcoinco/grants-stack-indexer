@@ -8,6 +8,10 @@
   "scripts": {
     "start": "node dist/src/index.js",
     "dev": "tsx watch src/index.ts | pino-pretty",
+    "test:snapshot:generate-before": "NODE_ENV=snapshot-testing INDEXED_CHAINS=mainnet STORAGE_DIR=test/snapshot.BEFORE/data CACHE_DIR=test/snapshot.BEFORE/cache tsx src/index.ts --to-block 17199975 --run-once | pino-pretty",
+    "test:snapshot:generate-after": "NODE_ENV=snapshot-testing INDEXED_CHAINS=mainnet STORAGE_DIR=test/snapshot.AFTER/data CACHE_DIR=test/snapshot.AFTER/cache tsx src/index.ts --to-block 17199975 --run-once | pino-pretty",
+    "test:snapshot:compare": "diff -r --brief test/snapshot.BEFORE/data test/snapshot.AFTER/data",
+    "test:snapshot": "test -d test/snapshot.BEFORE/data || (echo 'Missing BEFORE snapshot.'; exit 1); npm run test:snapshot:generate-after && npm run test:snapshot:compare && echo 'Snapshots match!'",
     "build": "tsc",
     "lint": "eslint src",
     "test": "vitest run --reporter verbose",
@@ -25,7 +29,7 @@
   "license": "ISC",
   "dependencies": {
     "@sentry/node": "^7.51.0",
-    "chainsauce": "github:gitcoinco/chainsauce",
+    "chainsauce": "github:gitcoinco/chainsauce#main",
     "cors": "^2.8.5",
     "csv-parser": "^3.0.0",
     "csv-writer": "^1.6.0",

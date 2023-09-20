@@ -34,7 +34,7 @@ jobs:
 
       - name: Deploy
         run: |
-          flyctl -c fly.${{ env.DEPLOYMENT_ENVIRONMENT }}.toml deploy --remote-only --wait-timeout=3600 --env BUILD_TAG=`git rev-parse --short HEAD`
+          flyctl -c fly.${{ env.DEPLOYMENT_ENVIRONMENT }}.toml deploy --remote-only --wait-timeout=7200 --env BUILD_TAG=`git rev-parse --short HEAD`
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 

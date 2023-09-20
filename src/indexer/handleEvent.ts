@@ -661,7 +661,7 @@ async function handleEvent(
           .insert({
             ...vote,
             roundName: round.metadata?.name,
-            projectTitle: application.metadata?.application.project.title,
+            projectTitle: application.metadata?.application?.project?.title,
             roundStartTime: round.roundStartTime,
             roundEndTime: round.roundEndTime,
           }),
