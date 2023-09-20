@@ -190,9 +190,20 @@ async function catchupAndWatchChain(
         return undefined;
       }
 
-      const res = await fetch(`${config.ipfsGateway}/ipfs/${cid}`, {
+      const url = `${config.ipfsGateway}/ipfs/${cid}`;
+
+      chainLogger.trace(`Fetching ${url}`);
+
+      const res = await fetch(url, {
         timeout: 2000,
-        retry: { retries: 10, maxTimeout: 60 * 1000 },
+        onRetry(cause) {
+          chainLogger.debug({
+            msg: "Retrying IPFS request",
+            url: url,
+            err: cause,
+          });
+        },
+        retry: { retries: 3, minTimeout: 2000, maxTimeout: 60 * 10000 },
         // IPFS data is immutable, we can rely entirely on the cache when present
         cache: "force-cache",
         cachePath:
