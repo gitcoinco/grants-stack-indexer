@@ -482,6 +482,90 @@ const CHAINS: Chain[] = [
       },
     ],
   },
+  {
+    id: 80001,
+    name: "polygon-mumbai",
+    rpc: rpcUrl
+      .default("https://rpc-mumbai.maticvigil.com/")
+      .parse(process.env.POLYGON_MUMBAI_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2023, 9, 19, 0, 0, 0),
+    tokens: [
+      {
+        code: "MATIC",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0",
+        },
+      },
+      {
+        code: "USDC",
+        address: "0xe6b8a5cf854791412c1f6efc7caf629f5df1c747",
+        decimals: 6,
+        priceSource: {
+          chainId: 1,
+          address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        },
+      },
+    ],
+    subscriptions: [
+      {
+        address: "0x545B282A50EaeA01A619914d44105437036CbB36",
+        abi: abis.v2.ProjectRegistry,
+      },
+      {
+        address: "0xE1c5812e9831bc1d5BDcF50AAEc1a47C4508F3fA",
+        abi: abis.v2.RoundFactory,
+      },
+      {
+        address: "0x04b194b14532070F5cc8D3A760c9a0957D85ad5B",
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
+      },
+    ],
+  },
+  {
+    id: 137,
+    name: "polygon",
+    rpc: rpcUrl
+      .default("https://polygon-rpc.com")
+      .parse(process.env.POLYGON_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2023, 9, 19, 0, 0, 0),
+    tokens: [
+      {
+        code: "MATIC",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0",
+        },
+      },
+      {
+        code: "USDC",
+        address: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+        decimals: 6,
+        priceSource: {
+          chainId: 1,
+          address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        },
+      },
+    ],
+    subscriptions: [
+      {
+        address: "0x5C5E2D94b107C7691B08E43169fDe76EAAB6D48b",
+        abi: abis.v2.ProjectRegistry,
+      },
+      {
+        address: "0x5ab68dCdcA37A1C2b09c5218e28eB0d9cc3FEb03",
+        abi: abis.v2.RoundFactory,
+      },
+      {
+        address: "0x74c3665540FC8B92Dd06a7e56a51eCa038C18180",
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
+      },
+    ],
+  },
 ];
 
 export const getDecimalsForToken = (
