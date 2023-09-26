@@ -4,6 +4,7 @@ import { Logger } from "pino";
 import { ToBlock } from "chainsauce";
 import { ethers } from "ethers";
 import writeFileAtomic from "write-file-atomic";
+import Sqlite from "better-sqlite3";
 
 import { getBlockFromTimestamp } from "../utils/getBlockFromTimestamp.js";
 import { getPricesByHour } from "./coinGecko.js";
@@ -15,6 +16,7 @@ import {
   pricesFilename,
   readPricesFile,
 } from "./common.js";
+import { createSqliteBlockCache } from "../blockCache.js";
 
 const POLL_INTERVAL_MS = 60 * 1000;
 
@@ -39,6 +41,7 @@ export function createPriceUpdater(
   const { logger } = config;
   const withCacheMaybe = config.withCacheFn ?? ((_cacheKey, fn) => fn());
   let pollTimeoutId: NodeJS.Timeout | null = null;
+  const blockCache = createSqliteBlockCache(new Sqlite("./blockCache.db"));
 
   // PUBLIC
 
@@ -107,11 +110,9 @@ export function createPriceUpdater(
         return;
       }
 
-      const getBlockTimestamp = async (blockNumber: number) => {
-        const block = await withCacheMaybe(
-          `block-${config.chain.id}-${blockNumber}`,
-          () => provider.getBlock(blockNumber)
-        );
+      const getBlockTimestamp = async (blockNumber: bigint) => {
+        console.log("getting", blockNumber);
+        const block = await provider.getBlock(Number(blockNumber));
 
         return block.timestamp;
       };
@@ -146,22 +147,30 @@ export function createPriceUpdater(
 
           const newPrices: Price[] = [];
 
+          console.log(prices.length);
+
+          let count = 0;
+
           for (const [timestamp, price] of prices) {
             try {
               const blockNumber = await getBlockFromTimestamp(
+                config.chain.id,
                 timestamp,
-                0,
-                lastBlockNumber,
+                0n,
+                BigInt(lastBlockNumber),
                 getBlockTimestamp,
-                logger
+                blockCache
               );
+
+              console.log("--> found block", blockNumber);
+              console.log("--> prices left", prices.length - count);
 
               newPrices.push({
                 token: token.address.toLowerCase(),
                 code: token.code,
                 price,
                 timestamp,
-                block: blockNumber,
+                block: Number(blockNumber),
               });
             } catch (err) {
               throw new Error(
@@ -169,6 +178,7 @@ export function createPriceUpdater(
                 { cause: err }
               );
             }
+            count++;
           }
 
           logger.debug(`fetched ${newPrices.length} prices`);
