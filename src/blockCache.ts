@@ -27,7 +27,17 @@ export function createSqliteBlockCache(db: Sqlite.Database): BlockCache {
   }
 
   db.exec(
-    "CREATE TABLE IF NOT EXISTS blocks (chainId INTEGER, blockNumber TEXT, timestamp INTEGER, PRIMARY KEY (chainId, blockNumber))"
+    `CREATE TABLE IF NOT EXISTS blocks (
+      chainId INTEGER,
+      blockNumber TEXT,
+      timestamp INTEGER,
+      PRIMARY KEY (chainId, blockNumber)
+    )`
+  );
+
+  db.exec(
+    `CREATE INDEX IF NOT EXISTS idx_chainId_timestamp_blockNumber 
+     ON blocks (chainId, timestamp, blockNumber DESC);`
   );
 
   return {
