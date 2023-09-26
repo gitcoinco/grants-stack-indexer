@@ -60,8 +60,6 @@ export async function getBlockFromTimestamp(
       low = mid + BigInt(1);
     } else if (midTimestamp > targetTimestamp) {
       high = mid - BigInt(1);
-    } else {
-      return mid;
     }
   }
 
