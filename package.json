@@ -38,6 +38,7 @@
     "express": "^4.18.2",
     "express-async-errors": "^3.1.1",
     "fetch-retry": "^5.0.6",
+    "into-stream": "^8.0.0",
     "level": "^8.0.0",
     "make-fetch-happen": "^11.1.1",
     "multer": "^1.4.5-lts.1",
@@ -46,9 +47,12 @@
     "pluralistic": "github:gitcoinco/pluralistic.js#644d14fff65100f005d7afc18799b0f99b72ae24",
     "serve-index": "^1.9.1",
     "sleep-promise": "^9.1.0",
+    "split2": "^4.2.0",
     "statuses-bitmap": "github:gitcoinco/statuses-bitmap#f123d7778e42e16adb98fff2b2ba18c0fee57227",
+    "stream-to-string": "^1.2.1",
     "throttle-debounce": "^5.0.0",
     "tmp": "^0.2.1",
+    "vitest": "^0.34.5",
     "write-file-atomic": "^5.0.1",
     "zod": "^3.21.4"
   },
@@ -60,6 +64,7 @@
     "@types/multer": "^1.4.7",
     "@types/node": "^18.15.3",
     "@types/serve-index": "^1.9.1",
+    "@types/split2": "^4.2.0",
     "@types/supertest": "^2.0.12",
     "@types/throttle-debounce": "^5.0.0",
     "@types/tmp": "^0.2.3",
@@ -72,7 +77,6 @@
     "prettier": "^3.0.1",
     "supertest": "^6.3.3",
     "tsx": "^3.12.7",
-    "typescript": "^4.9.5",
-    "vitest": "^0.30.1"
+    "typescript": "^4.9.5"
   }
 }

@@ -127,7 +127,6 @@ async function catchupAndWatchPassport(
     await fs.mkdir(config.storageDir, { recursive: true });
 
     const passportProvider = createPassportProvider({
-      apiKey: config.passportApiKey,
       logger,
       scorerId: config.passportScorerId,
       dbPath: path.join(config.storageDir, "..", "passport_scores.leveldb"),
