@@ -251,6 +251,9 @@ async function handleEvent(
         db.collection(`rounds/${roundId}/applications`).replaceAll([]),
         db.collection(`rounds/${roundId}/votes`).replaceAll([]),
         db.collection(`rounds/${roundId}/contributors`).replaceAll([]),
+      ]);
+
+      await Promise.all([
         matchAmountUpdated(
           {
             ...event,
