@@ -117,11 +117,12 @@ export function createPriceUpdater(
       }
 
       const getBlockTimestamp = async (blockNumber: bigint) => {
-        console.log("getting", blockNumber);
         const block = await provider.getBlock(Number(blockNumber));
 
         return block.timestamp;
       };
+
+      const timestampToBlockMap = new Map<number, bigint>();
 
       const lastBlockNumber = await provider.getBlockNumber();
 
@@ -153,38 +154,45 @@ export function createPriceUpdater(
 
           const newPrices: Price[] = [];
 
-          console.log(prices.length);
-
-          let count = 0;
-
-          for (const [timestamp, price] of prices) {
+          for (const [timestampMs, price] of prices) {
             try {
-              const blockNumber = await getBlockFromTimestamp(
-                config.chain.id,
-                timestamp,
-                0n,
-                BigInt(lastBlockNumber),
-                getBlockTimestamp,
-                blockCache
-              );
+              const timestampInSeconds = Math.floor(timestampMs / 1000);
 
-              console.log("--> found block", blockNumber);
-              console.log("--> prices left", prices.length - count);
+              let blockNumber =
+                timestampToBlockMap.get(timestampInSeconds) ?? null;
+
+              if (!blockNumber) {
+                blockNumber = await getBlockFromTimestamp({
+                  chainId: config.chain.id,
+                  timestampInSeconds,
+                  startBlock: 0n,
+                  endBlock: BigInt(lastBlockNumber),
+                  getBlockTimestamp,
+                  blockCache: blockCache ?? undefined,
+                });
+
+                if (blockNumber === null) {
+                  throw new Error(
+                    `Could not find block for timestamp ${timestampMs}`
+                  );
+                }
+
+                timestampToBlockMap.set(timestampInSeconds, blockNumber);
+              }
 
               newPrices.push({
                 token: token.address.toLowerCase(),
                 code: token.code,
                 price,
-                timestamp,
+                timestamp: timestampMs,
                 block: Number(blockNumber),
               });
             } catch (err) {
               throw new Error(
-                `Error getting block number for token ${token.code} at timestamp ${timestamp}`,
+                `Error getting block number for token ${token.code} at timestamp ${timestampMs}`,
                 { cause: err }
               );
             }
-            count++;
           }
 
           logger.debug(`fetched ${newPrices.length} prices`);
