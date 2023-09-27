@@ -6,7 +6,7 @@ import { z } from "zod";
 import * as abis from "./indexer/abis/index.js";
 
 type ChainId = number;
-type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161;
+type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114;
 
 export type Token = {
   code: string;
@@ -488,7 +488,7 @@ const CHAINS: Chain[] = [
     rpc: rpcUrl
       .default("https://rpc-mumbai.maticvigil.com/")
       .parse(process.env.POLYGON_MUMBAI_RPC_URL),
-    pricesFromTimestamp: Date.UTC(2023, 9, 19, 0, 0, 0),
+    pricesFromTimestamp: Date.UTC(2023, 8, 19, 0, 0, 0),
     tokens: [
       {
         code: "MATIC",
@@ -530,7 +530,7 @@ const CHAINS: Chain[] = [
     rpc: rpcUrl
       .default("https://polygon-rpc.com")
       .parse(process.env.POLYGON_RPC_URL),
-    pricesFromTimestamp: Date.UTC(2023, 9, 19, 0, 0, 0),
+    pricesFromTimestamp: Date.UTC(2023, 8, 19, 0, 0, 0),
     tokens: [
       {
         code: "MATIC",
@@ -562,6 +562,48 @@ const CHAINS: Chain[] = [
       },
       {
         address: "0x74c3665540FC8B92Dd06a7e56a51eCa038C18180",
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
+      },
+    ],
+  },
+  {
+    id: 43114,
+    name: "avalanche",
+    rpc: rpcUrl
+      .default("https://api.avax.network/ext/bc/C/rpc")
+      .parse(process.env.AVALANCHE_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2023, 8, 19, 0, 0, 0),
+    tokens: [
+      {
+        code: "AVAX",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 43114,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "USDC",
+        address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+        decimals: 6,
+        priceSource: {
+          chainId: 1,
+          address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        },
+      },
+    ],
+    subscriptions: [
+      {
+        address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
+        abi: abis.v2.ProjectRegistry,
+      },
+      {
+        address: "0x8eC471f30cA797FD52F9D37A47Be2517a7BD6912",
+        abi: abis.v2.RoundFactory,
+      },
+      {
+        address: "0x2AFA4bE0f2468347A2F086c2167630fb1E58b725",
         abi: abis.v2.QuadraticFundingVotingStrategyFactory,
       },
     ],

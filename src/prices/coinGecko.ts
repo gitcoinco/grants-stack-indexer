@@ -7,6 +7,7 @@ const platforms: { [key: number]: string } = {
   250: "fantom",
   10: "optimistic-ethereum",
   42161: "arbitrum-one",
+  43114: "avalanche",
 };
 
 const nativeTokens: { [key: number]: string } = {
@@ -14,6 +15,7 @@ const nativeTokens: { [key: number]: string } = {
   250: "fantom",
   10: "ethereum",
   42161: "ethereum",
+  43114: "avalanche-2",
 };
 
 type Timestamp = number;
