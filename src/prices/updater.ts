@@ -16,7 +16,7 @@ import {
   pricesFilename,
   readPricesFile,
 } from "./common.js";
-import { createSqliteBlockCache } from "../blockCache.js";
+import { BlockCache, createSqliteBlockCache } from "../blockCache.js";
 
 const POLL_INTERVAL_MS = 60 * 1000;
 
@@ -31,6 +31,7 @@ interface PriceUpdaterConfig {
   storageDir: string;
   coingeckoApiKey: string | null;
   coingeckoApiUrl: string;
+  blockCachePath?: string;
   withCacheFn?: <T>(cacheKey: string, fn: () => Promise<T>) => Promise<T>;
   logger: Logger;
 }
@@ -41,7 +42,7 @@ export function createPriceUpdater(
   const { logger } = config;
   const withCacheMaybe = config.withCacheFn ?? ((_cacheKey, fn) => fn());
   let pollTimeoutId: NodeJS.Timeout | null = null;
-  const blockCache = createSqliteBlockCache(new Sqlite("./blockCache.db"));
+  let blockCache: BlockCache | null = null;
 
   // PUBLIC
 
@@ -52,6 +53,11 @@ export function createPriceUpdater(
     }
   ) {
     logger.info("catching up");
+
+    if (!blockCache && config.blockCachePath) {
+      blockCache = createSqliteBlockCache(new Sqlite(config.blockCachePath));
+    }
+
     await update(opts.toBlock);
 
     if (opts.watch) {
