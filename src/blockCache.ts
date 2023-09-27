@@ -13,7 +13,7 @@ export interface BlockCache {
     timestamp: number
   ): Promise<Block | null>;
   saveBlock(block: Block): Promise<void>;
-  getNearestBlocksByTimestamp(
+  getClosestBoundsForTimestamp(
     chainId: number,
     timestamp: number
   ): Promise<{ before: Block | null; after: Block | null }>;
@@ -65,7 +65,7 @@ export function createSqliteBlockCache(db: Sqlite.Database): BlockCache {
       ).run(block.chainId, block.blockNumber.toString(), block.timestamp);
     },
 
-    async getNearestBlocksByTimestamp(chainId, timestamp) {
+    async getClosestBoundsForTimestamp(chainId, timestamp) {
       const before = db
         .prepare(
           "SELECT * FROM blocks WHERE chainId = ? AND timestamp <= ? ORDER BY timestamp DESC, blockNumber DESC LIMIT 1"
