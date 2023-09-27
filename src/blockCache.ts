@@ -26,6 +26,9 @@ export function createSqliteBlockCache(db: Sqlite.Database): BlockCache {
     timestamp: number;
   }
 
+  db.exec("PRAGMA journal_mode = WAL;");
+
+  // TODO: migrations
   db.exec(
     `CREATE TABLE IF NOT EXISTS blocks (
       chainId INTEGER,
@@ -34,7 +37,6 @@ export function createSqliteBlockCache(db: Sqlite.Database): BlockCache {
       PRIMARY KEY (chainId, blockNumber)
     )`
   );
-
   db.exec(
     `CREATE INDEX IF NOT EXISTS idx_chainId_timestamp_blockNumber 
      ON blocks (chainId, timestamp, blockNumber DESC);`
