@@ -70,7 +70,7 @@ export function createSqliteBlockCache(db: Sqlite.Database): BlockCache {
     async getClosestBoundsForTimestamp(chainId, timestamp) {
       const before = db
         .prepare(
-          "SELECT * FROM blocks WHERE chainId = ? AND timestamp <= ? ORDER BY timestamp DESC, blockNumber DESC LIMIT 1"
+          "SELECT * FROM blocks WHERE chainId = ? AND timestamp < ? ORDER BY timestamp DESC, blockNumber DESC LIMIT 1"
         )
         .get(chainId, timestamp) as Row | undefined;
 
