@@ -182,7 +182,7 @@ export function createPriceUpdater(
               let blockNumber =
                 timestampToBlockMap.get(timestampInSeconds) ?? null;
 
-              if (!blockNumber) {
+              if (blockNumber !== null) {
                 let startBlock = 0n;
                 let endBlock = BigInt(lastBlockNumber);
 
