@@ -1,7 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { getBlockFromTimestamp } from "./getBlockFromTimestamp.js";
-import { createSqliteBlockCache } from "../blockCache/sqlite.js";
-import Sqlite from "better-sqlite3";
 
 describe("getBlockFromTimestamp", () => {
   const blocks = [
@@ -48,7 +46,6 @@ describe("getBlockFromTimestamp", () => {
     expect(
       await getBlockFromTimestamp({
         timestampInSeconds: 2000,
-        chainId: 1,
         startBlock: 0n,
         endBlock: 6n,
         getBlockTimestamp,
@@ -60,7 +57,6 @@ describe("getBlockFromTimestamp", () => {
     expect(
       await getBlockFromTimestamp({
         timestampInSeconds: 2001,
-        chainId: 1,
         startBlock: 0n,
         endBlock: 6n,
         getBlockTimestamp,
@@ -70,7 +66,6 @@ describe("getBlockFromTimestamp", () => {
     expect(
       await getBlockFromTimestamp({
         timestampInSeconds: 0,
-        chainId: 1,
         startBlock: 0n,
         endBlock: 6n,
         getBlockTimestamp,
@@ -82,44 +77,10 @@ describe("getBlockFromTimestamp", () => {
     expect(
       await getBlockFromTimestamp({
         timestampInSeconds: 8000,
-        chainId: 1,
         startBlock: 0n,
         endBlock: 6n,
         getBlockTimestamp,
       })
     ).toEqual(null);
-  });
-
-  it("uses the cache", async () => {
-    const blockCache = createSqliteBlockCache({ db: new Sqlite(":memory:") });
-
-    await blockCache.init();
-
-    expect(
-      await getBlockFromTimestamp({
-        timestampInSeconds: 1000,
-        chainId: 1,
-        startBlock: 0n,
-        endBlock: 6n,
-        getBlockTimestamp,
-        blockCache,
-      })
-    ).toEqual(1n);
-
-    const mockGetBlockTimestamp = vi.fn(getBlockTimestamp);
-
-    expect(
-      await getBlockFromTimestamp({
-        timestampInSeconds: 1000,
-        chainId: 1,
-        startBlock: 0n,
-        endBlock: 6n,
-        getBlockTimestamp: mockGetBlockTimestamp,
-        blockCache,
-      })
-    ).toEqual(1n);
-
-    // should not have called getBlockTimestamp, since it was cached
-    expect(mockGetBlockTimestamp).not.toHaveBeenCalled();
   });
 });

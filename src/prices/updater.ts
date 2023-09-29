@@ -39,7 +39,10 @@ interface PriceUpdaterConfig {
 export function createPriceUpdater(
   config: PriceUpdaterConfig
 ): PriceUpdaterService {
-  const { logger } = config;
+  const {
+    logger,
+    chain: { id: chainId },
+  } = config;
   const withCacheMaybe = config.withCacheFn ?? ((_cacheKey, fn) => fn());
   let pollTimeoutId: NodeJS.Timeout | null = null;
   let blockCache: BlockCache | null = null;
@@ -119,9 +122,25 @@ export function createPriceUpdater(
       }
 
       const getBlockTimestamp = async (blockNumber: bigint) => {
-        const block = await provider.getBlock(Number(blockNumber));
+        if (blockCache) {
+          const block = await blockCache.getBlockByNumber(chainId, blockNumber);
 
-        return block.timestamp;
+          if (block) {
+            return block.timestamp;
+          }
+        }
+
+        const providerBlock = await provider.getBlock(Number(blockNumber));
+
+        if (blockCache) {
+          await blockCache.saveBlock({
+            chainId,
+            blockNumber,
+            timestamp: providerBlock.timestamp,
+          });
+        }
+
+        return providerBlock.timestamp;
       };
 
       const timestampToBlockMap = new Map<number, bigint>();
@@ -164,13 +183,30 @@ export function createPriceUpdater(
                 timestampToBlockMap.get(timestampInSeconds) ?? null;
 
               if (!blockNumber) {
+                let startBlock = 0n;
+                let endBlock = BigInt(lastBlockNumber);
+
+                if (blockCache) {
+                  const { before: lowerBound, after: upperBound } =
+                    await blockCache.getClosestBoundsForTimestamp(
+                      chainId,
+                      timestampInSeconds
+                    );
+
+                  if (lowerBound) {
+                    startBlock = lowerBound.blockNumber;
+                  }
+
+                  if (upperBound) {
+                    endBlock = upperBound.blockNumber;
+                  }
+                }
+
                 blockNumber = await getBlockFromTimestamp({
-                  chainId: config.chain.id,
                   timestampInSeconds,
-                  startBlock: 0n,
-                  endBlock: BigInt(lastBlockNumber),
+                  startBlock,
+                  endBlock,
                   getBlockTimestamp,
-                  blockCache: blockCache ?? undefined,
                 });
 
                 if (blockNumber === null) {
