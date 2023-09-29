@@ -23,9 +23,25 @@ describe("createSqliteBlockCache", () => {
     await expect(blockCache.init()).resolves.not.toThrow();
   });
 
+  it("should initialize if using invalid table name", async () => {
+    expect(() => {
+      createSqliteBlockCache({
+        db,
+        tableName: "invalid table name",
+      });
+    }).toThrow();
+
+    expect(() => {
+      createSqliteBlockCache({
+        db,
+        tableName: "table/",
+      });
+    }).toThrow();
+  });
+
   it("should throw if already initialized", async () => {
     await blockCache.init();
-    await expect(blockCache.init()).rejects.toThrow();
+    await expect(blockCache.init()).rejects.toThrow("");
   });
 
   it("should save and retrieve a block by number", async () => {
