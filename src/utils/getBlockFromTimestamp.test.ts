@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { getBlockFromTimestamp } from "./getBlockFromTimestamp.js";
-import { createSqliteBlockCache } from "../blockCache.js";
+import { createSqliteBlockCache } from "../blockCache/sqlite.js";
 import Sqlite from "better-sqlite3";
 
 describe("getBlockFromTimestamp", () => {
@@ -45,8 +45,6 @@ describe("getBlockFromTimestamp", () => {
   }
 
   it("finds lowest block when multiple blocks have same timestamp", async () => {
-    const blockCache = createSqliteBlockCache(new Sqlite(":memory:"));
-
     expect(
       await getBlockFromTimestamp({
         timestampInSeconds: 2000,
@@ -54,14 +52,11 @@ describe("getBlockFromTimestamp", () => {
         startBlock: 0n,
         endBlock: 6n,
         getBlockTimestamp,
-        blockCache,
       })
     ).toEqual(2n);
   });
 
   it("finds block with the closest higher timestamp", async () => {
-    const blockCache = createSqliteBlockCache(new Sqlite(":memory:"));
-
     expect(
       await getBlockFromTimestamp({
         timestampInSeconds: 2001,
@@ -69,7 +64,6 @@ describe("getBlockFromTimestamp", () => {
         startBlock: 0n,
         endBlock: 6n,
         getBlockTimestamp,
-        blockCache,
       })
     ).toEqual(5n);
 
@@ -80,14 +74,11 @@ describe("getBlockFromTimestamp", () => {
         startBlock: 0n,
         endBlock: 6n,
         getBlockTimestamp,
-        blockCache,
       })
     ).toEqual(0n);
   });
 
   it("returns null when timestamp is in the future", async () => {
-    const blockCache = createSqliteBlockCache(new Sqlite(":memory:"));
-
     expect(
       await getBlockFromTimestamp({
         timestampInSeconds: 8000,
@@ -95,13 +86,14 @@ describe("getBlockFromTimestamp", () => {
         startBlock: 0n,
         endBlock: 6n,
         getBlockTimestamp,
-        blockCache,
       })
     ).toEqual(null);
   });
 
   it("uses the cache", async () => {
-    const blockCache = createSqliteBlockCache(new Sqlite(":memory:"));
+    const blockCache = createSqliteBlockCache({ db: new Sqlite(":memory:") });
+
+    await blockCache.init();
 
     expect(
       await getBlockFromTimestamp({

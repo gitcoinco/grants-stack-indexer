@@ -4,7 +4,6 @@ import { Logger } from "pino";
 import { ToBlock } from "chainsauce";
 import { ethers } from "ethers";
 import writeFileAtomic from "write-file-atomic";
-import Sqlite from "better-sqlite3";
 
 import { getBlockFromTimestamp } from "../utils/getBlockFromTimestamp.js";
 import { getPricesByHour } from "./coinGecko.js";
@@ -16,7 +15,8 @@ import {
   pricesFilename,
   readPricesFile,
 } from "./common.js";
-import { BlockCache, createSqliteBlockCache } from "../blockCache.js";
+import { BlockCache } from "../blockCache.js";
+import { createSqliteBlockCache } from "../blockCache/sqlite.js";
 
 const POLL_INTERVAL_MS = 60 * 1000;
 
@@ -55,7 +55,9 @@ export function createPriceUpdater(
     logger.info("catching up");
 
     if (!blockCache && config.blockCachePath) {
-      blockCache = createSqliteBlockCache(new Sqlite(config.blockCachePath));
+      blockCache = createSqliteBlockCache({
+        dbPath: config.blockCachePath,
+      });
     }
 
     await update(opts.toBlock);
