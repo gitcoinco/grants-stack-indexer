@@ -41,6 +41,7 @@ export function createSqliteBlockCache(opts: Options): BlockCache {
 
       db.exec("PRAGMA journal_mode = WAL;");
 
+      // TODO: Add proper migrations, with Kysely?
       db.exec(
         `CREATE TABLE IF NOT EXISTS ${tableName} (
           chainId INTEGER,
