@@ -641,11 +641,6 @@ async function handleEvent(
               project.uniqueContributors +
               (isNewapplicationContributor ? 1 : 0),
           })),
-        db
-          .collection<Vote>(
-            `rounds/${event.args.roundAddress}/applications/${applicationId}/votes`
-          )
-          .insert(vote),
       ]);
 
       const contributorPartitionedPath = vote.voter
@@ -685,11 +680,6 @@ async function handleEvent(
           })),
         db
           .collection<Vote>(`rounds/${event.args.roundAddress}/votes`)
-          .insert(vote),
-        db
-          .collection<Vote>(
-            `rounds/${event.args.roundAddress}/projects/${event.args.projectId}/votes`
-          )
           .insert(vote),
       ]);
 
