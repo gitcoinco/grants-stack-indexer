@@ -12,7 +12,7 @@ kill_timeout = 5
   LOG_LEVEL = "debug"
   STORAGE_DIR = "/mnt/indexer/data"
   CACHE_DIR = "/mnt/indexer/cache"
-  INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-testnet,pgn-mainnet,arbitrum,arbitrum-goerli"
+  INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-testnet,pgn-mainnet,arbitrum,arbitrum-goerli,polygon-mumbai,polygon"
   # BUILD_TAG = # set in deploy github action
 
 [processes]
@@ -31,21 +31,21 @@ kill_timeout = 5
     port = 80
     handlers = ["http"]
     force_https = true
-    
+
   [[services.ports]]
     port = 443
     handlers = ["tls", "http"]
-    
+
   [services.concurrency]
     type = "connections"
     hard_limit = 25
     soft_limit = 20
-    
+
   [[services.tcp_checks]]
     interval = "30s"
     timeout = "10s"
     grace_period = "1m"
-    
+
   [[services.http_checks]]
     interval = "60s"
     grace_period = "1m"

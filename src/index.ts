@@ -274,9 +274,7 @@ async function catchupAndWatchChain(
       {
         toBlock: config.toBlock,
         logger: indexerLogger,
-        eventCacheDirectory: config.cacheDir
-          ? path.join(config.cacheDir, "events")
-          : null,
+        eventCacheDirectory: null,
         requireExplicitStart: true,
         onProgress: ({ currentBlock, lastBlock, pendingEventsCount }) => {
           throttledLogProgress(currentBlock, lastBlock, pendingEventsCount);
