@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
-import type { PassportProvider } from "../passport/index.js";
+import type { PassportProvider, PassportScore } from "../passport/index.js";
 import { PriceProvider } from "../prices/provider.js";
 import { Chain, getDecimalsForToken } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
@@ -289,11 +289,6 @@ export default class Calculator {
       `${this.chainId}/rounds.json`
     );
 
-    const passportScores = await this.parseJSONFile<PassportScore>(
-      "passport scores",
-      "passport_scores.json"
-    );
-
     const round = rounds.find((r: Round) => r.id === this.roundId);
 
     if (round === undefined) {
@@ -309,8 +304,9 @@ export default class Calculator {
     }
 
     const matchAmount = BigInt(round.matchAmount);
-    const matchTokenDecimals = BigInt(tokenDecimals[this.chainId][round.token]);
-
+    const matchTokenDecimals = BigInt(
+      getDecimalsForToken(this.chainId, round.token)
+    );
     let matchingCapAmount;
 
     if (round.metadata?.quadraticFundingConfig?.matchingCap) {
@@ -327,11 +323,12 @@ export default class Calculator {
         10000n;
     }
 
-    const votesWithCoefficients = getVotesWithCoefficients(
+    const votesWithCoefficients = await getVotesWithCoefficients(
+      this.chain,
       round,
       applications,
       votes,
-      passportScores,
+      this.passportProvider,
       {
         minimumAmountUSD: this.minimumAmountUSD,
         enablePassport: this.enablePassport,
@@ -373,11 +370,12 @@ export default class Calculator {
       })
     );
 
-    const potentialVotesWithCoefficients = getVotesWithCoefficients(
+    const potentialVotesWithCoefficients = await getVotesWithCoefficients(
+      this.chain,
       round,
       applications,
       potentialVotesAugmented,
-      passportScores,
+      this.passportProvider,
       {
         minimumAmountUSD: this.minimumAmountUSD,
         enablePassport: this.enablePassport,

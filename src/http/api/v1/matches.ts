@@ -131,6 +131,11 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
         amount: BigInt(vote.amount),
       }));
 
+    const chainConfig = config.chains.find((c) => c.id === chainId);
+    if (chainConfig === undefined) {
+      throw new Error(`Chain ${chainId} not configured`);
+    }
+
     const calculatorOptions: CalculatorOptions = {
       priceProvider: config.priceProvider,
       dataProvider: config.dataProvider,
@@ -139,6 +144,8 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       minimumAmountUSD: undefined,
       matchingCapAmount: undefined,
       overrides: {},
+      passportProvider: config.passportProvider,
+      chain: chainConfig,
     };
 
     const calculator = new Calculator(calculatorOptions);
