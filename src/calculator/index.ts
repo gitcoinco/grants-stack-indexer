@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
-import type { PassportProvider, PassportScore } from "../passport/index.js";
+import type { PassportProvider } from "../passport/index.js";
 import { PriceProvider } from "../prices/provider.js";
 import { Chain, getDecimalsForToken } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
