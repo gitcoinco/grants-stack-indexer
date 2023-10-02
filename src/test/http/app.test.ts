@@ -358,14 +358,16 @@ describe("server", () => {
 
         const potentialVotes: PotentialVotes = [
           {
-            amount: 10,
+            amount: 10n,
             contributor: "voter-1",
             recipient: "grant-address-1",
+            token: "0",
           },
           {
-            amount: 500,
+            amount: 500n,
             contributor: "voter-2",
             recipient: "grant-address-2",
+            token: "0",
           },
         ];
 
