@@ -13,7 +13,7 @@ import {
 } from "../../calculator/index.js";
 import { PriceProvider } from "../../prices/provider.js";
 import { Logger } from "pino";
-import { PotentialVote } from "../../http/api/v1/matches.js";
+import { PotentialVotes } from "../../http/api/v1/matches.js";
 import { PassportScore } from "../../passport/index.js";
 import { Chain } from "../../config.js";
 
@@ -356,7 +356,7 @@ describe("server", () => {
           },
         };
 
-        const potentialVotes: PotentialVote = [
+        const potentialVotes: PotentialVotes = [
           {
             amount: 10,
             contributor: "voter-1",

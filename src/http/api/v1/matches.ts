@@ -125,7 +125,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     const chainId = Number(req.params.chainId);
     const roundId = req.params.roundId;
     const potentialVotes = potentialVotesSchema
-      .parse((req.body as { potentialVotes: PotentialVote }).potentialVotes)
+      .parse((req.body as { potentialVotes: PotentialVotes }).potentialVotes)
       .map((vote) => ({
         ...vote,
         amount: BigInt(vote.amount),
@@ -161,11 +161,13 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
   return router;
 };
 
-const potentialVotesSchema = z.array(
-  z.object({
-    contributor: z.string(),
-    recipient: z.string(),
-    amount: z.coerce.number(),
-  })
-);
-export type PotentialVote = z.infer<typeof potentialVotesSchema>;
+const potentialVoteSchema = z.object({
+  contributor: z.string(),
+  recipient: z.string(),
+  amount: z.coerce.bigint(),
+  token: z.string(),
+});
+
+const potentialVotesSchema = z.array(potentialVoteSchema);
+export type PotentialVotes = z.infer<typeof potentialVotesSchema>;
+export type PotentialVote = z.infer<typeof potentialVoteSchema>;

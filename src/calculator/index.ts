@@ -13,6 +13,7 @@ import {
   OverridesColumnNotFoundError,
   OverridesInvalidRowError,
 } from "./errors.js";
+import { PotentialVote } from "../http/api/v1/matches.js";
 
 export {
   CalculatorError,
@@ -154,7 +155,7 @@ export default class Calculator {
       return [
         {
           contributor: vote.voter,
-          recipient: vote.applicationId,
+          recipient: vote.grantAddress,
           amount: multipliedAmount,
         },
       ];
@@ -271,10 +272,11 @@ export default class Calculator {
 
   /**
    * Estimates matching for a given project and potential additional votes
-   * @param potentialVotes* Amount is in the roundToken */
+   * @param potentialVotes
+   */
   async estimateMatching(
-    potentialVotes: Contribution[]
-  ): Promise<MatchingEstimateResult> {
+    potentialVotes: PotentialVote[]
+  ): Promise<MatchingEstimateResult[]> {
     const votes = await this.parseJSONFile<Vote>(
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
@@ -340,9 +342,16 @@ export default class Calculator {
       potentialVotes.map(async (vote) => {
         const { amount: amountUSD } = await this.priceProvider.convertToUSD(
           this.chainId,
-          round.token,
+          vote.token,
           vote.amount
         );
+
+        const { amount: amountRoundToken } =
+          await this.priceProvider.convertFromUSD(
+            this.chainId,
+            round.token,
+            amountUSD
+          );
 
         /* Find the latest approved application */
         const application = applications
@@ -357,7 +366,7 @@ export default class Calculator {
         }
         return {
           amount: vote.amount.toString(),
-          amountRoundToken: vote.amount.toString(),
+          amountRoundToken: amountRoundToken.toString(),
           amountUSD,
           token: round.token,
           roundId: this.roundId,
@@ -416,20 +425,33 @@ export default class Calculator {
       }
     );
 
-    const finalResults: MatchingEstimateResult = {};
+    const finalResults: MatchingEstimateResult[] = [];
 
-    Object.keys(potentialResults).forEach((key) => {
+    for (const key of Object.keys(potentialResults)) {
       const potentialResult = potentialResults[key] ?? {};
-      /** Can be undefined, but spreading an undefined is a no-op, so it's okay here */
       const currentResult = currentResults[key] ?? {};
-      finalResults[key] = {
+
+      /*Here, however, subtracting undefined from a bigint would fail,
+       * so we explicitly subtract 0 if it's undefined */
+      const difference =
+        potentialResult.matched - (currentResult.matched ?? 0n);
+      const differenceInUSD = await this.priceProvider.convertToUSD(
+        this.chainId,
+        round.token,
+        difference
+      );
+
+      /** Can be undefined, but spreading an undefined is a no-op, so it's okay here */
+      finalResults.push({
         ...currentResult,
         ...potentialResult,
-        /*Here, however, subtracting undefined from a bigint would fail,
-         * so we explicitly subtract 0 if it's undefined */
-        difference: potentialResult.matched - (currentResult.matched ?? 0n),
-      };
-    });
+        difference,
+        roundId: round.id,
+        chainId: this.chainId,
+        recipient: key,
+        differenceInUSD: differenceInUSD.amount,
+      });
+    }
 
     return finalResults;
   }
@@ -442,6 +464,10 @@ export default class Calculator {
   }
 }
 
-type MatchingEstimateResult = {
-  [p: string]: Calculation & { difference: bigint };
+type MatchingEstimateResult = Calculation & {
+  difference: bigint;
+  differenceInUSD: number;
+  roundId: string;
+  chainId: number;
+  recipient: string;
 };

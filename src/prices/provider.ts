@@ -21,7 +21,7 @@ export interface PriceProvider {
     chainId: number,
     token: string,
     amount: number,
-    blockNumber: number
+    blockNumber?: number
   ) => Promise<{ amount: bigint; price: number }>;
   getAllPricesForChain: (chainId: number) => Promise<Price[]>;
 }
@@ -100,7 +100,7 @@ export function createPriceProvider(
     chainId: number,
     token: string,
     amount: number,
-    blockNumber: number
+    blockNumber?: number
   ): Promise<{ amount: bigint; price: number }> {
     const closestPrice = await getUSDConversionRate(
       chainId,
