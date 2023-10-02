@@ -346,7 +346,7 @@ export default class Calculator {
           vote.amount
         );
 
-        const { amount: amountRoundToken } =
+        const { amount: amountRoundToken, price } =
           await this.priceProvider.convertFromUSD(
             this.chainId,
             round.token,
@@ -368,7 +368,7 @@ export default class Calculator {
           amount: vote.amount.toString(),
           amountRoundToken: amountRoundToken.toString(),
           amountUSD,
-          token: round.token,
+          token: vote.token,
           roundId: this.roundId,
           voter: vote.contributor,
           grantAddress: vote.recipient,
@@ -408,7 +408,7 @@ export default class Calculator {
       matchAmount,
       matchTokenDecimals,
       {
-        minimumAmount: 0n,
+        minimumAmount: BigInt(this.minimumAmountUSD ?? 0),
         matchingCapAmount,
         ignoreSaturation: this.ignoreSaturation ?? false,
       }
@@ -419,7 +419,7 @@ export default class Calculator {
       matchAmount,
       matchTokenDecimals,
       {
-        minimumAmount: 0n,
+        minimumAmount: BigInt(this.minimumAmountUSD ?? 0),
         matchingCapAmount,
         ignoreSaturation: this.ignoreSaturation ?? false,
       }
