@@ -46,26 +46,37 @@ describe("createSqliteBlockCache", () => {
 
   it("should save and retrieve a block by number", async () => {
     await blockCache.init();
-    const block = { chainId: 1, blockNumber: BigInt(1), timestamp: 12345 };
+    const block = {
+      chainId: 1,
+      blockNumber: BigInt(1),
+      timestampInSecs: 12345,
+    };
     await blockCache.saveBlock(block);
 
-    const retrievedBlock = await blockCache.getBlockByNumber(1, BigInt(1));
-    expect(retrievedBlock).toEqual(block);
+    const timestampInSecs = await blockCache.getTimestampByBlockNumber(
+      1,
+      BigInt(1)
+    );
+    expect(timestampInSecs).toEqual(block.timestampInSecs);
   });
 
   it("should save and retrieve a block by timestamp", async () => {
     await blockCache.init();
-    const block = { chainId: 1, blockNumber: BigInt(1), timestamp: 12345 };
+    const block = {
+      chainId: 1,
+      blockNumber: BigInt(1),
+      timestampInSecs: 12345,
+    };
     await blockCache.saveBlock(block);
 
-    const retrievedBlock = await blockCache.getBlockByTimestamp(1, 12345);
-    expect(retrievedBlock).toEqual(block);
+    const blockNumber = await blockCache.getBlockNumberByTimestamp(1, 12345);
+    expect(blockNumber).toEqual(block.blockNumber);
   });
 
   it("should get closest bounds for timestamp", async () => {
     await blockCache.init();
-    const block1 = { chainId: 1, blockNumber: BigInt(1), timestamp: 10 };
-    const block2 = { chainId: 1, blockNumber: BigInt(2), timestamp: 20 };
+    const block1 = { chainId: 1, blockNumber: BigInt(1), timestampInSecs: 10 };
+    const block2 = { chainId: 1, blockNumber: BigInt(2), timestampInSecs: 20 };
 
     await blockCache.saveBlock(block1);
     await blockCache.saveBlock(block2);
