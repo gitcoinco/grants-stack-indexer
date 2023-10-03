@@ -9,6 +9,12 @@ export async function getBlockFromTimestamp({
   endBlock: bigint;
   getBlockTimestamp: (blockNumber: bigint) => Promise<number>;
 }): Promise<bigint | null> {
+  if (startBlock > endBlock) {
+    throw new Error(
+      `startBlock (${startBlock}) must be less than or equal to endBlock (${endBlock})`
+    );
+  }
+
   let low = startBlock;
   let high = endBlock;
 
