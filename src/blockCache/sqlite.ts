@@ -19,7 +19,7 @@ interface Row {
 export function createSqliteBlockCache(opts: Options): BlockCache {
   let db: Sqlite.Database | null = null;
 
-  if (opts.tableName != null && opts.tableName.match(/[^a-zA-Z0-9_]/)) {
+  if (opts.tableName !== undefined && opts.tableName.match(/[^a-zA-Z0-9_]/)) {
     throw new Error(
       `Table name ${opts.tableName} contains invalid characters. Only alphanumeric and underscore characters are allowed.`
     );

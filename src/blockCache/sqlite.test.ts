@@ -23,7 +23,7 @@ describe("createSqliteBlockCache", () => {
     await expect(blockCache.init()).resolves.not.toThrow();
   });
 
-  it("should initialize if using invalid table name", async () => {
+  it("should initialize if using invalid table name", () => {
     expect(() => {
       createSqliteBlockCache({
         db,
