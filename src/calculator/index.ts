@@ -169,6 +169,11 @@ export default class Calculator {
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
+
+    return this._calculate(votes);
+  }
+
+  private async _calculate(votes: Vote[]): Promise<Array<AugmentedResult>> {
     const applications = await this.parseJSONFile<Application>(
       "applications",
       `${this.chainId}/rounds/${this.roundId}/applications.json`
@@ -277,163 +282,26 @@ export default class Calculator {
    * @param potentialVotes
    */
   async estimateMatching(
-    potentialVotes: PotentialVote[]
+    potentialVotes: Vote[],
+    roundId: string,
+    roundToken: string
   ): Promise<MatchingEstimateResult[]> {
     const votes = await this.parseJSONFile<Vote>(
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
-    const applications = await this.parseJSONFile<Application>(
-      "applications",
-      `${this.chainId}/rounds/${this.roundId}/applications.json`
-    );
 
-    const rounds = await this.parseJSONFile<Round>(
-      "rounds",
-      `${this.chainId}/rounds.json`
-    );
-
-    const round = rounds.find((r: Round) => r.id === this.roundId);
-
-    if (round === undefined) {
-      throw new ResourceNotFoundError("round");
-    }
-
-    if (round.matchAmount === undefined) {
-      throw new ResourceNotFoundError("round match amount");
-    }
-
-    if (round.token === undefined) {
-      throw new ResourceNotFoundError("round token");
-    }
-
-    const matchAmount = BigInt(round.matchAmount);
-    const matchTokenDecimals = BigInt(
-      getDecimalsForToken(this.chainId, round.token)
-    );
-    let matchingCapAmount;
-
-    if (round.metadata?.quadraticFundingConfig?.matchingCap) {
-      // round.metadata.quadraticFundingConfig.matchingCapAmount is a percentage, 0 to 100, could contain decimals
-      matchingCapAmount =
-        (matchAmount *
-          BigInt(
-            Math.trunc(
-              Number(
-                round.metadata?.quadraticFundingConfig?.matchingCapAmount ?? 0
-              ) * 100
-            )
-          )) /
-        10000n;
-    }
-
-    const votesWithCoefficients = await getVotesWithCoefficients(
-      this.chain,
-      round,
-      applications,
-      votes,
-      this.passportProvider,
-      {
-        minimumAmountUSD: this.minimumAmountUSD,
-        enablePassport: this.enablePassport,
-        passportThreshold: this.passportThreshold,
-      }
-    );
-
-    const potentialVotesAugmented: Vote[] = await Promise.all(
-      potentialVotes.map(async (vote) => {
-        const { amount: amountUSD } = await this.priceProvider.convertToUSD(
-          this.chainId,
-          vote.token,
-          vote.amount
-        );
-
-        const { amount: amountRoundToken } =
-          await this.priceProvider.convertFromUSD(
-            this.chainId,
-            round.token,
-            amountUSD
-          );
-
-        /* Find the latest approved application */
-        const application = applications
-          .filter(
-            (application) =>
-              application.metadata?.application.recipient === vote.recipient
-          )
-          .filter((application) => application.status === "APPROVED")
-          .sort((a, b) => a.statusUpdatedAtBlock - b.statusUpdatedAtBlock)[0];
-        if (!application) {
-          throw "Couldn't find application for project";
-        }
-        return {
-          amount: vote.amount.toString(),
-          amountRoundToken: amountRoundToken.toString(),
-          amountUSD,
-          token: vote.token,
-          roundId: this.roundId,
-          voter: vote.contributor,
-          grantAddress: vote.recipient,
-          projectId: application.projectId,
-          id: "",
-          applicationId: application.id,
-        };
-      })
-    );
-
-    const potentialVotesWithCoefficients = await getVotesWithCoefficients(
-      this.chain,
-      round,
-      applications,
-      potentialVotesAugmented,
-      this.passportProvider,
-      {
-        minimumAmountUSD: this.minimumAmountUSD,
-        enablePassport: this.enablePassport,
-        passportThreshold: this.passportThreshold,
-      }
-    );
-
-    const contributions = this.#votesWithCoefficientToContribution(
-      votesWithCoefficients
-    );
-
-    const potentialContributions = this.#votesWithCoefficientToContribution(
-      potentialVotesWithCoefficients
-    );
-
-    const contributionsWithPotentialVotes = [
-      ...potentialContributions,
-      ...contributions,
-    ];
-
-    const potentialResults = linearQF(
-      contributionsWithPotentialVotes,
-      matchAmount,
-      matchTokenDecimals,
-      {
-        minimumAmount: BigInt(this.minimumAmountUSD ?? 0),
-        matchingCapAmount,
-        ignoreSaturation: this.ignoreSaturation ?? false,
-      }
-    );
-
-    const currentResults = linearQF(
-      contributions,
-      matchAmount,
-      matchTokenDecimals,
-      {
-        minimumAmount: BigInt(this.minimumAmountUSD ?? 0),
-        matchingCapAmount,
-        ignoreSaturation: this.ignoreSaturation ?? false,
-      }
-    );
+    const currentResults = await this._calculate(votes);
+    const potentialResults = await this._calculate([
+      ...votes,
+      ...potentialVotes,
+    ]);
 
     const finalResults: MatchingEstimateResult[] = [];
 
-    for (const key of Object.keys(potentialResults)) {
-      const potentialResult = potentialResults[key] ?? {};
-      const currentResult = currentResults[key] ?? {};
+    for (const key in potentialResults) {
+      const potentialResult = potentialResults[key];
+      const currentResult = currentResults[key];
 
       /* Subtracting undefined from a bigint would fail,
        * so we explicitly subtract 0 if it's undefined */
@@ -441,11 +309,11 @@ export default class Calculator {
         potentialResult.matched - (currentResult.matched ?? 0n);
       const differenceInUSD = await this.priceProvider.convertToUSD(
         this.chainId,
-        round.token,
+        roundToken,
         difference
       );
 
-      const recipient = potentialVotesWithCoefficients.find(
+      const recipient = potentialVotes.find(
         (vote) => vote.applicationId == key
       )?.grantAddress;
 
@@ -454,7 +322,7 @@ export default class Calculator {
         ...currentResult,
         ...potentialResult,
         difference,
-        roundId: round.id,
+        roundId,
         chainId: this.chainId,
         recipient: recipient ?? ethers.constants.AddressZero,
         differenceInUSD: differenceInUSD.amount,
