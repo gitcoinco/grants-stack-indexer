@@ -123,10 +123,13 @@ export function createPriceUpdater(
 
       const getBlockTimestamp = async (blockNumber: bigint) => {
         if (blockCache) {
-          const block = await blockCache.getBlockByNumber(chainId, blockNumber);
+          const timestamp = await blockCache.getTimestampByBlockNumber(
+            chainId,
+            blockNumber
+          );
 
-          if (block) {
-            return block.timestamp;
+          if (timestamp) {
+            return timestamp;
           }
         }
 
@@ -136,7 +139,7 @@ export function createPriceUpdater(
           await blockCache.saveBlock({
             chainId,
             blockNumber,
-            timestamp: providerBlock.timestamp,
+            timestampInSecs: providerBlock.timestamp,
           });
         }
 

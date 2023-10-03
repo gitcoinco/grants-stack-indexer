@@ -1,19 +1,22 @@
 export type Block = {
   chainId: number;
   blockNumber: bigint;
-  timestamp: number;
+  timestampInSecs: number;
 };
 
 export interface BlockCache {
   init(): Promise<void>;
-  getBlockByNumber(chainId: number, blockNumber: bigint): Promise<Block | null>;
-  getBlockByTimestamp(
+  getTimestampByBlockNumber(
     chainId: number,
-    timestamp: number
-  ): Promise<Block | null>;
+    blockNumber: bigint
+  ): Promise<number | null>;
+  getBlockNumberByTimestamp(
+    chainId: number,
+    timestampInSecs: number
+  ): Promise<bigint | null>;
   saveBlock(block: Block): Promise<void>;
   getClosestBoundsForTimestamp(
     chainId: number,
-    timestamp: number
+    timestampInSecs: number
   ): Promise<{ before: Block | null; after: Block | null }>;
 }

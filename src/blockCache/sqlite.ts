@@ -28,7 +28,7 @@ export function createSqliteBlockCache(opts: Options): BlockCache {
   const tableName = opts.tableName ?? defaultTableName;
 
   return {
-    async init() {
+    init(): Promise<void> {
       if (db) {
         throw new Error("Already initialized");
       }
@@ -55,8 +55,11 @@ export function createSqliteBlockCache(opts: Options): BlockCache {
         `CREATE INDEX IF NOT EXISTS idx_chainId_timestamp_blockNumber 
          ON ${tableName} (chainId, timestamp, blockNumber DESC);`
       );
+
+      return Promise.resolve();
     },
-    async getBlockByNumber(chainId, blockNumber) {
+
+    getTimestampByBlockNumber(chainId, blockNumber): Promise<number | null> {
       if (!db) {
         throw new Error("SQLite database not initialized");
       }
@@ -66,12 +69,11 @@ export function createSqliteBlockCache(opts: Options): BlockCache {
           `SELECT * FROM ${tableName} WHERE chainId = ? AND blockNumber = ?`
         )
         .get(chainId, blockNumber.toString()) as Row | undefined;
-      return row
-        ? ({ ...row, blockNumber: BigInt(row.blockNumber) } as Block)
-        : null;
+
+      return Promise.resolve(row?.timestamp ?? null);
     },
 
-    async getBlockByTimestamp(chainId, timestamp) {
+    getBlockNumberByTimestamp(chainId, timestamp): Promise<bigint | null> {
       if (!db) {
         throw new Error("SQLite database not initialized");
       }
@@ -81,21 +83,29 @@ export function createSqliteBlockCache(opts: Options): BlockCache {
           `SELECT * FROM ${tableName} WHERE chainId = ? AND timestamp = ?`
         )
         .get(chainId, timestamp) as Row | undefined;
-      return row
-        ? ({ ...row, blockNumber: BigInt(row.blockNumber) } as Block)
-        : null;
+
+      return Promise.resolve(row?.blockNumber ? BigInt(row.blockNumber) : null);
     },
 
-    async saveBlock(block: Block) {
+    saveBlock(block: Block): Promise<void> {
       if (!db) {
         throw new Error("SQLite database not initialized");
       }
+
       db.prepare(
         `INSERT OR REPLACE INTO ${tableName} (chainId, blockNumber, timestamp) VALUES (?, ?, ?)`
-      ).run(block.chainId, block.blockNumber.toString(), block.timestamp);
+      ).run(block.chainId, block.blockNumber.toString(), block.timestampInSecs);
+
+      return Promise.resolve();
     },
 
-    async getClosestBoundsForTimestamp(chainId, timestamp) {
+    getClosestBoundsForTimestamp(
+      chainId,
+      timestamp
+    ): Promise<{
+      before: Block | null;
+      after: Block | null;
+    }> {
       if (!db) {
         throw new Error("SQLite database not initialized");
       }
@@ -111,14 +121,22 @@ export function createSqliteBlockCache(opts: Options): BlockCache {
         )
         .get(chainId, timestamp) as Row | undefined;
 
-      return {
+      return Promise.resolve({
         before: before
-          ? ({ ...before, blockNumber: BigInt(before.blockNumber) } as Block)
+          ? ({
+              ...before,
+              timestampInSecs: before.timestamp,
+              blockNumber: BigInt(before.blockNumber),
+            } as Block)
           : null,
         after: after
-          ? ({ ...after, blockNumber: BigInt(after.blockNumber) } as Block)
+          ? ({
+              ...after,
+              timestampInSecs: after.timestamp,
+              blockNumber: BigInt(after.blockNumber),
+            } as Block)
           : null,
-      };
+      });
     },
   };
 }
