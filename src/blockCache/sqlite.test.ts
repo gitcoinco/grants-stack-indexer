@@ -41,7 +41,7 @@ describe("createSqliteBlockCache", () => {
 
   it("should throw if already initialized", async () => {
     await blockCache.init();
-    await expect(blockCache.init()).rejects.toThrow("");
+    await expect(blockCache.init()).rejects.toThrow("Already initialized");
   });
 
   it("should save and retrieve a block by number", async () => {

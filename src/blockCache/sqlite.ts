@@ -16,28 +16,34 @@ interface Row {
   timestamp: number;
 }
 
-export function createSqliteBlockCache(opts: Options): BlockCache {
-  let db: Sqlite.Database | null = null;
+type UninitializedState = { state: "uninitialized" };
+type InitializedState = {
+  state: "initialized";
+  db: Sqlite.Database;
+  getTimestampByBlockNumberStmt: Sqlite.Statement;
+  getBlockNumberByTimestampStmt: Sqlite.Statement;
+  saveBlockStmt: Sqlite.Statement;
+  getBeforeStmt: Sqlite.Statement;
+  getAfterStmt: Sqlite.Statement;
+};
+type State = UninitializedState | InitializedState;
 
-  if (opts.tableName !== undefined && opts.tableName.match(/[^a-zA-Z0-9_]/)) {
-    throw new Error(
-      `Table name ${opts.tableName} contains invalid characters. Only alphanumeric and underscore characters are allowed.`
-    );
+export function createSqliteBlockCache(opts: Options): BlockCache {
+  let dbState: State = { state: "uninitialized" };
+
+  if (opts.tableName !== undefined && /[^a-zA-Z0-9_]/.test(opts.tableName)) {
+    throw new Error(`Table name ${opts.tableName} has invalid characters.`);
   }
 
   const tableName = opts.tableName ?? defaultTableName;
 
   return {
-    init(): Promise<void> {
-      if (db) {
+    async init(): Promise<void> {
+      if (dbState.state === "initialized") {
         throw new Error("Already initialized");
       }
 
-      if ("db" in opts) {
-        db = opts.db;
-      } else {
-        db = new Sqlite(opts.dbPath);
-      }
+      const db = "db" in opts ? opts.db : new Sqlite(opts.dbPath);
 
       db.exec("PRAGMA journal_mode = WAL;");
 
@@ -56,85 +62,105 @@ export function createSqliteBlockCache(opts: Options): BlockCache {
          ON ${tableName} (chainId, timestamp, blockNumber DESC);`
       );
 
-      return Promise.resolve();
-    },
-
-    getTimestampByBlockNumber(chainId, blockNumber): Promise<number | null> {
-      if (!db) {
-        throw new Error("SQLite database not initialized");
-      }
-
-      const row = db
-        .prepare(
+      dbState = {
+        state: "initialized",
+        db,
+        getTimestampByBlockNumberStmt: db.prepare(
           `SELECT * FROM ${tableName} WHERE chainId = ? AND blockNumber = ?`
-        )
-        .get(chainId, blockNumber.toString()) as Row | undefined;
-
-      return Promise.resolve(row?.timestamp ?? null);
-    },
-
-    getBlockNumberByTimestamp(chainId, timestamp): Promise<bigint | null> {
-      if (!db) {
-        throw new Error("SQLite database not initialized");
-      }
-
-      const row = db
-        .prepare(
+        ),
+        getBlockNumberByTimestampStmt: db.prepare(
           `SELECT * FROM ${tableName} WHERE chainId = ? AND timestamp = ?`
-        )
-        .get(chainId, timestamp) as Row | undefined;
-
-      return Promise.resolve(row?.blockNumber ? BigInt(row.blockNumber) : null);
-    },
-
-    saveBlock(block: Block): Promise<void> {
-      if (!db) {
-        throw new Error("SQLite database not initialized");
-      }
-
-      db.prepare(
-        `INSERT OR REPLACE INTO ${tableName} (chainId, blockNumber, timestamp) VALUES (?, ?, ?)`
-      ).run(block.chainId, block.blockNumber.toString(), block.timestampInSecs);
+        ),
+        saveBlockStmt: db.prepare(
+          `INSERT OR REPLACE INTO ${tableName} (chainId, blockNumber, timestamp) VALUES (?, ?, ?)`
+        ),
+        getBeforeStmt: db.prepare(
+          `SELECT * FROM ${tableName} WHERE chainId = ? AND timestamp < ? ORDER BY timestamp DESC, blockNumber DESC LIMIT 1`
+        ),
+        getAfterStmt: db.prepare(
+          `SELECT * FROM ${tableName} WHERE chainId = ? AND timestamp >= ? ORDER BY timestamp ASC, blockNumber ASC LIMIT 1`
+        ),
+      };
 
       return Promise.resolve();
     },
 
-    getClosestBoundsForTimestamp(
+    async getTimestampByBlockNumber(
+      chainId,
+      blockNumber
+    ): Promise<number | null> {
+      if (dbState.state === "uninitialized") {
+        throw new Error("SQLite database not initialized");
+      }
+
+      const row = dbState.getTimestampByBlockNumberStmt.get(
+        chainId,
+        blockNumber.toString()
+      ) as Row | undefined;
+
+      return Promise.resolve(row ? row.timestamp : null);
+    },
+
+    async getBlockNumberByTimestamp(
       chainId,
       timestamp
-    ): Promise<{
-      before: Block | null;
-      after: Block | null;
-    }> {
-      if (!db) {
+    ): Promise<bigint | null> {
+      if (dbState.state === "uninitialized") {
         throw new Error("SQLite database not initialized");
       }
-      const before = db
-        .prepare(
-          `SELECT * FROM ${tableName} WHERE chainId = ? AND timestamp < ? ORDER BY timestamp DESC, blockNumber DESC LIMIT 1`
-        )
-        .get(chainId, timestamp) as Row | undefined;
 
-      const after = db
-        .prepare(
-          `SELECT * FROM ${tableName} WHERE chainId = ? AND timestamp >= ? ORDER BY timestamp ASC, blockNumber ASC LIMIT 1`
-        )
-        .get(chainId, timestamp) as Row | undefined;
+      const row = dbState.getBlockNumberByTimestampStmt.get(
+        chainId,
+        timestamp
+      ) as Block | undefined;
+
+      return Promise.resolve(row ? BigInt(row.blockNumber) : null);
+    },
+
+    async saveBlock(block: Block): Promise<void> {
+      if (dbState.state === "uninitialized") {
+        throw new Error("SQLite database not initialized");
+      }
+
+      dbState.saveBlockStmt.run(
+        block.chainId,
+        block.blockNumber.toString(),
+        block.timestampInSecs
+      );
+
+      return Promise.resolve();
+    },
+
+    async getClosestBoundsForTimestamp(
+      chainId,
+      timestamp
+    ): Promise<{ before: Block | null; after: Block | null }> {
+      if (dbState.state === "uninitialized") {
+        throw new Error("SQLite database not initialized");
+      }
+
+      const before = dbState.getBeforeStmt.get(chainId, timestamp) as
+        | Row
+        | undefined;
+
+      const after = dbState.getAfterStmt.get(chainId, timestamp) as
+        | Row
+        | undefined;
 
       return Promise.resolve({
         before: before
-          ? ({
-              ...before,
+          ? {
+              chainId: before.chainId,
               timestampInSecs: before.timestamp,
               blockNumber: BigInt(before.blockNumber),
-            } as Block)
+            }
           : null,
         after: after
-          ? ({
-              ...after,
+          ? {
+              chainId: after.chainId,
               timestampInSecs: after.timestamp,
               blockNumber: BigInt(after.blockNumber),
-            } as Block)
+            }
           : null,
       });
     },
