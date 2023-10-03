@@ -608,6 +608,48 @@ const CHAINS: Chain[] = [
       },
     ],
   },
+  {
+    id: 43113,
+    name: "avalanche-fuji",
+    rpc: rpcUrl
+      .default("https://avalanche-fuji-c-chain.publicnode.com")
+      .parse(process.env.AVALANCHE_FUJI_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2023, 8, 19, 0, 0, 0),
+    tokens: [
+      {
+        code: "AVAX",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 43114,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "USDC",
+        address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+        decimals: 6,
+        priceSource: {
+          chainId: 1,
+          address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        },
+      },
+    ],
+    subscriptions: [
+      {
+        address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
+        abi: abis.v2.ProjectRegistry,
+      },
+      {
+        address: "0x8eC471f30cA797FD52F9D37A47Be2517a7BD6912",
+        abi: abis.v2.RoundFactory,
+      },
+      {
+        address: "0x2AFA4bE0f2468347A2F086c2167630fb1E58b725",
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
+      },
+    ],
+  },
 ];
 
 export const getDecimalsForToken = (
