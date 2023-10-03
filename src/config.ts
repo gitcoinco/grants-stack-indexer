@@ -602,8 +602,7 @@ export type Config = {
   storageDir: string;
   fromBlock: number;
   toBlock: ToBlock;
-  passportScorerId: string;
-  passportApiKey: string;
+  passportScorerId: number;
   cacheDir: string | null;
   logLevel: "trace" | "debug" | "info" | "warn" | "error";
   ipfsGateway: string;
@@ -633,9 +632,9 @@ export function getConfig(): Config {
     ])
     .parse(process.env.DEPLOYMENT_ENVIRONMENT);
 
-  const passportScorerId = z.string().parse(process.env.PASSPORT_SCORER_ID);
-
-  const passportApiKey = z.string().parse(process.env.PASSPORT_API_KEY);
+  const passportScorerId = z.coerce
+    .number()
+    .parse(process.env.PASSPORT_SCORER_ID);
 
   const coingeckoApiKey = z
     .union([z.string(), z.null()])
@@ -732,7 +731,6 @@ export function getConfig(): Config {
     logLevel,
     runOnce,
     ipfsGateway,
-    passportApiKey,
     passportScorerId,
     apiHttpPort,
     deploymentEnvironment,
