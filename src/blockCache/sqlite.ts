@@ -112,7 +112,7 @@ export function createSqliteBlockCache(opts: Options): BlockCache {
       const row = dbState.getBlockNumberByTimestampStmt.get(
         chainId,
         timestamp
-      ) as Block | undefined;
+      ) as Row | undefined;
 
       return Promise.resolve(row ? BigInt(row.blockNumber) : null);
     },
