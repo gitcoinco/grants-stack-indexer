@@ -570,7 +570,7 @@ const CHAINS: Chain[] = [
     id: 43114,
     name: "avalanche",
     rpc: rpcUrl
-      .default("https://api.avax.network/ext/bc/C/rpc")
+      .default("https://avalanche-c-chain.publicnode.com")
       .parse(process.env.AVALANCHE_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 8, 19, 0, 0, 0),
     tokens: [
