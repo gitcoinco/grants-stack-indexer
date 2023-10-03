@@ -39,7 +39,7 @@ describe("getBlockFromTimestamp", () => {
       throw new Error(`block ${blockNumber} not found`);
     }
 
-    return timestamp;
+    return Promise.resolve(timestamp);
   }
 
   it("finds lowest block when multiple blocks have same timestamp", async () => {
