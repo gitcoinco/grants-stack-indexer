@@ -113,8 +113,8 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     res.send(responseBody);
   }
 
-  router.post("/chains/:chainId/rounds/:roundId/estimate", (req, res) => {
-    return estimateMatchesHandler(req, res, 200);
+  router.post("/chains/:chainId/rounds/:roundId/estimate", async (req, res) => {
+    await estimateMatchesHandler(req, res, 200);
   });
 
   async function estimateMatchesHandler(
@@ -149,7 +149,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     };
 
     const calculator = new Calculator(calculatorOptions);
-    const matches = await calculator.estimateMatching(potentialVotes);
+    const matches = await calculator.estimateMatching(potentialVotes, roundId);
     const responseBody = JSON.stringify(matches, (_key, value) =>
       typeof value === "bigint" ? value.toString() : (value as unknown)
     );

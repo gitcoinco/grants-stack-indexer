@@ -280,41 +280,106 @@ export default class Calculator {
   /**
    * Estimates matching for a given project and potential additional votes
    * @param potentialVotes
+   * @param roundId
    */
   async estimateMatching(
-    potentialVotes: Vote[],
-    roundId: string,
-    roundToken: string
+    potentialVotes: PotentialVote[],
+    roundId: string
   ): Promise<MatchingEstimateResult[]> {
     const votes = await this.parseJSONFile<Vote>(
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
 
+    const rounds = await this.parseJSONFile<Round>(
+      "rounds",
+      `${this.chainId}/rounds.json`
+    );
+
+    const round = rounds.find((r: Round) => r.id === this.roundId);
+
+    if (round === undefined) {
+      throw new ResourceNotFoundError("round");
+    }
+
+    if (round.matchAmount === undefined) {
+      throw new ResourceNotFoundError("round match amount");
+    }
+
+    if (round.token === undefined) {
+      throw new ResourceNotFoundError("round token");
+    }
+
+    const applications = await this.parseJSONFile<Application>(
+      "applications",
+      `${this.chainId}/rounds/${this.roundId}/applications.json`
+    );
+
     const currentResults = await this._calculate(votes);
+    const potentialVotesAugmented: Vote[] = await Promise.all(
+      potentialVotes.map(async (vote) => {
+        const { amount: amountUSD } = await this.priceProvider.convertToUSD(
+          this.chainId,
+          vote.token,
+          vote.amount
+        );
+
+        const { amount: amountRoundToken } =
+          await this.priceProvider.convertFromUSD(
+            this.chainId,
+            round.token,
+            amountUSD
+          );
+
+        /* Find the latest approved application */
+        const application = applications
+          .filter(
+            (application) =>
+              application.metadata?.application.recipient === vote.recipient
+          )
+          .filter((application) => application.status === "APPROVED")
+          .sort((a, b) => a.statusUpdatedAtBlock - b.statusUpdatedAtBlock)[0];
+        if (!application) {
+          throw "Couldn't find application for project";
+        }
+        return {
+          amount: vote.amount.toString(),
+          amountRoundToken: amountRoundToken.toString(),
+          amountUSD,
+          token: vote.token,
+          roundId: this.roundId,
+          voter: vote.contributor,
+          grantAddress: vote.recipient,
+          projectId: application.projectId,
+          id: "",
+          applicationId: application.id,
+        };
+      })
+    );
     const potentialResults = await this._calculate([
       ...votes,
-      ...potentialVotes,
+      ...potentialVotesAugmented,
     ]);
 
     const finalResults: MatchingEstimateResult[] = [];
 
-    for (const key in potentialResults) {
-      const potentialResult = potentialResults[key];
-      const currentResult = currentResults[key];
+    for (const potentialResult of potentialResults) {
+      const currentResult = currentResults.find(
+        (res) => res.applicationId === potentialResult.applicationId
+      );
 
       /* Subtracting undefined from a bigint would fail,
        * so we explicitly subtract 0 if it's undefined */
       const difference =
-        potentialResult.matched - (currentResult.matched ?? 0n);
+        potentialResult.matched - (currentResult?.matched ?? 0n);
       const differenceInUSD = await this.priceProvider.convertToUSD(
         this.chainId,
-        roundToken,
+        round.token,
         difference
       );
 
-      const recipient = potentialVotes.find(
-        (vote) => vote.applicationId == key
+      const recipient = potentialVotesAugmented.find(
+        (vote) => vote.applicationId === potentialResult.applicationId
       )?.grantAddress;
 
       /** Can be undefined, but spreading an undefined is a no-op, so it's okay here */

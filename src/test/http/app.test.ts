@@ -16,6 +16,7 @@ import { Logger } from "pino";
 import { PotentialVotes } from "../../http/api/v1/matches.js";
 import { PassportScore } from "../../passport/index.js";
 import { Chain } from "../../config.js";
+import { constants } from "ethers";
 
 vi.spyOn(os, "hostname").mockReturnValue("dummy-hostname");
 
@@ -325,59 +326,93 @@ describe("server", () => {
         expect(resp.body).toEqual(expectedResults);
       });
 
-      test("should estimate matching with new votes for projects", async () => {
-        const expectedResults = {
-          "application-id-1": {
+      test.only("should estimate matching with new votes for projects", async () => {
+        const expectedResults = [
+          {
+            applicationId: "application-id-1",
             capOverflow: "0",
+            chainId: 1,
             contributionsCount: "4",
-            difference: "-171",
-            matched: "1189",
-            matchedWithoutCap: "1189",
+            difference: "0",
+            differenceInUSD: 0,
+            matched: "1360",
+            matchedUSD: 0,
+            matchedWithoutCap: "1360",
+            payoutAddress: "grant-address-1",
+            projectId: "project-id-1",
+            recipient: "grant-address-1",
+            roundId: "0x1234",
             sumOfSqrt: "70",
-            totalReceived: "1510",
-          },
-          "application-id-2": {
-            capOverflow: "0",
-            contributionsCount: "8",
-            difference: "964",
-            matched: "3124",
-            matchedWithoutCap: "3124",
-            sumOfSqrt: "102",
             totalReceived: "1500",
           },
-          "application-id-3": {
+          {
+            applicationId: "application-id-2",
             capOverflow: "0",
+            chainId: 1,
+            contributionsCount: "8",
+            difference: "0",
+            differenceInUSD: 0,
+            matched: "2160",
+            matchedUSD: 0,
+            matchedWithoutCap: "2160",
+            payoutAddress: "grant-address-2",
+            projectId: "project-id-2",
+            recipient: "grant-address-2",
+            roundId: "0x1234",
+            sumOfSqrt: "80",
+            totalReceived: "1000",
+          },
+          {
+            applicationId: "application-id-3",
+            capOverflow: "0",
+            chainId: 1,
             contributionsCount: "7",
-            difference: "-795",
-            matched: "5685",
-            matchedWithoutCap: "5685",
+            difference: "0",
+            differenceInUSD: 0,
+            matched: "6480",
+            matchedUSD: 0,
+            matchedWithoutCap: "6480",
+            payoutAddress: "grant-address-3",
+            projectId: "project-id-3",
+            recipient: "0x0000000000000000000000000000000000000000",
+            roundId: "0x1234",
             sumOfSqrt: "140",
             totalReceived: "3400",
           },
-        };
+        ];
 
         const potentialVotes: PotentialVotes = [
           {
             amount: 10n,
             contributor: "voter-1",
             recipient: "grant-address-1",
-            token: "0",
+            token: constants.AddressZero,
           },
           {
             amount: 500n,
             contributor: "voter-2",
             recipient: "grant-address-2",
-            token: "0",
+            token: constants.AddressZero,
           },
         ];
 
+        const replacer = (
+          _key: string,
+          value: bigint | string | number | object
+        ) => (typeof value === "bigint" ? value.toString() : value);
+
         const resp = await request(app)
           .post("/api/v1/chains/1/rounds/0x1234/estimate")
-          .send({
-            potentialVotes,
-          })
           .set("Content-Type", "application/json")
-          .set("Accept", "application/json");
+          .set("Accept", "application/json")
+          .send(
+            JSON.stringify(
+              {
+                potentialVotes,
+              },
+              replacer
+            )
+          );
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
       });
