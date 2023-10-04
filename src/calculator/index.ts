@@ -14,6 +14,7 @@ import {
   OverridesInvalidRowError,
 } from "./errors.js";
 import { PotentialVote } from "../http/api/v1/matches.js";
+import { ethers } from "ethers";
 
 export {
   CalculatorError,
@@ -142,7 +143,7 @@ export default class Calculator {
 
   #votesWithCoefficientToContribution(
     votes: VoteWithCoefficient[]
-  ): Contribution[] {
+  ): (Contribution & { recipientAddress: string })[] {
     return votes.flatMap((vote) => {
       const scaleFactor = 10_000;
       const coefficient = BigInt(
@@ -155,7 +156,8 @@ export default class Calculator {
       return [
         {
           contributor: vote.voter,
-          recipient: vote.grantAddress,
+          recipient: vote.applicationId,
+          recipientAddress: vote.grantAddress,
           amount: multipliedAmount,
         },
       ];
@@ -346,7 +348,7 @@ export default class Calculator {
           vote.amount
         );
 
-        const { amount: amountRoundToken, price } =
+        const { amount: amountRoundToken } =
           await this.priceProvider.convertFromUSD(
             this.chainId,
             round.token,
@@ -392,11 +394,13 @@ export default class Calculator {
       }
     );
 
-    const contributions: Array<Contribution> =
-      this.#votesWithCoefficientToContribution(votesWithCoefficients);
+    const contributions = this.#votesWithCoefficientToContribution(
+      votesWithCoefficients
+    );
 
-    const potentialContributions: Contribution[] =
-      this.#votesWithCoefficientToContribution(potentialVotesWithCoefficients);
+    const potentialContributions = this.#votesWithCoefficientToContribution(
+      potentialVotesWithCoefficients
+    );
 
     const contributionsWithPotentialVotes = [
       ...potentialContributions,
@@ -431,7 +435,7 @@ export default class Calculator {
       const potentialResult = potentialResults[key] ?? {};
       const currentResult = currentResults[key] ?? {};
 
-      /*Here, however, subtracting undefined from a bigint would fail,
+      /* Subtracting undefined from a bigint would fail,
        * so we explicitly subtract 0 if it's undefined */
       const difference =
         potentialResult.matched - (currentResult.matched ?? 0n);
@@ -441,6 +445,10 @@ export default class Calculator {
         difference
       );
 
+      const recipient = potentialVotesWithCoefficients.find(
+        (vote) => vote.applicationId == key
+      )?.grantAddress;
+
       /** Can be undefined, but spreading an undefined is a no-op, so it's okay here */
       finalResults.push({
         ...currentResult,
@@ -448,7 +456,7 @@ export default class Calculator {
         difference,
         roundId: round.id,
         chainId: this.chainId,
-        recipient: key,
+        recipient: recipient ?? ethers.constants.AddressZero,
         differenceInUSD: differenceInUSD.amount,
       });
     }
