@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+import fastq, { queueAsPromised } from "fastq";
+import split2 from "split2";
 import { Level } from "level";
 import enhancedFetch from "make-fetch-happen";
 import { access } from "node:fs/promises";
 import { createWriteStream } from "node:fs";
 import { Logger } from "pino";
 
-const PASSPORT_API_MAX_ITEMS_LIMIT = 1000;
-const DELAY_BETWEEN_FULL_UPDATES_MS = 60 * 1000;
+const DEFAULT_DELAY_BETWEEN_FULL_UPDATES_MS = 1000 * 60 * 30;
 
 export type PassportScore = {
   address: string;
@@ -24,12 +25,11 @@ export type PassportScore = {
 };
 
 export interface PassportProviderConfig {
-  apiKey: string;
-  scorerId: string;
+  scorerId: number;
   logger: Logger;
   dbPath: string;
   deprecatedJSONPassportDumpPath?: string;
-  fetch?: typeof global.fetch;
+  fetch?: typeof enhancedFetch;
   delayBetweenFullUpdatesMs?: number;
 }
 
@@ -61,11 +61,10 @@ export const createPassportProvider = (
 ): PassportProvider => {
   // CONFIG
 
-  const baseRequestUri = `https://api.scorer.gitcoin.co/registry/score/${config.scorerId}`;
   const { logger } = config;
   const fetch = config.fetch ?? enhancedFetch;
   const delayBetweenFullUpdatesMs =
-    config.delayBetweenFullUpdatesMs ?? DELAY_BETWEEN_FULL_UPDATES_MS;
+    config.delayBetweenFullUpdatesMs ?? DEFAULT_DELAY_BETWEEN_FULL_UPDATES_MS;
 
   // STATE
 
@@ -177,7 +176,7 @@ export const createPassportProvider = (
 
     await runFullUpdate();
 
-    setTimeout(poll, DELAY_BETWEEN_FULL_UPDATES_MS);
+    setTimeout(poll, DEFAULT_DELAY_BETWEEN_FULL_UPDATES_MS);
   };
 
   const runFullUpdate = async (): Promise<void> => {
@@ -186,77 +185,79 @@ export const createPassportProvider = (
       return;
     }
 
+    const queue: queueAsPromised<{ address: string; score: PassportScore }> =
+      fastq.promise(async ({ address, score }) => {
+        await db.put(address.toLowerCase(), score);
+      }, 1);
+
+    const startTime = Date.now();
     logger.debug("updating passports...");
-    const remotePassportCount = await fetchRemotePassportCount();
+
     const { db } = state;
+    const res = await fetch(
+      "https://public.scorer.gitcoin.co/passport_scores/registry_score.jsonl"
+    );
+    const { body } = res;
 
-    let offset = 0;
-    while (offset < remotePassportCount) {
-      const requestUri = `${baseRequestUri}?offset=${offset}&limit=${PASSPORT_API_MAX_ITEMS_LIMIT}`;
-
-      if (offset % 20000 === 0) {
-        // Only log every 10000 scores to reduce log noise
-        logger.debug({
-          msg: `fetching from ${offset} up to ${remotePassportCount} in batches of ${PASSPORT_API_MAX_ITEMS_LIMIT}`,
-          requestUri,
-        });
-      }
-
-      // @ts-ignore types from make-fetch-happen are conflicting with types from global fetch in CI
-      const res = await fetch(requestUri, {
-        headers: { authorization: `Bearer ${config.apiKey}` },
-        retry: {
-          retries: 5,
-          randomize: true,
-          maxTimeout: 5000,
-        },
-      });
-
-      if (!res.ok) {
-        // continuing without modifying offset is effectively a retry
-        logger.warn(
-          `passport API responde non-success status code: ${res.status}`
-        );
-        continue;
-      }
-
-      try {
-        const { items: passportBatch } = (await res.json()) as {
-          items: PassportScore[];
-        };
-
-        await db.batch(
-          passportBatch.map((score) => ({
-            type: "put",
-            key: score.address.toLowerCase(),
-            value: score,
-          }))
-        );
-
-        offset += PASSPORT_API_MAX_ITEMS_LIMIT;
-      } catch (err) {
-        logger.error({ msg: `Error reading response from Passport API`, err });
-        continue;
-      }
+    if (body === null) {
+      throw new Error("Passport dump is empty");
     }
+
+    await new Promise<void>((resolve, reject) => {
+      body
+        .pipe(split2())
+        .on("data", (line: string) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          const {
+            passport: { address, community },
+            ...rest
+          } = JSON.parse(line);
+
+          if (community === config.scorerId) {
+            queue
+              .push({
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                address: address.toLowerCase(),
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                score: { address, ...rest },
+              })
+              .catch((err) => {
+                logger.error({
+                  msg: "error while writing to passport dataset",
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                  err,
+                });
+              });
+          }
+        })
+        .on("end", () => {
+          queue
+            .drained()
+            .then(() => {
+              logger.debug(
+                `processed passport dump in ${
+                  (Date.now() - startTime) / 1000
+                } seconds`
+              );
+              resolve();
+            })
+            .catch((err) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              logger.error({ err });
+            });
+        })
+        .on("error", (err) => {
+          logger.error({ msg: "error while reading from passport dump", err });
+          reject(err);
+        });
+    });
 
     if (config.deprecatedJSONPassportDumpPath !== undefined) {
       await writeDeprecatedCompatibilityJSONDump(
-        state.db,
+        db,
         config.deprecatedJSONPassportDumpPath
       );
     }
-  };
-
-  const fetchRemotePassportCount = async (): Promise<number> => {
-    // @ts-ignore
-    const res = await fetch(`${baseRequestUri}?limit=1`, {
-      headers: {
-        authorization: `Bearer ${config.apiKey}`,
-      },
-    });
-    const { count } = (await res.json()) as { count: number };
-    return count;
   };
 
   const writeDeprecatedCompatibilityJSONDump = async (

@@ -1,37 +1,36 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
-import { Logger } from "pino";
-import { tmpNameSync } from "tmp";
-import { describe, test, expect, afterEach, beforeAll, vi } from "vitest";
-import {
-  createPassportProvider,
-  PassportProvider,
-  PassportProviderConfig,
-} from "./index.js";
-import { SAMPLE_PASSPORT_DATA } from "./index.test.fixtures.js";
-
-const getTestConfig = (): PassportProviderConfig => ({
-  apiKey: "dummy-key",
-  logger: {
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-  } as unknown as Logger,
-  scorerId: "123",
-  delayBetweenFullUpdatesMs: 10,
-  dbPath: tmpNameSync(), // TODO: do in memory or cleanup in afterEach
-});
+import intoStream from "into-stream";
+import { FetchInterface } from "make-fetch-happen";
+import { describe, expect, afterEach, beforeAll, vi, Mocked } from "vitest";
+import { createPassportProvider, PassportProvider } from "./index.js";
+import { test } from "./index.test.fixtures.js";
 
 describe("lifecycle", () => {
-  const passportProvider = createPassportProvider(getTestConfig());
+  test("throws if reading is attempted before starting", async ({
+    logger,
+    dbPath,
+  }) => {
+    const passportProvider = createPassportProvider({
+      logger,
+      dbPath,
+      scorerId: 13,
+    });
 
-  test("throws if reading is attempted before starting", async () => {
     await expect(() =>
       passportProvider.getScoreByAddress("voter-1")
     ).rejects.toMatchInlineSnapshot("[Error: Service not started]");
   });
 
-  test("throws if stopping is attempted before starting", () => {
+  test("throws if stopping is attempted before starting", ({
+    logger,
+    dbPath,
+  }) => {
+    const passportProvider = createPassportProvider({
+      logger,
+      dbPath,
+      scorerId: 13,
+    });
+
     expect(() => passportProvider.stop()).toThrowErrorMatchingInlineSnapshot(
       '"Service not started"'
     );
@@ -50,405 +49,124 @@ describe("operation", () => {
   });
 
   describe("updating", () => {
-    test("fetches data from passport API upon startup if stored dataset is empty", async () => {
-      const fetchMock = vi
-        .fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ count: 3 }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(SAMPLE_PASSPORT_DATA),
-        });
+    test("fetches data from passport public dump upon startup", async ({
+      logger,
+      dbPath,
+      passportData,
+    }) => {
+      const fetchMock = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        body: intoStream(passportData),
+      }) as unknown as FetchInterface;
 
       passportProvider = createPassportProvider({
-        ...getTestConfig(),
+        scorerId: 13,
+        logger,
+        dbPath,
         fetch: fetchMock,
       });
 
-      const starting = passportProvider.start();
-      await vi.advanceTimersToNextTimerAsync();
-      await starting;
+      await passportProvider.start();
 
-      expect(fetchMock.mock.calls).toMatchInlineSnapshot(`
-        [
-          [
-            "https://api.scorer.gitcoin.co/registry/score/123?limit=1",
-            {
-              "headers": {
-                "authorization": "Bearer dummy-key",
-              },
-            },
-          ],
-          [
-            "https://api.scorer.gitcoin.co/registry/score/123?offset=0&limit=1000",
-            {
-              "headers": {
-                "authorization": "Bearer dummy-key",
-              },
-              "retry": {
-                "maxTimeout": 5000,
-                "randomize": true,
-                "retries": 5,
-              },
-            },
-          ],
-        ]
-      `);
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://public.scorer.gitcoin.co/passport_scores/registry_score.jsonl"
+      );
     });
 
-    test("recovers upon HTTP errors from the passport API", async () => {
-      const fetchMock = vi
-        .fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ count: 3 }),
-        })
-        .mockResolvedValueOnce({
-          ok: false,
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(SAMPLE_PASSPORT_DATA),
-        });
+    test.todo("handles a missing passport dump");
 
-      passportProvider = createPassportProvider({
-        ...getTestConfig(),
-        fetch: fetchMock,
+    test("polls passport dump for updates", async ({
+      logger,
+      dbPath,
+      passportData,
+    }) => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        body: intoStream(passportData),
       });
 
-      const starting = passportProvider.start();
-      await vi.advanceTimersToNextTimerAsync();
-      await expect(starting).resolves.not.toThrow();
-
-      expect(fetchMock.mock.calls).toMatchInlineSnapshot(`
-        [
-          [
-            "https://api.scorer.gitcoin.co/registry/score/123?limit=1",
-            {
-              "headers": {
-                "authorization": "Bearer dummy-key",
-              },
-            },
-          ],
-          [
-            "https://api.scorer.gitcoin.co/registry/score/123?offset=0&limit=1000",
-            {
-              "headers": {
-                "authorization": "Bearer dummy-key",
-              },
-              "retry": {
-                "maxTimeout": 5000,
-                "randomize": true,
-                "retries": 5,
-              },
-            },
-          ],
-          [
-            "https://api.scorer.gitcoin.co/registry/score/123?offset=0&limit=1000",
-            {
-              "headers": {
-                "authorization": "Bearer dummy-key",
-              },
-              "retry": {
-                "maxTimeout": 5000,
-                "randomize": true,
-                "retries": 5,
-              },
-            },
-          ],
-        ]
-      `);
-    });
-
-    test("polls passport API for updates", async () => {
-      const fetchMock = vi
-        .fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ count: 3 }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(SAMPLE_PASSPORT_DATA),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ count: 3 }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(SAMPLE_PASSPORT_DATA),
-        });
-
       passportProvider = createPassportProvider({
-        ...getTestConfig(),
-        fetch: fetchMock,
+        logger,
+        dbPath,
+        scorerId: 13,
+        fetch: fetchMock as unknown as Mocked<FetchInterface>,
       });
 
-      const starting = passportProvider.start();
-      await vi.advanceTimersToNextTimerAsync();
-      await starting;
+      await passportProvider.start();
 
-      expect(fetchMock.mock.calls).toMatchInlineSnapshot(`
-        [
-          [
-            "https://api.scorer.gitcoin.co/registry/score/123?limit=1",
-            {
-              "headers": {
-                "authorization": "Bearer dummy-key",
-              },
-            },
-          ],
-          [
-            "https://api.scorer.gitcoin.co/registry/score/123?offset=0&limit=1000",
-            {
-              "headers": {
-                "authorization": "Bearer dummy-key",
-              },
-              "retry": {
-                "maxTimeout": 5000,
-                "randomize": true,
-                "retries": 5,
-              },
-            },
-          ],
-        ]
-      `);
+      fetchMock.mockClear();
 
       await vi.advanceTimersToNextTimerAsync();
 
-      expect(fetchMock.mock.calls).toMatchInlineSnapshot(`
-        [
-          [
-            "https://api.scorer.gitcoin.co/registry/score/123?limit=1",
-            {
-              "headers": {
-                "authorization": "Bearer dummy-key",
-              },
-            },
-          ],
-          [
-            "https://api.scorer.gitcoin.co/registry/score/123?offset=0&limit=1000",
-            {
-              "headers": {
-                "authorization": "Bearer dummy-key",
-              },
-              "retry": {
-                "maxTimeout": 5000,
-                "randomize": true,
-                "retries": 5,
-              },
-            },
-          ],
-          [
-            "https://api.scorer.gitcoin.co/registry/score/123?limit=1",
-            {
-              "headers": {
-                "authorization": "Bearer dummy-key",
-              },
-            },
-          ],
-          [
-            "https://api.scorer.gitcoin.co/registry/score/123?offset=0&limit=1000",
-            {
-              "headers": {
-                "authorization": "Bearer dummy-key",
-              },
-              "retry": {
-                "maxTimeout": 5000,
-                "randomize": true,
-                "retries": 5,
-              },
-            },
-          ],
-        ]
-      `);
-    });
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://public.scorer.gitcoin.co/passport_scores/registry_score.jsonl"
+      );
 
-    test("recovers from content errors from the passport API", async () => {
-      const fetchMock = vi
-        .fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ count: 3 }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () =>
-            Promise.resolve(JSON.parse("<!DOCTYPE html><h1>Error</h1>")),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(SAMPLE_PASSPORT_DATA),
-        });
+      fetchMock.mockClear();
 
-      passportProvider = createPassportProvider({
-        ...getTestConfig(),
-        fetch: fetchMock,
-      });
+      await vi.advanceTimersToNextTimerAsync();
 
-      const starting = passportProvider.start();
-      await expect(starting).resolves.not.toThrow();
-
-      expect(fetchMock.mock.calls).toMatchInlineSnapshot(`
-        [
-          [
-            "https://api.scorer.gitcoin.co/registry/score/123?limit=1",
-            {
-              "headers": {
-                "authorization": "Bearer dummy-key",
-              },
-            },
-          ],
-          [
-            "https://api.scorer.gitcoin.co/registry/score/123?offset=0&limit=1000",
-            {
-              "headers": {
-                "authorization": "Bearer dummy-key",
-              },
-              "retry": {
-                "maxTimeout": 5000,
-                "randomize": true,
-                "retries": 5,
-              },
-            },
-          ],
-          [
-            "https://api.scorer.gitcoin.co/registry/score/123?offset=0&limit=1000",
-            {
-              "headers": {
-                "authorization": "Bearer dummy-key",
-              },
-              "retry": {
-                "maxTimeout": 5000,
-                "randomize": true,
-                "retries": 5,
-              },
-            },
-          ],
-        ]
-      `);
-    });
-
-    test("when remote dataset contains more than 1000 items, they are downloaded in batches", async () => {
-      const fetchMock = vi
-        .fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ count: 1500 }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(SAMPLE_PASSPORT_DATA),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(SAMPLE_PASSPORT_DATA),
-        });
-
-      passportProvider = createPassportProvider({
-        ...getTestConfig(),
-        fetch: fetchMock,
-      });
-
-      const starting = passportProvider.start();
-      await starting;
-
-      expect(fetchMock.mock.calls).toMatchInlineSnapshot(`
-        [
-          [
-            "https://api.scorer.gitcoin.co/registry/score/123?limit=1",
-            {
-              "headers": {
-                "authorization": "Bearer dummy-key",
-              },
-            },
-          ],
-          [
-            "https://api.scorer.gitcoin.co/registry/score/123?offset=0&limit=1000",
-            {
-              "headers": {
-                "authorization": "Bearer dummy-key",
-              },
-              "retry": {
-                "maxTimeout": 5000,
-                "randomize": true,
-                "retries": 5,
-              },
-            },
-          ],
-          [
-            "https://api.scorer.gitcoin.co/registry/score/123?offset=1000&limit=1000",
-            {
-              "headers": {
-                "authorization": "Bearer dummy-key",
-              },
-              "retry": {
-                "maxTimeout": 5000,
-                "randomize": true,
-                "retries": 5,
-              },
-            },
-          ],
-        ]
-      `);
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://public.scorer.gitcoin.co/passport_scores/registry_score.jsonl"
+      );
     });
   });
 
   describe("querying", () => {
-    test("provides score for address, if available", async () => {
-      const fetchMock = vi
-        .fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ count: 3 }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(SAMPLE_PASSPORT_DATA),
-        });
+    test("provides score for address, if available", async ({
+      logger,
+      dbPath,
+      passportData,
+    }) => {
+      const fetchMock = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        body: intoStream(passportData),
+      }) as unknown as FetchInterface;
 
       passportProvider = createPassportProvider({
-        ...getTestConfig(),
+        logger,
+        dbPath,
+        scorerId: 13,
         fetch: fetchMock,
       });
       await passportProvider.start();
 
-      const score = await passportProvider.getScoreByAddress("voter-1");
+      const score = await passportProvider.getScoreByAddress(
+        "0x7587cfbd20e5a970209526b4d1f69dbaae8bed37"
+      );
 
       expect(score).toMatchInlineSnapshot(`
-      {
-        "address": "voter-1",
-        "error": null,
-        "evidence": {
-          "rawScore": "27.21",
-          "success": true,
-          "threshold": "15.00000",
-          "type": "ThresholdScoreCheck",
-        },
-        "last_score_timestamp": "2023-05-08T10:17:52.872812+00:00",
-        "score": "1.000000000",
-        "status": "DONE",
-      }
-    `);
+        {
+          "address": "0x7587cfbd20e5a970209526b4d1f69dbaae8bed37",
+          "error": null,
+          "evidence": {
+            "rawScore": "30.645",
+            "success": true,
+            "threshold": "20.00000",
+            "type": "ThresholdScoreCheck",
+          },
+          "id": 36,
+          "last_score_timestamp": "2023-07-25T20:03:39.244Z",
+          "score": "1.000000000",
+          "status": "DONE",
+        }
+      `);
     });
 
-    test("returns undefined when score is not available", async () => {
-      const fetchMock = vi
-        .fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ count: 3 }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(SAMPLE_PASSPORT_DATA),
-        });
+    test("returns undefined when score is not available", async ({
+      passportData,
+      dbPath,
+      logger,
+    }) => {
+      const fetchMock = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        body: intoStream(passportData),
+      }) as unknown as FetchInterface;
 
       passportProvider = createPassportProvider({
-        ...getTestConfig(),
+        logger,
+        dbPath,
+        scorerId: 13,
         fetch: fetchMock,
       });
       await passportProvider.start();
