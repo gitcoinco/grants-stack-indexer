@@ -223,6 +223,7 @@ async function catchupAndWatchChain(
       rpcProvider,
       chain: config.chain,
       logger: chainLogger.child({ subsystem: "PriceUpdater" }),
+      blockCachePath: path.join(config.storageDir, "..", "blockCache.db"),
       withCacheFn:
         pricesCache === null
           ? undefined

@@ -142,7 +142,9 @@ export function createPriceProvider(
     );
     if (pricesForToken.length === 0) {
       throw new Error(
-        `No prices found for token ${tokenAddress} on chain ${chainId}`
+        `No prices found for token ${tokenAddress} on chain ${chainId} at ${String(
+          blockNumber
+        )}`
       );
     }
 
