@@ -79,7 +79,7 @@ async function main(): Promise<void> {
     // Promises will be resolved once the initial catchup is done. Afterwards, services
     // will still be in listen-and-update mode.
 
-    const [passportProvider] = await Promise.all([
+    const [passportProvider, ...indexers] = await Promise.all([
       catchupAndWatchPassport({
         ...config,
         baseLogger,
@@ -104,7 +104,7 @@ async function main(): Promise<void> {
       chains: config.chains,
     });
 
-    await httpApi.start();
+    await Promise.all([httpApi.start(), ...indexers]);
   }
 }
 
@@ -370,7 +370,7 @@ async function catchupAndWatchChain(
       priceUpdater.stop();
     } else {
       chainLogger.info("listening to new blockchain events");
-      await indexer.watch();
+      return indexer.watch();
     }
   } catch (err) {
     chainLogger.error({
