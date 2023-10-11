@@ -174,9 +174,15 @@ export async function handleEvent({
     }
 
     // --- ROUND
+    case "RoundCreatedV1":
     case "RoundCreated": {
+      const contract =
+        event.name === "RoundCreatedV1"
+          ? "RoundImplementationV1"
+          : "RoundImplementationV2";
+
       subscribeToContract({
-        contract: "RoundImplementationV2",
+        contract,
         address: event.params.roundAddress,
       });
 
@@ -191,42 +197,42 @@ export async function handleEvent({
         roundEndTimeResolved,
       ] = await Promise.all([
         readContract({
-          contract: "RoundImplementationV2",
+          contract,
           address: event.params.roundAddress,
           functionName: "matchAmount",
         }),
         readContract({
-          contract: "RoundImplementationV2",
+          contract,
           address: event.params.roundAddress,
           functionName: "applicationMetaPtr",
         }),
         readContract({
-          contract: "RoundImplementationV2",
+          contract,
           address: event.params.roundAddress,
           functionName: "roundMetaPtr",
         }),
         readContract({
-          contract: "RoundImplementationV2",
+          contract,
           address: event.params.roundAddress,
           functionName: "token",
         }),
         readContract({
-          contract: "RoundImplementationV2",
+          contract,
           address: event.params.roundAddress,
           functionName: "applicationsStartTime",
         }),
         readContract({
-          contract: "RoundImplementationV2",
+          contract,
           address: event.params.roundAddress,
           functionName: "applicationsEndTime",
         }),
         readContract({
-          contract: "RoundImplementationV2",
+          contract,
           address: event.params.roundAddress,
           functionName: "roundStartTime",
         }),
         readContract({
-          contract: "RoundImplementationV2",
+          contract,
           address: event.params.roundAddress,
           functionName: "roundEndTime",
         }),

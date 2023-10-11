@@ -75,6 +75,9 @@ const CHAINS: Chain[] = [
       {
         contractName: "ProjectRegistryV2",
         address: "0x03506eD3f57892C85DB20C36846e9c808aFe9ef4",
+        eventsRenames: {
+          RoundCreated: "RoundCreatedV1",
+        },
       },
       {
         contractName: "RoundFactoryV2",
