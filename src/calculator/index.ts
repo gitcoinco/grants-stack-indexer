@@ -296,7 +296,7 @@ export default class Calculator {
       `${this.chainId}/rounds.json`
     );
 
-    const round = rounds.find((r: Round) => r.id === this.roundId);
+    const round = rounds.find((round) => round.id === this.roundId);
 
     if (round === undefined) {
       throw new ResourceNotFoundError("round");

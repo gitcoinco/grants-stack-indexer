@@ -124,16 +124,14 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
   ) {
     const chainId = Number(req.params.chainId);
     const roundId = req.params.roundId;
-    const potentialVotes = potentialVotesSchema
-      .parse((req.body as { potentialVotes: PotentialVotes }).potentialVotes)
-      .map((vote) => ({
-        ...vote,
-        amount: BigInt(vote.amount),
-      }));
+    const potentialVotes = potentialVotesSchema.parse(req.body).map((vote) => ({
+      ...vote,
+      amount: vote.amount,
+    }));
 
     const chainConfig = config.chains.find((c) => c.id === chainId);
     if (chainConfig === undefined) {
-      throw new Error(`Chain ${chainId} not configured`);
+      throw new ClientError(`Chain ${chainId} not configured`, 400);
     }
 
     const calculatorOptions: CalculatorOptions = {

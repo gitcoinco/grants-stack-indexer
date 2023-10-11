@@ -8,10 +8,11 @@ module.exports = {
     project: `./tsconfig.json`,
   },
   parser: "@typescript-eslint/parser",
-  plugins: ["@typescript-eslint"],
+  plugins: ["@typescript-eslint", "no-only-tests"],
   root: true,
   rules: {
     "no-unused-vars": "off",
+    "no-only-tests/no-only-tests": "error",
     "@typescript-eslint/no-misused-promises": [
       "error",
       {

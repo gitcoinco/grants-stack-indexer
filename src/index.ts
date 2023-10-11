@@ -168,7 +168,7 @@ async function catchupAndWatchChain(
     // Force a full re-indexing on every startup.
     // XXX For the longer term, verify whether ChainSauce supports
     // any sort of stop-and-resume.
-    await fs.rm(CHAIN_DIR_PATH, { force: true, recursive: true });
+    // await fs.rm(CHAIN_DIR_PATH, { force: true, recursive: true });
 
     const storage = new JsonStorage(CHAIN_DIR_PATH);
 

@@ -326,7 +326,7 @@ describe("server", () => {
         expect(resp.body).toEqual(expectedResults);
       });
 
-      test.only("should estimate matching with new votes for projects", async () => {
+      test("should estimate matching with new votes for projects", async () => {
         const expectedResults = [
           {
             applicationId: "application-id-1",
