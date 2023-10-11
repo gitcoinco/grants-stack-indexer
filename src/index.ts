@@ -2,7 +2,6 @@ import {
   buildIndexer,
   createJsonDatabase,
   createSqliteCache,
-  createSqliteSubscriptionStore,
 } from "chainsauce";
 import { Logger, pino } from "pino";
 import path from "node:path";
