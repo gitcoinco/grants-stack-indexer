@@ -165,7 +165,10 @@ async function catchupAndWatchChain(
     // any sort of stop-and-resume.
     await fs.rm(CHAIN_DIR_PATH, { force: true, recursive: true });
 
-    const storage = createJsonDatabase(CHAIN_DIR_PATH, {});
+    const storage = createJsonDatabase({
+      dir: CHAIN_DIR_PATH,
+      writeDelay: 500,
+    });
 
     const priceProvider = createPriceProvider({
       ...config,
@@ -237,7 +240,7 @@ async function catchupAndWatchChain(
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const throttledLogProgress = throttle(
-      1000,
+      5000,
       (currentBlock: number, lastBlock: number, pendingEventsCount: number) => {
         const progressPercentage = ((currentBlock / lastBlock) * 100).toFixed(
           1

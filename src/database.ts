@@ -9,5 +9,5 @@ export default function load(storageDir: string, chainId?: number): Database {
     storageDir = path.join(storageDir, chain.id.toString());
   }
 
-  return createJsonDatabase(storageDir, {});
+  return createJsonDatabase({ dir: storageDir });
 }
