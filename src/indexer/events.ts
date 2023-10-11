@@ -1,143 +1,142 @@
 import type { Event as ChainsauceEvent } from "chainsauce";
-import type { MetaPtr } from "./types.js";
-import type { ethers } from "ethers";
+import type { Hex, MetaPtr } from "./types.js";
 
 export interface RoundMetaPtrUpdatedEvent extends ChainsauceEvent {
   name: "RoundMetaPtrUpdated";
-  args: {
+  params: {
     newMetaPtr: MetaPtr;
   };
 }
 
 export interface MatchAmountUpdatedEvent extends ChainsauceEvent {
   name: "MatchAmountUpdated";
-  args: {
-    newAmount: ethers.BigNumber;
+  params: {
+    newAmount: bigint;
   };
 }
 
 export interface ApplicationMetaPtrUpdatedEvent extends ChainsauceEvent {
   name: "ApplicationMetaPtrUpdated";
-  args: {
+  params: {
     newMetaPtr: MetaPtr;
   };
 }
 
 export interface NewProjectApplicationEvent extends ChainsauceEvent {
   name: "NewProjectApplication";
-  args: {
-    projectID: ethers.BigNumber;
+  params: {
+    projectID: bigint;
     project: string;
-    applicationIndex: ethers.BigNumber;
+    applicationIndex: bigint;
     applicationMetaPtr: MetaPtr;
   };
 }
 
 export interface ProjectsMetaPtrUpdatedEvent extends ChainsauceEvent {
   name: "ProjectsMetaPtrUpdated";
-  args: {
+  params: {
     newMetaPtr: MetaPtr;
   };
 }
 
 export interface ApplicationStatusesUpdatedEvent extends ChainsauceEvent {
   name: "ApplicationStatusesUpdated";
-  args: {
-    index: ethers.BigNumber;
-    status: ethers.BigNumber;
+  params: {
+    index: bigint;
+    status: bigint;
   };
 }
 
 export interface VotingContractCreatedV1Event extends ChainsauceEvent {
   name: "VotingContractCreatedV1";
-  args: {
+  params: {
     votingContractAddress: string;
   };
 }
 
 export interface VotingContractCreatedEvent extends ChainsauceEvent {
   name: "VotingContractCreated";
-  args: {
+  params: {
     votingContractAddress: string;
   };
 }
 
 export interface VotedEvent extends ChainsauceEvent {
   name: "Voted";
-  args: {
-    roundAddress: string;
-    applicationIndex?: ethers.BigNumber;
+  params: {
+    roundAddress: Hex;
+    applicationIndex?: bigint;
     projectId: string;
-    amount: ethers.BigNumber;
-    grantAddress: string;
-    voter: string;
-    contributor: string;
-    token: string;
+    amount: bigint;
+    grantAddress: Hex;
+    voter: Hex;
+    contributor: Hex;
+    token: Hex;
     origin?: string;
   };
 }
 
 export interface ProjectCreatedEvent extends ChainsauceEvent {
   name: "ProjectCreated";
-  args: {
-    projectID: ethers.BigNumber;
-    owner: string;
+  params: {
+    projectID: bigint;
+    owner: Hex;
   };
 }
 
 export interface MetadataUpdatedEvent extends ChainsauceEvent {
   name: "MetadataUpdated";
-  args: {
-    projectID: ethers.BigNumber;
+  params: {
+    projectID: bigint;
     metaPtr: MetaPtr;
   };
 }
 
 export interface OwnerAddedEvent extends ChainsauceEvent {
   name: "OwnerAdded";
-  args: {
-    projectID: ethers.BigNumber;
-    owner: string;
+  params: {
+    projectID: bigint;
+    owner: Hex;
   };
 }
 
 export interface OwnerRemovedEvent extends ChainsauceEvent {
   name: "OwnerRemoved";
-  args: {
-    projectID: ethers.BigNumber;
-    owner: string;
+  params: {
+    projectID: bigint;
+    owner: Hex;
   };
 }
 
 export interface RoundCreatedV1Event extends ChainsauceEvent {
   name: "RoundCreatedV1";
-  args: {
-    roundAddress: string;
-    token: string;
+  params: {
+    roundAddress: Hex;
+    token: Hex;
   };
 }
 
 export interface RoundCreatedEvent extends ChainsauceEvent {
   name: "RoundCreated";
-  args: {
-    roundAddress: string;
-    token: string;
+  params: {
+    roundAddress: Hex;
+    token: Hex;
   };
 }
 
 export interface PayoutContractCreatedEvent extends ChainsauceEvent {
   name: "PayoutContractCreated";
-  args: {
-    payoutContractAddress: string;
-    payoutImplementation: string;
+  params: {
+    payoutContractAddress: Hex;
+    payoutImplementation: Hex;
   };
 }
 
 export interface ApplicationInReviewUpdatedEvent extends ChainsauceEvent {
   name: "ApplicationInReviewUpdated";
-  args: {
-    index: ethers.BigNumber;
-    status: ethers.BigNumber;
+  params: {
+    index: bigint;
+    status: bigint;
   };
 }
 

@@ -1,9 +1,11 @@
+export type Hex = `0x${string}`;
+
 export type MetaPtr = {
   pointer: string;
 };
 
 export type Round = {
-  id: string;
+  id: Hex;
   amountUSD: number;
   votes: number;
   token: string;
@@ -85,7 +87,7 @@ export type Application = {
   statusSnapshots: Array<{
     status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "IN_REVIEW";
     statusUpdatedAtBlock: number;
-  }>
+  }>;
 };
 
 export type Vote = {

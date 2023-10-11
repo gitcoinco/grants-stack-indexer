@@ -1,10 +1,8 @@
 import {
-  RetryProvider,
-  createIndexer,
-  JsonStorage,
-  Cache,
-  Indexer,
-  Event as ChainsauceEvent,
+  buildIndexer,
+  createJsonDatabase,
+  createSqliteCache,
+  createSqliteSubscriptionStore,
 } from "chainsauce";
 import { Logger, pino } from "pino";
 import path from "node:path";
@@ -14,19 +12,16 @@ import fetch from "make-fetch-happen";
 import { throttle } from "throttle-debounce";
 
 import { createPassportProvider, PassportProvider } from "./passport/index.js";
-
-import handleEvent from "./indexer/handleEvent.js";
+import { Cache } from "./cache.js";
 import { Chain, getConfig, Config } from "./config.js";
 import { createPriceUpdater } from "./prices/updater.js";
 import { createPriceProvider } from "./prices/provider.js";
 import { createHttpApi } from "./http/app.js";
 import { FileSystemDataProvider } from "./calculator/index.js";
-import { AsyncSentinel } from "./utils/asyncSentinel.js";
 import { ethers } from "ethers";
+import abis from "./indexer/abis/index.js";
 
-// If, during reindexing, a chain has these many blocks left to index, consider
-// it caught up and start serving
-const MINIMUM_BLOCKS_LEFT_BEFORE_STARTING = 500;
+import { handleEvent, EventHandlerContext } from "./indexer/handleEvent.js";
 
 async function main(): Promise<void> {
   const config = getConfig();
@@ -170,7 +165,7 @@ async function catchupAndWatchChain(
     // any sort of stop-and-resume.
     await fs.rm(CHAIN_DIR_PATH, { force: true, recursive: true });
 
-    const storage = new JsonStorage(CHAIN_DIR_PATH);
+    const storage = createJsonDatabase(CHAIN_DIR_PATH, {});
 
     const priceProvider = createPriceProvider({
       ...config,
@@ -178,10 +173,7 @@ async function catchupAndWatchChain(
       logger: chainLogger.child({ subsystem: "PriceProvider" }),
     });
 
-    const rpcProvider = new RetryProvider({
-      url: config.chain.rpc,
-      timeout: 5 * 60 * 1000,
-    });
+    const rpcProvider = new ethers.providers.JsonRpcProvider(config.chain.rpc);
 
     const cachedIpfsGet = async <T>(cid: string): Promise<T | undefined> => {
       const cidRegex = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[0-9A-Za-z]{50,})$/;
@@ -192,7 +184,7 @@ async function catchupAndWatchChain(
 
       const url = `${config.ipfsGateway}/ipfs/${cid}`;
 
-      chainLogger.trace(`Fetching ${url}`);
+      // chainLogger.trace(`Fetching ${url}`);
 
       const res = await fetch(url, {
         timeout: 2000,
@@ -240,82 +232,143 @@ async function catchupAndWatchChain(
     });
 
     chainLogger.info("catching up with blockchain events");
-    const catchupSentinel = new AsyncSentinel();
 
     const indexerLogger = chainLogger.child({ subsystem: "DataUpdater" });
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const throttledLogProgress = throttle(
-      5000,
+      1000,
       (currentBlock: number, lastBlock: number, pendingEventsCount: number) => {
+        const progressPercentage = ((currentBlock / lastBlock) * 100).toFixed(
+          1
+        );
+
         indexerLogger.info(
-          `pending events: ${pendingEventsCount} (indexing blocks ${currentBlock}-${lastBlock})`
+          `${currentBlock}/${lastBlock} indexed (${progressPercentage}%) (pending events: ${pendingEventsCount})`
         );
       }
     );
 
-    const indexer = await createIndexer(
-      rpcProvider,
-      storage,
-      async (indexer: Indexer<JsonStorage>, event: ChainsauceEvent) => {
+    const eventHandlerContext: EventHandlerContext = {
+      chainId: config.chain.id,
+      db: storage,
+      ipfsGet: cachedIpfsGet,
+      priceProvider,
+      logger: indexerLogger,
+    };
+
+    const chainsauceCache = createSqliteCache(
+      path.join(CHAIN_DIR_PATH, "..", "chainsauceCache.db")
+    );
+
+    // const subscriptionStore = createSqliteSubscriptionStore(
+    //   path.join(CHAIN_DIR_PATH, "subscriptions.db")
+    // );
+
+    let indexerBuilder = buildIndexer()
+      .chain({
+        id: config.chain.id,
+        name: config.chain.name,
+        rpc: {
+          url: config.chain.rpc,
+        },
+      })
+      .context(eventHandlerContext)
+      // .subscriptionStore(subscriptionStore)
+      .contracts(abis)
+      .cache(chainsauceCache)
+      .onProgress(({ currentBlock, targetBlock, pendingEventsCount }) => {
+        throttledLogProgress(
+          Number(currentBlock),
+          Number(targetBlock),
+          pendingEventsCount
+        );
+      })
+      .onEvent(async (args) => {
         try {
-          return await handleEvent(event, {
-            chainId: config.chain.id,
-            db: storage,
-            subscribe: (...args) => indexer.subscribe(...args),
-            ipfsGet: cachedIpfsGet,
-            priceProvider,
-            logger: indexerLogger,
-          });
+          return await handleEvent(args);
         } catch (err) {
           indexerLogger.warn({
             msg: "skipping event due to error while processing",
             err,
-            event,
+            event: args.event,
           });
         }
-      },
-      {
-        toBlock: config.toBlock,
-        logger: indexerLogger,
-        eventCacheDirectory: null,
-        requireExplicitStart: true,
-        onProgress: ({ currentBlock, lastBlock, pendingEventsCount }) => {
-          throttledLogProgress(currentBlock, lastBlock, pendingEventsCount);
-
-          if (
-            lastBlock - currentBlock < MINIMUM_BLOCKS_LEFT_BEFORE_STARTING &&
-            !catchupSentinel.isDone()
-          ) {
-            indexerLogger.info({
-              msg: "caught up with blockchain events",
-              lastBlock,
-              currentBlock,
-            });
-            catchupSentinel.declareDone();
-          }
-        },
-      }
-    );
+      })
+      .logLevel("trace")
+      .logger((level, data: unknown, message?: string) => {
+        if (level === "error") {
+          indexerLogger.error(data, message);
+        } else if (level === "warn") {
+          indexerLogger.warn(data, message);
+        } else if (level === "info") {
+          indexerLogger.info(data, message);
+        } else if (level === "debug") {
+          indexerLogger.debug(data, message);
+        } else if (level === "trace") {
+          indexerLogger.trace(data, message);
+        }
+      })
+      .addEventListeners({
+        contract: "ProjectRegistryV2",
+        events: [
+          "ProjectCreated",
+          "MetadataUpdated",
+          "OwnerAdded",
+          "OwnerRemoved",
+        ],
+      })
+      .addEventListeners({
+        contract: "RoundFactoryV2",
+        events: ["RoundCreated"],
+      })
+      .addEventListeners({
+        contract: "RoundImplementationV2",
+        events: [
+          "MatchAmountUpdated",
+          "RoundMetaPtrUpdated",
+          "ApplicationMetaPtrUpdated",
+          "NewProjectApplication",
+          "ProjectsMetaPtrUpdated",
+          "ApplicationStatusesUpdated",
+        ],
+      })
+      .addEventListeners({
+        contract: "QuadraticFundingVotingStrategyFactoryV2",
+        events: ["VotingContractCreated"],
+      })
+      .addEventListeners({
+        contract: "QuadraticFundingVotingStrategyImplementationV2",
+        events: ["Voted"],
+      });
 
     for (const subscription of config.chain.subscriptions) {
-      chainLogger.info(`subscribing to ${subscription.address}`);
-      indexer.subscribe(
-        subscription.address,
-        subscription.abi,
-        Math.max(subscription.fromBlock || 0, config.fromBlock)
-      );
+      const contractName = subscription.contractName;
+
+      indexerBuilder = indexerBuilder.addSubscription({
+        contract: contractName,
+        address: subscription.address,
+        fromBlock:
+          subscription.fromBlock === undefined
+            ? undefined
+            : BigInt(subscription.fromBlock),
+      });
     }
 
-    indexer.start();
+    const indexer = indexerBuilder.build();
 
-    await catchupSentinel.untilDone();
+    await indexer.indexToBlock(config.toBlock);
+
+    indexerLogger.info({
+      msg: "caught up with blockchain events",
+      toBlock: config.toBlock,
+    });
 
     if (config.runOnce) {
       priceUpdater.stop();
-      indexer.stop();
     } else {
       chainLogger.info("listening to new blockchain events");
+      await indexer.watch();
     }
   } catch (err) {
     chainLogger.error({

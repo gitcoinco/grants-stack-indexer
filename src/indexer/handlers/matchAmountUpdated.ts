@@ -1,19 +1,20 @@
-import { JsonStorage } from "chainsauce";
+import { Database } from "chainsauce";
 import { Round } from "../types.js";
 import { MatchAmountUpdatedEvent } from "../events.js";
 import { PriceProvider } from "../../prices/provider.js";
+import { ethers } from "ethers";
 
 export default async function (
   event: MatchAmountUpdatedEvent,
   deps: {
     chainId: number;
     priceProvider: PriceProvider;
-    db: JsonStorage;
+    db: Database;
   }
 ) {
   const { db, priceProvider, chainId } = deps;
-  const id = event.address;
-  const matchAmount = event.args.newAmount.toString();
+  const id = ethers.utils.getAddress(event.address);
+  const matchAmount = event.params.newAmount.toString();
 
   const round = await db.collection<Round>("rounds").findById(id);
 
@@ -25,12 +26,12 @@ export default async function (
     chainId,
     round.token,
     BigInt(matchAmount),
-    event.blockNumber
+    Number(event.blockNumber)
   );
 
   await db.collection<Round>("rounds").updateById(id, (round) => ({
     ...round,
-    updatedAtBlock: event.blockNumber,
+    updatedAtBlock: Number(event.blockNumber.toString()),
     matchAmount: matchAmount,
     matchAmountUSD: amountUSD.amount,
   }));
