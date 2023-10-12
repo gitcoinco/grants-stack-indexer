@@ -279,6 +279,7 @@ async function catchupAndWatchChain(
       .context(eventHandlerContext)
       .subscriptionStore(subscriptionStore)
       .contracts(abis)
+      .eventPollIntervalMs(20 * 1000)
       .cache(chainsauceCache)
       .onProgress(({ currentBlock, targetBlock, pendingEventsCount }) => {
         throttledLogProgress(
