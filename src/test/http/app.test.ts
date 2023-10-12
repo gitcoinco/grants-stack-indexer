@@ -17,7 +17,6 @@ import { PotentialVotes } from "../../http/api/v1/matches.js";
 import { PassportScore } from "../../passport/index.js";
 import { Chain } from "../../config.js";
 import { constants } from "ethers";
-import { z } from "zod";
 import { Price } from "../../prices/common.js";
 
 vi.spyOn(os, "hostname").mockReturnValue("dummy-hostname");

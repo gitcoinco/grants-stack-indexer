@@ -2,7 +2,7 @@
   "include": ["src/**/*"],
   "compilerOptions": {
     "target": "es2022",
-    "module": "esnext",
+    "module": "NodeNext",
     "allowJs": true,
     "esModuleInterop": true,
     "moduleResolution": "nodenext",
