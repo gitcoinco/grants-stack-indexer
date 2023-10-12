@@ -2,6 +2,7 @@ import {
   buildIndexer,
   createJsonDatabase,
   createSqliteCache,
+  createSqliteSubscriptionStore,
 } from "chainsauce";
 import { Logger, pino } from "pino";
 import path from "node:path";
@@ -263,11 +264,11 @@ async function catchupAndWatchChain(
       path.join(CHAIN_DIR_PATH, "..", "chainsauceCache.db")
     );
 
-    // const subscriptionStore = createSqliteSubscriptionStore(
-    //   path.join(CHAIN_DIR_PATH, "subscriptions.db")
-    // );
+    const subscriptionStore = createSqliteSubscriptionStore(
+      path.join(CHAIN_DIR_PATH, "subscriptions.db")
+    );
 
-    let indexerBuilder = buildIndexer()
+    const indexer = buildIndexer()
       .chain({
         id: config.chain.id,
         name: config.chain.name,
@@ -276,7 +277,7 @@ async function catchupAndWatchChain(
         },
       })
       .context(eventHandlerContext)
-      // .subscriptionStore(subscriptionStore)
+      .subscriptionStore(subscriptionStore)
       .contracts(abis)
       .cache(chainsauceCache)
       .onProgress(({ currentBlock, targetBlock, pendingEventsCount }) => {
@@ -311,22 +312,15 @@ async function catchupAndWatchChain(
           indexerLogger.trace(data, message);
         }
       })
-      .addEventListeners({
-        contract: "ProjectRegistryV2",
-        events: [
+      .events({
+        ProjectRegistryV1: [
           "ProjectCreated",
-          "MetadataUpdated",
+          "OwnerRemoved",
           "OwnerAdded",
           "OwnerRemoved",
         ],
-      })
-      .addEventListeners({
-        contract: "RoundFactoryV2",
-        events: ["RoundCreated"],
-      })
-      .addEventListeners({
-        contract: "RoundImplementationV2",
-        events: [
+        RoundFactoryV2: ["RoundCreated"],
+        RoundImplementationV2: [
           "MatchAmountUpdated",
           "RoundMetaPtrUpdated",
           "ApplicationMetaPtrUpdated",
@@ -334,20 +328,15 @@ async function catchupAndWatchChain(
           "ProjectsMetaPtrUpdated",
           "ApplicationStatusesUpdated",
         ],
+        QuadraticFundingVotingStrategyFactoryV2: ["VotingContractCreated"],
+        QuadraticFundingVotingStrategyImplementationV2: ["Voted"],
       })
-      .addEventListeners({
-        contract: "QuadraticFundingVotingStrategyFactoryV2",
-        events: ["VotingContractCreated"],
-      })
-      .addEventListeners({
-        contract: "QuadraticFundingVotingStrategyImplementationV2",
-        events: ["Voted"],
-      });
+      .build();
 
     for (const subscription of config.chain.subscriptions) {
       const contractName = subscription.contractName;
 
-      indexerBuilder = indexerBuilder.addSubscription({
+      indexer.subscribeToContract({
         contract: contractName,
         address: subscription.address,
         fromBlock:
@@ -356,8 +345,6 @@ async function catchupAndWatchChain(
             : BigInt(subscription.fromBlock),
       });
     }
-
-    const indexer = indexerBuilder.build();
 
     await indexer.indexToBlock(config.toBlock);
 
