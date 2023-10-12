@@ -164,7 +164,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
 const potentialVoteSchema = z.object({
   projectId: z.string(),
   roundId: z.string(),
-  applicationId: z.coerce.number(),
+  applicationId: z.string(),
   token: z.string(),
   voter: z.string(),
   grantAddress: z.string(),
