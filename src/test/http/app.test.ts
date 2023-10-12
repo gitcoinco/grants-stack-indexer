@@ -17,6 +17,8 @@ import { PotentialVotes } from "../../http/api/v1/matches.js";
 import { PassportScore } from "../../passport/index.js";
 import { Chain } from "../../config.js";
 import { constants } from "ethers";
+import { z } from "zod";
+import { Price } from "../../prices/common.js";
 
 vi.spyOn(os, "hostname").mockReturnValue("dummy-hostname");
 
@@ -41,6 +43,21 @@ export class TestPriceProvider {
 
   async convertFromUSD() {
     return Promise.resolve({ amount: 0 });
+  }
+
+  async getUSDConversionRate(
+    chainId: number,
+    tokenAddress: string,
+    _blockNumber?: number
+  ): Promise<Price & { decimals: number }> {
+    return Promise.resolve({
+      price: 1_000_000_000,
+      token: tokenAddress,
+      block: 0,
+      code: "",
+      decimals: 18,
+      timestamp: 0,
+    });
   }
 }
 
@@ -374,7 +391,7 @@ describe("server", () => {
             matchedWithoutCap: "6480",
             payoutAddress: "grant-address-3",
             projectId: "project-id-3",
-            recipient: "0x0000000000000000000000000000000000000000",
+            recipient: "grant-address-3",
             roundId: "0x1234",
             sumOfSqrt: "140",
             totalReceived: "3400",
@@ -383,16 +400,22 @@ describe("server", () => {
 
         const potentialVotes: PotentialVotes = [
           {
-            amount: 10n,
-            contributor: "voter-1",
-            recipient: "grant-address-1",
+            roundId: "round-id-1",
+            applicationId: "application-id-3",
+            voter: "voter-1",
+            amount: 10000000000n,
+            grantAddress: "grant-address-3",
             token: constants.AddressZero,
+            projectId: "project-id-3",
           },
           {
-            amount: 500n,
-            contributor: "voter-2",
-            recipient: "grant-address-2",
+            roundId: "round-id-1",
+            applicationId: "application-id-2",
+            voter: "voter-1",
+            amount: 5000000000n,
+            grantAddress: "grant-address-2",
             token: constants.AddressZero,
+            projectId: "project-id-2",
           },
         ];
 

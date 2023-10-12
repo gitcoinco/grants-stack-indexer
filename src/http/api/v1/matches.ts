@@ -124,10 +124,12 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
   ) {
     const chainId = Number(req.params.chainId);
     const roundId = req.params.roundId;
-    const potentialVotes = potentialVotesSchema.parse(req.body).map((vote) => ({
-      ...vote,
-      amount: vote.amount,
-    }));
+    const potentialVotes = estimateRequestBody
+      .parse(req.body)
+      .potentialVotes.map((vote) => ({
+        ...vote,
+        amount: vote.amount,
+      }));
 
     const chainConfig = config.chains.find((c) => c.id === chainId);
     if (chainConfig === undefined) {
@@ -160,12 +162,19 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
 };
 
 const potentialVoteSchema = z.object({
-  contributor: z.string(),
-  recipient: z.string(),
-  amount: z.coerce.bigint(),
+  projectId: z.string(),
+  roundId: z.string(),
+  applicationId: z.coerce.number(),
   token: z.string(),
+  voter: z.string(),
+  grantAddress: z.string(),
+  amount: z.coerce.bigint(),
 });
 
 const potentialVotesSchema = z.array(potentialVoteSchema);
+const estimateRequestBody = z.object({
+  potentialVotes: potentialVotesSchema,
+});
+
 export type PotentialVotes = z.infer<typeof potentialVotesSchema>;
 export type PotentialVote = z.infer<typeof potentialVoteSchema>;

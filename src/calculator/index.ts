@@ -15,6 +15,8 @@ import {
 } from "./errors.js";
 import { PotentialVote } from "../http/api/v1/matches.js";
 import { ethers } from "ethers";
+import { Price } from "../prices/common.js";
+import { formatUnits, zeroAddress } from "viem";
 
 export {
   CalculatorError,
@@ -141,7 +143,7 @@ export default class Calculator {
     this.chain = options.chain;
   }
 
-  #votesWithCoefficientToContribution(
+  private votesWithCoefficientToContribution(
     votes: VoteWithCoefficient[]
   ): (Contribution & { recipientAddress: string })[] {
     return votes.flatMap((vote) => {
@@ -236,7 +238,7 @@ export default class Calculator {
     );
 
     const contributions: Contribution[] =
-      this.#votesWithCoefficientToContribution(votesWithCoefficients);
+      this.votesWithCoefficientToContribution(votesWithCoefficients);
 
     const results = linearQF(contributions, matchAmount, matchTokenDecimals, {
       minimumAmount: 0n,
@@ -296,66 +298,44 @@ export default class Calculator {
       `${this.chainId}/rounds.json`
     );
 
-    const round = rounds.find((round) => round.id === this.roundId);
-
-    if (round === undefined) {
-      throw new ResourceNotFoundError("round");
-    }
-
-    if (round.matchAmount === undefined) {
-      throw new ResourceNotFoundError("round match amount");
-    }
-
-    if (round.token === undefined) {
-      throw new ResourceNotFoundError("round token");
-    }
-
-    const applications = await this.parseJSONFile<Application>(
-      "applications",
-      `${this.chainId}/rounds/${this.roundId}/applications.json`
-    );
+    const round = rounds.find((round) => round.id === this.roundId) as Round;
 
     const currentResults = await this._calculate(votes);
+    const conversionRates = await Promise.all(
+      potentialVotes.map(async (vote) => [
+        vote.token,
+        await this.priceProvider.getUSDConversionRate(this.chainId, vote.token),
+      ])
+    );
+    const prices = Object.fromEntries(conversionRates) as Record<
+      string,
+      Price & { decimals: number }
+    >;
+    const conversionRateRoundToken =
+      await this.priceProvider.getUSDConversionRate(this.chainId, round.token);
+
     const potentialVotesAugmented: Vote[] = await Promise.all(
-      potentialVotes.map(async (vote) => {
-        const { amount: amountUSD } = await this.priceProvider.convertToUSD(
-          this.chainId,
-          vote.token,
-          vote.amount
-        );
+      potentialVotes.map((vote) => {
+        const tokenPrice = prices[vote.token];
+        const amountUSD =
+          Number(formatUnits(vote.amount, 18)) * tokenPrice.price;
 
-        const { amount: amountRoundToken } =
-          await this.priceProvider.convertFromUSD(
-            this.chainId,
-            round.token,
-            amountUSD
-          );
+        /*TODO: take into account round matching token decimals instead of default 18 */
+        const amountRoundToken =
+          (Number(amountUSD) / conversionRateRoundToken.price) *
+          Math.pow(10, 18);
 
-        /* Find the latest approved application */
-        const application = applications
-          .filter(
-            (application) =>
-              application.metadata?.application.recipient === vote.recipient
-          )
-          .filter((application) => application.status === "APPROVED")
-          .sort((a, b) => a.statusUpdatedAtBlock - b.statusUpdatedAtBlock)[0];
-        if (!application) {
-          throw "Couldn't find application for project";
-        }
         return {
+          ...vote,
           amount: vote.amount.toString(),
-          amountRoundToken: amountRoundToken.toString(),
+          amountRoundToken: Math.floor(amountRoundToken).toString(),
           amountUSD,
-          token: vote.token,
-          roundId: this.roundId,
-          voter: vote.contributor,
-          grantAddress: vote.recipient,
-          projectId: application.projectId,
+          applicationId: vote.applicationId,
           id: "",
-          applicationId: application.id,
         };
       })
     );
+
     const potentialResults = await this._calculate([
       ...votes,
       ...potentialVotesAugmented,
@@ -365,7 +345,9 @@ export default class Calculator {
 
     for (const potentialResult of potentialResults) {
       const currentResult = currentResults.find(
-        (res) => res.applicationId === potentialResult.applicationId
+        (res) =>
+          res.projectId === potentialResult.projectId &&
+          res.applicationId === potentialResult.applicationId
       );
 
       /* Subtracting undefined from a bigint would fail,
@@ -378,10 +360,6 @@ export default class Calculator {
         difference
       );
 
-      const recipient = potentialVotesAugmented.find(
-        (vote) => vote.applicationId === potentialResult.applicationId
-      )?.grantAddress;
-
       /** Can be undefined, but spreading an undefined is a no-op, so it's okay here */
       finalResults.push({
         ...currentResult,
@@ -389,7 +367,7 @@ export default class Calculator {
         difference,
         roundId,
         chainId: this.chainId,
-        recipient: recipient ?? ethers.constants.AddressZero,
+        recipient: currentResult?.payoutAddress ?? zeroAddress,
         differenceInUSD: differenceInUSD.amount,
       });
     }
