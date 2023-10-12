@@ -14,7 +14,6 @@ import {
   OverridesInvalidRowError,
 } from "./errors.js";
 import { PotentialVote } from "../http/api/v1/matches.js";
-import { ethers } from "ethers";
 import { Price } from "../prices/common.js";
 import { formatUnits, zeroAddress } from "viem";
 
