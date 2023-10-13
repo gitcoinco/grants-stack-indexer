@@ -12,7 +12,7 @@ import fetch from "make-fetch-happen";
 import { throttle } from "throttle-debounce";
 
 import { createPassportProvider, PassportProvider } from "./passport/index.js";
-import { Cache } from "./cache.js";
+import { DiskCache } from "./diskCache.js";
 import { Chain, getConfig, Config } from "./config.js";
 import { createPriceUpdater } from "./prices/updater.js";
 import { createPriceProvider } from "./prices/provider.js";
@@ -156,8 +156,8 @@ async function catchupAndWatchChain(
       config.chain.id.toString()
     );
 
-    const pricesCache: Cache | null = config.cacheDir
-      ? new Cache(path.join(config.cacheDir, "prices"))
+    const pricesCache: DiskCache | null = config.cacheDir
+      ? new DiskCache(path.join(config.cacheDir, "prices"))
       : null;
 
     // Force a full re-indexing on every startup.
