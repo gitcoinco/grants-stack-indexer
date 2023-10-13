@@ -5,7 +5,7 @@ import type { PassportProvider } from "../passport/index.js";
 import { PriceProvider } from "../prices/provider.js";
 import { Chain, getDecimalsForToken } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
-import { getVotesWithCoefficients } from "./votes.js";
+import { getVotesWithCoefficients, VoteWithCoefficient } from "./votes.js";
 import {
   CalculatorError,
   ResourceNotFoundError,
@@ -13,6 +13,9 @@ import {
   OverridesColumnNotFoundError,
   OverridesInvalidRowError,
 } from "./errors.js";
+import { PotentialVote } from "../http/api/v1/matches.js";
+import { Price } from "../prices/common.js";
+import { formatUnits, zeroAddress } from "viem";
 
 export {
   CalculatorError,
@@ -139,11 +142,39 @@ export default class Calculator {
     this.chain = options.chain;
   }
 
+  private votesWithCoefficientToContribution(
+    votes: VoteWithCoefficient[]
+  ): (Contribution & { recipientAddress: string })[] {
+    return votes.flatMap((vote) => {
+      const scaleFactor = 10_000;
+      const coefficient = BigInt(
+        Math.trunc((this.overrides[vote.id] ?? vote.coefficient) * scaleFactor)
+      );
+
+      const amount = BigInt(vote.amountRoundToken);
+      const multipliedAmount = (amount * coefficient) / BigInt(scaleFactor);
+
+      return [
+        {
+          contributor: vote.voter,
+          recipient: vote.applicationId,
+          recipientAddress: vote.grantAddress,
+          amount: multipliedAmount,
+        },
+      ];
+    });
+  }
+
   async calculate(): Promise<Array<AugmentedResult>> {
     const votes = await this.parseJSONFile<Vote>(
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
+
+    return this._calculate(votes);
+  }
+
+  private async _calculate(votes: Vote[]): Promise<Array<AugmentedResult>> {
     const applications = await this.parseJSONFile<Application>(
       "applications",
       `${this.chainId}/rounds/${this.roundId}/applications.json`
@@ -205,27 +236,8 @@ export default class Calculator {
       }
     );
 
-    const contributions: Contribution[] = votesWithCoefficients.flatMap(
-      (vote) => {
-        const scaleFactor = Math.pow(10, 4);
-        const coefficient = BigInt(
-          Math.trunc(
-            (this.overrides[vote.id] ?? vote.coefficient) * scaleFactor
-          )
-        );
-
-        const amount = BigInt(vote.amountRoundToken);
-        const multipliedAmount = (amount * coefficient) / BigInt(scaleFactor);
-
-        return [
-          {
-            contributor: vote.voter,
-            recipient: vote.applicationId,
-            amount: multipliedAmount,
-          },
-        ];
-      }
-    );
+    const contributions: Contribution[] =
+      this.votesWithCoefficientToContribution(votesWithCoefficients);
 
     const results = linearQF(contributions, matchAmount, matchTokenDecimals, {
       minimumAmount: 0n,
@@ -266,6 +278,102 @@ export default class Calculator {
     return augmented;
   }
 
+  /**
+   * Estimates matching for a given project and potential additional votes
+   * @param potentialVotes
+   * @param roundId
+   */
+  async estimateMatching(
+    potentialVotes: PotentialVote[],
+    roundId: string
+  ): Promise<MatchingEstimateResult[]> {
+    const votes = await this.parseJSONFile<Vote>(
+      "votes",
+      `${this.chainId}/rounds/${this.roundId}/votes.json`
+    );
+
+    const rounds = await this.parseJSONFile<Round>(
+      "rounds",
+      `${this.chainId}/rounds.json`
+    );
+
+    const round = rounds.find((round) => round.id === this.roundId) as Round;
+
+    const currentResults = await this._calculate(votes);
+    const conversionRates = await Promise.all(
+      potentialVotes.map(async (vote) => [
+        vote.token,
+        await this.priceProvider.getUSDConversionRate(this.chainId, vote.token),
+      ])
+    );
+    const prices = Object.fromEntries(conversionRates) as Record<
+      string,
+      Price & { decimals: number }
+    >;
+    const conversionRateRoundToken =
+      await this.priceProvider.getUSDConversionRate(this.chainId, round.token);
+
+    const potentialVotesAugmented: Vote[] = await Promise.all(
+      potentialVotes.map((vote) => {
+        const tokenPrice = prices[vote.token];
+        const amountUSD =
+          Number(formatUnits(vote.amount, 18)) * tokenPrice.price;
+
+        /*TODO: take into account round matching token decimals instead of default 18 */
+        const amountRoundToken =
+          (Number(amountUSD) / conversionRateRoundToken.price) *
+          Math.pow(10, 18);
+
+        return {
+          ...vote,
+          amount: vote.amount.toString(),
+          amountRoundToken: Math.floor(amountRoundToken).toString(),
+          amountUSD,
+          applicationId: vote.applicationId,
+          id: "",
+        };
+      })
+    );
+
+    const potentialResults = await this._calculate([
+      ...votes,
+      ...potentialVotesAugmented,
+    ]);
+
+    const finalResults: MatchingEstimateResult[] = [];
+
+    for (const potentialResult of potentialResults) {
+      const currentResult = currentResults.find(
+        (res) =>
+          res.projectId === potentialResult.projectId &&
+          res.applicationId === potentialResult.applicationId
+      );
+
+      /* Subtracting undefined from a bigint would fail,
+       * so we explicitly subtract 0 if it's undefined */
+      const difference =
+        potentialResult.matched - (currentResult?.matched ?? 0n);
+      const differenceInUSD = await this.priceProvider.convertToUSD(
+        this.chainId,
+        round.token,
+        difference
+      );
+
+      /** Can be undefined, but spreading an undefined is a no-op, so it's okay here */
+      finalResults.push({
+        ...currentResult,
+        ...potentialResult,
+        difference,
+        roundId,
+        chainId: this.chainId,
+        recipient: currentResult?.payoutAddress ?? zeroAddress,
+        differenceInUSD: differenceInUSD.amount,
+      });
+    }
+
+    return finalResults;
+  }
+
   async parseJSONFile<T>(
     fileDescription: string,
     path: string
@@ -273,3 +381,11 @@ export default class Calculator {
     return this.dataProvider.loadFile<T>(fileDescription, path);
   }
 }
+
+type MatchingEstimateResult = Calculation & {
+  difference: bigint;
+  differenceInUSD: number;
+  roundId: string;
+  chainId: number;
+  recipient: string;
+};

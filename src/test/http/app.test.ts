@@ -13,8 +13,11 @@ import {
 } from "../../calculator/index.js";
 import { PriceProvider } from "../../prices/provider.js";
 import { Logger } from "pino";
+import { PotentialVotes } from "../../http/api/v1/matches.js";
 import { PassportScore } from "../../passport/index.js";
 import { Chain } from "../../config.js";
+import { constants } from "ethers";
+import { Price } from "../../prices/common.js";
 
 vi.spyOn(os, "hostname").mockReturnValue("dummy-hostname");
 
@@ -36,8 +39,24 @@ export class TestPriceProvider {
   async convertToUSD() {
     return Promise.resolve({ amount: 0 });
   }
+
   async convertFromUSD() {
     return Promise.resolve({ amount: 0 });
+  }
+
+  async getUSDConversionRate(
+    chainId: number,
+    tokenAddress: string,
+    _blockNumber?: number
+  ): Promise<Price & { decimals: number }> {
+    return Promise.resolve({
+      price: 1_000_000_000,
+      token: tokenAddress,
+      block: 0,
+      code: "",
+      decimals: 18,
+      timestamp: 0,
+    });
   }
 }
 
@@ -319,6 +338,103 @@ describe("server", () => {
         const resp = await request(app).get(
           "/api/v1/chains/1/rounds/0x1234/matches?ignoreSaturation=true"
         );
+        expect(resp.statusCode).toBe(200);
+        expect(resp.body).toEqual(expectedResults);
+      });
+
+      test("should estimate matching with new votes for projects", async () => {
+        const expectedResults = [
+          {
+            applicationId: "application-id-1",
+            capOverflow: "0",
+            chainId: 1,
+            contributionsCount: "4",
+            difference: "-1360",
+            differenceInUSD: 0,
+            matched: "0",
+            matchedUSD: 0,
+            matchedWithoutCap: "0",
+            payoutAddress: "grant-address-1",
+            projectId: "project-id-1",
+            recipient: "grant-address-1",
+            roundId: "0x1234",
+            sumOfSqrt: "70",
+            totalReceived: "1500",
+          },
+          {
+            applicationId: "application-id-2",
+            capOverflow: "0",
+            chainId: 1,
+            contributionsCount: "8",
+            difference: "699",
+            differenceInUSD: 0,
+            matched: "2859",
+            matchedUSD: 0,
+            matchedWithoutCap: "2859",
+            payoutAddress: "grant-address-2",
+            projectId: "project-id-2",
+            recipient: "grant-address-2",
+            roundId: "0x1234",
+            sumOfSqrt: "70790",
+            totalReceived: "5000001000",
+          },
+          {
+            applicationId: "application-id-3",
+            capOverflow: "0",
+            chainId: 1,
+            contributionsCount: "8",
+            difference: "659",
+            differenceInUSD: 0,
+            matched: "7139",
+            matchedUSD: 0,
+            matchedWithoutCap: "7139",
+            payoutAddress: "grant-address-3",
+            projectId: "project-id-3",
+            recipient: "grant-address-3",
+            roundId: "0x1234",
+            sumOfSqrt: "100140",
+            totalReceived: "10000003400",
+          },
+        ];
+
+        const potentialVotes: PotentialVotes = [
+          {
+            roundId: "round-id-1",
+            applicationId: "application-id-3",
+            voter: "voter-1",
+            amount: 10000000000n,
+            grantAddress: "grant-address-3",
+            token: constants.AddressZero,
+            projectId: "project-id-3",
+          },
+          {
+            roundId: "round-id-1",
+            applicationId: "application-id-2",
+            voter: "voter-1",
+            amount: 5000000000n,
+            grantAddress: "grant-address-2",
+            token: constants.AddressZero,
+            projectId: "project-id-2",
+          },
+        ];
+
+        const replacer = (
+          _key: string,
+          value: bigint | string | number | object
+        ) => (typeof value === "bigint" ? value.toString() : value);
+
+        const resp = await request(app)
+          .post("/api/v1/chains/1/rounds/0x1234/estimate")
+          .set("Content-Type", "application/json")
+          .set("Accept", "application/json")
+          .send(
+            JSON.stringify(
+              {
+                potentialVotes,
+              },
+              replacer
+            )
+          );
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
       });

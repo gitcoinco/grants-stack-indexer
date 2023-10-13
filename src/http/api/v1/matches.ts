@@ -1,4 +1,6 @@
 import express, { Response, Request } from "express";
+import { z } from "zod";
+
 const upload = multer();
 import multer from "multer";
 import ClientError from "../clientError.js";
@@ -111,5 +113,68 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     res.send(responseBody);
   }
 
+  router.post("/chains/:chainId/rounds/:roundId/estimate", async (req, res) => {
+    await estimateMatchesHandler(req, res, 200);
+  });
+
+  async function estimateMatchesHandler(
+    req: Request,
+    res: Response,
+    okStatusCode: number
+  ) {
+    const chainId = Number(req.params.chainId);
+    const roundId = req.params.roundId;
+    const potentialVotes = estimateRequestBody
+      .parse(req.body)
+      .potentialVotes.map((vote) => ({
+        ...vote,
+        amount: vote.amount,
+      }));
+
+    const chainConfig = config.chains.find((c) => c.id === chainId);
+    if (chainConfig === undefined) {
+      throw new ClientError(`Chain ${chainId} not configured`, 400);
+    }
+
+    const calculatorOptions: CalculatorOptions = {
+      priceProvider: config.priceProvider,
+      dataProvider: config.dataProvider,
+      chainId: chainId,
+      roundId: roundId,
+      minimumAmountUSD: undefined,
+      matchingCapAmount: undefined,
+      overrides: {},
+      passportProvider: config.passportProvider,
+      chain: chainConfig,
+    };
+
+    const calculator = new Calculator(calculatorOptions);
+    const matches = await calculator.estimateMatching(potentialVotes, roundId);
+    const responseBody = JSON.stringify(matches, (_key, value) =>
+      typeof value === "bigint" ? value.toString() : (value as unknown)
+    );
+    res.setHeader("content-type", "application/json");
+    res.status(okStatusCode);
+    res.send(responseBody);
+  }
+
   return router;
 };
+
+const potentialVoteSchema = z.object({
+  projectId: z.string(),
+  roundId: z.string(),
+  applicationId: z.string(),
+  token: z.string(),
+  voter: z.string(),
+  grantAddress: z.string(),
+  amount: z.coerce.bigint(),
+});
+
+const potentialVotesSchema = z.array(potentialVoteSchema);
+const estimateRequestBody = z.object({
+  potentialVotes: potentialVotesSchema,
+});
+
+export type PotentialVotes = z.infer<typeof potentialVotesSchema>;
+export type PotentialVote = z.infer<typeof potentialVoteSchema>;

@@ -2,11 +2,12 @@ import { Chain } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
 import type { PassportScore, PassportProvider } from "../passport/index.js";
 
-type VoteWithCoefficient = Vote & {
+export type VoteWithCoefficient = Vote & {
   coefficient: number;
   passportScore?: PassportScore;
 };
 
+/* TODO: ripe for a functional rewrite, also: https://massimilianomirra.com/notes/the-dangers-of-greedy-functions */
 export async function getVotesWithCoefficients(
   chain: Chain,
   round: Round,
