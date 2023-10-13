@@ -149,7 +149,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     };
 
     const calculator = new Calculator(calculatorOptions);
-    const matches = await calculator.estimateMatching(potentialVotes, roundId);
+    const matches = await calculator.estimateMatching(potentialVotes);
     const responseBody = JSON.stringify(matches, (_key, value) =>
       typeof value === "bigint" ? value.toString() : (value as unknown)
     );

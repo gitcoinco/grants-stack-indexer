@@ -281,11 +281,9 @@ export default class Calculator {
   /**
    * Estimates matching for a given project and potential additional votes
    * @param potentialVotes
-   * @param roundId
    */
   async estimateMatching(
-    potentialVotes: PotentialVote[],
-    roundId: string
+    potentialVotes: PotentialVote[]
   ): Promise<MatchingEstimateResult[]> {
     const votes = await this.parseJSONFile<Vote>(
       "votes",
@@ -321,13 +319,12 @@ export default class Calculator {
 
         /*TODO: take into account round matching token decimals instead of default 18 */
         const amountRoundToken =
-          (Number(amountUSD) / conversionRateRoundToken.price) *
-          Math.pow(10, 18);
+          (Number(amountUSD) / conversionRateRoundToken.price) * 10e18;
 
         return {
           ...vote,
           amount: vote.amount.toString(),
-          amountRoundToken: Math.floor(amountRoundToken).toString(),
+          amountRoundToken: BigInt(Math.floor(amountRoundToken)).toString(),
           amountUSD,
           applicationId: vote.applicationId,
           id: "",
@@ -364,7 +361,7 @@ export default class Calculator {
         ...currentResult,
         ...potentialResult,
         difference,
-        roundId,
+        roundId: this.roundId,
         chainId: this.chainId,
         recipient: currentResult?.payoutAddress ?? zeroAddress,
         differenceInUSD: differenceInUSD.amount,
