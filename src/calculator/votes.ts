@@ -1,6 +1,7 @@
 import { Chain } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
 import type { PassportScore, PassportProvider } from "../passport/index.js";
+import { ProportionalMatchOptions } from "./options.js";
 
 export type VoteWithCoefficient = Vote & {
   coefficient: number;
@@ -9,6 +10,7 @@ export type VoteWithCoefficient = Vote & {
 
 /* TODO: ripe for a functional rewrite, also: https://massimilianomirra.com/notes/the-dangers-of-greedy-functions */
 export async function getVotesWithCoefficients(
+  pmOptions: ProportionalMatchOptions,
   chain: Chain,
   round: Round,
   applications: Array<Application>,

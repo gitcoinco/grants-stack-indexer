@@ -16,6 +16,7 @@ import {
 import { PotentialVote } from "../http/api/v1/matches.js";
 import { Price } from "../prices/common.js";
 import { formatUnits, zeroAddress } from "viem";
+import { ProportionalMatchOptions } from "./options.js";
 
 export {
   CalculatorError,
@@ -165,16 +166,21 @@ export default class Calculator {
     });
   }
 
-  async calculate(): Promise<Array<AugmentedResult>> {
+  async calculate(
+    pmOptions: ProportionalMatchOptions
+  ): Promise<Array<AugmentedResult>> {
     const votes = await this.parseJSONFile<Vote>(
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
 
-    return this._calculate(votes);
+    return this._calculate(pmOptions, votes);
   }
 
-  private async _calculate(votes: Vote[]): Promise<Array<AugmentedResult>> {
+  private async _calculate(
+    pmOptions: ProportionalMatchOptions,
+    votes: Vote[]
+  ): Promise<Array<AugmentedResult>> {
     const applications = await this.parseJSONFile<Application>(
       "applications",
       `${this.chainId}/rounds/${this.roundId}/applications.json`
@@ -224,6 +230,7 @@ export default class Calculator {
     }
 
     const votesWithCoefficients = await getVotesWithCoefficients(
+      pmOptions,
       this.chain,
       round,
       applications,
@@ -284,6 +291,7 @@ export default class Calculator {
    * @param roundId
    */
   async estimateMatching(
+    pmOptions: ProportionalMatchOptions,
     potentialVotes: PotentialVote[],
     roundId: string
   ): Promise<MatchingEstimateResult[]> {
@@ -299,7 +307,7 @@ export default class Calculator {
 
     const round = rounds.find((round) => round.id === this.roundId) as Round;
 
-    const currentResults = await this._calculate(votes);
+    const currentResults = await this._calculate(pmOptions, votes);
     const conversionRates = await Promise.all(
       potentialVotes.map(async (vote) => [
         vote.token,
@@ -335,7 +343,7 @@ export default class Calculator {
       })
     );
 
-    const potentialResults = await this._calculate([
+    const potentialResults = await this._calculate(pmOptions, [
       ...votes,
       ...potentialVotesAugmented,
     ]);

@@ -10,6 +10,7 @@ import database from "../../../database.js";
 import { createPriceProvider } from "../../../prices/provider.js";
 import { Round, Application, Vote } from "../../../indexer/types.js";
 import { getVotesWithCoefficients } from "../../../calculator/votes.js";
+import { defaultProportionalMatchOptions } from "../../../calculator/options.js";
 import ClientError from "../clientError.js";
 import { HttpApiConfig } from "../../app.js";
 
@@ -85,6 +86,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     }
 
     const votesWithCoefficients = await getVotesWithCoefficients(
+      defaultProportionalMatchOptions,
       chainConfig,
       round,
       applications,

@@ -10,6 +10,7 @@ import Calculator, {
   CalculatorOptions,
   parseOverrides,
 } from "../../../calculator/index.js";
+import { defaultProportionalMatchOptions } from "../../../calculator/options.js";
 import { HttpApiConfig } from "../../app.js";
 
 export const createHandler = (config: HttpApiConfig): express.Router => {
@@ -149,7 +150,11 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     };
 
     const calculator = new Calculator(calculatorOptions);
-    const matches = await calculator.estimateMatching(potentialVotes, roundId);
+    const matches = await calculator.estimateMatching(
+      defaultProportionalMatchOptions,
+      potentialVotes,
+      roundId
+    );
     const responseBody = JSON.stringify(matches, (_key, value) =>
       typeof value === "bigint" ? value.toString() : (value as unknown)
     );
