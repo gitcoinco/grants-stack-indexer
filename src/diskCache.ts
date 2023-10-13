@@ -68,7 +68,7 @@ export class DiskCache {
     await this.ensureInitialized();
 
     return this.get<T>(key).then((cachedValue) => {
-      if (cachedValue) {
+      if (cachedValue !== null) {
         return cachedValue;
       } else {
         const promise = fun();
