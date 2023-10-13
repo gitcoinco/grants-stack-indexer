@@ -57,11 +57,7 @@ export class DiskCache {
     await this.ensureInitialized();
     const filename = this.filename(key);
 
-    try {
-      await fs.writeFile(filename, JSON.stringify(value));
-    } catch {
-      return undefined;
-    }
+    await fs.writeFile(filename, JSON.stringify(value));
   }
 
   async lazy<T>(key: string, fun: () => Promise<T>): Promise<T> {
