@@ -4,7 +4,7 @@ import path from "node:path";
 
 // A simple disk cache that stores JSON-serializable values.
 // This class is deprecated and will be removed, do not use for new code.
-export class DiskCache {
+export class DeprecatedDiskCache {
   private dir: string;
   private initializePromise: Promise<void> | null;
 
