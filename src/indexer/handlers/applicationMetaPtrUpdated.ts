@@ -1,16 +1,17 @@
-import { Database } from "chainsauce";
+import { EventHandlerArgs } from "chainsauce";
+
 import { Round } from "../types.js";
-import { ApplicationMetaPtrUpdatedEvent } from "../events.js";
+import type { Indexer } from "../indexer.js";
 import { ethers } from "ethers";
 
-export default async function applicationMetaPtrUpdated(
-  event: ApplicationMetaPtrUpdatedEvent,
-  deps: {
-    db: Database;
-    ipfsGet: <T>(cid: string) => Promise<T | undefined>;
-  }
-) {
-  const { db, ipfsGet } = deps;
+export default async function ({
+  event,
+  context: { ipfsGet, db },
+}: EventHandlerArgs<
+  Indexer,
+  "RoundImplementationV2",
+  "ApplicationMetaPtrUpdated"
+>) {
   const id = ethers.utils.getAddress(event.address);
 
   const metaPtr = event.params.newMetaPtr.pointer;

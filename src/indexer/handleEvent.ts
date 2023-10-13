@@ -1,10 +1,4 @@
-import { Logger } from "pino";
-import {
-  Database,
-  Event as ChainsauceEvent,
-  Indexer,
-  EventHandlerArgs,
-} from "chainsauce";
+import { Event, EventHandlerArgs } from "chainsauce";
 import { ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
 
@@ -17,23 +11,13 @@ import {
   Round,
   Vote,
 } from "./types.js";
-import { Event } from "./events.js";
-import { PriceProvider } from "../prices/provider.js";
-import abis from "./abis/index.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
 import applicationMetaPtrUpdated from "./handlers/applicationMetaPtrUpdated.js";
 import matchAmountUpdated from "./handlers/matchAmountUpdated.js";
 import { UnknownTokenError } from "../prices/common.js";
-
-export interface EventHandlerContext {
-  chainId: number;
-  db: Database;
-  ipfsGet: <T>(cid: string) => Promise<T | undefined>;
-  priceProvider: PriceProvider;
-  logger: Logger;
-}
+import type { Indexer } from "./indexer.js";
 
 enum ApplicationStatus {
   PENDING = 0,
@@ -54,10 +38,7 @@ function fullProjectId(
   );
 }
 
-const getFinalEventName = (
-  chainId: number,
-  originalEvent: ChainsauceEvent
-): string => {
+const getFinalEventName = (chainId: number, originalEvent: Event): string => {
   const chain = getChainConfigById(chainId);
   const eventRenamesForChain = Object.fromEntries(
     chain.subscriptions.map((sub) => [sub.address, sub.eventsRenames])
@@ -91,18 +72,15 @@ function updateApplicationStatus(
   return newApplication;
 }
 
-export async function handleEvent({
-  event: originalEvent,
-  subscribeToContract,
-  readContract,
-  context: { db, ipfsGet, priceProvider, chainId, logger },
-}: EventHandlerArgs<Indexer<typeof abis, EventHandlerContext>>) {
-  const eventName = getFinalEventName(chainId, originalEvent);
+export async function handleEvent(args: EventHandlerArgs<Indexer>) {
+  const {
+    event,
+    subscribeToContract,
+    readContract,
+    context: { db, ipfsGet, priceProvider, chainId, logger },
+  } = args;
 
-  const event = {
-    ...originalEvent,
-    name: eventName,
-  } as Event;
+  const finalEventName = getFinalEventName(chainId, event);
 
   switch (event.name) {
     // -- PROJECTS
@@ -174,10 +152,9 @@ export async function handleEvent({
     }
 
     // --- ROUND
-    case "RoundCreatedV1":
     case "RoundCreated": {
       const contract =
-        event.name === "RoundCreatedV1"
+        finalEventName === "RoundCreatedV1"
           ? "RoundImplementationV1"
           : "RoundImplementationV2";
 
@@ -277,8 +254,9 @@ export async function handleEvent({
       ]);
 
       await Promise.all([
-        matchAmountUpdated(
-          {
+        matchAmountUpdated({
+          ...args,
+          event: {
             ...event,
             name: "MatchAmountUpdated",
             address: event.params.roundAddress,
@@ -286,50 +264,53 @@ export async function handleEvent({
               newAmount: matchAmount,
             },
           },
-          { priceProvider, db, chainId }
-        ),
-        roundMetaPtrUpdated(
-          {
+        }),
+        roundMetaPtrUpdated({
+          ...args,
+          event: {
             ...event,
             name: "RoundMetaPtrUpdated",
             address: event.params.roundAddress,
             params: {
-              newMetaPtr: { pointer: metaPtr },
+              newMetaPtr: { protocol: 0n, pointer: metaPtr },
+              oldMetaPtr: { protocol: 0n, pointer: "" },
             },
           },
-          { ipfsGet, db }
-        ),
-        applicationMetaPtrUpdated(
-          {
+        }),
+        applicationMetaPtrUpdated({
+          ...args,
+          event: {
             ...event,
             name: "ApplicationMetaPtrUpdated",
             address: event.params.roundAddress,
             params: {
-              newMetaPtr: { pointer: applicationMetaPtr },
+              newMetaPtr: { protocol: 0n, pointer: applicationMetaPtr },
+              oldMetaPtr: { protocol: 0n, pointer: "" },
             },
           },
-          { ipfsGet, db }
-        ),
+        }),
       ]);
 
       break;
     }
 
     case "MatchAmountUpdated": {
-      return await matchAmountUpdated(event, { priceProvider, db, chainId });
+      return await matchAmountUpdated({ ...args, event });
     }
 
     case "RoundMetaPtrUpdated": {
-      return await roundMetaPtrUpdated(event, { ipfsGet, db });
+      return await roundMetaPtrUpdated({ ...args, event });
     }
 
     case "ApplicationMetaPtrUpdated": {
-      return await applicationMetaPtrUpdated(event, { ipfsGet, db });
+      return await applicationMetaPtrUpdated({ ...args, event });
     }
 
     case "NewProjectApplication": {
       const projectId =
-        event.params.project || event.params.projectID.toString();
+        "project" in event.params
+          ? event.params.project.toString()
+          : event.params.projectID.toString();
 
       const applications = db.collection<Application>(
         `rounds/${event.address}/applications`
@@ -340,7 +321,10 @@ export async function handleEvent({
       );
 
       const applicationIndex =
-        event.params.applicationIndex?.toString() ?? projectId;
+        "applicationIndex" in event.params
+          ? event.params.applicationIndex.toString()
+          : projectId;
+
       const application: Application = {
         id: applicationIndex,
         projectId: projectId,
@@ -471,19 +455,18 @@ export async function handleEvent({
     }
 
     // --- Voting Strategy
-    case "VotingContractCreatedV1": {
-      subscribeToContract({
-        contract: "QuadraticFundingVotingStrategyImplementationV1",
-        address: event.params.votingContractAddress,
-      });
-      break;
-    }
-
     case "VotingContractCreated": {
-      subscribeToContract({
-        contract: "QuadraticFundingVotingStrategyImplementationV2",
-        address: event.params.votingContractAddress,
-      });
+      if (finalEventName === "VotingContractCreatedV1") {
+        subscribeToContract({
+          contract: "QuadraticFundingVotingStrategyImplementationV1",
+          address: event.params.votingContractAddress,
+        });
+      } else {
+        subscribeToContract({
+          contract: "QuadraticFundingVotingStrategyImplementationV2",
+          address: event.params.votingContractAddress,
+        });
+      }
       break;
     }
 
@@ -495,12 +478,14 @@ export async function handleEvent({
       );
 
       const applicationId =
-        event.params.applicationIndex?.toString() ??
-        event.params.projectId.toString();
+        "applicationIndex" in event.params
+          ? event.params.applicationIndex.toString()
+          : event.params.projectId.toString();
 
       // If an `origin` field is present, this event comes from MRC, thus ignore the
       // `voter` field because that's the contract. See AIP-13
-      const realVoterAddress = event.params.origin ?? event.params.voter;
+      const realVoterAddress =
+        "origin" in event.params ? event.params.origin : event.params.voter;
 
       const application = await db
         .collection<Application>(

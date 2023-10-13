@@ -20,8 +20,8 @@ import { createHttpApi } from "./http/app.js";
 import { FileSystemDataProvider } from "./calculator/index.js";
 import { ethers } from "ethers";
 import abis from "./indexer/abis/index.js";
-
-import { handleEvent, EventHandlerContext } from "./indexer/handleEvent.js";
+import type { EventHandlerContext } from "./indexer/indexer.js";
+import { handleEvent } from "./indexer/handleEvent.js";
 
 async function main(): Promise<void> {
   const config = getConfig();
