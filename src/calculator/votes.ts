@@ -1,7 +1,6 @@
 import { Chain } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
 import type { PassportScore, PassportProvider } from "../passport/index.js";
-import { getAddress } from "viem";
 
 export type VoteWithCoefficient = Vote & {
   coefficient: number;
@@ -70,7 +69,11 @@ export async function getVotesWithCoefficients(
     const passportScore = await passportProvider.getScoreByAddress(voter);
     let passportCheckPassed = false;
 
-    if (options.bypassPassportAddresses?.includes(getAddress(voter))) {
+    if (
+      options.bypassPassportAddresses
+        ?.map((address) => address.toLowerCase())
+        .includes(voter.toLowerCase())
+    ) {
       passportCheckPassed = true;
     }
 
