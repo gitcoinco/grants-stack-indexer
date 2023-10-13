@@ -645,21 +645,6 @@ export async function handleEvent({
           }
         );
 
-      await Promise.all([
-        db
-          .collection<Application>(
-            `rounds/${event.params.roundAddress}/applications`
-          )
-          .updateById(applicationId, (project) => ({
-            ...project,
-            amountUSD: project.amountUSD + amountUSD,
-            votes: project.votes + 1,
-            uniqueContributors:
-              project.uniqueContributors +
-              (isNewapplicationContributor ? 1 : 0),
-          })),
-      ]);
-
       const contributorPartitionedPath = vote.voter
         .split(/(.{6})/)
         .filter((s: string) => s.length > 0)
@@ -677,6 +662,18 @@ export async function handleEvent({
             roundStartTime: round.roundStartTime,
             roundEndTime: round.roundEndTime,
           }),
+        db
+          .collection<Application>(
+            `rounds/${event.params.roundAddress}/applications`
+          )
+          .updateById(applicationId, (project) => ({
+            ...project,
+            amountUSD: project.amountUSD + amountUSD,
+            votes: project.votes + 1,
+            uniqueContributors:
+              project.uniqueContributors +
+              (isNewapplicationContributor ? 1 : 0),
+          })),
         db
           .collection<Round>("rounds")
           .updateById(event.params.roundAddress, (round) => ({
