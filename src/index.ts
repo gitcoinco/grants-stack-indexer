@@ -260,10 +260,13 @@ async function catchupAndWatchChain(
       logger: indexerLogger,
     };
 
-    const chainsauceCache = createSqliteCache(
-      path.join(CHAIN_DIR_PATH, "..", "chainsauceCache.db")
-    );
+    // the chainsauce cache is used to cache events and contract reads
+    const chainsauceCache = config.cacheDir
+      ? createSqliteCache(path.join(config.cacheDir, "chainsauceCache.db"))
+      : null;
 
+    // the subscription store is used to keep track of indexed events for resuming
+    // indexing after a restart, it goes with the chain data
     const subscriptionStore = createSqliteSubscriptionStore(
       path.join(CHAIN_DIR_PATH, "subscriptions.db")
     );
