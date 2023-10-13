@@ -92,6 +92,8 @@ export type Application = {
 
 export type Vote = {
   id: string;
+  transaction: Hex;
+  blockNumber: number;
   projectId: string;
   roundId: string;
   applicationId: string;

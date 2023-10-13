@@ -247,10 +247,10 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
           updatedAtBlock: Number(event.blockNumber),
         }),
         // create empty sub collections
-        db.collection(`rounds/${roundId}/projects`),
-        db.collection(`rounds/${roundId}/applications`),
-        db.collection(`rounds/${roundId}/votes`),
-        db.collection(`rounds/${roundId}/contributors`),
+        db.collection(`rounds/${roundId}/projects`).all(),
+        db.collection(`rounds/${roundId}/applications`).all(),
+        db.collection(`rounds/${roundId}/votes`).all(),
+        db.collection(`rounds/${roundId}/contributors`).all(),
       ]);
 
       await Promise.all([
@@ -351,20 +351,28 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
       });
 
       await Promise.all([
-        db.collection(
-          `rounds/${event.address}/applications/${applicationIndex}/votes`
-        ),
-        db.collection(
-          `rounds/${event.address}/applications/${applicationIndex}/contributors`
-        ),
+        db
+          .collection(
+            `rounds/${event.address}/applications/${applicationIndex}/votes`
+          )
+          .all(),
+        db
+          .collection(
+            `rounds/${event.address}/applications/${applicationIndex}/contributors`
+          )
+          .all(),
       ]);
 
       if (isNewProject) {
         await Promise.all([
-          db.collection(`rounds/${event.address}/projects/${projectId}/votes`),
-          db.collection(
-            `rounds/${event.address}/projects/${projectId}/contributors`
-          ),
+          db
+            .collection(`rounds/${event.address}/projects/${projectId}/votes`)
+            .all(),
+          db
+            .collection(
+              `rounds/${event.address}/projects/${projectId}/contributors`
+            )
+            .all(),
         ]);
       }
 
@@ -542,10 +550,10 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
         }
       }
 
-      const vote = {
+      const vote: Vote = {
         id: voteId,
         transaction: event.transactionHash,
-        blockNumber: event.blockNumber,
+        blockNumber: Number(event.blockNumber),
         projectId: event.params.projectId,
         applicationId: applicationId,
         roundId: event.params.roundAddress,

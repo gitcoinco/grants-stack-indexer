@@ -312,17 +312,20 @@ async function catchupAndWatchChain(
       .events({
         ProjectRegistryV1: [
           "ProjectCreated",
+          "MetadataUpdated",
           "OwnerRemoved",
           "OwnerAdded",
           "OwnerRemoved",
         ],
         ProjectRegistryV2: [
           "ProjectCreated",
+          "MetadataUpdated",
           "OwnerRemoved",
           "OwnerAdded",
           "OwnerRemoved",
         ],
         RoundFactoryV2: ["RoundCreated"],
+        RoundFactoryV1: ["RoundCreated"],
         RoundImplementationV2: [
           "MatchAmountUpdated",
           "RoundMetaPtrUpdated",
