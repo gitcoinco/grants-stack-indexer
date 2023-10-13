@@ -174,7 +174,10 @@ export default class Calculator {
     return this._calculate(votes);
   }
 
-  private async _calculate(votes: Vote[]): Promise<Array<AugmentedResult>> {
+  private async _calculate(
+    votes: Vote[],
+    options?: { bypassPassportAddresses: string[] }
+  ): Promise<Array<AugmentedResult>> {
     const applications = await this.parseJSONFile<Application>(
       "applications",
       `${this.chainId}/rounds/${this.roundId}/applications.json`
@@ -233,6 +236,7 @@ export default class Calculator {
         minimumAmountUSD: this.minimumAmountUSD,
         enablePassport: this.enablePassport,
         passportThreshold: this.passportThreshold,
+        bypassPassportAddresses: options?.bypassPassportAddresses ?? [],
       }
     );
 
@@ -332,10 +336,14 @@ export default class Calculator {
       })
     );
 
-    const potentialResults = await this._calculate([
-      ...votes,
-      ...potentialVotesAugmented,
-    ]);
+    const potentialResults = await this._calculate(
+      [...votes, ...potentialVotesAugmented],
+      {
+        bypassPassportAddresses: potentialVotes.map(
+          (potentialVote) => potentialVote.voter
+        ),
+      }
+    );
 
     const finalResults: MatchingEstimateResult[] = [];
 

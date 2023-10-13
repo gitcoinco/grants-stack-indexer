@@ -1,6 +1,7 @@
 import { Chain } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
 import type { PassportScore, PassportProvider } from "../passport/index.js";
+import { getAddress } from "viem";
 
 export type VoteWithCoefficient = Vote & {
   coefficient: number;
@@ -18,6 +19,10 @@ export async function getVotesWithCoefficients(
     minimumAmountUSD?: number;
     enablePassport?: boolean;
     passportThreshold?: number;
+    /** Used for matching estimates.
+     * Bypasses the passport check for these addresses, so that we can display
+     * the matching even if they don't have a passport */
+    bypassPassportAddresses?: string[];
   }
 ): Promise<Array<VoteWithCoefficient>> {
   const applicationMap = applications.reduce(
@@ -64,6 +69,10 @@ export async function getVotesWithCoefficients(
 
     const passportScore = await passportProvider.getScoreByAddress(voter);
     let passportCheckPassed = false;
+
+    if (options.bypassPassportAddresses?.includes(getAddress(voter))) {
+      passportCheckPassed = true;
+    }
 
     if (enablePassport) {
       if (
