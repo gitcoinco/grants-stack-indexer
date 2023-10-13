@@ -284,13 +284,6 @@ async function catchupAndWatchChain(
       .contracts(abis)
       .eventPollIntervalMs(20 * 1000)
       .cache(chainsauceCache)
-      .onProgress(({ currentBlock, targetBlock, pendingEventsCount }) => {
-        throttledLogProgress(
-          Number(currentBlock),
-          Number(targetBlock),
-          pendingEventsCount
-        );
-      })
       .onEvent(async (args) => {
         try {
           return await handleEvent(args);
@@ -345,16 +338,28 @@ async function catchupAndWatchChain(
 
     for (const subscription of config.chain.subscriptions) {
       const contractName = subscription.contractName;
+      const fromBlock =
+        subscription.fromBlock === undefined
+          ? undefined
+          : BigInt(subscription.fromBlock);
 
       indexer.subscribeToContract({
         contract: contractName,
         address: subscription.address,
-        fromBlock:
-          subscription.fromBlock === undefined
-            ? undefined
-            : BigInt(subscription.fromBlock),
+        fromBlock: fromBlock,
       });
     }
+
+    indexer.on(
+      "progress",
+      ({ currentBlock, targetBlock, pendingEventsCount }) => {
+        throttledLogProgress(
+          Number(currentBlock),
+          Number(targetBlock),
+          pendingEventsCount
+        );
+      }
+    );
 
     await indexer.indexToBlock(config.toBlock);
 
@@ -367,7 +372,16 @@ async function catchupAndWatchChain(
       priceUpdater.stop();
     } else {
       chainLogger.info("listening to new blockchain events");
-      void indexer.watch();
+
+      indexer.on("error", (err) => {
+        chainLogger.error({
+          msg: `error while watching chain ${config.chain.id}`,
+          err,
+        });
+        Sentry.captureException(err);
+      });
+
+      indexer.watch();
     }
   } catch (err) {
     chainLogger.error({
