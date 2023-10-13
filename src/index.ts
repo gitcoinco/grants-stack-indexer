@@ -320,6 +320,12 @@ async function catchupAndWatchChain(
           "OwnerAdded",
           "OwnerRemoved",
         ],
+        ProjectRegistryV2: [
+          "ProjectCreated",
+          "OwnerRemoved",
+          "OwnerAdded",
+          "OwnerRemoved",
+        ],
         RoundFactoryV2: ["RoundCreated"],
         RoundImplementationV2: [
           "MatchAmountUpdated",
