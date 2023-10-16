@@ -99,7 +99,6 @@ export type CalculatorOptions = {
   roundId: string;
   minimumAmountUSD?: number;
   matchingCapAmount?: bigint;
-  passportThreshold?: number;
   enablePassport?: boolean;
   ignoreSaturation?: boolean;
   overrides: Overrides;
@@ -124,7 +123,6 @@ export default class Calculator {
   private minimumAmountUSD: number | undefined;
   private matchingCapAmount: bigint | undefined;
   private enablePassport: boolean | undefined;
-  private passportThreshold: number | undefined;
   private ignoreSaturation: boolean | undefined;
   private overrides: Overrides;
 
@@ -136,7 +134,6 @@ export default class Calculator {
     this.roundId = options.roundId;
     this.minimumAmountUSD = options.minimumAmountUSD;
     this.enablePassport = options.enablePassport;
-    this.passportThreshold = options.passportThreshold;
     this.matchingCapAmount = options.matchingCapAmount;
     this.overrides = options.overrides;
     this.ignoreSaturation = options.ignoreSaturation;
@@ -239,7 +236,6 @@ export default class Calculator {
       {
         minimumAmountUSD: this.minimumAmountUSD,
         enablePassport: this.enablePassport,
-        passportThreshold: this.passportThreshold,
       }
     );
 

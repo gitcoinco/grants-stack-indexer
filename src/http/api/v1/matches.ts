@@ -60,7 +60,6 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     const roundId = req.params.roundId;
 
     const minimumAmountUSD = req.query.minimumAmountUSD?.toString();
-    const passportThreshold = req.query.passportThreshold?.toString();
     const matchingCapAmount = req.query.matchingCapAmount?.toString();
 
     const enablePassport = boolParam(req.query, "enablePassport");
@@ -94,9 +93,6 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       minimumAmountUSD: minimumAmountUSD ? Number(minimumAmountUSD) : undefined,
       matchingCapAmount: matchingCapAmount
         ? BigInt(matchingCapAmount)
-        : undefined,
-      passportThreshold: passportThreshold
-        ? Number(passportThreshold)
         : undefined,
       enablePassport: enablePassport,
       ignoreSaturation: ignoreSaturation,
