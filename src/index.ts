@@ -1,5 +1,5 @@
 import {
-  buildIndexer,
+  createIndexer,
   createJsonDatabase,
   createSqliteCache,
   createSqliteSubscriptionStore,
@@ -271,32 +271,21 @@ async function catchupAndWatchChain(
       path.join(CHAIN_DIR_PATH, "subscriptions.db")
     );
 
-    const indexer = buildIndexer()
-      .chain({
+    const indexer = createIndexer({
+      contracts: abis,
+      chain: {
         id: config.chain.id,
         name: config.chain.name,
         rpc: {
           url: config.chain.rpc,
         },
-      })
-      .context(eventHandlerContext)
-      .subscriptionStore(subscriptionStore)
-      .contracts(abis)
-      .eventPollIntervalMs(20 * 1000)
-      .cache(chainsauceCache)
-      .onEvent(async (args) => {
-        try {
-          return await handleEvent(args);
-        } catch (err) {
-          indexerLogger.warn({
-            msg: "skipping event due to error while processing",
-            err,
-            event: args.event,
-          });
-        }
-      })
-      .logLevel("trace")
-      .logger((level, data: unknown, message?: string) => {
+      },
+      context: eventHandlerContext,
+      subscriptionStore,
+      eventPollDelayMs: 20 * 1000,
+      cache: chainsauceCache,
+      logLevel: "trace",
+      logger: (level, data: unknown, message?: string) => {
         if (level === "error") {
           indexerLogger.error(data, message);
         } else if (level === "warn") {
@@ -308,36 +297,21 @@ async function catchupAndWatchChain(
         } else if (level === "trace") {
           indexerLogger.trace(data, message);
         }
-      })
-      .events({
-        ProjectRegistryV1: [
-          "ProjectCreated",
-          "MetadataUpdated",
-          "OwnerRemoved",
-          "OwnerAdded",
-          "OwnerRemoved",
-        ],
-        ProjectRegistryV2: [
-          "ProjectCreated",
-          "MetadataUpdated",
-          "OwnerRemoved",
-          "OwnerAdded",
-          "OwnerRemoved",
-        ],
-        RoundFactoryV2: ["RoundCreated"],
-        RoundFactoryV1: ["RoundCreated"],
-        RoundImplementationV2: [
-          "MatchAmountUpdated",
-          "RoundMetaPtrUpdated",
-          "ApplicationMetaPtrUpdated",
-          "NewProjectApplication",
-          "ProjectsMetaPtrUpdated",
-          "ApplicationStatusesUpdated",
-        ],
-        QuadraticFundingVotingStrategyFactoryV2: ["VotingContractCreated"],
-        QuadraticFundingVotingStrategyImplementationV2: ["Voted"],
-      })
-      .build();
+      },
+    });
+
+    indexer.on("event", handleEvent);
+
+    indexer.on(
+      "progress",
+      ({ currentBlock, targetBlock, pendingEventsCount }) => {
+        throttledLogProgress(
+          Number(currentBlock),
+          Number(targetBlock),
+          pendingEventsCount
+        );
+      }
+    );
 
     for (const subscription of config.chain.subscriptions) {
       const contractName = subscription.contractName;
@@ -352,17 +326,6 @@ async function catchupAndWatchChain(
         fromBlock: fromBlock,
       });
     }
-
-    indexer.on(
-      "progress",
-      ({ currentBlock, targetBlock, pendingEventsCount }) => {
-        throttledLogProgress(
-          Number(currentBlock),
-          Number(targetBlock),
-          pendingEventsCount
-        );
-      }
-    );
 
     await indexer.indexToBlock(config.toBlock);
 
