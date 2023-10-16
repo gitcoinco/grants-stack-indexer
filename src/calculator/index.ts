@@ -331,6 +331,10 @@ export default class Calculator {
           amountRoundToken: Math.floor(amountRoundToken).toString(),
           amountUSD,
           applicationId: vote.applicationId,
+          // FIXME: Vote needs a blockNumber, transaction and id,
+          // are we using the right type here?
+          blockNumber: 0,
+          transaction: "0x0",
           id: "",
         };
       })
