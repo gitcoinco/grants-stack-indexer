@@ -3,6 +3,7 @@ import {
   createJsonDatabase,
   createSqliteCache,
   createSqliteSubscriptionStore,
+  createHttpRpcClient,
 } from "chainsauce";
 import { Logger, pino } from "pino";
 import path from "node:path";
@@ -275,14 +276,16 @@ async function catchupAndWatchChain(
       contracts: abis,
       chain: {
         id: config.chain.id,
-        name: config.chain.name,
-        rpc: {
+        pollingIntervalMs: 20 * 1000,
+        rpcClient: createHttpRpcClient({
+          retryDelayMs: 1000,
+          maxConcurrentRequests: 10,
+          maxRetries: 3,
           url: config.chain.rpc,
-        },
+        }),
       },
       context: eventHandlerContext,
       subscriptionStore,
-      eventPollDelayMs: 20 * 1000,
       cache: chainsauceCache,
       logLevel: "trace",
       logger: (level, data: unknown, message?: string) => {
