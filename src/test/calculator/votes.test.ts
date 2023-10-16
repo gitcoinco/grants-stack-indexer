@@ -83,7 +83,7 @@ const votes: Vote[] = [
   // not expected to be capped to 10 tokens
   // because token is not in the token settings
   {
-    id: "vote-1",
+    id: "vote-2",
     projectId: "project-id-1",
     applicationId: "application-id-1",
     roundId: "round-id-1",
