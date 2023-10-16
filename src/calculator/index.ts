@@ -103,6 +103,7 @@ export type CalculatorOptions = {
   ignoreSaturation?: boolean;
   overrides: Overrides;
   chain: Chain;
+  proportionalMatchOptions: ProportionalMatchOptions;
 };
 
 export type AugmentedResult = Calculation & {
@@ -125,6 +126,7 @@ export default class Calculator {
   private enablePassport: boolean | undefined;
   private ignoreSaturation: boolean | undefined;
   private overrides: Overrides;
+  private proportionalMatchOptions: ProportionalMatchOptions;
 
   constructor(options: CalculatorOptions) {
     this.passportProvider = options.passportProvider;
@@ -138,6 +140,7 @@ export default class Calculator {
     this.overrides = options.overrides;
     this.ignoreSaturation = options.ignoreSaturation;
     this.chain = options.chain;
+    this.proportionalMatchOptions = options.proportionalMatchOptions;
   }
 
   private votesWithCoefficientToContribution(
@@ -163,21 +166,16 @@ export default class Calculator {
     });
   }
 
-  async calculate(
-    pmOptions: ProportionalMatchOptions
-  ): Promise<Array<AugmentedResult>> {
+  async calculate(): Promise<Array<AugmentedResult>> {
     const votes = await this.parseJSONFile<Vote>(
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
 
-    return this._calculate(pmOptions, votes);
+    return this._calculate(votes);
   }
 
-  private async _calculate(
-    pmOptions: ProportionalMatchOptions,
-    votes: Vote[]
-  ): Promise<Array<AugmentedResult>> {
+  private async _calculate(votes: Vote[]): Promise<Array<AugmentedResult>> {
     const applications = await this.parseJSONFile<Application>(
       "applications",
       `${this.chainId}/rounds/${this.roundId}/applications.json`
@@ -227,7 +225,6 @@ export default class Calculator {
     }
 
     const votesWithCoefficients = await getVotesWithCoefficients(
-      pmOptions,
       this.chain,
       round,
       applications,
@@ -236,7 +233,8 @@ export default class Calculator {
       {
         minimumAmountUSD: this.minimumAmountUSD,
         enablePassport: this.enablePassport,
-      }
+      },
+      this.proportionalMatchOptions
     );
 
     const contributions: Contribution[] =
@@ -287,7 +285,6 @@ export default class Calculator {
    * @param roundId
    */
   async estimateMatching(
-    pmOptions: ProportionalMatchOptions,
     potentialVotes: PotentialVote[],
     roundId: string
   ): Promise<MatchingEstimateResult[]> {
@@ -303,7 +300,7 @@ export default class Calculator {
 
     const round = rounds.find((round) => round.id === this.roundId) as Round;
 
-    const currentResults = await this._calculate(pmOptions, votes);
+    const currentResults = await this._calculate(votes);
     const conversionRates = await Promise.all(
       potentialVotes.map(async (vote) => [
         vote.token,
@@ -339,7 +336,7 @@ export default class Calculator {
       })
     );
 
-    const potentialResults = await this._calculate(pmOptions, [
+    const potentialResults = await this._calculate([
       ...votes,
       ...potentialVotesAugmented,
     ]);

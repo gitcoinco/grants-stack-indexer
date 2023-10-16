@@ -86,13 +86,13 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     }
 
     const votesWithCoefficients = await getVotesWithCoefficients(
-      defaultProportionalMatchOptions,
       chainConfig,
       round,
       applications,
       votes,
       config.passportProvider,
-      {}
+      {},
+      defaultProportionalMatchOptions
     );
 
     const records = votesWithCoefficients.flatMap((vote) => {

@@ -98,10 +98,11 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       ignoreSaturation: ignoreSaturation,
       overrides,
       chain: chainConfig,
+      proportionalMatchOptions: defaultProportionalMatchOptions,
     };
 
     const calculator = new Calculator(calculatorOptions);
-    const matches = await calculator.calculate(defaultProportionalMatchOptions);
+    const matches = await calculator.calculate();
     const responseBody = JSON.stringify(matches, (_key, value) =>
       typeof value === "bigint" ? value.toString() : (value as unknown)
     );
@@ -143,14 +144,11 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       overrides: {},
       passportProvider: config.passportProvider,
       chain: chainConfig,
+      proportionalMatchOptions: defaultProportionalMatchOptions,
     };
 
     const calculator = new Calculator(calculatorOptions);
-    const matches = await calculator.estimateMatching(
-      defaultProportionalMatchOptions,
-      potentialVotes,
-      roundId
-    );
+    const matches = await calculator.estimateMatching(potentialVotes, roundId);
     const responseBody = JSON.stringify(matches, (_key, value) =>
       typeof value === "bigint" ? value.toString() : (value as unknown)
     );

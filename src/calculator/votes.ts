@@ -10,7 +10,6 @@ export type VoteWithCoefficient = Vote & {
 
 /* TODO: ripe for a functional rewrite, also: https://massimilianomirra.com/notes/the-dangers-of-greedy-functions */
 export async function getVotesWithCoefficients(
-  pmOptions: ProportionalMatchOptions,
   chain: Chain,
   round: Round,
   applications: Array<Application>,
@@ -20,7 +19,8 @@ export async function getVotesWithCoefficients(
     minimumAmountUSD?: number;
     enablePassport?: boolean;
     passportThreshold?: number;
-  }
+  },
+  pmOptions: ProportionalMatchOptions
 ): Promise<Array<VoteWithCoefficient>> {
   const applicationMap = applications.reduce(
     (map, application) => {

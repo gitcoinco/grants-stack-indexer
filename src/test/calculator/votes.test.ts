@@ -118,13 +118,13 @@ describe("getVotesWithCoefficients", () => {
       const testVoteIndex = 0;
 
       const res = await getVotesWithCoefficients(
-        defaultProportionalMatchOptions,
         MOCK_CHAIN,
         round,
         applications,
         votes,
         noOpPassportProvider,
-        {}
+        {},
+        defaultProportionalMatchOptions
       );
 
       expect(res[testVoteIndex]).toEqual({
@@ -138,13 +138,13 @@ describe("getVotesWithCoefficients", () => {
       const testVoteIndex = 1;
 
       const res = await getVotesWithCoefficients(
-        defaultProportionalMatchOptions,
         MOCK_CHAIN,
         round,
         applications,
         votes,
         noOpPassportProvider,
-        {}
+        {},
+        defaultProportionalMatchOptions
       );
 
       expect(res[testVoteIndex]).toEqual({

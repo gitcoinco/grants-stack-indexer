@@ -159,13 +159,13 @@ describe("getVotesWithCoefficients", () => {
   describe("should update the amount proportionally based on the passport score", () => {
     test("returns votes with amounts updated proportionally based on passport score", async () => {
       const res = await getVotesWithCoefficients(
-        defaultProportionalMatchOptions,
         MOCK_CHAIN,
         round,
         applications,
         votes,
         fakePassportProvider,
-        {}
+        {},
+        defaultProportionalMatchOptions
       );
 
       const expectedData = [
