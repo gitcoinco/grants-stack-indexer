@@ -140,11 +140,12 @@ describe("getVotesWithCoefficients", () => {
 
   beforeAll(() => {
     const testData = [
-      { id: 1, amount: 1000n, rawScore: "10.0" },
-      { id: 2, amount: 1000n, rawScore: "15.0" },
-      { id: 3, amount: 1000n, rawScore: "20.0" },
-      { id: 4, amount: 1000n, rawScore: "25.0" },
-      { id: 5, amount: 1000n, rawScore: "30.0" },
+      { id: 1, amount: 1000n, rawScore: "0.0" },
+      { id: 2, amount: 1000n, rawScore: "10.0" },
+      { id: 3, amount: 1000n, rawScore: "15.0" },
+      { id: 4, amount: 1000n, rawScore: "20.0" },
+      { id: 5, amount: 1000n, rawScore: "25.0" },
+      { id: 6, amount: 1000n, rawScore: "30.0" },
     ];
 
     testData.forEach(({ id, amount, rawScore }) => {
@@ -164,19 +165,20 @@ describe("getVotesWithCoefficients", () => {
         applications,
         votes,
         fakePassportProvider,
-        {},
+        { enablePassport: true },
         defaultProportionalMatchOptions
       );
 
       const expectedData = [
-        { id: 1, amount: 1000n, rawScore: "10.0", coefficient: 0 },
-        { id: 2, amount: 1000n, rawScore: "15.0", coefficient: 0.5 },
-        { id: 3, amount: 1000n, rawScore: "20.0", coefficient: 0.75 },
-        { id: 4, amount: 1000n, rawScore: "25.0", coefficient: 1 },
-        { id: 5, amount: 1000n, rawScore: "30.0", coefficient: 1 },
+        { id: 1, amount: 1000n, rawScore: "0.0", coefficient: 0 },
+        { id: 2, amount: 1000n, rawScore: "10.0", coefficient: 0 },
+        { id: 3, amount: 1000n, rawScore: "15.0", coefficient: 0.5 },
+        { id: 4, amount: 1000n, rawScore: "20.0", coefficient: 0.75 },
+        { id: 5, amount: 1000n, rawScore: "25.0", coefficient: 1 },
+        { id: 6, amount: 1000n, rawScore: "30.0", coefficient: 1 },
       ];
 
-      expect(res.length).toEqual(5);
+      expect(res.length).toEqual(6);
 
       for (let i = 0; i < expectedData.length; i++) {
         const vote = res[i];
@@ -187,16 +189,8 @@ describe("getVotesWithCoefficients", () => {
         expect(vote.passportScore!.evidence!.rawScore).toEqual(
           expected.rawScore
         );
-        // expect(vote.coefficient).toEqual(expected.coefficient);
+        expect(vote.coefficient).toEqual(expected.coefficient);
       }
-
-      console.log(res[0]);
-
-      // expect(res[testVoteIndex]).toEqual({
-      //   ...votes[testVoteIndex],
-      //   coefficient: 1,
-      //   amountRoundToken: BigInt(25e18).toString(),
-      // });
     });
   });
 });

@@ -18,7 +18,6 @@ export async function getVotesWithCoefficients(
   options: {
     minimumAmountUSD?: number;
     enablePassport?: boolean;
-    passportThreshold?: number;
   },
   pmOptions: ProportionalMatchOptions
 ): Promise<Array<VoteWithCoefficient>> {
@@ -62,34 +61,23 @@ export async function getVotesWithCoefficients(
       return [];
     }
 
+    // We start setting the coefficient to 1, keeping 100% of the donation matching power
+    let coefficient = 1;
+
+    // Minimum donation amount check
+    const minAmountCheckPassed = vote.amountUSD >= minimumAmountUSD;
+    // We don't consider the donation if it's lower than the minimum amount
+    if (!minAmountCheckPassed) {
+      coefficient = 0;
+    }
+
     // Passport check
-
     const passportScore = await passportProvider.getScoreByAddress(voter);
-    let passportCheckPassed = false;
-
-    if (enablePassport) {
-      if (
-        options.passportThreshold &&
-        Number(passportScore?.evidence?.rawScore ?? "0") >
-          options.passportThreshold
-      ) {
-        passportCheckPassed = true;
-      } else if (passportScore?.evidence?.success) {
-        passportCheckPassed = true;
-      }
-    } else {
-      passportCheckPassed = true;
+    if (minAmountCheckPassed && enablePassport) {
+      // Set to 0 if the donor doesn't have a passport
+      const rawScore = Number(passportScore?.evidence?.rawScore ?? "0");
+      coefficient = scoreToCoefficient(pmOptions, rawScore);
     }
-
-    // Minimum amount check
-
-    let minAmountCheckPassed = false;
-
-    if (vote.amountUSD >= minimumAmountUSD) {
-      minAmountCheckPassed = true;
-    }
-
-    const coefficient = passportCheckPassed && minAmountCheckPassed ? 1 : 0;
 
     return [
       {
@@ -102,6 +90,31 @@ export async function getVotesWithCoefficients(
   });
 
   return (await Promise.all(votePromises)).flat();
+}
+
+export function scoreToCoefficient(
+  options: ProportionalMatchOptions,
+  score: number
+) {
+  if (score < options.score.min) {
+    return 0;
+  }
+
+  if (score > options.score.max) {
+    return 1;
+  }
+
+  const shiftedMax = options.score.max - options.score.min;
+  const shiftedScore = score - options.score.min;
+
+  const perc =
+    options.matchProportionPercentage.min +
+    ((options.matchProportionPercentage.max -
+      options.matchProportionPercentage.min) *
+      shiftedScore) /
+      shiftedMax;
+
+  return perc / 100;
 }
 
 export function applyVoteCap(chain: Chain, vote: Vote): Vote {

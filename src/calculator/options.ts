@@ -1,21 +1,21 @@
 export type ProportionalMatchOptions = {
   score: {
-    min: bigint;
-    max: bigint;
+    min: number;
+    max: number;
   };
   matchProportionPercentage: {
-    min: bigint;
-    max: bigint;
+    min: number;
+    max: number;
   };
 };
 
 export const defaultProportionalMatchOptions: ProportionalMatchOptions = {
   score: {
-    min: 15n,
-    max: 25n,
+    min: 15,
+    max: 25,
   },
   matchProportionPercentage: {
-    min: 0n,
-    max: 100n,
+    min: 50,
+    max: 100,
   },
 };
