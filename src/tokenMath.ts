@@ -1,4 +1,4 @@
-/** Converts a token amount to a currency amount
+/** Converts a token amount (fixed point as a bigint) to a fiat currency amount (number)
  * @param args.tokenAmount The token amount
  * @param args.tokenDecimals The token decimals
  * @param args.price The price of the token
@@ -22,7 +22,7 @@ export function convertTokenToFiat(args: {
   );
 }
 
-/** Converts a currency amount to a token amount
+/** Converts a fiat amount (number) to a token amount (fixed point as a bigint)
  * @param args.currency The currency amount
  * @param args.price The price of the currency
  * @param args.priceDecimals The decimal places to use for the price, defaults to 8, any decimals beyond this will be truncated
