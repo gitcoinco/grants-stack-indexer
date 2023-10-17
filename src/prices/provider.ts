@@ -93,16 +93,14 @@ export function createPriceProvider(
       token,
       blockNumber
     );
-    const usdDecimalFactor = Math.pow(10, 8);
-    const decimalFactor = 10n ** BigInt(closestPrice.decimals);
-
-    const priceInDecimals = BigInt(
-      Math.trunc(closestPrice.price * usdDecimalFactor)
-    );
 
     return {
-      amount:
-        Number((amount * priceInDecimals) / decimalFactor) / usdDecimalFactor,
+      amount: convertTokenToFiat({
+        tokenAmount: amount,
+        tokenDecimals: closestPrice.decimals,
+        price: closestPrice.price,
+        priceDecimals: 8,
+      }),
       price: closestPrice.price,
     };
   }
@@ -110,7 +108,7 @@ export function createPriceProvider(
   async function convertFromUSD(
     chainId: number,
     token: string,
-    amount: number,
+    amountInUSD: number,
     blockNumber?: number
   ): Promise<{ amount: bigint; price: number }> {
     const closestPrice = await getUSDConversionRate(
@@ -118,17 +116,17 @@ export function createPriceProvider(
       token,
       blockNumber
     );
-    const usdDecimalFactor = Math.pow(10, 8);
-    const decimalFactor =
-      10n ** BigInt(closestPrice.decimals) / BigInt(usdDecimalFactor);
 
-    const convertedAmountInDecimals =
-      BigInt(Math.trunc((amount / closestPrice.price) * usdDecimalFactor)) *
-      decimalFactor;
+    const price = 1 / closestPrice.price;
 
     return {
-      amount: convertedAmountInDecimals,
-      price: 1 / closestPrice.price,
+      amount: convertFiatToToken({
+        fiatAmount: amountInUSD,
+        price,
+        priceDecimals: 8,
+        tokenDecimals: closestPrice.decimals,
+      }),
+      price: 1,
     };
   }
 
