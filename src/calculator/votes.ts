@@ -21,7 +21,7 @@ export async function getVotesWithCoefficients(
     /** Used for matching estimates.
      * Bypasses the passport check for these addresses, so that we can display
      * the matching even if they don't have a passport */
-    bypassPassportAddresses?: string[];
+    bypassPassportCheckForAddresses?: string[];
   }
 ): Promise<Array<VoteWithCoefficient>> {
   const applicationMap = applications.reduce(
@@ -70,7 +70,7 @@ export async function getVotesWithCoefficients(
     let passportCheckPassed = false;
 
     if (
-      options.bypassPassportAddresses
+      options.bypassPassportCheckForAddresses
         ?.map((address) => address.toLowerCase())
         .includes(voter.toLowerCase())
     ) {
