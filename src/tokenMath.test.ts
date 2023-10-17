@@ -1,6 +1,5 @@
 import { describe, test, expect } from "vitest";
 import { convertTokenToFiat, convertFiatToToken } from "./tokenMath.js";
-import { warn } from "console";
 
 describe("tokenMath", () => {
   test("token amount to currency", () => {
