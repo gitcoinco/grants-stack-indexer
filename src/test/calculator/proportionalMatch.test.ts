@@ -8,7 +8,7 @@ import type { PassportScore } from "../../passport/index.js";
 
 class FakePassportProvider implements PassportProvider {
   scores: {
-    [address: string]: PassportScore;
+    [address: string]: PassportScore | undefined;
   };
 
   constructor(scores: PassportScore[]) {
@@ -24,8 +24,8 @@ class FakePassportProvider implements PassportProvider {
 
   stop(): void {}
 
-  async getScoreByAddress(address: string) {
-    return this.scores[address];
+  getScoreByAddress(address: string) {
+    return Promise.resolve(this.scores[address]);
   }
 }
 
@@ -97,8 +97,6 @@ const MOCK_CHAIN = {
   ],
 } as unknown as Chain;
 
-let voteId = 0;
-
 function generateVoteAndScore(id: number, amount: bigint, rawScore: string) {
   const vote = {
     id: `vote-${id}`,
@@ -134,8 +132,8 @@ function generateVoteAndScore(id: number, amount: bigint, rawScore: string) {
 }
 
 describe("getVotesWithCoefficients", () => {
-  let votes: Vote[] = [];
-  let scores: PassportScore[] = [];
+  const votes: Vote[] = [];
+  const scores: PassportScore[] = [];
   let fakePassportProvider: FakePassportProvider;
 
   beforeAll(() => {
