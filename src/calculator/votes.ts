@@ -19,7 +19,7 @@ export async function getVotesWithCoefficients(
     minimumAmountUSD?: number;
     enablePassport?: boolean;
   },
-  pmOptions: ProportionalMatchOptions
+  proportionalMatchOptions: ProportionalMatchOptions
 ): Promise<Array<VoteWithCoefficient>> {
   const applicationMap = applications.reduce(
     (map, application) => {
@@ -76,7 +76,7 @@ export async function getVotesWithCoefficients(
     if (minAmountCheckPassed && enablePassport) {
       // Set to 0 if the donor doesn't have a passport
       const rawScore = Number(passportScore?.evidence?.rawScore ?? "0");
-      coefficient = scoreToCoefficient(pmOptions, rawScore);
+      coefficient = scoreToCoefficient(proportionalMatchOptions, rawScore);
     }
 
     return [
