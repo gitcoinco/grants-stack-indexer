@@ -306,16 +306,18 @@ export default class Calculator {
     }
 
     const currentResults = await this._calculate(votes);
-    const conversionRates = await Promise.all(
-      potentialVotes.map(async (vote) => [
-        vote.token,
-        await this.priceProvider.getUSDConversionRate(this.chainId, vote.token),
-      ])
-    );
-    const prices = Object.fromEntries(conversionRates) as Record<
-      string,
-      Price & { decimals: number }
-    >;
+    const prices: Record<string, PriceWithDecimals> = {};
+
+    // fetch each token price only once
+    for (const vote of potentialVotes) {
+      if (prices[vote.token] === undefined) {
+        prices[vote.token] = await this.priceProvider.getUSDConversionRate(
+          this.chainId,
+          vote.token
+        );
+      }
+    }
+
     const conversionRateRoundToken =
       await this.priceProvider.getUSDConversionRate(this.chainId, round.token);
 
