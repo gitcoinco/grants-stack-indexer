@@ -176,7 +176,7 @@ export default class Calculator {
 
   private async _calculate(
     votes: Vote[],
-    options?: { bypassPassportAddresses: string[] }
+    options?: { bypassPassportCheckForAddresses: string[] }
   ): Promise<Array<AugmentedResult>> {
     const applications = await this.parseJSONFile<Application>(
       "applications",
@@ -236,7 +236,7 @@ export default class Calculator {
         minimumAmountUSD: this.minimumAmountUSD,
         enablePassport: this.enablePassport,
         passportThreshold: this.passportThreshold,
-        bypassPassportAddresses: options?.bypassPassportAddresses ?? [],
+        bypassPassportAddresses: options?.bypassPassportCheckForAddresses ?? [],
       }
     );
 
@@ -339,7 +339,7 @@ export default class Calculator {
     const potentialResults = await this._calculate(
       [...votes, ...potentialVotesAugmented],
       {
-        bypassPassportAddresses: potentialVotes.map(
+        bypassPassportCheckForAddresses: potentialVotes.map(
           (potentialVote) => potentialVote.voter
         ),
       }
