@@ -299,7 +299,11 @@ export default class Calculator {
       `${this.chainId}/rounds.json`
     );
 
-    const round = rounds.find((round) => round.id === this.roundId) as Round;
+    const round = rounds.find((round) => round.id === this.roundId);
+
+    if (round === undefined) {
+      throw new ResourceNotFoundError("round");
+    }
 
     const currentResults = await this._calculate(votes);
     const conversionRates = await Promise.all(
