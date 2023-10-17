@@ -1,6 +1,12 @@
 import { Logger } from "pino";
 import { getChainConfigById } from "../config.js";
-import { Price, readPricesFile, UnknownTokenError } from "./common.js";
+import {
+  Price,
+  PriceWithDecimals,
+  readPricesFile,
+  UnknownTokenError,
+} from "./common.js";
+import { convertTokenToFiat, convertFiatToToken } from "../tokenMath.js";
 
 const DEFAULT_REFRESH_PRICE_INTERVAL_MS = 10000;
 
@@ -28,7 +34,7 @@ export interface PriceProvider {
     chainId: number,
     tokenAddress: string,
     blockNumber?: number
-  ) => Promise<Price & { decimals: number }>;
+  ) => Promise<PriceWithDecimals>;
 }
 
 export function createPriceProvider(

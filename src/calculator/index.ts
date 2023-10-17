@@ -3,6 +3,7 @@ import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
 import type { PassportProvider } from "../passport/index.js";
 import { PriceProvider } from "../prices/provider.js";
+import { convertTokenToFiat, convertFiatToToken } from "../tokenMath.js";
 import { Chain, getDecimalsForToken } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
 import { getVotesWithCoefficients, VoteWithCoefficient } from "./votes.js";
@@ -14,8 +15,8 @@ import {
   OverridesInvalidRowError,
 } from "./errors.js";
 import { PotentialVote } from "../http/api/v1/matches.js";
-import { Price } from "../prices/common.js";
-import { formatUnits, zeroAddress } from "viem";
+import { PriceWithDecimals } from "../prices/common.js";
+import { zeroAddress } from "viem";
 
 export {
   CalculatorError,
@@ -321,26 +322,32 @@ export default class Calculator {
     const conversionRateRoundToken =
       await this.priceProvider.getUSDConversionRate(this.chainId, round.token);
 
-    const potentialVotesAugmented: Vote[] = await Promise.all(
-      potentialVotes.map((vote) => {
-        const tokenPrice = prices[vote.token];
-        const amountUSD =
-          Number(formatUnits(vote.amount, 18)) * tokenPrice.price;
+    const potentialVotesAugmented: Vote[] = potentialVotes.map((vote) => {
+      const tokenPrice = prices[vote.token];
 
-        /*TODO: take into account round matching token decimals instead of default 18 */
-        const amountRoundToken =
-          (Number(amountUSD) / conversionRateRoundToken.price) * 10e18;
+      const amountUSD = convertTokenToFiat({
+        tokenAmount: vote.amount,
+        tokenDecimals: tokenPrice.decimals,
+        price: tokenPrice.price,
+        priceDecimals: 10,
+      });
 
-        return {
-          ...vote,
-          amount: vote.amount.toString(),
-          amountRoundToken: BigInt(Math.floor(amountRoundToken)).toString(),
-          amountUSD,
-          applicationId: vote.applicationId,
-          id: "",
-        };
-      })
-    );
+      const amountRoundToken = convertFiatToToken({
+        fiatAmount: amountUSD,
+        tokenDecimals: 18,
+        price: 1 / conversionRateRoundToken.price,
+        priceDecimals: 8,
+      });
+
+      return {
+        ...vote,
+        amount: vote.amount.toString(),
+        amountRoundToken: amountRoundToken.toString(),
+        amountUSD,
+        applicationId: vote.applicationId,
+        id: "",
+      };
+    });
 
     const potentialResults = await this._calculate(
       [...votes, ...potentialVotesAugmented],
