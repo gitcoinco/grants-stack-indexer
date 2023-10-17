@@ -237,7 +237,8 @@ export default class Calculator {
         minimumAmountUSD: this.minimumAmountUSD,
         enablePassport: this.enablePassport,
         passportThreshold: this.passportThreshold,
-        bypassPassportAddresses: options?.bypassPassportCheckForAddresses ?? [],
+        bypassPassportCheckForAddresses:
+          options?.bypassPassportCheckForAddresses ?? [],
       }
     );
 
@@ -329,7 +330,7 @@ export default class Calculator {
         tokenAmount: vote.amount,
         tokenDecimals: tokenPrice.decimals,
         price: tokenPrice.price,
-        priceDecimals: 10,
+        priceDecimals: 8,
       });
 
       const amountRoundToken = convertFiatToToken({
