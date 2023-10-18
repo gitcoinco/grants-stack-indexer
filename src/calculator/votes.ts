@@ -100,7 +100,7 @@ export async function getVotesWithCoefficients(
   return (await Promise.all(votePromises)).flat();
 }
 
-export function scoreToCoefficient(
+function scoreToCoefficient(
   options: ProportionalMatchOptions,
   score: number
 ) {
