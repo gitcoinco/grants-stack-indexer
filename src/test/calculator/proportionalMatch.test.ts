@@ -6,8 +6,6 @@ import {
 } from "./proportionalMatch.test.fixtures.js";
 
 describe("getVotesWithCoefficients", () => {
-  let fakePassportProvider: FakePassportProvider;
-
   beforeAll(() => {});
 
   describe("should update the amount proportionally based on the passport score", () => {
@@ -17,7 +15,7 @@ describe("getVotesWithCoefficients", () => {
       applications,
       data,
     }) => {
-      fakePassportProvider = new FakePassportProvider(data.scores);
+      const fakePassportProvider = new FakePassportProvider(data.scores);
       const res = await getVotesWithCoefficients({
         chain,
         round,
