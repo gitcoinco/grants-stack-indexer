@@ -2,7 +2,6 @@ import type { Vote, Round, Application } from "../../indexer/types.js";
 import type { PassportProvider } from "../../passport/index.js";
 import { describe, test, expect } from "vitest";
 import { getVotesWithCoefficients } from "../../calculator/votes.js";
-import { defaultProportionalMatchOptions } from "../../calculator/options.js";
 import { Chain } from "../../config.js";
 
 const noOpPassportProvider: PassportProvider = {
@@ -117,15 +116,14 @@ describe("getVotesWithCoefficients", () => {
     test("returns capped vote if capping is defined for token", async () => {
       const testVoteIndex = 0;
 
-      const res = await getVotesWithCoefficients(
-        MOCK_CHAIN,
+      const res = await getVotesWithCoefficients({
+        chain: MOCK_CHAIN,
         round,
         applications,
         votes,
-        noOpPassportProvider,
-        {},
-        defaultProportionalMatchOptions
-      );
+        passportProvider: noOpPassportProvider,
+        options: {},
+      });
 
       expect(res[testVoteIndex]).toEqual({
         ...votes[testVoteIndex],
@@ -137,15 +135,14 @@ describe("getVotesWithCoefficients", () => {
     test("doesn't cap votes if capping isn't defined for token", async () => {
       const testVoteIndex = 1;
 
-      const res = await getVotesWithCoefficients(
-        MOCK_CHAIN,
+      const res = await getVotesWithCoefficients({
+        chain: MOCK_CHAIN,
         round,
         applications,
         votes,
-        noOpPassportProvider,
-        {},
-        defaultProportionalMatchOptions
-      );
+        passportProvider: noOpPassportProvider,
+        options: {},
+      });
 
       expect(res[testVoteIndex]).toEqual({
         ...votes[testVoteIndex],

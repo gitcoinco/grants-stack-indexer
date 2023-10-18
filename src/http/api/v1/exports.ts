@@ -10,7 +10,6 @@ import database from "../../../database.js";
 import { createPriceProvider } from "../../../prices/provider.js";
 import { Round, Application, Vote } from "../../../indexer/types.js";
 import { getVotesWithCoefficients } from "../../../calculator/votes.js";
-import { defaultProportionalMatchOptions } from "../../../calculator/options.js";
 import ClientError from "../clientError.js";
 import { HttpApiConfig } from "../../app.js";
 
@@ -85,15 +84,14 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       throw new Error(`Chain ${chainId} not configured`);
     }
 
-    const votesWithCoefficients = await getVotesWithCoefficients(
-      chainConfig,
+    const votesWithCoefficients = await getVotesWithCoefficients({
+      chain: chainConfig,
       round,
       applications,
       votes,
-      config.passportProvider,
-      {},
-      defaultProportionalMatchOptions
-    );
+      passportProvider: config.passportProvider,
+      options: {},
+    });
 
     const records = votesWithCoefficients.flatMap((vote) => {
       return [

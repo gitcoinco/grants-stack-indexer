@@ -2,26 +2,31 @@ import { Chain } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
 import type { PassportScore, PassportProvider } from "../passport/index.js";
 import { ProportionalMatchOptions } from "./options.js";
+import { defaultProportionalMatchOptions } from "./options.js";
 
 export type VoteWithCoefficient = Vote & {
   coefficient: number;
   passportScore?: PassportScore;
 };
 
-/* TODO: ripe for a functional rewrite, also: https://massimilianomirra.com/notes/the-dangers-of-greedy-functions */
-export async function getVotesWithCoefficients(
-  chain: Chain,
-  round: Round,
-  applications: Array<Application>,
-  votes: Array<Vote>,
-  passportProvider: PassportProvider,
+interface GetVotesWithCoefficientsArgs {
+  chain: Chain;
+  round: Round;
+  applications: Array<Application>;
+  votes: Array<Vote>;
+  passportProvider: PassportProvider;
   options: {
     minimumAmountUSD?: number;
     enablePassport?: boolean;
-  },
-  proportionalMatchOptions: ProportionalMatchOptions
+  };
+  proportionalMatchOptions?: ProportionalMatchOptions;
+}
+
+/* TODO: ripe for a functional rewrite, also: https://massimilianomirra.com/notes/the-dangers-of-greedy-functions */
+export async function getVotesWithCoefficients(
+  args: GetVotesWithCoefficientsArgs
 ): Promise<Array<VoteWithCoefficient>> {
-  const applicationMap = applications.reduce(
+  const applicationMap = args.applications.reduce(
     (map, application) => {
       map[application.id] = application;
       return map;
@@ -30,18 +35,18 @@ export async function getVotesWithCoefficients(
   );
 
   const enablePassport =
-    options.enablePassport ??
-    round?.metadata?.quadraticFundingConfig?.sybilDefense ??
+    args.options.enablePassport ??
+    args.round?.metadata?.quadraticFundingConfig?.sybilDefense ??
     false;
 
   const minimumAmountUSD = Number(
-    options.minimumAmountUSD ??
-      round.metadata?.quadraticFundingConfig?.minDonationThresholdAmount ??
+    args.options.minimumAmountUSD ??
+      args.round.metadata?.quadraticFundingConfig?.minDonationThresholdAmount ??
       0
   );
 
-  const votePromises = votes.map(async (originalVote) => {
-    const vote = applyVoteCap(chain, originalVote);
+  const votePromises = args.votes.map(async (originalVote) => {
+    const vote = applyVoteCap(args.chain, originalVote);
     const voter = vote.voter.toLowerCase();
     const application = applicationMap[vote.applicationId];
 
@@ -72,11 +77,14 @@ export async function getVotesWithCoefficients(
     }
 
     // Passport check
-    const passportScore = await passportProvider.getScoreByAddress(voter);
+    const passportScore = await args.passportProvider.getScoreByAddress(voter);
     if (minAmountCheckPassed && enablePassport) {
       // Set to 0 if the donor doesn't have a passport
       const rawScore = Number(passportScore?.evidence?.rawScore ?? "0");
-      coefficient = scoreToCoefficient(proportionalMatchOptions, rawScore);
+      coefficient = scoreToCoefficient(
+        args.proportionalMatchOptions ?? defaultProportionalMatchOptions,
+        rawScore
+      );
     }
 
     return [

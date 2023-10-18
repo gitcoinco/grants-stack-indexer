@@ -2,7 +2,6 @@ import type { Vote, Round, Application } from "../../indexer/types.js";
 import type { PassportProvider } from "../../passport/index.js";
 import { describe, test, expect, beforeAll } from "vitest";
 import { getVotesWithCoefficients } from "../../calculator/votes.js";
-import { defaultProportionalMatchOptions } from "../../calculator/options.js";
 import { Chain } from "../../config.js";
 import type { PassportScore } from "../../passport/index.js";
 
@@ -157,15 +156,14 @@ describe("getVotesWithCoefficients", () => {
 
   describe("should update the amount proportionally based on the passport score", () => {
     test("returns votes with amounts updated proportionally based on passport score", async () => {
-      const res = await getVotesWithCoefficients(
-        MOCK_CHAIN,
+      const res = await getVotesWithCoefficients({
+        chain: MOCK_CHAIN,
         round,
         applications,
         votes,
-        fakePassportProvider,
-        { enablePassport: true },
-        defaultProportionalMatchOptions
-      );
+        passportProvider: fakePassportProvider,
+        options: { enablePassport: true },
+      });
 
       const expectedData = [
         { id: 1, amount: 1000n, rawScore: "0.0", coefficient: 0 },

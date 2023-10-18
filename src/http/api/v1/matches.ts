@@ -10,7 +10,6 @@ import Calculator, {
   CalculatorOptions,
   parseOverrides,
 } from "../../../calculator/index.js";
-import { defaultProportionalMatchOptions } from "../../../calculator/options.js";
 import { HttpApiConfig } from "../../app.js";
 
 export const createHandler = (config: HttpApiConfig): express.Router => {
@@ -98,7 +97,6 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       ignoreSaturation: ignoreSaturation,
       overrides,
       chain: chainConfig,
-      proportionalMatch: defaultProportionalMatchOptions,
     };
 
     const calculator = new Calculator(calculatorOptions);
@@ -144,7 +142,6 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       overrides: {},
       passportProvider: config.passportProvider,
       chain: chainConfig,
-      proportionalMatch: defaultProportionalMatchOptions,
     };
 
     const calculator = new Calculator(calculatorOptions);

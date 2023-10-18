@@ -103,7 +103,7 @@ export type CalculatorOptions = {
   ignoreSaturation?: boolean;
   overrides: Overrides;
   chain: Chain;
-  proportionalMatch: ProportionalMatchOptions;
+  proportionalMatch?: ProportionalMatchOptions;
 };
 
 export type AugmentedResult = Calculation & {
@@ -126,7 +126,7 @@ export default class Calculator {
   private enablePassport: boolean | undefined;
   private ignoreSaturation: boolean | undefined;
   private overrides: Overrides;
-  private proportionalMatch: ProportionalMatchOptions;
+  private proportionalMatch?: ProportionalMatchOptions;
 
   constructor(options: CalculatorOptions) {
     this.passportProvider = options.passportProvider;
@@ -224,18 +224,18 @@ export default class Calculator {
         10000n;
     }
 
-    const votesWithCoefficients = await getVotesWithCoefficients(
-      this.chain,
+    const votesWithCoefficients = await getVotesWithCoefficients({
+      chain: this.chain,
       round,
       applications,
       votes,
-      this.passportProvider,
-      {
+      passportProvider: this.passportProvider,
+      options: {
         minimumAmountUSD: this.minimumAmountUSD,
         enablePassport: this.enablePassport,
       },
-      this.proportionalMatch
-    );
+      proportionalMatchOptions: this.proportionalMatch,
+    });
 
     const contributions: Contribution[] =
       this.votesWithCoefficientToContribution(votesWithCoefficients);
