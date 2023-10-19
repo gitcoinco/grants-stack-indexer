@@ -18,10 +18,6 @@ interface GetVotesWithCoefficientsArgs {
   options: {
     minimumAmountUSD?: number;
     enablePassport?: boolean;
-    /** Used for matching estimates.
-     * Bypasses the passport check for these addresses, so that we can display
-     * the matching even if they don't have a passport */
-    bypassPassportCheckForAddresses?: string[];
   };
   proportionalMatchOptions?: ProportionalMatchOptions;
 }
@@ -80,24 +76,16 @@ export async function getVotesWithCoefficients(
       coefficient = 0;
     }
 
-    const bypassPassportCheck = args.options.bypassPassportCheckForAddresses
-      ? args.options.bypassPassportCheckForAddresses
-          .map((address) => address.toLowerCase())
-          .includes(voter.toLowerCase())
-      : false;
-
     const passportScore = await args.passportProvider.getScoreByAddress(voter);
 
-    if (bypassPassportCheck === false) {
-      // Passport check
-      if (minAmountCheckPassed && enablePassport) {
-        // Set to 0 if the donor doesn't have a passport
-        const rawScore = Number(passportScore?.evidence?.rawScore ?? "0");
-        coefficient = scoreToCoefficient(
-          args.proportionalMatchOptions ?? defaultProportionalMatchOptions,
-          rawScore
-        );
-      }
+    // Passport check
+    if (minAmountCheckPassed && enablePassport) {
+      // Set to 0 if the donor doesn't have a passport
+      const rawScore = Number(passportScore?.evidence?.rawScore ?? "0");
+      coefficient = scoreToCoefficient(
+        args.proportionalMatchOptions ?? defaultProportionalMatchOptions,
+        rawScore
+      );
     }
 
     return [
