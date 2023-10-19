@@ -1,30 +1,36 @@
 import { Chain } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
 import type { PassportScore, PassportProvider } from "../passport/index.js";
+import { ProportionalMatchOptions } from "./options.js";
+import { defaultProportionalMatchOptions } from "./options.js";
 
 export type VoteWithCoefficient = Vote & {
   coefficient: number;
   passportScore?: PassportScore;
 };
 
-/* TODO: ripe for a functional rewrite, also: https://massimilianomirra.com/notes/the-dangers-of-greedy-functions */
-export async function getVotesWithCoefficients(
-  chain: Chain,
-  round: Round,
-  applications: Array<Application>,
-  votes: Array<Vote>,
-  passportProvider: PassportProvider,
+interface GetVotesWithCoefficientsArgs {
+  chain: Chain;
+  round: Round;
+  applications: Array<Application>;
+  votes: Array<Vote>;
+  passportProvider: PassportProvider;
   options: {
     minimumAmountUSD?: number;
     enablePassport?: boolean;
-    passportThreshold?: number;
     /** Used for matching estimates.
      * Bypasses the passport check for these addresses, so that we can display
      * the matching even if they don't have a passport */
     bypassPassportCheckForAddresses?: string[];
-  }
+  };
+  proportionalMatchOptions?: ProportionalMatchOptions;
+}
+
+/* TODO: ripe for a functional rewrite, also: https://massimilianomirra.com/notes/the-dangers-of-greedy-functions */
+export async function getVotesWithCoefficients(
+  args: GetVotesWithCoefficientsArgs
 ): Promise<Array<VoteWithCoefficient>> {
-  const applicationMap = applications.reduce(
+  const applicationMap = args.applications.reduce(
     (map, application) => {
       map[application.id] = application;
       return map;
@@ -33,18 +39,18 @@ export async function getVotesWithCoefficients(
   );
 
   const enablePassport =
-    options.enablePassport ??
-    round?.metadata?.quadraticFundingConfig?.sybilDefense ??
+    args.options.enablePassport ??
+    args.round?.metadata?.quadraticFundingConfig?.sybilDefense ??
     false;
 
   const minimumAmountUSD = Number(
-    options.minimumAmountUSD ??
-      round.metadata?.quadraticFundingConfig?.minDonationThresholdAmount ??
+    args.options.minimumAmountUSD ??
+      args.round.metadata?.quadraticFundingConfig?.minDonationThresholdAmount ??
       0
   );
 
-  const votePromises = votes.map(async (originalVote) => {
-    const vote = applyVoteCap(chain, originalVote);
+  const votePromises = args.votes.map(async (originalVote) => {
+    const vote = applyVoteCap(args.chain, originalVote);
     const voter = vote.voter.toLowerCase();
     const application = applicationMap[vote.applicationId];
 
@@ -64,42 +70,33 @@ export async function getVotesWithCoefficients(
       return [];
     }
 
-    // Passport check
+    // We start setting the coefficient to 1, keeping 100% of the donation matching power
+    let coefficient = 1;
 
-    const passportScore = await passportProvider.getScoreByAddress(voter);
-    let passportCheckPassed = false;
-
-    if (
-      options.bypassPassportCheckForAddresses
-        ?.map((address) => address.toLowerCase())
-        .includes(voter.toLowerCase())
-    ) {
-      passportCheckPassed = true;
+    // Minimum donation amount check
+    const minAmountCheckPassed = vote.amountUSD >= minimumAmountUSD;
+    // We don't consider the donation if it's lower than the minimum amount
+    if (!minAmountCheckPassed) {
+      coefficient = 0;
     }
 
-    if (enablePassport) {
-      if (
-        options.passportThreshold &&
-        Number(passportScore?.evidence?.rawScore ?? "0") >
-          options.passportThreshold
-      ) {
-        passportCheckPassed = true;
-      } else if (passportScore?.evidence?.success) {
-        passportCheckPassed = true;
+    const bypassPassport = args.options.bypassPassportCheckForAddresses
+      ?.map((address) => address.toLowerCase())
+      .includes(voter.toLowerCase());
+
+    const passportScore = await args.passportProvider.getScoreByAddress(voter);
+
+    if (bypassPassport === false) {
+      // Passport check
+      if (minAmountCheckPassed && enablePassport) {
+        // Set to 0 if the donor doesn't have a passport
+        const rawScore = Number(passportScore?.evidence?.rawScore ?? "0");
+        coefficient = scoreToCoefficient(
+          args.proportionalMatchOptions ?? defaultProportionalMatchOptions,
+          rawScore
+        );
       }
-    } else {
-      passportCheckPassed = true;
     }
-
-    // Minimum amount check
-
-    let minAmountCheckPassed = false;
-
-    if (vote.amountUSD >= minimumAmountUSD) {
-      minAmountCheckPassed = true;
-    }
-
-    const coefficient = passportCheckPassed && minAmountCheckPassed ? 1 : 0;
 
     return [
       {
@@ -112,6 +109,28 @@ export async function getVotesWithCoefficients(
   });
 
   return (await Promise.all(votePromises)).flat();
+}
+
+function scoreToCoefficient(options: ProportionalMatchOptions, score: number) {
+  if (score < options.score.min) {
+    return 0;
+  }
+
+  if (score > options.score.max) {
+    return 1;
+  }
+
+  const shiftedMax = options.score.max - options.score.min;
+  const shiftedScore = score - options.score.min;
+
+  const perc =
+    options.matchProportionPercentage.min +
+    ((options.matchProportionPercentage.max -
+      options.matchProportionPercentage.min) *
+      shiftedScore) /
+      shiftedMax;
+
+  return perc / 100;
 }
 
 export function applyVoteCap(chain: Chain, vote: Vote): Vote {

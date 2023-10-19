@@ -84,14 +84,14 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       throw new Error(`Chain ${chainId} not configured`);
     }
 
-    const votesWithCoefficients = await getVotesWithCoefficients(
-      chainConfig,
+    const votesWithCoefficients = await getVotesWithCoefficients({
+      chain: chainConfig,
       round,
       applications,
       votes,
-      config.passportProvider,
-      {}
-    );
+      passportProvider: config.passportProvider,
+      options: {},
+    });
 
     const records = votesWithCoefficients.flatMap((vote) => {
       return [

@@ -17,6 +17,7 @@ import {
 import { PotentialVote } from "../http/api/v1/matches.js";
 import { PriceWithDecimals } from "../prices/common.js";
 import { zeroAddress } from "viem";
+import { ProportionalMatchOptions } from "./options.js";
 
 export {
   CalculatorError,
@@ -99,11 +100,11 @@ export type CalculatorOptions = {
   roundId: string;
   minimumAmountUSD?: number;
   matchingCapAmount?: bigint;
-  passportThreshold?: number;
   enablePassport?: boolean;
   ignoreSaturation?: boolean;
   overrides: Overrides;
   chain: Chain;
+  proportionalMatch?: ProportionalMatchOptions;
 };
 
 export type AugmentedResult = Calculation & {
@@ -124,9 +125,9 @@ export default class Calculator {
   private minimumAmountUSD: number | undefined;
   private matchingCapAmount: bigint | undefined;
   private enablePassport: boolean | undefined;
-  private passportThreshold: number | undefined;
   private ignoreSaturation: boolean | undefined;
   private overrides: Overrides;
+  private proportionalMatch?: ProportionalMatchOptions;
 
   constructor(options: CalculatorOptions) {
     this.passportProvider = options.passportProvider;
@@ -136,11 +137,11 @@ export default class Calculator {
     this.roundId = options.roundId;
     this.minimumAmountUSD = options.minimumAmountUSD;
     this.enablePassport = options.enablePassport;
-    this.passportThreshold = options.passportThreshold;
     this.matchingCapAmount = options.matchingCapAmount;
     this.overrides = options.overrides;
     this.ignoreSaturation = options.ignoreSaturation;
     this.chain = options.chain;
+    this.proportionalMatch = options.proportionalMatch;
   }
 
   private votesWithCoefficientToContribution(
@@ -227,20 +228,20 @@ export default class Calculator {
         10000n;
     }
 
-    const votesWithCoefficients = await getVotesWithCoefficients(
-      this.chain,
+    const votesWithCoefficients = await getVotesWithCoefficients({
+      chain: this.chain,
       round,
       applications,
       votes,
-      this.passportProvider,
-      {
+      passportProvider: this.passportProvider,
+      options: {
         minimumAmountUSD: this.minimumAmountUSD,
         enablePassport: this.enablePassport,
-        passportThreshold: this.passportThreshold,
         bypassPassportCheckForAddresses:
           options?.bypassPassportCheckForAddresses ?? [],
-      }
-    );
+      },
+      proportionalMatchOptions: this.proportionalMatch,
+    });
 
     const contributions: Contribution[] =
       this.votesWithCoefficientToContribution(votesWithCoefficients);

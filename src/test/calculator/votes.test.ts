@@ -82,7 +82,7 @@ const votes: Vote[] = [
   // not expected to be capped to 10 tokens
   // because token is not in the token settings
   {
-    id: "vote-1",
+    id: "vote-2",
     projectId: "project-id-1",
     applicationId: "application-id-1",
     roundId: "round-id-1",
@@ -116,14 +116,14 @@ describe("getVotesWithCoefficients", () => {
     test("returns capped vote if capping is defined for token", async () => {
       const testVoteIndex = 0;
 
-      const res = await getVotesWithCoefficients(
-        MOCK_CHAIN,
+      const res = await getVotesWithCoefficients({
+        chain: MOCK_CHAIN,
         round,
         applications,
         votes,
-        noOpPassportProvider,
-        {}
-      );
+        passportProvider: noOpPassportProvider,
+        options: {},
+      });
 
       expect(res[testVoteIndex]).toEqual({
         ...votes[testVoteIndex],
@@ -135,14 +135,14 @@ describe("getVotesWithCoefficients", () => {
     test("doesn't cap votes if capping isn't defined for token", async () => {
       const testVoteIndex = 1;
 
-      const res = await getVotesWithCoefficients(
-        MOCK_CHAIN,
+      const res = await getVotesWithCoefficients({
+        chain: MOCK_CHAIN,
         round,
         applications,
         votes,
-        noOpPassportProvider,
-        {}
-      );
+        passportProvider: noOpPassportProvider,
+        options: {},
+      });
 
       expect(res[testVoteIndex]).toEqual({
         ...votes[testVoteIndex],
