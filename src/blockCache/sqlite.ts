@@ -37,6 +37,7 @@ export function createSqliteBlockCache(opts: Options): BlockCache {
   function ensureInitialized(): Promise<DbState> {
     if (dbState === null) {
       const dbStatePromise = init();
+      dbState = dbStatePromise;
       return dbStatePromise;
     }
 
