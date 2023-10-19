@@ -664,13 +664,9 @@ export const getChainConfigById = (chainId: ChainId): Chain => {
 export type Config = {
   buildTag: string | null;
   storageDir: string;
-<<<<<<< HEAD
   cacheDir: string | null;
   chainDataDir: string;
-  fromBlock: number;
-=======
   fromBlock: bigint;
->>>>>>> 3e20d12 (feat: update indexer to use new chainsauce interface)
   toBlock: ToBlock;
   passportScorerId: number;
   logLevel: "trace" | "debug" | "info" | "warn" | "error";
