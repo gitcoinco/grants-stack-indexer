@@ -4,6 +4,7 @@ import { ToBlock } from "chainsauce";
 import { z } from "zod";
 import path from "node:path";
 import abis from "./indexer/abis/index.js";
+import { Hex } from "./indexer/types.js";
 
 type ChainId = number;
 type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114;
@@ -17,7 +18,7 @@ export type Token = {
 };
 
 export type Subscription = {
-  address: `0x${string}`;
+  address: Hex;
   contractName: keyof typeof abis;
   fromBlock?: number;
   eventsRenames?: Record<string, string>;
