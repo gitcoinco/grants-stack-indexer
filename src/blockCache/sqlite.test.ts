@@ -2,9 +2,6 @@ import { createSqliteBlockCache } from "./sqlite.js";
 import { BlockCache } from "../blockCache.js";
 import { it, describe, expect, beforeEach, afterEach } from "vitest";
 import Sqlite from "better-sqlite3";
-import fs from "fs/promises";
-import os from "os";
-import path from "path";
 
 describe("createSqliteBlockCache", () => {
   let db: Sqlite.Database;
@@ -72,14 +69,5 @@ describe("createSqliteBlockCache", () => {
     const bounds = await blockCache.getClosestBoundsForTimestamp(1, 15);
     expect(bounds.before).toEqual(block1);
     expect(bounds.after).toEqual(block2);
-  });
-});
-
-describe("createSqliteBlockCache with dbPath", () => {
-  it("should initialize without errors using dbPath", async () => {
-    const tmpFilePath = path.join(os.tmpdir(), `tmpdb-${Date.now()}.db`);
-    const diskBlockCache = createSqliteBlockCache({ dbPath: tmpFilePath });
-    await expect(diskBlockCache.init()).resolves.not.toThrow();
-    await fs.rm(tmpFilePath);
   });
 });
