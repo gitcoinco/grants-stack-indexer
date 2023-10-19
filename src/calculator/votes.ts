@@ -80,13 +80,15 @@ export async function getVotesWithCoefficients(
       coefficient = 0;
     }
 
-    const bypassPassport = args.options.bypassPassportCheckForAddresses
-      ?.map((address) => address.toLowerCase())
-      .includes(voter.toLowerCase());
+    const bypassPassportCheck = args.options.bypassPassportCheckForAddresses
+      ? args.options.bypassPassportCheckForAddresses
+          .map((address) => address.toLowerCase())
+          .includes(voter.toLowerCase())
+      : false;
 
     const passportScore = await args.passportProvider.getScoreByAddress(voter);
 
-    if (bypassPassport === false) {
+    if (bypassPassportCheck === false) {
       // Passport check
       if (minAmountCheckPassed && enablePassport) {
         // Set to 0 if the donor doesn't have a passport
