@@ -288,17 +288,17 @@ async function catchupAndWatchChain(
       subscriptionStore,
       cache: chainsauceCache,
       logLevel: "trace",
-      logger: (level, message, data) => {
+      logger: (level, msg, data) => {
         if (level === "error") {
-          indexerLogger.error({ msg: message, data });
+          indexerLogger.error({ msg, data });
         } else if (level === "warn") {
-          indexerLogger.warn({ msg: message, data });
+          indexerLogger.warn({ msg, data });
         } else if (level === "info") {
-          indexerLogger.info({ msg: message, data });
+          indexerLogger.info({ msg, data });
         } else if (level === "debug") {
-          indexerLogger.debug({ msg: message, data });
+          indexerLogger.debug({ msg, data });
         } else if (level === "trace") {
-          indexerLogger.trace({ msg: message, data });
+          indexerLogger.trace({ msg, data });
         }
       },
     });
