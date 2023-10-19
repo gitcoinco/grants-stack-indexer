@@ -99,7 +99,7 @@ async function main(): Promise<void> {
     const httpApi = createHttpApi({
       httpRootDir: config.chainDataDir,
       priceProvider: createPriceProvider({
-        chainDataDir: config.storageDir,
+        chainDataDir: config.chainDataDir,
         logger: baseLogger.child({ subsystem: "PriceProvider" }),
       }),
       passportProvider: passportProvider,
