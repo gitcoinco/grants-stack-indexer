@@ -97,9 +97,9 @@ async function main(): Promise<void> {
     ]);
 
     const httpApi = createHttpApi({
-      storageDir: config.chainDataDir,
+      httpRootDir: config.chainDataDir,
       priceProvider: createPriceProvider({
-        storageDir: config.storageDir,
+        chainDataDir: config.storageDir,
         logger: baseLogger.child({ subsystem: "PriceProvider" }),
       }),
       passportProvider: passportProvider,
@@ -174,7 +174,7 @@ async function catchupAndWatchChain(
 
     const priceProvider = createPriceProvider({
       ...config,
-      storageDir: config.chainDataDir,
+      chainDataDir: config.chainDataDir,
       logger: chainLogger.child({ subsystem: "PriceProvider" }),
     });
 
@@ -221,7 +221,7 @@ async function catchupAndWatchChain(
 
     const priceUpdater = createPriceUpdater({
       ...config,
-      storageDir: config.chainDataDir,
+      chainDataDir: config.chainDataDir,
       rpcProvider,
       chain: config.chain,
       logger: chainLogger.child({ subsystem: "PriceUpdater" }),

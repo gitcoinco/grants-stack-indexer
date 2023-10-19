@@ -48,7 +48,7 @@ describe("server", () => {
       app = createHttpApi({
         logger: DUMMY_LOGGER,
         port: 0,
-        storageDir: "/dev/null",
+        httpRootDir: "/dev/null",
         buildTag: "123abc",
         priceProvider: new TestPriceProvider() as unknown as PriceProvider,
         passportProvider: new TestPassportProvider(),
@@ -93,7 +93,7 @@ describe("server", () => {
         const { app } = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          httpRootDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -115,7 +115,7 @@ describe("server", () => {
         const { app } = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          httpRootDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -137,7 +137,7 @@ describe("server", () => {
         const { app } = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          httpRootDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -159,7 +159,7 @@ describe("server", () => {
         const { app } = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          httpRootDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -181,7 +181,7 @@ describe("server", () => {
         const { app } = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          httpRootDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -206,7 +206,7 @@ describe("server", () => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          httpRootDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -370,7 +370,7 @@ describe("server", () => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          httpRootDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -448,7 +448,7 @@ describe("server", () => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          httpRootDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -515,7 +515,7 @@ describe("server", () => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          httpRootDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -642,7 +642,7 @@ describe("server", () => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          httpRootDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -854,7 +854,7 @@ describe("server", () => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          httpRootDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -1017,7 +1017,7 @@ describe("server", () => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          httpRootDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
