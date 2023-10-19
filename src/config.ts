@@ -714,7 +714,7 @@ export function getConfig(): Config {
 
   const storageDir = z
     .string()
-    .default("./data")
+    .default("./.var/storage/data")
     .parse(process.env.STORAGE_DIR);
 
   const { values: args } = parseArgs({
@@ -771,7 +771,7 @@ export function getConfig(): Config {
 
   const cacheDir = z
     .union([z.string(), z.null()])
-    .default("./.cache")
+    .default("./.var/storage/cache")
     .parse(process.env.CACHE_DIR);
 
   const ipfsGateway = z
