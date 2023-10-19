@@ -26,7 +26,7 @@ type DbState = {
 };
 
 export function createSqliteBlockCache(opts: Options): BlockCache {
-  let dbState: Promise<DbState> | null = null;
+  let dbState: DbState | null = null;
 
   if (opts.tableName !== undefined && /[^a-zA-Z0-9_]/.test(opts.tableName)) {
     throw new Error(`Table name ${opts.tableName} has invalid characters.`);
@@ -34,17 +34,17 @@ export function createSqliteBlockCache(opts: Options): BlockCache {
 
   const tableName = opts.tableName ?? defaultTableName;
 
-  function ensureInitialized(): Promise<DbState> {
+  function ensureInitialized(): DbState {
     if (dbState === null) {
-      const dbStatePromise = init();
-      dbState = dbStatePromise;
-      return dbStatePromise;
+      const newDbState = init();
+      dbState = newDbState;
+      return newDbState;
     }
 
     return dbState;
   }
 
-  async function init(): Promise<DbState> {
+  function init(): DbState {
     const db = "db" in opts ? opts.db : new Sqlite(opts.dbPath);
 
     db.exec("PRAGMA journal_mode = WAL;");
