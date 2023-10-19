@@ -28,7 +28,7 @@ export interface PriceUpdaterService {
 interface PriceUpdaterConfig {
   rpcProvider: ethers.providers.StaticJsonRpcProvider;
   chain: Chain;
-  storageDir: string;
+  chainDataDir: string;
   coingeckoApiKey: string | null;
   coingeckoApiUrl: string;
   blockCachePath?: string;
@@ -94,7 +94,7 @@ export function createPriceUpdater(
       });
       const currentPrices = await readPricesFile(
         config.chain.id,
-        config.storageDir
+        config.chainDataDir
       );
 
       // get last updated price
@@ -247,12 +247,15 @@ export function createPriceUpdater(
   }
 
   async function appendPrices(chainId: number, newPrices: Price[]) {
-    const currentPrices = await readPricesFile(chainId, config.storageDir);
+    const currentPrices = await readPricesFile(chainId, config.chainDataDir);
     await writePrices(chainId, currentPrices.concat(newPrices));
   }
 
   async function writePrices(chainId: number, prices: Price[]) {
-    return writePricesFile(pricesFilename(chainId, config.storageDir), prices);
+    return writePricesFile(
+      pricesFilename(chainId, config.chainDataDir),
+      prices
+    );
   }
 
   async function writePricesFile(filename: string, prices: Price[]) {

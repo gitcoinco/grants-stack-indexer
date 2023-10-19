@@ -97,13 +97,13 @@ async function main(): Promise<void> {
     ]);
 
     const httpApi = createHttpApi({
-      storageDir: config.storageDir,
+      chainDataDir: config.chainDataDir,
       priceProvider: createPriceProvider({
-        storageDir: config.storageDir,
+        chainDataDir: config.chainDataDir,
         logger: baseLogger.child({ subsystem: "PriceProvider" }),
       }),
       passportProvider: passportProvider,
-      dataProvider: new FileSystemDataProvider(config.storageDir),
+      dataProvider: new FileSystemDataProvider(config.chainDataDir),
       port: config.apiHttpPort,
       logger: baseLogger.child({ subsystem: "HttpApi" }),
       buildTag: config.buildTag,
@@ -129,9 +129,9 @@ async function catchupAndWatchPassport(
     const passportProvider = createPassportProvider({
       logger,
       scorerId: config.passportScorerId,
-      dbPath: path.join(config.storageDir, "..", "passport_scores.leveldb"),
+      dbPath: path.join(config.storageDir, "passport_scores.leveldb"),
       deprecatedJSONPassportDumpPath: path.join(
-        config.storageDir,
+        config.chainDataDir,
         "passport_scores.json"
       ),
     });
@@ -157,7 +157,7 @@ async function catchupAndWatchChain(
 
   try {
     const CHAIN_DIR_PATH = path.join(
-      config.storageDir,
+      config.chainDataDir,
       config.chain.id.toString()
     );
 
@@ -174,6 +174,7 @@ async function catchupAndWatchChain(
 
     const priceProvider = createPriceProvider({
       ...config,
+      chainDataDir: config.chainDataDir,
       logger: chainLogger.child({ subsystem: "PriceProvider" }),
     });
 
@@ -220,10 +221,13 @@ async function catchupAndWatchChain(
 
     const priceUpdater = createPriceUpdater({
       ...config,
+      chainDataDir: config.chainDataDir,
       rpcProvider,
       chain: config.chain,
       logger: chainLogger.child({ subsystem: "PriceUpdater" }),
-      blockCachePath: path.join(config.storageDir, "..", "blockCache.db"),
+      blockCachePath: config.cacheDir
+        ? path.join(config.cacheDir, "blockCache.db")
+        : undefined,
       withCacheFn:
         pricesCache === null
           ? undefined

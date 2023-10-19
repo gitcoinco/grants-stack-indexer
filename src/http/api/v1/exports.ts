@@ -46,7 +46,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
   async function exportPricesCSV(chainId: number, round: Round) {
     const priceProvider = createPriceProvider({
       logger: pino(),
-      storageDir: config.storageDir,
+      chainDataDir: config.chainDataDir,
     });
 
     const prices = await priceProvider.getAllPricesForChain(chainId);
@@ -243,7 +243,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     async (req, res) => {
       const chainId = Number(req.params.chainId);
       const roundId = req.params.roundId;
-      const db = database(config.storageDir, chainId);
+      const db = database(config.chainDataDir, chainId);
       const round = await db.collection<Round>("rounds").findById(roundId);
 
       if (!round) {
@@ -270,7 +270,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       const exportName = req.params.exportName;
       let body = "";
 
-      const db = database(config.storageDir, chainId);
+      const db = database(config.chainDataDir, chainId);
       const round = await db.collection<Round>("rounds").findById(roundId);
 
       if (!round) {
