@@ -308,15 +308,16 @@ export default class Calculator {
     }
 
     const currentResults = await this._calculate(votes);
-    const prices: Record<string, PriceWithDecimals> = {};
+    const usdPriceByAddress: Record<string, PriceWithDecimals> = {};
 
     // fetch each token price only once
     for (const vote of potentialVotes) {
-      if (prices[vote.token] === undefined) {
-        prices[vote.token] = await this.priceProvider.getUSDConversionRate(
-          this.chainId,
-          vote.token
-        );
+      if (usdPriceByAddress[vote.token] === undefined) {
+        usdPriceByAddress[vote.token] =
+          await this.priceProvider.getUSDConversionRate(
+            this.chainId,
+            vote.token
+          );
       }
     }
 
@@ -324,27 +325,27 @@ export default class Calculator {
       await this.priceProvider.getUSDConversionRate(this.chainId, round.token);
 
     const potentialVotesAugmented: Vote[] = potentialVotes.map((vote) => {
-      const tokenPrice = prices[vote.token];
+      const tokenPrice = usdPriceByAddress[vote.token];
 
-      const amountUSD = convertTokenToFiat({
+      const voteAmountInUsd = convertTokenToFiat({
         tokenAmount: vote.amount,
         tokenDecimals: tokenPrice.decimals,
-        price: tokenPrice.price,
-        priceDecimals: 8,
+        tokenPrice: tokenPrice.price,
+        tokenPriceDecimals: 8,
       });
 
-      const amountRoundToken = convertFiatToToken({
-        fiatAmount: amountUSD,
+      const voteAmountInRoundToken = convertFiatToToken({
+        fiatAmount: voteAmountInUsd,
         tokenDecimals: 18,
-        price: 1 / conversionRateRoundToken.price,
-        priceDecimals: 8,
+        tokenPrice: conversionRateRoundToken.price,
+        tokenPriceDecimals: 8,
       });
 
       return {
         ...vote,
         amount: vote.amount.toString(),
-        amountRoundToken: amountRoundToken.toString(),
-        amountUSD,
+        amountRoundToken: voteAmountInRoundToken.toString(),
+        amountUSD: voteAmountInUsd,
         applicationId: vote.applicationId,
         id: "",
       };

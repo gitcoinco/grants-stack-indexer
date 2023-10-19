@@ -98,8 +98,8 @@ export function createPriceProvider(
       amount: convertTokenToFiat({
         tokenAmount: amount,
         tokenDecimals: closestPrice.decimals,
-        price: closestPrice.price,
-        priceDecimals: 8,
+        tokenPrice: closestPrice.price,
+        tokenPriceDecimals: 8,
       }),
       price: closestPrice.price,
     };
@@ -117,16 +117,14 @@ export function createPriceProvider(
       blockNumber
     );
 
-    const price = 1 / closestPrice.price;
-
     return {
       amount: convertFiatToToken({
         fiatAmount: amountInUSD,
-        price,
-        priceDecimals: 8,
+        tokenPrice: closestPrice.price,
+        tokenPriceDecimals: 8,
         tokenDecimals: closestPrice.decimals,
       }),
-      price: 1,
+      price: 1 / closestPrice.price, // price is the token price in USD, we return the inverse
     };
   }
 
