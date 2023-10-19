@@ -11,6 +11,7 @@ import * as Sentry from "@sentry/node";
 import fs from "node:fs/promises";
 import fetch from "make-fetch-happen";
 import { throttle } from "throttle-debounce";
+import { z } from "zod";
 
 import { createPassportProvider, PassportProvider } from "./passport/index.js";
 
@@ -30,6 +31,37 @@ import type { EventHandlerContext } from "./indexer/indexer.js";
 import { handleEvent } from "./indexer/handleEvent.js";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
+const CURRENT_DATA_VERSION = 1;
+
+async function getIndexedDataVersion(args: {
+  dir: string;
+}): Promise<number | null> {
+  try {
+    const dataVersionContents = await fs.readFile(
+      path.join(args.dir, "dataVersion.txt"),
+      "utf-8"
+    );
+    return z.coerce.number().parse(dataVersionContents);
+  } catch (err) {
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "code" in err &&
+      err.code === "ENOENT"
+    ) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+async function saveIndexedDataVersion(args: { dir: string; version: number }) {
+  await fs.mkdir(args.dir, { recursive: true });
+  await fs.writeFile(
+    path.join(args.dir, "dataVersion.txt"),
+    String(args.version)
+  );
+}
 
 async function main(): Promise<void> {
   const config = getConfig();
@@ -80,6 +112,27 @@ async function main(): Promise<void> {
       ),
     });
   }
+
+  const indexedDataVersion = await getIndexedDataVersion({
+    dir: config.chainDataDir,
+  });
+
+  // if the data version is different from the current one, delete the chain data dir
+  // which will trigger a reindex
+  if (indexedDataVersion !== CURRENT_DATA_VERSION) {
+    baseLogger.info({
+      msg: "data version mismatch, deleting chain data dir",
+      indexedDataVersion,
+      currentDataVersion: CURRENT_DATA_VERSION,
+    });
+
+    await fs.rm(config.chainDataDir, { force: true, recursive: true });
+  }
+
+  await saveIndexedDataVersion({
+    dir: config.chainDataDir,
+    version: CURRENT_DATA_VERSION,
+  });
 
   if (config.runOnce) {
     await Promise.all(
@@ -177,11 +230,6 @@ async function catchupAndWatchChain(
     const pricesCache: DeprecatedDiskCache | null = config.cacheDir
       ? new DeprecatedDiskCache(path.join(config.cacheDir, "prices"))
       : null;
-
-    // Force a full re-indexing on every startup.
-    // XXX For the longer term, verify whether ChainSauce supports
-    // any sort of stop-and-resume.
-    await fs.rm(CHAIN_DIR_PATH, { force: true, recursive: true });
 
     const storage = createJsonDatabase({
       dir: CHAIN_DIR_PATH,
