@@ -89,7 +89,7 @@ export function createSqliteBlockCache(opts: Options): BlockCache {
       chainId,
       blockNumber
     ): Promise<number | null> {
-      const dbState = await ensureInitialized();
+      const dbState = ensureInitialized();
 
       const row = dbState.getTimestampByBlockNumberStmt.get(
         chainId,
@@ -103,7 +103,7 @@ export function createSqliteBlockCache(opts: Options): BlockCache {
       chainId,
       timestamp
     ): Promise<bigint | null> {
-      const dbState = await ensureInitialized();
+      const dbState = ensureInitialized();
 
       const row = dbState.getBlockNumberByTimestampStmt.get(
         chainId,
@@ -114,7 +114,7 @@ export function createSqliteBlockCache(opts: Options): BlockCache {
     },
 
     async saveBlock(block: Block): Promise<void> {
-      const dbState = await ensureInitialized();
+      const dbState = ensureInitialized();
 
       dbState.saveBlockStmt.run(
         block.chainId,
@@ -129,7 +129,7 @@ export function createSqliteBlockCache(opts: Options): BlockCache {
       chainId,
       timestamp
     ): Promise<{ before: Block | null; after: Block | null }> {
-      const dbState = await ensureInitialized();
+      const dbState = ensureInitialized();
 
       const before = dbState.getBeforeStmt.get(chainId, timestamp) as
         | Row
