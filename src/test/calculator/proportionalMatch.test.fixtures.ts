@@ -105,7 +105,7 @@ const chain = {
 } as unknown as Chain;
 
 function generateVoteAndScore(id: number, amount: bigint, rawScore: string) {
-  const vote = {
+  const vote: Vote = {
     id: `vote-${id}`,
     projectId: "project-id-1",
     applicationId: "application-id-1",
@@ -113,6 +113,8 @@ function generateVoteAndScore(id: number, amount: bigint, rawScore: string) {
     token: "0x83791638da5EB2fAa432aff1c65fbA47c5D29510",
     voter: `voter-${id}`,
     grantAddress: "grant-address-1",
+    transaction: "0x1234",
+    blockNumber: 0,
     amount: amount.toString(),
     amountUSD: Number(amount),
     amountRoundToken: amount.toString(),
