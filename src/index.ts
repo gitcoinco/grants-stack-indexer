@@ -97,7 +97,7 @@ async function main(): Promise<void> {
     ]);
 
     const httpApi = createHttpApi({
-      httpRootDir: config.chainDataDir,
+      chainDataDir: config.chainDataDir,
       priceProvider: createPriceProvider({
         chainDataDir: config.chainDataDir,
         logger: baseLogger.child({ subsystem: "PriceProvider" }),
