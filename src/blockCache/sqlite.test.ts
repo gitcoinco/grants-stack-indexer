@@ -19,11 +19,7 @@ describe("createSqliteBlockCache", () => {
     db.close();
   });
 
-  it("should initialize without errors", async () => {
-    await expect(blockCache.init()).resolves.not.toThrow();
-  });
-
-  it("should initialize if using invalid table name", () => {
+  it("should throw if using invalid table name", () => {
     expect(() => {
       createSqliteBlockCache({
         db,
@@ -39,13 +35,7 @@ describe("createSqliteBlockCache", () => {
     }).toThrow();
   });
 
-  it("should throw if already initialized", async () => {
-    await blockCache.init();
-    await expect(blockCache.init()).rejects.toThrow("Already initialized");
-  });
-
   it("should save and retrieve a block by number", async () => {
-    await blockCache.init();
     const block = {
       chainId: 1,
       blockNumber: BigInt(1),
@@ -61,7 +51,6 @@ describe("createSqliteBlockCache", () => {
   });
 
   it("should save and retrieve a block by timestamp", async () => {
-    await blockCache.init();
     const block = {
       chainId: 1,
       blockNumber: BigInt(1),
@@ -74,7 +63,6 @@ describe("createSqliteBlockCache", () => {
   });
 
   it("should get closest bounds for timestamp", async () => {
-    await blockCache.init();
     const block1 = { chainId: 1, blockNumber: BigInt(1), timestampInSecs: 10 };
     const block2 = { chainId: 1, blockNumber: BigInt(2), timestampInSecs: 20 };
 
