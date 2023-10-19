@@ -3,6 +3,7 @@ import { ethers } from "ethers";
 import { parseArgs } from "node:util";
 import { ToBlock } from "chainsauce";
 import { z } from "zod";
+import path from "node:path";
 import * as abis from "./indexer/abis/index.js";
 
 type ChainId = number;
@@ -666,10 +667,11 @@ export const getChainConfigById = (chainId: ChainId): Chain => {
 export type Config = {
   buildTag: string | null;
   storageDir: string;
+  cacheDir: string | null;
+  chainDataDir: string;
   fromBlock: number;
   toBlock: ToBlock;
   passportScorerId: number;
-  cacheDir: string | null;
   logLevel: "trace" | "debug" | "info" | "warn" | "error";
   ipfsGateway: string;
   coingeckoApiKey: string | null;
@@ -714,8 +716,15 @@ export function getConfig(): Config {
 
   const storageDir = z
     .string()
-    .default("./data")
+    .default("./.var/storage")
     .parse(process.env.STORAGE_DIR);
+
+  const cacheDir = z
+    .union([z.string(), z.null()])
+    .default(path.join(storageDir, "cache"))
+    .parse(process.env.CACHE_DIR);
+
+  const chainDataDir = path.join(storageDir, "chainData");
 
   const { values: args } = parseArgs({
     options: {
@@ -769,11 +778,6 @@ export function getConfig(): Config {
 
   const runOnce = z.boolean().default(false).parse(args["run-once"]);
 
-  const cacheDir = z
-    .union([z.string(), z.null()])
-    .default("./.cache")
-    .parse(process.env.CACHE_DIR);
-
   const ipfsGateway = z
     .string()
     .default("https://cloudflare-ipfs.com")
@@ -792,6 +796,7 @@ export function getConfig(): Config {
     storageDir,
     chains,
     toBlock,
+    chainDataDir,
     fromBlock,
     cacheDir,
     logLevel,

@@ -6,7 +6,7 @@ const DEFAULT_REFRESH_PRICE_INTERVAL_MS = 10000;
 
 interface PriceProviderConfig {
   updateEveryMs?: number;
-  storageDir: string;
+  chainDataDir: string;
   logger: Logger;
 }
 
@@ -45,7 +45,7 @@ export function createPriceProvider(
   // PUBLIC
 
   async function getAllPricesForChain(chainId: number): Promise<Price[]> {
-    return readPricesFile(chainId, config.storageDir);
+    return readPricesFile(chainId, config.chainDataDir);
   }
 
   // INTERNALS
@@ -58,7 +58,7 @@ export function createPriceProvider(
   }
 
   function updatePrices(chainId: number) {
-    const chainPrices = readPricesFile(chainId, config.storageDir);
+    const chainPrices = readPricesFile(chainId, config.chainDataDir);
 
     prices[chainId] = {
       prices: chainPrices,

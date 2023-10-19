@@ -10,8 +10,7 @@ kill_timeout = 5
   PORT = "8080"
   DEPLOYMENT_ENVIRONMENT = "development"
   LOG_LEVEL = "debug"
-  STORAGE_DIR = "/mnt/indexer/data"
-  CACHE_DIR = "/mnt/indexer/cache"
+  STORAGE_DIR = "/mnt/indexer"
   INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-testnet,pgn-mainnet,polygon-mumbai,polygon"
   # BUILD_TAG = # set in deploy github action
 
