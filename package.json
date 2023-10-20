@@ -47,7 +47,7 @@
     "multer": "^1.4.5-lts.1",
     "pino": "^8.14.1",
     "pino-pretty": "^10.0.1",
-    "pluralistic": "github:gitcoinco/pluralistic.js#644d14fff65100f005d7afc18799b0f99b72ae24",
+    "pluralistic": "github:gitcoinco/pluralistic.js#d3edbd1bc3c2e7593da3d43513302a09c0edc4e7",
     "serve-index": "^1.9.1",
     "sleep-promise": "^9.1.0",
     "split2": "^4.2.0",
