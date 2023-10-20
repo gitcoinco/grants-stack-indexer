@@ -3,6 +3,7 @@ import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
 import type { PassportProvider } from "../passport/index.js";
 import { PriceProvider } from "../prices/provider.js";
+import { convertTokenToFiat, convertFiatToToken } from "../tokenMath.js";
 import { Chain, getDecimalsForToken } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
 import { getVotesWithCoefficients, VoteWithCoefficient } from "./votes.js";
@@ -14,8 +15,8 @@ import {
   OverridesInvalidRowError,
 } from "./errors.js";
 import { PotentialVote } from "../http/api/v1/matches.js";
-import { Price } from "../prices/common.js";
-import { formatUnits, zeroAddress } from "viem";
+import { PriceWithDecimals } from "../prices/common.js";
+import { zeroAddress } from "viem";
 import { ProportionalMatchOptions } from "./options.js";
 
 export {
@@ -282,11 +283,9 @@ export default class Calculator {
   /**
    * Estimates matching for a given project and potential additional votes
    * @param potentialVotes
-   * @param roundId
    */
   async estimateMatching(
-    potentialVotes: PotentialVote[],
-    roundId: string
+    potentialVotes: PotentialVote[]
   ): Promise<MatchingEstimateResult[]> {
     const votes = await this.parseJSONFile<Vote>(
       "votes",
@@ -298,43 +297,55 @@ export default class Calculator {
       `${this.chainId}/rounds.json`
     );
 
-    const round = rounds.find((round) => round.id === this.roundId) as Round;
+    const round = rounds.find((round) => round.id === this.roundId);
+
+    if (round === undefined) {
+      throw new ResourceNotFoundError("round");
+    }
 
     const currentResults = await this._calculate(votes);
-    const conversionRates = await Promise.all(
-      potentialVotes.map(async (vote) => [
-        vote.token,
-        await this.priceProvider.getUSDConversionRate(this.chainId, vote.token),
-      ])
-    );
-    const prices = Object.fromEntries(conversionRates) as Record<
-      string,
-      Price & { decimals: number }
-    >;
+    const usdPriceByAddress: Record<string, PriceWithDecimals> = {};
+
+    // fetch each token price only once
+    for (const vote of potentialVotes) {
+      if (usdPriceByAddress[vote.token] === undefined) {
+        usdPriceByAddress[vote.token] =
+          await this.priceProvider.getUSDConversionRate(
+            this.chainId,
+            vote.token
+          );
+      }
+    }
+
     const conversionRateRoundToken =
       await this.priceProvider.getUSDConversionRate(this.chainId, round.token);
 
-    const potentialVotesAugmented: Vote[] = await Promise.all(
-      potentialVotes.map((vote) => {
-        const tokenPrice = prices[vote.token];
-        const amountUSD =
-          Number(formatUnits(vote.amount, 18)) * tokenPrice.price;
+    const potentialVotesAugmented: Vote[] = potentialVotes.map((vote) => {
+      const tokenPrice = usdPriceByAddress[vote.token];
 
-        /*TODO: take into account round matching token decimals instead of default 18 */
-        const amountRoundToken =
-          (Number(amountUSD) / conversionRateRoundToken.price) *
-          Math.pow(10, 18);
+      const voteAmountInUsd = convertTokenToFiat({
+        tokenAmount: vote.amount,
+        tokenDecimals: tokenPrice.decimals,
+        tokenPrice: tokenPrice.price,
+        tokenPriceDecimals: 8,
+      });
 
-        return {
-          ...vote,
-          amount: vote.amount.toString(),
-          amountRoundToken: Math.floor(amountRoundToken).toString(),
-          amountUSD,
-          applicationId: vote.applicationId,
-          id: "",
-        };
-      })
-    );
+      const voteAmountInRoundToken = convertFiatToToken({
+        fiatAmount: voteAmountInUsd,
+        tokenDecimals: 18,
+        tokenPrice: conversionRateRoundToken.price,
+        tokenPriceDecimals: 8,
+      });
+
+      return {
+        ...vote,
+        amount: vote.amount.toString(),
+        amountRoundToken: voteAmountInRoundToken.toString(),
+        amountUSD: voteAmountInUsd,
+        applicationId: vote.applicationId,
+        id: "",
+      };
+    });
 
     const potentialResults = await this._calculate([
       ...votes,
@@ -365,7 +376,7 @@ export default class Calculator {
         ...currentResult,
         ...potentialResult,
         difference,
-        roundId,
+        roundId: this.roundId,
         chainId: this.chainId,
         recipient: currentResult?.payoutAddress ?? zeroAddress,
         differenceInUSD: differenceInUSD.amount,

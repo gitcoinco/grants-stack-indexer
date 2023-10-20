@@ -5,7 +5,6 @@ export type Block = {
 };
 
 export interface BlockCache {
-  init(): Promise<void>;
   getTimestampByBlockNumber(
     chainId: number,
     blockNumber: bigint

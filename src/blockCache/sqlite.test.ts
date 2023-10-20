@@ -2,9 +2,6 @@ import { createSqliteBlockCache } from "./sqlite.js";
 import { BlockCache } from "../blockCache.js";
 import { it, describe, expect, beforeEach, afterEach } from "vitest";
 import Sqlite from "better-sqlite3";
-import fs from "fs/promises";
-import os from "os";
-import path from "path";
 
 describe("createSqliteBlockCache", () => {
   let db: Sqlite.Database;
@@ -19,11 +16,7 @@ describe("createSqliteBlockCache", () => {
     db.close();
   });
 
-  it("should initialize without errors", async () => {
-    await expect(blockCache.init()).resolves.not.toThrow();
-  });
-
-  it("should initialize if using invalid table name", () => {
+  it("should throw if using invalid table name", () => {
     expect(() => {
       createSqliteBlockCache({
         db,
@@ -39,13 +32,7 @@ describe("createSqliteBlockCache", () => {
     }).toThrow();
   });
 
-  it("should throw if already initialized", async () => {
-    await blockCache.init();
-    await expect(blockCache.init()).rejects.toThrow("Already initialized");
-  });
-
   it("should save and retrieve a block by number", async () => {
-    await blockCache.init();
     const block = {
       chainId: 1,
       blockNumber: BigInt(1),
@@ -61,7 +48,6 @@ describe("createSqliteBlockCache", () => {
   });
 
   it("should save and retrieve a block by timestamp", async () => {
-    await blockCache.init();
     const block = {
       chainId: 1,
       blockNumber: BigInt(1),
@@ -74,7 +60,6 @@ describe("createSqliteBlockCache", () => {
   });
 
   it("should get closest bounds for timestamp", async () => {
-    await blockCache.init();
     const block1 = { chainId: 1, blockNumber: BigInt(1), timestampInSecs: 10 };
     const block2 = { chainId: 1, blockNumber: BigInt(2), timestampInSecs: 20 };
 
@@ -84,14 +69,5 @@ describe("createSqliteBlockCache", () => {
     const bounds = await blockCache.getClosestBoundsForTimestamp(1, 15);
     expect(bounds.before).toEqual(block1);
     expect(bounds.after).toEqual(block2);
-  });
-});
-
-describe("createSqliteBlockCache with dbPath", () => {
-  it("should initialize without errors using dbPath", async () => {
-    const tmpFilePath = path.join(os.tmpdir(), `tmpdb-${Date.now()}.db`);
-    const diskBlockCache = createSqliteBlockCache({ dbPath: tmpFilePath });
-    await expect(diskBlockCache.init()).resolves.not.toThrow();
-    await fs.rm(tmpFilePath);
   });
 });
