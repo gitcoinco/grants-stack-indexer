@@ -1,6 +1,12 @@
 import { Logger } from "pino";
 import { getChainConfigById } from "../config.js";
-import { Price, readPricesFile, UnknownTokenError } from "./common.js";
+import {
+  Price,
+  PriceWithDecimals,
+  readPricesFile,
+  UnknownTokenError,
+} from "./common.js";
+import { convertTokenToFiat, convertFiatToToken } from "../tokenMath.js";
 
 const DEFAULT_REFRESH_PRICE_INTERVAL_MS = 10000;
 
@@ -28,7 +34,7 @@ export interface PriceProvider {
     chainId: number,
     tokenAddress: string,
     blockNumber?: number
-  ) => Promise<Price & { decimals: number }>;
+  ) => Promise<PriceWithDecimals>;
 }
 
 export function createPriceProvider(
@@ -87,16 +93,14 @@ export function createPriceProvider(
       token,
       blockNumber
     );
-    const usdDecimalFactor = Math.pow(10, 8);
-    const decimalFactor = 10n ** BigInt(closestPrice.decimals);
-
-    const priceInDecimals = BigInt(
-      Math.trunc(closestPrice.price * usdDecimalFactor)
-    );
 
     return {
-      amount:
-        Number((amount * priceInDecimals) / decimalFactor) / usdDecimalFactor,
+      amount: convertTokenToFiat({
+        tokenAmount: amount,
+        tokenDecimals: closestPrice.decimals,
+        tokenPrice: closestPrice.price,
+        tokenPriceDecimals: 8,
+      }),
       price: closestPrice.price,
     };
   }
@@ -104,7 +108,7 @@ export function createPriceProvider(
   async function convertFromUSD(
     chainId: number,
     token: string,
-    amount: number,
+    amountInUSD: number,
     blockNumber?: number
   ): Promise<{ amount: bigint; price: number }> {
     const closestPrice = await getUSDConversionRate(
@@ -112,17 +116,15 @@ export function createPriceProvider(
       token,
       blockNumber
     );
-    const usdDecimalFactor = Math.pow(10, 8);
-    const decimalFactor =
-      10n ** BigInt(closestPrice.decimals) / BigInt(usdDecimalFactor);
-
-    const convertedAmountInDecimals =
-      BigInt(Math.trunc((amount / closestPrice.price) * usdDecimalFactor)) *
-      decimalFactor;
 
     return {
-      amount: convertedAmountInDecimals,
-      price: 1 / closestPrice.price,
+      amount: convertFiatToToken({
+        fiatAmount: amountInUSD,
+        tokenPrice: closestPrice.price,
+        tokenPriceDecimals: 8,
+        tokenDecimals: closestPrice.decimals,
+      }),
+      price: 1 / closestPrice.price, // price is the token price in USD, we return the inverse
     };
   }
 

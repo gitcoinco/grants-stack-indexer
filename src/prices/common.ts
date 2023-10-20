@@ -9,6 +9,10 @@ export type Price = {
   block: number;
 };
 
+export type PriceWithDecimals = Price & {
+  decimals: number;
+};
+
 export async function readPricesFile(
   chainId: number,
   storageDir: string

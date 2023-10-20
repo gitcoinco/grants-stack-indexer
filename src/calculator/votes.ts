@@ -76,8 +76,9 @@ export async function getVotesWithCoefficients(
       coefficient = 0;
     }
 
-    // Passport check
     const passportScore = await args.passportProvider.getScoreByAddress(voter);
+
+    // Passport check
     if (minAmountCheckPassed && enablePassport) {
       // Set to 0 if the donor doesn't have a passport
       const rawScore = Number(passportScore?.evidence?.rawScore ?? "0");
@@ -100,10 +101,7 @@ export async function getVotesWithCoefficients(
   return (await Promise.all(votePromises)).flat();
 }
 
-function scoreToCoefficient(
-  options: ProportionalMatchOptions,
-  score: number
-) {
+function scoreToCoefficient(options: ProportionalMatchOptions, score: number) {
   if (score < options.score.min) {
     return 0;
   }
