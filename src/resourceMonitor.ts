@@ -34,7 +34,7 @@ export function createResourceMonitor({
 
   const pollResources = async () => {
     for (const directory of directories) {
-      const stats = await diskstats.check("/");
+      const stats = await diskstats.check(directory);
 
       const totalDiskSpace = stats.total;
       const totalDiskUsed = stats.used;
