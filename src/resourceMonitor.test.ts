@@ -24,6 +24,7 @@ describe("ResourceMonitor", () => {
 
     const monitor = createResourceMonitor({
       log,
+      directories: ["/"],
       pollingIntervalMs: 1000,
     });
 
@@ -37,12 +38,14 @@ describe("ResourceMonitor", () => {
 
       expect(log).toHaveBeenCalledWith({
         type: "disk",
+        directory: "/",
         total: 100,
         used: 50,
       });
 
       expect(log).toHaveBeenCalledWith({
         type: "inode",
+        directory: "/",
         total: 100,
         used: 60,
       });
@@ -57,12 +60,14 @@ describe("ResourceMonitor", () => {
 
       expect(log).toHaveBeenCalledWith({
         type: "disk",
+        directory: "/",
         total: 100,
         used: 50,
       });
 
       expect(log).toHaveBeenCalledWith({
         type: "inode",
+        directory: "/",
         total: 100,
         used: 60,
       });

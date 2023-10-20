@@ -72,7 +72,12 @@ async function main(): Promise<void> {
   });
 
   if (config.enableResourceMonitor) {
-    monitorAndLogResources({ logger: baseLogger });
+    monitorAndLogResources({
+      logger: baseLogger,
+      directories: [config.storageDir].concat(
+        config.cacheDir ? [config.cacheDir] : []
+      ),
+    });
   }
 
   if (config.runOnce) {
@@ -332,7 +337,10 @@ async function catchupAndWatchChain(
   }
 }
 
-function monitorAndLogResources(config: { logger: Logger }) {
+function monitorAndLogResources(config: {
+  logger: Logger;
+  directories: string[];
+}) {
   const resourceMonitorLogger = config.logger.child({
     subsystem: "ResourceMonitor",
   });
@@ -345,6 +353,7 @@ function monitorAndLogResources(config: { logger: Logger }) {
 
   const resourceMonitor = createResourceMonitor({
     log,
+    directories: config.directories,
     pollingIntervalMs: RESOURCE_MONITOR_INTERVAL_MS,
   });
 
