@@ -14,6 +14,7 @@ import fetch from "make-fetch-happen";
 import { throttle } from "throttle-debounce";
 
 import { createPassportProvider, PassportProvider } from "./passport/index.js";
+import { createResourceMonitor, ResourceLog } from "./resourceMonitor.js";
 
 import handleEvent from "./indexer/handleEvent.js";
 import { Chain, getConfig, Config } from "./config.js";
@@ -24,6 +25,7 @@ import { FileSystemDataProvider } from "./calculator/index.js";
 import { AsyncSentinel } from "./utils/asyncSentinel.js";
 import { ethers } from "ethers";
 
+const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
 // If, during reindexing, a chain has these many blocks left to index, consider
 // it caught up and start serving
 const MINIMUM_BLOCKS_LEFT_BEFORE_STARTING = 500;
@@ -68,6 +70,10 @@ async function main(): Promise<void> {
         ")"
     ),
   });
+
+  if (config.enableResourceMonitor) {
+    monitorAndLogResources({ logger: baseLogger });
+  }
 
   if (config.runOnce) {
     await Promise.all(
@@ -324,4 +330,23 @@ async function catchupAndWatchChain(
     });
     throw err;
   }
+}
+
+function monitorAndLogResources(config: { logger: Logger }) {
+  const resourceMonitorLogger = config.logger.child({
+    subsystem: "ResourceMonitor",
+  });
+
+  resourceMonitorLogger.info({ msg: "starting resource monitor" });
+
+  function log(resource: ResourceLog) {
+    resourceMonitorLogger.info(resource);
+  }
+
+  const resourceMonitor = createResourceMonitor({
+    log,
+    pollingIntervalMs: RESOURCE_MONITOR_INTERVAL_MS,
+  });
+
+  resourceMonitor.start();
 }

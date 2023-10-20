@@ -681,6 +681,7 @@ export type Config = {
   apiHttpPort: number;
   sentryDsn: string | null;
   deploymentEnvironment: "local" | "development" | "staging" | "production";
+  enableResourceMonitor: boolean;
 };
 
 export function getConfig(): Config {
@@ -688,6 +689,11 @@ export function getConfig(): Config {
     .union([z.string(), z.null()])
     .default(null)
     .parse(process.env.BUILD_TAG);
+
+  const enableResourceMonitor = z.coerce
+    .boolean()
+    .default(false)
+    .parse(process.env.ENABLE_RESOURCE_MONITOR);
 
   const apiHttpPort = z.coerce.number().parse(process.env.PORT);
 
@@ -805,5 +811,6 @@ export function getConfig(): Config {
     passportScorerId,
     apiHttpPort,
     deploymentEnvironment,
+    enableResourceMonitor,
   };
 }
