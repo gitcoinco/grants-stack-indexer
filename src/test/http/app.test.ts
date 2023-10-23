@@ -2,44 +2,25 @@
 import { describe, test, expect, beforeEach, vi } from "vitest";
 import express from "express";
 import os from "os";
-import fs from "fs/promises";
-import path from "path";
 import request, { Response as SupertestResponse } from "supertest";
 import { createHttpApi } from "../../http/app.js";
-import {
-  AugmentedResult,
-  DataProvider,
-  FileNotFoundError,
-} from "../../calculator/index.js";
+import { AugmentedResult, DataProvider } from "../../calculator/index.js";
 import { PriceProvider } from "../../prices/provider.js";
 import { Logger } from "pino";
-import { PassportScore } from "../../passport/index.js";
+import { PotentialVotes } from "../../http/api/v1/matches.js";
 import { Chain } from "../../config.js";
+import { constants } from "ethers";
+import {
+  TestPriceProvider,
+  TestPassportProvider,
+  TestDataProvider,
+  loadFixture,
+} from "../utils.js";
 
 vi.spyOn(os, "hostname").mockReturnValue("dummy-hostname");
 
 // Typed version of supertest's Response
 type Response<T> = Omit<SupertestResponse, "body"> & { body: T };
-
-const loadFixture = async (
-  name: string,
-  extension = "json"
-): Promise<string> => {
-  const p = path.resolve(__dirname, "../fixtures", `${name}.${extension}`);
-  const data = await fs.readFile(p, "utf8");
-  return data;
-};
-
-type Fixtures = { [path: string]: string | undefined | unknown[] };
-
-export class TestPriceProvider {
-  async convertToUSD() {
-    return Promise.resolve({ amount: 0 });
-  }
-  async convertFromUSD() {
-    return Promise.resolve({ amount: 0 });
-  }
-}
 
 const MOCK_CHAINS = [
   {
@@ -52,44 +33,6 @@ const MOCK_CHAINS = [
     ],
   },
 ] as Chain[];
-
-class TestPassportProvider {
-  _fixture: PassportScore[] | null = null;
-
-  async start() {}
-
-  async stop() {}
-
-  async getScoreByAddress(address: string): Promise<PassportScore | undefined> {
-    if (this._fixture === null) {
-      this._fixture = JSON.parse(
-        await loadFixture("passport_scores")
-      ) as PassportScore[];
-    }
-    return this._fixture.find((score) => score.address === address);
-  }
-}
-
-export class TestDataProvider implements DataProvider {
-  fixtures: Fixtures;
-
-  constructor(fixtures: Fixtures) {
-    this.fixtures = fixtures;
-  }
-
-  async loadFile<T>(description: string, path: string): Promise<Array<T>> {
-    const fixture = this.fixtures[path];
-    if (fixture === undefined) {
-      throw new FileNotFoundError(description);
-    }
-
-    if (typeof fixture !== "string") {
-      return fixture as Array<T>;
-    }
-
-    return JSON.parse(await loadFixture(fixture)) as Array<T>;
-  }
-}
 
 const DUMMY_LOGGER = {
   debug: () => {},
@@ -105,7 +48,7 @@ describe("server", () => {
       app = createHttpApi({
         logger: DUMMY_LOGGER,
         port: 0,
-        storageDir: "/dev/null",
+        chainDataDir: "/dev/null",
         buildTag: "123abc",
         priceProvider: new TestPriceProvider() as unknown as PriceProvider,
         passportProvider: new TestPassportProvider(),
@@ -150,7 +93,7 @@ describe("server", () => {
         const { app } = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          chainDataDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -172,7 +115,7 @@ describe("server", () => {
         const { app } = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          chainDataDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -194,7 +137,7 @@ describe("server", () => {
         const { app } = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          chainDataDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -216,7 +159,7 @@ describe("server", () => {
         const { app } = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          chainDataDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -238,7 +181,7 @@ describe("server", () => {
         const { app } = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          chainDataDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -263,7 +206,7 @@ describe("server", () => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          chainDataDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -325,6 +268,106 @@ describe("server", () => {
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
       });
+
+      test("should estimate matching with new votes for projects", async () => {
+        const expectedResults = [
+          {
+            applicationId: "application-id-1",
+            capOverflow: "0",
+            chainId: 1,
+            contributionsCount: "4",
+            difference: "-1359",
+            differenceInUSD: 0,
+            matched: "1",
+            matchedUSD: 0,
+            matchedWithoutCap: "1",
+            payoutAddress: "grant-address-1",
+            projectId: "project-id-1",
+            recipient: "grant-address-1",
+            roundId: "0x1234",
+            sumOfSqrt: "70",
+            sumOfSqrtRemainder: "0",
+            totalReceived: "1500",
+          },
+          {
+            applicationId: "application-id-2",
+            capOverflow: "0",
+            chainId: 1,
+            contributionsCount: "8",
+            difference: "-2159",
+            differenceInUSD: 0,
+            matched: "1",
+            matchedUSD: 0,
+            matchedWithoutCap: "1",
+            payoutAddress: "grant-address-2",
+            projectId: "project-id-2",
+            recipient: "grant-address-2",
+            roundId: "0x1234",
+            sumOfSqrt: "80",
+            sumOfSqrtRemainder: "0",
+            totalReceived: "1000",
+          },
+          {
+            applicationId: "application-id-3",
+            capOverflow: "0",
+            chainId: 1,
+            contributionsCount: "8",
+            difference: "3516",
+            differenceInUSD: 0,
+            matched: "9996",
+            matchedUSD: 0,
+            matchedWithoutCap: "9996",
+            payoutAddress: "grant-address-3",
+            projectId: "project-id-3",
+            recipient: "grant-address-3",
+            roundId: "0x1234",
+            sumOfSqrt: "100140",
+            sumOfSqrtRemainder: "0",
+            totalReceived: "10000003400",
+          },
+        ];
+
+        const potentialVotes: PotentialVotes = [
+          {
+            roundId: "round-id-1",
+            applicationId: "application-id-3",
+            voter: "voter-1",
+            amount: 10000000000n,
+            grantAddress: "grant-address-3",
+            token: constants.AddressZero,
+            projectId: "project-id-3",
+          },
+          {
+            roundId: "round-id-1",
+            applicationId: "application-id-2",
+            voter: "voter-1",
+            amount: 5000000000n,
+            grantAddress: "grant-address-2",
+            token: constants.AddressZero,
+            projectId: "project-id-2",
+          },
+        ];
+
+        const replacer = (
+          _key: string,
+          value: bigint | string | number | object
+        ) => (typeof value === "bigint" ? value.toString() : value);
+
+        const resp = await request(app)
+          .post("/api/v1/chains/1/rounds/0x1234/estimate")
+          .set("Content-Type", "application/json")
+          .set("Accept", "application/json")
+          .send(
+            JSON.stringify(
+              {
+                potentialVotes,
+              },
+              replacer
+            )
+          );
+        expect(resp.statusCode).toBe(200);
+        expect(resp.body).toEqual(expectedResults);
+      });
     });
 
     describe("calculations with round not saturated", () => {
@@ -333,7 +376,7 @@ describe("server", () => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          chainDataDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -414,7 +457,7 @@ describe("server", () => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          chainDataDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -484,7 +527,7 @@ describe("server", () => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          chainDataDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -611,7 +654,7 @@ describe("server", () => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          chainDataDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -835,7 +878,7 @@ describe("server", () => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          chainDataDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -1007,7 +1050,7 @@ describe("server", () => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
           port: 0,
-          storageDir: "/dev/null",
+          chainDataDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({

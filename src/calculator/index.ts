@@ -3,9 +3,10 @@ import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
 import type { PassportProvider } from "../passport/index.js";
 import { PriceProvider } from "../prices/provider.js";
+import { convertTokenToFiat, convertFiatToToken } from "../tokenMath.js";
 import { Chain, getDecimalsForToken } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
-import { getVotesWithCoefficients } from "./votes.js";
+import { getVotesWithCoefficients, VoteWithCoefficient } from "./votes.js";
 import {
   CalculatorError,
   ResourceNotFoundError,
@@ -13,6 +14,10 @@ import {
   OverridesColumnNotFoundError,
   OverridesInvalidRowError,
 } from "./errors.js";
+import { PotentialVote } from "../http/api/v1/matches.js";
+import { PriceWithDecimals } from "../prices/common.js";
+import { zeroAddress } from "viem";
+import { ProportionalMatchOptions } from "./options.js";
 
 export {
   CalculatorError,
@@ -95,11 +100,11 @@ export type CalculatorOptions = {
   roundId: string;
   minimumAmountUSD?: number;
   matchingCapAmount?: bigint;
-  passportThreshold?: number;
   enablePassport?: boolean;
   ignoreSaturation?: boolean;
   overrides: Overrides;
   chain: Chain;
+  proportionalMatch?: ProportionalMatchOptions;
 };
 
 export type AugmentedResult = Calculation & {
@@ -120,9 +125,9 @@ export default class Calculator {
   private minimumAmountUSD: number | undefined;
   private matchingCapAmount: bigint | undefined;
   private enablePassport: boolean | undefined;
-  private passportThreshold: number | undefined;
   private ignoreSaturation: boolean | undefined;
   private overrides: Overrides;
+  private proportionalMatch?: ProportionalMatchOptions;
 
   constructor(options: CalculatorOptions) {
     this.passportProvider = options.passportProvider;
@@ -132,11 +137,34 @@ export default class Calculator {
     this.roundId = options.roundId;
     this.minimumAmountUSD = options.minimumAmountUSD;
     this.enablePassport = options.enablePassport;
-    this.passportThreshold = options.passportThreshold;
     this.matchingCapAmount = options.matchingCapAmount;
     this.overrides = options.overrides;
     this.ignoreSaturation = options.ignoreSaturation;
     this.chain = options.chain;
+    this.proportionalMatch = options.proportionalMatch;
+  }
+
+  private votesWithCoefficientToContribution(
+    votes: VoteWithCoefficient[]
+  ): (Contribution & { recipientAddress: string })[] {
+    return votes.flatMap((vote) => {
+      const scaleFactor = 10_000;
+      const coefficient = BigInt(
+        Math.trunc((this.overrides[vote.id] ?? vote.coefficient) * scaleFactor)
+      );
+
+      const amount = BigInt(vote.amountRoundToken);
+      const multipliedAmount = (amount * coefficient) / BigInt(scaleFactor);
+
+      return [
+        {
+          contributor: vote.voter,
+          recipient: vote.applicationId,
+          recipientAddress: vote.grantAddress,
+          amount: multipliedAmount,
+        },
+      ];
+    });
   }
 
   async calculate(): Promise<Array<AugmentedResult>> {
@@ -144,6 +172,11 @@ export default class Calculator {
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
+
+    return this._calculate(votes);
+  }
+
+  private async _calculate(votes: Vote[]): Promise<Array<AugmentedResult>> {
     const applications = await this.parseJSONFile<Application>(
       "applications",
       `${this.chainId}/rounds/${this.roundId}/applications.json`
@@ -192,40 +225,21 @@ export default class Calculator {
         10000n;
     }
 
-    const votesWithCoefficients = await getVotesWithCoefficients(
-      this.chain,
+    const votesWithCoefficients = await getVotesWithCoefficients({
+      chain: this.chain,
       round,
       applications,
       votes,
-      this.passportProvider,
-      {
+      passportProvider: this.passportProvider,
+      options: {
         minimumAmountUSD: this.minimumAmountUSD,
         enablePassport: this.enablePassport,
-        passportThreshold: this.passportThreshold,
-      }
-    );
+      },
+      proportionalMatchOptions: this.proportionalMatch,
+    });
 
-    const contributions: Contribution[] = votesWithCoefficients.flatMap(
-      (vote) => {
-        const scaleFactor = Math.pow(10, 4);
-        const coefficient = BigInt(
-          Math.trunc(
-            (this.overrides[vote.id] ?? vote.coefficient) * scaleFactor
-          )
-        );
-
-        const amount = BigInt(vote.amountRoundToken);
-        const multipliedAmount = (amount * coefficient) / BigInt(scaleFactor);
-
-        return [
-          {
-            contributor: vote.voter,
-            recipient: vote.applicationId,
-            amount: multipliedAmount,
-          },
-        ];
-      }
-    );
+    const contributions: Contribution[] =
+      this.votesWithCoefficientToContribution(votesWithCoefficients);
 
     const results = linearQF(contributions, matchAmount, matchTokenDecimals, {
       minimumAmount: 0n,
@@ -266,6 +280,112 @@ export default class Calculator {
     return augmented;
   }
 
+  /**
+   * Estimates matching for a given project and potential additional votes
+   * @param potentialVotes
+   */
+  async estimateMatching(
+    potentialVotes: PotentialVote[]
+  ): Promise<MatchingEstimateResult[]> {
+    const votes = await this.parseJSONFile<Vote>(
+      "votes",
+      `${this.chainId}/rounds/${this.roundId}/votes.json`
+    );
+
+    const rounds = await this.parseJSONFile<Round>(
+      "rounds",
+      `${this.chainId}/rounds.json`
+    );
+
+    const round = rounds.find((round) => round.id === this.roundId);
+
+    if (round === undefined) {
+      throw new ResourceNotFoundError("round");
+    }
+
+    const currentResults = await this._calculate(votes);
+    const usdPriceByAddress: Record<string, PriceWithDecimals> = {};
+
+    // fetch each token price only once
+    for (const vote of potentialVotes) {
+      if (usdPriceByAddress[vote.token] === undefined) {
+        usdPriceByAddress[vote.token] =
+          await this.priceProvider.getUSDConversionRate(
+            this.chainId,
+            vote.token
+          );
+      }
+    }
+
+    const conversionRateRoundToken =
+      await this.priceProvider.getUSDConversionRate(this.chainId, round.token);
+
+    const potentialVotesAugmented: Vote[] = potentialVotes.map((vote) => {
+      const tokenPrice = usdPriceByAddress[vote.token];
+
+      const voteAmountInUsd = convertTokenToFiat({
+        tokenAmount: vote.amount,
+        tokenDecimals: tokenPrice.decimals,
+        tokenPrice: tokenPrice.price,
+        tokenPriceDecimals: 8,
+      });
+
+      const voteAmountInRoundToken = convertFiatToToken({
+        fiatAmount: voteAmountInUsd,
+        tokenDecimals: 18,
+        tokenPrice: conversionRateRoundToken.price,
+        tokenPriceDecimals: 8,
+      });
+
+      return {
+        ...vote,
+        amount: vote.amount.toString(),
+        amountRoundToken: voteAmountInRoundToken.toString(),
+        amountUSD: voteAmountInUsd,
+        applicationId: vote.applicationId,
+        id: "",
+      };
+    });
+
+    const potentialResults = await this._calculate([
+      ...votes,
+      ...potentialVotesAugmented,
+    ]);
+
+    const finalResults: MatchingEstimateResult[] = [];
+
+    for (const potentialResult of potentialResults) {
+      const currentResult = currentResults.find(
+        (res) =>
+          res.projectId === potentialResult.projectId &&
+          res.applicationId === potentialResult.applicationId
+      );
+
+      /* Subtracting undefined from a bigint would fail,
+       * so we explicitly subtract 0 if it's undefined */
+      const difference =
+        potentialResult.matched - (currentResult?.matched ?? 0n);
+      const differenceInUSD = await this.priceProvider.convertToUSD(
+        this.chainId,
+        round.token,
+        difference
+      );
+
+      /** Can be undefined, but spreading an undefined is a no-op, so it's okay here */
+      finalResults.push({
+        ...currentResult,
+        ...potentialResult,
+        difference,
+        roundId: this.roundId,
+        chainId: this.chainId,
+        recipient: currentResult?.payoutAddress ?? zeroAddress,
+        differenceInUSD: differenceInUSD.amount,
+      });
+    }
+
+    return finalResults;
+  }
+
   async parseJSONFile<T>(
     fileDescription: string,
     path: string
@@ -273,3 +393,11 @@ export default class Calculator {
     return this.dataProvider.loadFile<T>(fileDescription, path);
   }
 }
+
+type MatchingEstimateResult = Calculation & {
+  difference: bigint;
+  differenceInUSD: number;
+  roundId: string;
+  chainId: number;
+  recipient: string;
+};

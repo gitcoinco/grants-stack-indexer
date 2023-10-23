@@ -44,11 +44,9 @@ npm install
 npm run dev
 ```
 
-It shouldn't have any data because you probably haven't indexed anything yet. Check [the indexing section](#Indexing) to see how to index data.
-
 #### Indexing
 
-Indexed JSON data is found in the `data` directory.
+Indexed JSON data is found in the `.var/storage/chainData` directory by default.
 
 To only index data without tracking new events nor starting a server, provide the `--run-once` option:
 

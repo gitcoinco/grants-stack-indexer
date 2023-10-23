@@ -16,7 +16,7 @@ import { Chain } from "../config.js";
 export interface HttpApiConfig {
   logger: Logger;
   port: number;
-  storageDir: string;
+  chainDataDir: string;
   buildTag: string | null;
   priceProvider: PriceProvider;
   dataProvider: DataProvider;
@@ -31,9 +31,11 @@ interface HttpApi {
 
 export const createHttpApi = (config: HttpApiConfig): HttpApi => {
   const app = express();
-  const api = createApiHandler(config);
 
   app.use(cors());
+  app.use(express.json());
+
+  const api = createApiHandler(config);
 
   app.use((_req, res, next) => {
     if (config.buildTag !== null) {
@@ -45,13 +47,13 @@ export const createHttpApi = (config: HttpApiConfig): HttpApi => {
 
   app.use(
     "/data",
-    express.static(config.storageDir, {
+    express.static(config.chainDataDir, {
       acceptRanges: true,
       setHeaders: (res) => {
         res.setHeader("Accept-Ranges", "bytes");
       },
     }),
-    serveIndex(config.storageDir, { icons: true, view: "details" })
+    serveIndex(config.chainDataDir, { icons: true, view: "details" })
   );
 
   app.get("/", (_req, res) => {

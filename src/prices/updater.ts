@@ -15,6 +15,8 @@ import {
   pricesFilename,
   readPricesFile,
 } from "./common.js";
+import { BlockCache } from "../blockCache.js";
+import { createSqliteBlockCache } from "../blockCache/sqlite.js";
 
 const POLL_INTERVAL_MS = 60 * 1000;
 
@@ -26,9 +28,10 @@ export interface PriceUpdaterService {
 interface PriceUpdaterConfig {
   rpcProvider: ethers.providers.StaticJsonRpcProvider;
   chain: Chain;
-  storageDir: string;
+  chainDataDir: string;
   coingeckoApiKey: string | null;
   coingeckoApiUrl: string;
+  blockCachePath?: string;
   withCacheFn?: <T>(cacheKey: string, fn: () => Promise<T>) => Promise<T>;
   logger: Logger;
 }
@@ -36,9 +39,13 @@ interface PriceUpdaterConfig {
 export function createPriceUpdater(
   config: PriceUpdaterConfig
 ): PriceUpdaterService {
-  const { logger } = config;
+  const {
+    logger,
+    chain: { id: chainId },
+  } = config;
   const withCacheMaybe = config.withCacheFn ?? ((_cacheKey, fn) => fn());
   let pollTimeoutId: NodeJS.Timeout | null = null;
+  let blockCache: BlockCache | null = null;
 
   // PUBLIC
 
@@ -49,6 +56,13 @@ export function createPriceUpdater(
     }
   ) {
     logger.info("catching up");
+
+    if (!blockCache && config.blockCachePath) {
+      blockCache = createSqliteBlockCache({
+        dbPath: config.blockCachePath,
+      });
+    }
+
     await update(opts.toBlock);
 
     if (opts.watch) {
@@ -80,7 +94,7 @@ export function createPriceUpdater(
       });
       const currentPrices = await readPricesFile(
         config.chain.id,
-        config.storageDir
+        config.chainDataDir
       );
 
       // get last updated price
@@ -107,14 +121,32 @@ export function createPriceUpdater(
         return;
       }
 
-      const getBlockTimestamp = async (blockNumber: number) => {
-        const block = await withCacheMaybe(
-          `block-${config.chain.id}-${blockNumber}`,
-          () => provider.getBlock(blockNumber)
-        );
+      const getBlockTimestamp = async (blockNumber: bigint) => {
+        if (blockCache) {
+          const timestamp = await blockCache.getTimestampByBlockNumber(
+            chainId,
+            blockNumber
+          );
 
-        return block.timestamp;
+          if (timestamp) {
+            return timestamp;
+          }
+        }
+
+        const providerBlock = await provider.getBlock(Number(blockNumber));
+
+        if (blockCache) {
+          await blockCache.saveBlock({
+            chainId,
+            blockNumber,
+            timestampInSecs: providerBlock.timestamp,
+          });
+        }
+
+        return providerBlock.timestamp;
       };
+
+      const timestampToBlockMap = new Map<number, bigint>();
 
       const lastBlockNumber = await provider.getBlockNumber();
 
@@ -146,26 +178,59 @@ export function createPriceUpdater(
 
           const newPrices: Price[] = [];
 
-          for (const [timestamp, price] of prices) {
+          for (const [timestampMs, price] of prices) {
             try {
-              const blockNumber = await getBlockFromTimestamp(
-                timestamp,
-                0,
-                lastBlockNumber,
-                getBlockTimestamp,
-                logger
-              );
+              const timestampInSeconds = Math.floor(timestampMs / 1000);
+
+              let blockNumber =
+                timestampToBlockMap.get(timestampInSeconds) ?? null;
+
+              if (blockNumber === null) {
+                let startBlock = 0n;
+                let endBlock = BigInt(lastBlockNumber);
+
+                if (blockCache) {
+                  const { before: lowerBound, after: upperBound } =
+                    await blockCache.getClosestBoundsForTimestamp(
+                      chainId,
+                      timestampInSeconds
+                    );
+
+                  if (lowerBound) {
+                    startBlock = lowerBound.blockNumber;
+                  }
+
+                  if (upperBound) {
+                    endBlock = upperBound.blockNumber;
+                  }
+                }
+
+                blockNumber = await getBlockFromTimestamp({
+                  timestampInSeconds,
+                  startBlock,
+                  endBlock,
+                  getBlockTimestamp,
+                });
+
+                if (blockNumber === null) {
+                  throw new Error(
+                    `Could not find block for timestamp ${timestampMs}`
+                  );
+                }
+
+                timestampToBlockMap.set(timestampInSeconds, blockNumber);
+              }
 
               newPrices.push({
                 token: token.address.toLowerCase(),
                 code: token.code,
                 price,
-                timestamp,
-                block: blockNumber,
+                timestamp: timestampMs,
+                block: Number(blockNumber),
               });
             } catch (err) {
               throw new Error(
-                `Error getting block number for token ${token.code} at timestamp ${timestamp}`,
+                `Error getting block number for token ${token.code} at timestamp ${timestampMs}`,
                 { cause: err }
               );
             }
@@ -182,12 +247,15 @@ export function createPriceUpdater(
   }
 
   async function appendPrices(chainId: number, newPrices: Price[]) {
-    const currentPrices = await readPricesFile(chainId, config.storageDir);
+    const currentPrices = await readPricesFile(chainId, config.chainDataDir);
     await writePrices(chainId, currentPrices.concat(newPrices));
   }
 
   async function writePrices(chainId: number, prices: Price[]) {
-    return writePricesFile(pricesFilename(chainId, config.storageDir), prices);
+    return writePricesFile(
+      pricesFilename(chainId, config.chainDataDir),
+      prices
+    );
   }
 
   async function writePricesFile(filename: string, prices: Price[]) {
