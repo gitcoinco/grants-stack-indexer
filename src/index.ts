@@ -14,7 +14,7 @@ import { throttle } from "throttle-debounce";
 
 import { createPassportProvider, PassportProvider } from "./passport/index.js";
 
-import { createResourceMonitor, ResourceLog } from "./resourceMonitor.js";
+import { createResourceMonitor } from "./resourceMonitor.js";
 import diskstats from "diskstats";
 
 import { DeprecatedDiskCache } from "./diskCache.js";
