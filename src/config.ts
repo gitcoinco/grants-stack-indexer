@@ -1,10 +1,10 @@
 import "dotenv/config";
-import { ethers } from "ethers";
 import { parseArgs } from "node:util";
 import { ToBlock } from "chainsauce";
 import { z } from "zod";
 import path from "node:path";
-import * as abis from "./indexer/abis/index.js";
+import abis from "./indexer/abis/index.js";
+import { Hex } from "./indexer/types.js";
 
 type ChainId = number;
 type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114;
@@ -18,8 +18,8 @@ export type Token = {
 };
 
 export type Subscription = {
-  address: string;
-  abi: ethers.ContractInterface;
+  address: Hex;
+  contractName: keyof typeof abis;
   fromBlock?: number;
   eventsRenames?: Record<string, string>;
 };
@@ -74,17 +74,17 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
+        contractName: "ProjectRegistryV2",
         address: "0x03506eD3f57892C85DB20C36846e9c808aFe9ef4",
-        abi: abis.v2.ProjectRegistry,
       },
       {
+        contractName: "RoundFactoryV2",
         address: "0x9Cb7f434aD3250d1656854A9eC7A71EceC6eE1EF",
-        abi: abis.v2.RoundFactory,
         fromBlock: 16994474,
       },
       {
+        contractName: "QuadraticFundingVotingStrategyFactoryV2",
         address: "0x4a850F463D1C4842937c5Bc9540dBc803D744c9F",
-        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
         fromBlock: 16994526,
       },
     ],
@@ -127,34 +127,31 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
+        contractName: "ProjectRegistryV1",
         address: "0x832c5391dc7931312CbdBc1046669c9c3A4A28d5",
-        abi: abis.v1.ProjectRegistry,
       },
       {
+        contractName: "RoundFactoryV1",
         address: "0x5770b7a57BD252FC4bB28c9a70C9572aE6400E48",
-        abi: abis.v1.RoundFactory,
-        eventsRenames: {
-          RoundCreated: "RoundCreatedV1",
-        },
       },
       {
+        contractName: "ProjectRegistryV2",
         address: "0xa71864fAd36439C50924359ECfF23Bb185FFDf21",
-        abi: abis.v2.ProjectRegistry,
         fromBlock: 8738420,
       },
       {
+        contractName: "RoundFactoryV2",
         address: "0x24F9EBFAdf095e0afe3d98635ee83CD72e49B5B0",
-        abi: abis.v2.RoundFactory,
         fromBlock: 8738430,
       },
       {
+        contractName: "QuadraticFundingVotingStrategyFactoryV2",
         address: "0x06A6Cc566c5A88E77B1353Cdc3110C2e6c828e38",
-        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
         fromBlock: 8790265,
       },
       {
+        contractName: "DirectPayoutStrategyFactoryV2",
         address: "0x0077551e24bfB910aBABedC4336246e34B5fB0A2",
-        abi: abis.v2.DirectPayoutStrategyFactory,
         fromBlock: 9284367,
       },
     ],
@@ -197,17 +194,17 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
+        contractName: "ProjectRegistryV2",
         address: "0x8e1bD5Da87C14dd8e08F7ecc2aBf9D1d558ea174",
-        abi: abis.v2.ProjectRegistry,
       },
       {
+        contractName: "RoundFactoryV2",
         address: "0x04E753cFB8c8D1D7f776f7d7A033740961b6AEC2",
-        abi: abis.v2.RoundFactory,
         fromBlock: 87169287,
       },
       {
+        contractName: "QuadraticFundingVotingStrategyFactoryV2",
         address: "0x838C5e10dcc1e54d62761d994722367BA167AC22",
-        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
         fromBlock: 87168143,
       },
     ],
@@ -260,17 +257,17 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
+        contractName: "ProjectRegistryV2",
         address: "0x8e1bD5Da87C14dd8e08F7ecc2aBf9D1d558ea174",
-        abi: abis.v2.ProjectRegistry,
       },
       {
+        contractName: "RoundFactoryV2",
         address: "0xfb08d1fD3a7c693677eB096E722ABf4Ae63B0B95",
-        abi: abis.v2.RoundFactory,
         fromBlock: 66509340,
       },
       {
+        contractName: "QuadraticFundingVotingStrategyFactoryV2",
         address: "0x534d2AAc03dCd0Cb3905B591BAf04C14A95426AB",
-        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
         fromBlock: 66509340,
       },
     ],
@@ -304,17 +301,17 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
+        contractName: "ProjectRegistryV2",
         address: "0x6294bed5B884Ae18bf737793Ef9415069Bf4bc11",
-        abi: abis.v2.ProjectRegistry,
       },
       {
+        contractName: "RoundFactoryV2",
         address: "0x0479b9DA9f287539FEBd597350B1eBaEBF7479ac",
-        abi: abis.v2.RoundFactory,
         fromBlock: 0,
       },
       {
+        contractName: "QuadraticFundingVotingStrategyFactoryV2",
         address: "0xE8027a807Bb85e57da4B7A5ecE65b0aBDf231ce8",
-        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
         fromBlock: 0,
       },
     ],
@@ -348,17 +345,17 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
+        contractName: "ProjectRegistryV2",
         address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
-        abi: abis.v2.ProjectRegistry,
       },
       {
+        contractName: "RoundFactoryV2",
         address: "0x8AdFcF226dfb2fA73788Ad711C958Ba251369cb3",
-        abi: abis.v2.RoundFactory,
         fromBlock: 0,
       },
       {
+        contractName: "QuadraticFundingVotingStrategyFactoryV2",
         address: "0x2AFA4bE0f2468347A2F086c2167630fb1E58b725",
-        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
         fromBlock: 0,
       },
     ],
@@ -401,16 +398,16 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
+        contractName: "ProjectRegistryV2",
         address: "0x73AB205af1476Dc22104A6B8b3d4c273B58C6E27",
-        abi: abis.v2.ProjectRegistry,
       },
       {
+        contractName: "RoundFactoryV2",
         address: "0xF2a07728107B04266015E67b1468cA0a536956C8",
-        abi: abis.v2.RoundFactory,
       },
       {
+        contractName: "QuadraticFundingVotingStrategyFactoryV2",
         address: "0xC3A195EEa198e74D67671732E1B8F8A23781D735",
-        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
       },
     ],
   },
@@ -452,16 +449,16 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
+        contractName: "ProjectRegistryV2",
         address: "0x0CD135777dEaB6D0Bb150bDB0592aC9Baa4d0871",
-        abi: abis.v2.ProjectRegistry,
       },
       {
+        contractName: "RoundFactoryV2",
         address: "0xdf25423c9ec15347197Aa5D3a41c2ebE27587D59",
-        abi: abis.v2.RoundFactory,
       },
       {
+        contractName: "QuadraticFundingVotingStrategyFactoryV2",
         address: "0x0BFA0AAF5f2D81f859e85C8E82A3fc5b624fc6E8",
-        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
       },
     ],
   },
@@ -494,16 +491,16 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
+        contractName: "ProjectRegistryV2",
         address: "0x545B282A50EaeA01A619914d44105437036CbB36",
-        abi: abis.v2.ProjectRegistry,
       },
       {
+        contractName: "RoundFactoryV2",
         address: "0xE1c5812e9831bc1d5BDcF50AAEc1a47C4508F3fA",
-        abi: abis.v2.RoundFactory,
       },
       {
+        contractName: "QuadraticFundingVotingStrategyFactoryV2",
         address: "0x04b194b14532070F5cc8D3A760c9a0957D85ad5B",
-        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
       },
     ],
   },
@@ -536,16 +533,16 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
+        contractName: "ProjectRegistryV2",
         address: "0x5C5E2D94b107C7691B08E43169fDe76EAAB6D48b",
-        abi: abis.v2.ProjectRegistry,
       },
       {
+        contractName: "RoundFactoryV2",
         address: "0x5ab68dCdcA37A1C2b09c5218e28eB0d9cc3FEb03",
-        abi: abis.v2.RoundFactory,
       },
       {
+        contractName: "QuadraticFundingVotingStrategyFactoryV2",
         address: "0x74c3665540FC8B92Dd06a7e56a51eCa038C18180",
-        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
       },
     ],
   },
@@ -578,16 +575,16 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
+        contractName: "ProjectRegistryV2",
         address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
-        abi: abis.v2.ProjectRegistry,
       },
       {
+        contractName: "RoundFactoryV2",
         address: "0x8eC471f30cA797FD52F9D37A47Be2517a7BD6912",
-        abi: abis.v2.RoundFactory,
       },
       {
+        contractName: "QuadraticFundingVotingStrategyFactoryV2",
         address: "0x2AFA4bE0f2468347A2F086c2167630fb1E58b725",
-        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
       },
     ],
   },
@@ -620,16 +617,16 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
+        contractName: "ProjectRegistryV2",
         address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
-        abi: abis.v2.ProjectRegistry,
       },
       {
+        contractName: "RoundFactoryV2",
         address: "0x8eC471f30cA797FD52F9D37A47Be2517a7BD6912",
-        abi: abis.v2.RoundFactory,
       },
       {
+        contractName: "QuadraticFundingVotingStrategyFactoryV2",
         address: "0x2AFA4bE0f2468347A2F086c2167630fb1E58b725",
-        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
       },
     ],
   },
@@ -669,7 +666,7 @@ export type Config = {
   storageDir: string;
   cacheDir: string | null;
   chainDataDir: string;
-  fromBlock: number;
+  fromBlock: bigint;
   toBlock: ToBlock;
   passportScorerId: number;
   logLevel: "trace" | "debug" | "info" | "warn" | "error";
@@ -765,11 +762,12 @@ export function getConfig(): Config {
     });
 
   const toBlock = z
-    .union([z.coerce.number(), z.literal("latest")])
+    .literal("latest")
+    .or(z.coerce.bigint())
     .default("latest")
     .parse(args["to-block"]);
 
-  const fromBlock = z.coerce.number().default(0).parse(args["from-block"]);
+  const fromBlock = z.coerce.bigint().default(0n).parse(args["from-block"]);
 
   const logLevel = z
     .union([

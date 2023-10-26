@@ -1,16 +1,13 @@
 import { getChainConfigById } from "./config.js";
 import path from "node:path";
-import { JsonStorage } from "chainsauce";
+import { createJsonDatabase, Database } from "chainsauce";
 
-export default function load(
-  storageDir: string,
-  chainId?: number
-): JsonStorage {
+export default function load(storageDir: string, chainId?: number): Database {
   if (chainId) {
     const chain = getChainConfigById(chainId);
 
     storageDir = path.join(storageDir, chain.id.toString());
   }
 
-  return new JsonStorage(storageDir);
+  return createJsonDatabase({ dir: storageDir });
 }

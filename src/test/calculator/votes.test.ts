@@ -77,6 +77,8 @@ const votes: Vote[] = [
     amount: BigInt(20e18).toString(),
     amountUSD: 20,
     amountRoundToken: BigInt(50e18).toString(),
+    transaction: "0x1234",
+    blockNumber: 0,
   },
 
   // not expected to be capped to 10 tokens
@@ -93,6 +95,8 @@ const votes: Vote[] = [
     amount: BigInt(20e18).toString(),
     amountUSD: 20,
     amountRoundToken: BigInt(50e18).toString(),
+    transaction: "0x1234",
+    blockNumber: 0,
   },
 ];
 
