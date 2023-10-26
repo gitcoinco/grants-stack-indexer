@@ -687,9 +687,9 @@ export function getConfig(): Config {
     .default(null)
     .parse(process.env.BUILD_TAG);
 
-  const enableResourceMonitor = z.coerce
-    .boolean()
-    .default(false)
+  const enableResourceMonitor = z
+    .enum(["true", "false"])
+    .transform((value) => value === "true")
     .parse(process.env.ENABLE_RESOURCE_MONITOR);
 
   const apiHttpPort = z.coerce.number().parse(process.env.PORT);
