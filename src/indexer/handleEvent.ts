@@ -1,6 +1,5 @@
-import { Logger } from "pino";
-import { JsonStorage, Event as ChainsauceEvent } from "chainsauce";
-import { BigNumber, ethers } from "ethers";
+import { Event, EventHandlerArgs } from "chainsauce";
+import { ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
 
 import { getChainConfigById } from "../config.js";
@@ -12,16 +11,13 @@ import {
   Round,
   Vote,
 } from "./types.js";
-import { Event } from "./events.js";
-import { RoundContract, DirectPayoutContract } from "./contracts.js";
-import { PriceProvider } from "../prices/provider.js";
-import * as abis from "./abis/index.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
 import applicationMetaPtrUpdated from "./handlers/applicationMetaPtrUpdated.js";
 import matchAmountUpdated from "./handlers/matchAmountUpdated.js";
 import { UnknownTokenError } from "../prices/common.js";
+import type { Indexer } from "./indexer.js";
 
 enum ApplicationStatus {
   PENDING = 0,
@@ -42,10 +38,7 @@ function fullProjectId(
   );
 }
 
-const getFinalEventName = (
-  chainId: number,
-  originalEvent: ChainsauceEvent
-): string => {
+const getFinalEventName = (chainId: number, originalEvent: Event): string => {
   const chain = getChainConfigById(chainId);
   const eventRenamesForChain = Object.fromEntries(
     chain.subscriptions.map((sub) => [sub.address, sub.eventsRenames])
@@ -79,29 +72,15 @@ function updateApplicationStatus(
   return newApplication;
 }
 
-async function handleEvent(
-  originalEvent: ChainsauceEvent,
-  deps: {
-    chainId: number;
-    db: JsonStorage;
-    subscribe: (
-      address: string,
-      abi: ethers.ContractInterface,
-      fromBlock?: number | undefined
-    ) => ethers.Contract;
-    ipfsGet: <T>(cid: string) => Promise<T | undefined>;
-    priceProvider: PriceProvider;
-    logger: Logger;
-  }
-) {
-  const { db, subscribe, ipfsGet, priceProvider, chainId, logger } = deps;
+export async function handleEvent(args: EventHandlerArgs<Indexer>) {
+  const {
+    event,
+    subscribeToContract,
+    readContract,
+    context: { db, ipfsGet, priceProvider, chainId, logger },
+  } = args;
 
-  const eventName = getFinalEventName(chainId, originalEvent);
-
-  const event = {
-    ...originalEvent,
-    name: eventName,
-  } as Event;
+  const finalEventName = getFinalEventName(chainId, event);
 
   switch (event.name) {
     // -- PROJECTS
@@ -109,14 +88,14 @@ async function handleEvent(
       await db.collection<Project>("projects").insert({
         id: fullProjectId(
           chainId,
-          event.args.projectID.toNumber(),
+          Number(event.params.projectID),
           event.address
         ),
-        projectNumber: event.args.projectID.toNumber(),
+        projectNumber: Number(event.params.projectID),
         metaPtr: null,
         metadata: null,
-        owners: [event.args.owner],
-        createdAtBlock: event.blockNumber,
+        owners: [event.params.owner],
+        createdAtBlock: Number(event.blockNumber),
       });
 
       break;
@@ -125,18 +104,18 @@ async function handleEvent(
     case "MetadataUpdated": {
       const id = fullProjectId(
         chainId,
-        event.args.projectID.toNumber(),
+        Number(event.params.projectID),
         event.address
       );
 
       const metadata = await ipfsGet<Project["metadata"]>(
-        event.args.metaPtr.pointer
+        event.params.metaPtr.pointer
       );
 
       await db.collection<Project>("projects").updateById(id, (project) => {
         return {
           ...project,
-          metaPtr: event.args.metaPtr.pointer,
+          metaPtr: event.params.metaPtr.pointer,
           metadata: metadata ?? null,
         };
       });
@@ -147,13 +126,13 @@ async function handleEvent(
     case "OwnerAdded": {
       const id = fullProjectId(
         chainId,
-        event.args.projectID.toNumber(),
+        Number(event.params.projectID),
         event.address
       );
 
       await db.collection<Project>("projects").updateById(id, (project) => ({
         ...project,
-        owners: [...project.owners, event.args.owner],
+        owners: [...project.owners, event.params.owner],
       }));
       break;
     }
@@ -161,41 +140,31 @@ async function handleEvent(
     case "OwnerRemoved": {
       const id = fullProjectId(
         chainId,
-        event.args.projectID.toNumber(),
+        Number(event.params.projectID),
         event.address
       );
 
       await db.collection<Project>("projects").updateById(id, (project) => ({
         ...project,
-        owners: project.owners.filter((o: string) => o == event.args.owner),
+        owners: project.owners.filter((o: string) => o == event.params.owner),
       }));
       break;
     }
 
     // --- ROUND
-    case "RoundCreatedV1":
     case "RoundCreated": {
-      let contract: RoundContract;
+      const contract =
+        finalEventName === "RoundCreatedV1"
+          ? "RoundImplementationV1"
+          : "RoundImplementationV2";
 
-      let matchAmountPromise;
-
-      if (event.name === "RoundCreatedV1") {
-        contract = subscribe(
-          event.args.roundAddress,
-          abis.v1.RoundImplementation,
-          event.blockNumber
-        ) as RoundContract;
-        matchAmountPromise = BigNumber.from("0");
-      } else {
-        contract = subscribe(
-          event.args.roundAddress,
-          abis.v2.RoundImplementation,
-          event.blockNumber
-        ) as RoundContract;
-        matchAmountPromise = contract.matchAmount();
-      }
+      subscribeToContract({
+        contract,
+        address: event.params.roundAddress,
+      });
 
       const [
+        matchAmountResolved,
         applicationMetaPtrResolved,
         metaPtrResolved,
         tokenResolved,
@@ -203,20 +172,51 @@ async function handleEvent(
         applicationsEndTimeResolved,
         roundStartTimeResolved,
         roundEndTimeResolved,
-        matchAmountResolved,
       ] = await Promise.all([
-        contract.applicationMetaPtr(),
-        contract.roundMetaPtr(),
-        contract.token(),
-        contract.applicationsStartTime(),
-        contract.applicationsEndTime(),
-        contract.roundStartTime(),
-        contract.roundEndTime(),
-        matchAmountPromise,
+        readContract({
+          contract,
+          address: event.params.roundAddress,
+          functionName: "matchAmount",
+        }),
+        readContract({
+          contract,
+          address: event.params.roundAddress,
+          functionName: "applicationMetaPtr",
+        }),
+        readContract({
+          contract,
+          address: event.params.roundAddress,
+          functionName: "roundMetaPtr",
+        }),
+        readContract({
+          contract,
+          address: event.params.roundAddress,
+          functionName: "token",
+        }),
+        readContract({
+          contract,
+          address: event.params.roundAddress,
+          functionName: "applicationsStartTime",
+        }),
+        readContract({
+          contract,
+          address: event.params.roundAddress,
+          functionName: "applicationsEndTime",
+        }),
+        readContract({
+          contract,
+          address: event.params.roundAddress,
+          functionName: "roundStartTime",
+        }),
+        readContract({
+          contract,
+          address: event.params.roundAddress,
+          functionName: "roundEndTime",
+        }),
       ]);
 
-      const applicationMetaPtr = applicationMetaPtrResolved.pointer;
-      const metaPtr = metaPtrResolved.pointer;
+      const applicationMetaPtr = applicationMetaPtrResolved[1];
+      const metaPtr = metaPtrResolved[1];
       const token = tokenResolved.toString().toLowerCase();
       const matchAmount = matchAmountResolved;
       const applicationsStartTime = applicationsStartTimeResolved.toString();
@@ -224,7 +224,7 @@ async function handleEvent(
       const roundStartTime = roundStartTimeResolved.toString();
       const roundEndTime = roundEndTimeResolved.toString();
 
-      const roundId = event.args.roundAddress;
+      const roundId = event.params.roundAddress;
 
       await Promise.all([
         db.collection<Round>("rounds").insert({
@@ -243,69 +243,74 @@ async function handleEvent(
           applicationsEndTime,
           roundStartTime,
           roundEndTime,
-          createdAtBlock: event.blockNumber,
-          updatedAtBlock: event.blockNumber,
+          createdAtBlock: Number(event.blockNumber),
+          updatedAtBlock: Number(event.blockNumber),
         }),
         // create empty sub collections
-        db.collection(`rounds/${roundId}/projects`).replaceAll([]),
-        db.collection(`rounds/${roundId}/applications`).replaceAll([]),
-        db.collection(`rounds/${roundId}/votes`).replaceAll([]),
-        db.collection(`rounds/${roundId}/contributors`).replaceAll([]),
+        db.collection(`rounds/${roundId}/projects`).all(),
+        db.collection(`rounds/${roundId}/applications`).all(),
+        db.collection(`rounds/${roundId}/votes`).all(),
+        db.collection(`rounds/${roundId}/contributors`).all(),
       ]);
 
       await Promise.all([
-        matchAmountUpdated(
-          {
+        matchAmountUpdated({
+          ...args,
+          event: {
             ...event,
             name: "MatchAmountUpdated",
-            address: event.args.roundAddress,
-            args: {
+            address: event.params.roundAddress,
+            params: {
               newAmount: matchAmount,
             },
           },
-          { priceProvider, db, chainId }
-        ),
-        roundMetaPtrUpdated(
-          {
+        }),
+        roundMetaPtrUpdated({
+          ...args,
+          event: {
             ...event,
             name: "RoundMetaPtrUpdated",
-            address: event.args.roundAddress,
-            args: {
-              newMetaPtr: { pointer: metaPtr },
+            address: event.params.roundAddress,
+            params: {
+              newMetaPtr: { protocol: 0n, pointer: metaPtr },
+              oldMetaPtr: { protocol: 0n, pointer: "" },
             },
           },
-          { ipfsGet, db }
-        ),
-        applicationMetaPtrUpdated(
-          {
+        }),
+        applicationMetaPtrUpdated({
+          ...args,
+          event: {
             ...event,
             name: "ApplicationMetaPtrUpdated",
-            address: event.args.roundAddress,
-            args: {
-              newMetaPtr: { pointer: applicationMetaPtr },
+            address: event.params.roundAddress,
+            params: {
+              newMetaPtr: { protocol: 0n, pointer: applicationMetaPtr },
+              oldMetaPtr: { protocol: 0n, pointer: "" },
             },
           },
-          { ipfsGet, db }
-        ),
+        }),
       ]);
 
       break;
     }
 
     case "MatchAmountUpdated": {
-      return await matchAmountUpdated(event, { priceProvider, db, chainId });
+      return await matchAmountUpdated({ ...args, event });
     }
 
     case "RoundMetaPtrUpdated": {
-      return await roundMetaPtrUpdated(event, { ipfsGet, db });
+      return await roundMetaPtrUpdated({ ...args, event });
     }
 
     case "ApplicationMetaPtrUpdated": {
-      return await applicationMetaPtrUpdated(event, { ipfsGet, db });
+      return await applicationMetaPtrUpdated({ ...args, event });
     }
 
     case "NewProjectApplication": {
-      const projectId = event.args.project || event.args.projectID.toString();
+      const projectId =
+        "project" in event.params
+          ? event.params.project.toString()
+          : event.params.projectID.toString();
 
       const applications = db.collection<Application>(
         `rounds/${event.address}/applications`
@@ -316,7 +321,10 @@ async function handleEvent(
       );
 
       const applicationIndex =
-        event.args.applicationIndex?.toString() ?? projectId;
+        "applicationIndex" in event.params
+          ? event.params.applicationIndex.toString()
+          : projectId;
+
       const application: Application = {
         id: applicationIndex,
         projectId: projectId,
@@ -326,12 +334,12 @@ async function handleEvent(
         votes: 0,
         uniqueContributors: 0,
         metadata: null,
-        createdAtBlock: event.blockNumber,
-        statusUpdatedAtBlock: event.blockNumber,
+        createdAtBlock: Number(event.blockNumber),
+        statusUpdatedAtBlock: Number(event.blockNumber),
         statusSnapshots: [
           {
             status: "PENDING",
-            statusUpdatedAtBlock: event.blockNumber,
+            statusUpdatedAtBlock: Number(event.blockNumber),
           },
         ],
       };
@@ -347,29 +355,29 @@ async function handleEvent(
           .collection(
             `rounds/${event.address}/applications/${applicationIndex}/votes`
           )
-          .replaceAll([]),
+          .all(),
         db
           .collection(
             `rounds/${event.address}/applications/${applicationIndex}/contributors`
           )
-          .replaceAll([]),
+          .all(),
       ]);
 
       if (isNewProject) {
         await Promise.all([
           db
             .collection(`rounds/${event.address}/projects/${projectId}/votes`)
-            .replaceAll([]),
-          await db
+            .all(),
+          db
             .collection(
               `rounds/${event.address}/projects/${projectId}/contributors`
             )
-            .replaceAll([]),
+            .all(),
         ]);
       }
 
       const metadata = await ipfsGet<Application["metadata"]>(
-        event.args.applicationMetaPtr.pointer
+        event.params.applicationMetaPtr.pointer
       );
 
       if (metadata) {
@@ -391,7 +399,7 @@ async function handleEvent(
     case "ProjectsMetaPtrUpdated": {
       const projects = await ipfsGet<
         { id: string; status: Application["status"]; payoutAddress: string }[]
-      >(event.args.newMetaPtr.pointer);
+      >(event.params.newMetaPtr.pointer);
 
       if (!projects) {
         return;
@@ -405,14 +413,14 @@ async function handleEvent(
             .collection<Application>(`rounds/${event.address}/projects`)
             .updateById(projectId, (application) => ({
               ...application,
-              statusUpdatedAtBlock: event.blockNumber,
+              statusUpdatedAtBlock: Number(event.blockNumber),
               status: projectApp.status ?? application.status,
             })),
           db
             .collection<Application>(`rounds/${event.address}/applications`)
             .updateById(projectId, (application) => ({
               ...application,
-              statusUpdatedAtBlock: event.blockNumber,
+              statusUpdatedAtBlock: Number(event.blockNumber),
               status: projectApp.status ?? application.status,
             })),
         ]);
@@ -422,8 +430,8 @@ async function handleEvent(
 
     case "ApplicationStatusesUpdated": {
       const bitmap = new StatusesBitmap(256n, 2n);
-      bitmap.setRow(event.args.index.toBigInt(), event.args.status.toBigInt());
-      const startIndex = event.args.index.toBigInt() * bitmap.itemsPerRow;
+      bitmap.setRow(event.params.index, event.params.status);
+      const startIndex = event.params.index * bitmap.itemsPerRow;
 
       // XXX should be translatable to Promise.all([/* ... */].map(...)) but leaving for later as it's non-straightforward
       for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
@@ -435,7 +443,7 @@ async function handleEvent(
             updateApplicationStatus(
               application,
               statusString,
-              event.blockNumber
+              Number(event.blockNumber)
             )
           );
 
@@ -446,7 +454,7 @@ async function handleEvent(
               updateApplicationStatus(
                 application,
                 statusString,
-                event.blockNumber
+                Number(event.blockNumber)
               )
             );
         }
@@ -455,21 +463,18 @@ async function handleEvent(
     }
 
     // --- Voting Strategy
-    case "VotingContractCreatedV1": {
-      subscribe(
-        event.args.votingContractAddress,
-        abis.v1.QuadraticFundingVotingStrategyImplementation,
-        event.blockNumber
-      );
-      break;
-    }
-
     case "VotingContractCreated": {
-      subscribe(
-        event.args.votingContractAddress,
-        abis.v2.QuadraticFundingVotingStrategyImplementation,
-        event.blockNumber
-      );
+      if (finalEventName === "VotingContractCreatedV1") {
+        subscribeToContract({
+          contract: "QuadraticFundingVotingStrategyImplementationV1",
+          address: event.params.votingContractAddress,
+        });
+      } else {
+        subscribeToContract({
+          contract: "QuadraticFundingVotingStrategyImplementationV2",
+          address: event.params.votingContractAddress,
+        });
+      }
       break;
     }
 
@@ -481,38 +486,40 @@ async function handleEvent(
       );
 
       const applicationId =
-        event.args.applicationIndex?.toString() ??
-        event.args.projectId.toString();
+        "applicationIndex" in event.params
+          ? event.params.applicationIndex.toString()
+          : event.params.projectId.toString();
 
       // If an `origin` field is present, this event comes from MRC, thus ignore the
       // `voter` field because that's the contract. See AIP-13
-      const realVoterAddress = event.args.origin ?? event.args.voter;
+      const realVoterAddress =
+        "origin" in event.params ? event.params.origin : event.params.voter;
 
       const application = await db
         .collection<Application>(
-          `rounds/${event.args.roundAddress}/applications`
+          `rounds/${event.params.roundAddress}/applications`
         )
         .findById(applicationId);
 
       const round = await db
         .collection<Round>(`rounds`)
-        .findById(event.args.roundAddress);
+        .findById(event.params.roundAddress);
 
       if (
-        application === undefined ||
+        application === null ||
         application.status !== "APPROVED" ||
-        round === undefined
+        round === null
       ) {
         return;
       }
 
-      const token = event.args.token.toLowerCase();
+      const token = event.params.token.toLowerCase();
 
       const conversionToUSD = await priceProvider.convertToUSD(
         chainId,
         token,
-        event.args.amount.toBigInt(),
-        event.blockNumber
+        event.params.amount,
+        Number(event.blockNumber)
       );
 
       const amountUSD = conversionToUSD.amount;
@@ -521,13 +528,13 @@ async function handleEvent(
       try {
         amountRoundToken =
           round.token === token
-            ? event.args.amount.toString()
+            ? event.params.amount.toString()
             : (
                 await priceProvider.convertFromUSD(
                   chainId,
                   round.token,
                   conversionToUSD.amount,
-                  event.blockNumber
+                  Number(event.blockNumber)
                 )
               ).amount.toString();
       } catch (err) {
@@ -543,24 +550,24 @@ async function handleEvent(
         }
       }
 
-      const vote = {
+      const vote: Vote = {
         id: voteId,
         transaction: event.transactionHash,
-        blockNumber: event.blockNumber,
-        projectId: event.args.projectId,
+        blockNumber: Number(event.blockNumber),
+        projectId: event.params.projectId,
         applicationId: applicationId,
-        roundId: event.args.roundAddress,
+        roundId: event.params.roundAddress,
         voter: realVoterAddress,
-        grantAddress: event.args.grantAddress,
-        token: event.args.token,
-        amount: event.args.amount.toString(),
+        grantAddress: event.params.grantAddress,
+        token: event.params.token,
+        amount: event.params.amount.toString(),
         amountUSD: amountUSD,
         amountRoundToken,
       };
 
       // Insert or update  unique round contributor
       const roundContributors = db.collection<Contributor>(
-        `rounds/${event.args.roundAddress}/contributors`
+        `rounds/${event.params.roundAddress}/contributors`
       );
 
       const isNewRoundContributor = await roundContributors.upsertById(
@@ -584,7 +591,7 @@ async function handleEvent(
 
       // Insert or update unique project contributor
       const projectContributors = db.collection<Contributor>(
-        `rounds/${event.args.roundAddress}/projects/${event.args.projectId}/contributors`
+        `rounds/${event.params.roundAddress}/projects/${event.params.projectId}/contributors`
       );
 
       const isNewProjectContributor = await projectContributors.upsertById(
@@ -608,7 +615,7 @@ async function handleEvent(
 
       // Insert or update unique application contributor
       const applicationContributors = db.collection<Contributor>(
-        `rounds/${event.args.roundAddress}/applications/${applicationId}/contributors`
+        `rounds/${event.params.roundAddress}/applications/${applicationId}/contributors`
       );
 
       const isNewapplicationContributor =
@@ -631,21 +638,6 @@ async function handleEvent(
           }
         );
 
-      await Promise.all([
-        db
-          .collection<Application>(
-            `rounds/${event.args.roundAddress}/applications`
-          )
-          .updateById(applicationId, (project) => ({
-            ...project,
-            amountUSD: project.amountUSD + amountUSD,
-            votes: project.votes + 1,
-            uniqueContributors:
-              project.uniqueContributors +
-              (isNewapplicationContributor ? 1 : 0),
-          })),
-      ]);
-
       const contributorPartitionedPath = vote.voter
         .split(/(.{6})/)
         .filter((s: string) => s.length > 0)
@@ -664,8 +656,20 @@ async function handleEvent(
             roundEndTime: round.roundEndTime,
           }),
         db
+          .collection<Application>(
+            `rounds/${event.params.roundAddress}/applications`
+          )
+          .updateById(applicationId, (project) => ({
+            ...project,
+            amountUSD: project.amountUSD + amountUSD,
+            votes: project.votes + 1,
+            uniqueContributors:
+              project.uniqueContributors +
+              (isNewapplicationContributor ? 1 : 0),
+          })),
+        db
           .collection<Round>("rounds")
-          .updateById(event.args.roundAddress, (round) => ({
+          .updateById(event.params.roundAddress, (round) => ({
             ...round,
             amountUSD: round.amountUSD + amountUSD,
             votes: round.votes + 1,
@@ -673,8 +677,10 @@ async function handleEvent(
               round.uniqueContributors + (isNewRoundContributor ? 1 : 0),
           })),
         db
-          .collection<Application>(`rounds/${event.args.roundAddress}/projects`)
-          .updateById(event.args.projectId, (project) => ({
+          .collection<Application>(
+            `rounds/${event.params.roundAddress}/projects`
+          )
+          .updateById(event.params.projectId, (project) => ({
             ...project,
             amountUSD: project.amountUSD + amountUSD,
             votes: project.votes + 1,
@@ -682,7 +688,7 @@ async function handleEvent(
               project.uniqueContributors + (isNewProjectContributor ? 1 : 0),
           })),
         db
-          .collection<Vote>(`rounds/${event.args.roundAddress}/votes`)
+          .collection<Vote>(`rounds/${event.params.roundAddress}/votes`)
           .insert(vote),
       ]);
 
@@ -691,26 +697,23 @@ async function handleEvent(
 
     // --- Direct Payout Strategy
     case "PayoutContractCreated": {
-      subscribe(
-        event.args.payoutContractAddress,
-        abis.v2.DirectPayoutStrategyImplementation,
-        event.blockNumber
-      );
+      subscribeToContract({
+        contract: "DirectPayoutStrategyImplementationV2",
+        address: event.params.payoutContractAddress,
+      });
       break;
     }
 
     case "ApplicationInReviewUpdated": {
-      const contract = subscribe(
-        event.address,
-        abis.v2.DirectPayoutStrategyImplementation,
-        event.blockNumber
-      ) as DirectPayoutContract;
-
-      const round = await contract.roundAddress();
+      const round = await readContract({
+        contract: "DirectPayoutStrategyImplementationV2",
+        address: event.address,
+        functionName: "roundAddress",
+      });
 
       const bitmap = new StatusesBitmap(256n, 1n);
-      bitmap.setRow(event.args.index.toBigInt(), event.args.status.toBigInt());
-      const startIndex = event.args.index.toBigInt() * bitmap.itemsPerRow;
+      bitmap.setRow(event.params.index, event.params.status);
+      const startIndex = event.params.index * bitmap.itemsPerRow;
 
       // XXX should be translatable to Promise.all([/* ... */].map(...)) but leaving for later as it's non-straightforward
       for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
@@ -729,7 +732,7 @@ async function handleEvent(
               updateApplicationStatus(
                 application,
                 statusString,
-                event.blockNumber
+                Number(event.blockNumber)
               )
             );
         }
@@ -739,8 +742,6 @@ async function handleEvent(
     }
 
     default:
-    // console.log("TODO", event.name, event.args);
+    // console.log("TODO", event.name, event.params);
   }
 }
-
-export default handleEvent;

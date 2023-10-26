@@ -1,25 +1,27 @@
-import { JsonStorage } from "chainsauce";
+import { EventHandlerArgs } from "chainsauce";
+
 import { Round } from "../types.js";
-import { ApplicationMetaPtrUpdatedEvent } from "../events.js";
+import type { Indexer } from "../indexer.js";
+import { ethers } from "ethers";
 
-export default async function applicationMetaPtrUpdated(
-  event: ApplicationMetaPtrUpdatedEvent,
-  deps: {
-    db: JsonStorage;
-    ipfsGet: <T>(cid: string) => Promise<T | undefined>;
-  }
-) {
-  const { db, ipfsGet } = deps;
-  const id = event.address;
+export default async function ({
+  event,
+  context: { ipfsGet, db },
+}: EventHandlerArgs<
+  Indexer,
+  "RoundImplementationV2",
+  "ApplicationMetaPtrUpdated"
+>) {
+  const id = ethers.utils.getAddress(event.address);
 
-  const metaPtr = event.args.newMetaPtr.pointer;
+  const metaPtr = event.params.newMetaPtr.pointer;
   const metadata = await ipfsGet<Round["applicationMetadata"]>(metaPtr);
 
   await db.collection<Round>("rounds").updateById(id, (round) => {
     return {
       ...round,
-      applicationMetaPtr: event.args.newMetaPtr.pointer,
-      updatedAtBlock: event.blockNumber,
+      applicationMetaPtr: event.params.newMetaPtr.pointer,
+      updatedAtBlock: Number(event.blockNumber),
       applicationMetadata: metadata ?? null,
     };
   });

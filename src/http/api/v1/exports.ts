@@ -2,7 +2,7 @@ import {
   createObjectCsvStringifier,
   createArrayCsvStringifier,
 } from "csv-writer";
-import { JsonStorage } from "chainsauce";
+import { Database } from "chainsauce";
 import express from "express";
 import { pino } from "pino";
 
@@ -16,7 +16,7 @@ import { HttpApiConfig } from "../../app.js";
 export const createHandler = (config: HttpApiConfig): express.Router => {
   const router = express.Router();
 
-  async function exportVotesCSV(db: JsonStorage, round: Round) {
+  async function exportVotesCSV(db: Database, round: Round) {
     const csv = createObjectCsvStringifier({
       header: [
         "id",
@@ -71,7 +71,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
 
   async function exportVoteCoefficientsCSV(
     chainId: number,
-    db: JsonStorage,
+    db: Database,
     round: Round
   ) {
     const [applications, votes] = await Promise.all([
@@ -175,7 +175,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     return csv.getHeaderString()!.concat(csv.stringifyRecords([round]));
   }
 
-  async function exportApplicationsCSV(db: JsonStorage, round: Round) {
+  async function exportApplicationsCSV(db: Database, round: Round) {
     const applications = await db
       .collection<Application>(`rounds/${round.id}/applications`)
       .all();

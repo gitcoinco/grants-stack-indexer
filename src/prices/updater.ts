@@ -108,7 +108,7 @@ export function createPriceUpdater(
       if (toBlock === "latest") {
         toDate = new Date();
       } else {
-        const block = await provider.getBlock(toBlock);
+        const block = await provider.getBlock(Number(toBlock));
         toDate = new Date(block.timestamp * 1000);
       }
 
