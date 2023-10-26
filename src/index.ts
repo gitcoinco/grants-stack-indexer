@@ -121,6 +121,7 @@ async function catchupAndWatchPassport(
   const logger = config.baseLogger.child({ subsystem: "PassportProvider" });
   try {
     await fs.mkdir(config.storageDir, { recursive: true });
+    await fs.mkdir(config.chainDataDir, { recursive: true });
 
     const passportProvider = createPassportProvider({
       logger,
