@@ -1,29 +1,28 @@
 import { vi, expect, test, describe } from "vitest";
 
 import { createResourceMonitor } from "./resourceMonitor.js";
-
-vi.mock("diskstats", () => {
-  return {
-    default: {
-      check: () => ({
-        total: 100,
-        used: 50,
-        inodes: {
-          total: 100,
-          used: 60,
-        },
-      }),
-    },
-  };
-});
+import { pino } from "pino";
 
 describe("ResourceMonitor", () => {
   test("reporting", async () => {
     vi.useFakeTimers();
-    const log = vi.fn();
+    const logger = pino();
+
+    const logInfoMock = vi.spyOn(logger, "info").mockImplementation(() => {});
 
     const monitor = createResourceMonitor({
-      log,
+      logger,
+      diskstats: {
+        check: () =>
+          Promise.resolve({
+            total: 100,
+            used: 50,
+            inodes: {
+              total: 100,
+              used: 60,
+            },
+          }),
+      },
       directories: ["/"],
       pollingIntervalMs: 1000,
     });
@@ -34,16 +33,16 @@ describe("ResourceMonitor", () => {
     {
       await vi.runOnlyPendingTimersAsync();
 
-      expect(log).toHaveBeenCalledTimes(2);
+      expect(logInfoMock).toHaveBeenCalledTimes(2);
 
-      expect(log).toHaveBeenCalledWith({
+      expect(logInfoMock).toHaveBeenCalledWith({
         type: "disk",
         directory: "/",
         total: 100,
         used: 50,
       });
 
-      expect(log).toHaveBeenCalledWith({
+      expect(logInfoMock).toHaveBeenCalledWith({
         type: "inode",
         directory: "/",
         total: 100,
@@ -53,19 +52,19 @@ describe("ResourceMonitor", () => {
 
     // loggin should continue after the first interval
     {
-      log.mockClear();
+      logInfoMock.mockClear();
       await vi.runOnlyPendingTimersAsync();
 
-      expect(log).toHaveBeenCalledTimes(2);
+      expect(logInfoMock).toHaveBeenCalledTimes(2);
 
-      expect(log).toHaveBeenCalledWith({
+      expect(logInfoMock).toHaveBeenCalledWith({
         type: "disk",
         directory: "/",
         total: 100,
         used: 50,
       });
 
-      expect(log).toHaveBeenCalledWith({
+      expect(logInfoMock).toHaveBeenCalledWith({
         type: "inode",
         directory: "/",
         total: 100,
@@ -75,12 +74,12 @@ describe("ResourceMonitor", () => {
 
     // no reporting should happen after the monitor is stopped
     {
-      log.mockClear();
+      logInfoMock.mockClear();
       monitor.stop();
 
       await vi.runOnlyPendingTimersAsync();
 
-      expect(log).toHaveBeenCalledTimes(0);
+      expect(logInfoMock).toHaveBeenCalledTimes(0);
     }
   });
 });

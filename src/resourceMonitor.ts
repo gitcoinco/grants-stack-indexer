@@ -1,18 +1,4 @@
-import diskstats from "diskstats";
-
-export type ResourceLog =
-  | {
-      type: "inode";
-      directory: string;
-      total: number;
-      used: number;
-    }
-  | {
-      type: "disk";
-      directory: string;
-      total: number;
-      used: number;
-    };
+import { Logger } from "pino";
 
 interface ResourceMonitor {
   start: () => void;
@@ -20,13 +6,15 @@ interface ResourceMonitor {
 }
 
 interface ResourceMonitorConfig {
-  log: (log: ResourceLog) => void;
+  diskstats: typeof import("diskstats");
+  logger: Logger;
   directories: string[];
   pollingIntervalMs: number;
 }
 
 export function createResourceMonitor({
-  log,
+  logger,
+  diskstats,
   directories,
   pollingIntervalMs,
 }: ResourceMonitorConfig): ResourceMonitor {
@@ -39,7 +27,7 @@ export function createResourceMonitor({
       const totalDiskSpace = stats.total;
       const totalDiskUsed = stats.used;
 
-      log({
+      logger.info({
         type: "disk",
         directory,
         total: totalDiskSpace,
@@ -49,7 +37,7 @@ export function createResourceMonitor({
       const totalInodes = stats.inodes.total;
       const totalInodesUsed = stats.inodes.used;
 
-      log({
+      logger.info({
         type: "inode",
         directory,
         total: totalInodes,

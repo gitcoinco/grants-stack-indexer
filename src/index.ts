@@ -13,7 +13,9 @@ import fetch from "make-fetch-happen";
 import { throttle } from "throttle-debounce";
 
 import { createPassportProvider, PassportProvider } from "./passport/index.js";
+
 import { createResourceMonitor, ResourceLog } from "./resourceMonitor.js";
+import diskstats from "diskstats";
 
 import { DeprecatedDiskCache } from "./diskCache.js";
 import { Chain, getConfig, Config } from "./config.js";
@@ -396,12 +398,9 @@ function monitorAndLogResources(config: {
 
   resourceMonitorLogger.info({ msg: "starting resource monitor" });
 
-  function log(resource: ResourceLog) {
-    resourceMonitorLogger.info(resource);
-  }
-
   const resourceMonitor = createResourceMonitor({
-    log,
+    logger: resourceMonitorLogger,
+    diskstats,
     directories: config.directories,
     pollingIntervalMs: RESOURCE_MONITOR_INTERVAL_MS,
   });
