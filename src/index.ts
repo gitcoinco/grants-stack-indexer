@@ -13,6 +13,10 @@ import fetch from "make-fetch-happen";
 import { throttle } from "throttle-debounce";
 
 import { createPassportProvider, PassportProvider } from "./passport/index.js";
+
+import { createResourceMonitor } from "./resourceMonitor.js";
+import diskstats from "diskstats";
+
 import { DeprecatedDiskCache } from "./diskCache.js";
 import { Chain, getConfig, Config } from "./config.js";
 import { createPriceUpdater } from "./prices/updater.js";
@@ -20,9 +24,12 @@ import { createPriceProvider } from "./prices/provider.js";
 import { createHttpApi } from "./http/app.js";
 import { FileSystemDataProvider } from "./calculator/index.js";
 import { ethers } from "ethers";
+
 import abis from "./indexer/abis/index.js";
 import type { EventHandlerContext } from "./indexer/indexer.js";
 import { handleEvent } from "./indexer/handleEvent.js";
+
+const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
 
 async function main(): Promise<void> {
   const config = getConfig();
@@ -64,6 +71,15 @@ async function main(): Promise<void> {
         ")"
     ),
   });
+
+  if (config.enableResourceMonitor) {
+    monitorAndLogResources({
+      logger: baseLogger,
+      directories: [config.storageDir].concat(
+        config.cacheDir ? [config.cacheDir] : []
+      ),
+    });
+  }
 
   if (config.runOnce) {
     await Promise.all(
@@ -370,4 +386,24 @@ async function catchupAndWatchChain(
     });
     throw err;
   }
+}
+
+function monitorAndLogResources(config: {
+  logger: Logger;
+  directories: string[];
+}) {
+  const resourceMonitorLogger = config.logger.child({
+    subsystem: "ResourceMonitor",
+  });
+
+  resourceMonitorLogger.info({ msg: "starting resource monitor" });
+
+  const resourceMonitor = createResourceMonitor({
+    logger: resourceMonitorLogger,
+    diskstats,
+    directories: config.directories,
+    pollingIntervalMs: RESOURCE_MONITOR_INTERVAL_MS,
+  });
+
+  resourceMonitor.start();
 }
