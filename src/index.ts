@@ -1,6 +1,5 @@
 import {
   createIndexer,
-  createJsonDatabase,
   createSqliteCache,
   createSqliteSubscriptionStore,
   createHttpRpcClient,
@@ -28,6 +27,8 @@ import { ethers } from "ethers";
 import abis from "./indexer/abis/index.js";
 import type { EventHandlerContext } from "./indexer/indexer.js";
 import { handleEvent } from "./indexer/handleEvent.js";
+import { createSqliteDatabase, Database } from "./database.js";
+import { ZodError } from "zod";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
 
@@ -97,16 +98,21 @@ async function main(): Promise<void> {
     // Promises will be resolved once the initial catchup is done. Afterwards, services
     // will still be in listen-and-update mode.
 
-    const [passportProvider] = await Promise.all([
+    const [passportProvider, ...chanDbEntries] = await Promise.all([
       catchupAndWatchPassport({
         ...config,
         baseLogger,
         runOnce: config.runOnce,
       }),
       ...config.chains.map(async (chain) =>
-        catchupAndWatchChain({ chain, baseLogger, ...config })
+        catchupAndWatchChain({ chain, baseLogger, ...config }).then((db) => [
+          chain.id,
+          db,
+        ])
       ),
     ]);
+
+    const chainDb = Object.fromEntries(chanDbEntries);
 
     const httpApi = createHttpApi({
       chainDataDir: config.chainDataDir,
@@ -163,7 +169,7 @@ async function catchupAndWatchPassport(
 
 async function catchupAndWatchChain(
   config: Omit<Config, "chains"> & { chain: Chain; baseLogger: Logger }
-): Promise<void> {
+): Promise<Database> {
   const chainLogger = config.baseLogger.child({
     chain: config.chain.id,
   });
@@ -174,19 +180,19 @@ async function catchupAndWatchChain(
       config.chain.id.toString()
     );
 
+    // Force a full re-indexing on every startup.
+    await fs.rm(CHAIN_DIR_PATH, { recursive: true, force: true });
+    await fs.mkdir(CHAIN_DIR_PATH, { recursive: true });
+
     const pricesCache: DeprecatedDiskCache | null = config.cacheDir
       ? new DeprecatedDiskCache(path.join(config.cacheDir, "prices"))
       : null;
 
-    // Force a full re-indexing on every startup.
-    // XXX For the longer term, verify whether ChainSauce supports
-    // any sort of stop-and-resume.
-    await fs.rm(CHAIN_DIR_PATH, { force: true, recursive: true });
-
-    const storage = createJsonDatabase({
-      dir: CHAIN_DIR_PATH,
-      writeDelay: 500,
+    const db = createSqliteDatabase({
+      dbPath: path.join(CHAIN_DIR_PATH, "data.db"),
     });
+
+    await db.migrate();
 
     const priceProvider = createPriceProvider({
       ...config,
@@ -272,7 +278,7 @@ async function catchupAndWatchChain(
 
     const eventHandlerContext: EventHandlerContext = {
       chainId: config.chain.id,
-      db: storage,
+      db,
       ipfsGet: cachedIpfsGet,
       priceProvider,
       logger: indexerLogger,
@@ -379,6 +385,8 @@ async function catchupAndWatchChain(
 
       indexer.watch();
     }
+
+    return db;
   } catch (err) {
     chainLogger.error({
       msg: `error during initial catch up with chain ${config.chain.id}`,

@@ -1,113 +1,145 @@
-export type Hex = `0x${string}`;
+import { z } from "zod";
 
-export type MetaPtr = {
-  pointer: string;
-};
+export const HexSchema = z.custom<`0x${string}`>((str) => {
+  return typeof str === "string" && str.startsWith("0x");
+}, "Must start with 0x");
 
-export type Round = {
-  id: Hex;
-  amountUSD: number;
-  votes: number;
-  token: string;
-  matchAmount: string;
-  matchAmountUSD: number;
-  uniqueContributors: number;
-  applicationMetaPtr: string;
-  applicationMetadata: string | null;
-  metaPtr: string;
-  metadata: {
-    name: string;
-    quadraticFundingConfig?: {
-      matchingFundsAvailable?: number;
-      sybilDefense?: boolean;
-      matchingCap?: boolean;
-      matchingCapAmount?: number;
-      minDonationThreshold?: boolean;
-      minDonationThresholdAmount?: number;
-    };
-  } | null;
-  applicationsStartTime: string;
-  applicationsEndTime: string;
-  roundStartTime: string;
-  roundEndTime: string;
-  createdAtBlock: number;
-  updatedAtBlock: number;
-};
+export const MetaPtrSchema = z.object({
+  pointer: z.string(),
+});
 
-export type Project = {
-  id: string;
-  metaPtr: string | null;
-  owners: Array<string>;
-  createdAtBlock: number;
-  projectNumber: number;
-  metadata: {
-    title: string;
-    description: string;
-    website: string;
-    projectTwitter: string;
-    projectGithub: string;
-    userGithub: string;
-    logoImg: string;
-    bannerImg: string;
-    logoImgData: string;
-    bannerImgData: string;
-    cretedAt: number;
-  } | null;
-};
+export const RoundSchema = z.object({
+  id: HexSchema,
+  amountUSD: z.number(),
+  votes: z.number(),
+  token: z.string(),
+  matchAmount: z.string(),
+  matchAmountUSD: z.number(),
+  uniqueContributors: z.number(),
+  applicationMetaPtr: z.string(),
+  applicationMetadata: z.unknown().nullable(),
+  metaPtr: z.string(),
+  metadata: z
+    .object({
+      name: z.string(),
+      quadraticFundingConfig: z.object({
+        matchingFundsAvailable: z.optional(z.number()),
+        sybilDefense: z.optional(z.boolean()),
+        matchingCap: z.optional(z.boolean()),
+        matchingCapAmount: z.optional(z.number()),
+        minDonationThreshold: z.optional(z.boolean()),
+        minDonationThresholdAmount: z.optional(z.number()),
+      }),
+    })
+    .deepPartial()
+    .nullable(),
+  applicationsStartTime: z.string(),
+  applicationsEndTime: z.string(),
+  roundStartTime: z.string(),
+  roundEndTime: z.string(),
+  createdAtBlock: z.number(),
+  updatedAtBlock: z.number(),
+});
 
-export type Contributor = { id: string; amountUSD: number; votes: number };
+export const ProjectSchema = z.object({
+  id: z.string(),
+  metaPtr: z.string().nullable(),
+  owners: z.array(z.string()),
+  createdAtBlock: z.number(),
+  projectNumber: z.number(),
+  metadata: z
+    .object({
+      title: z.string(),
+      description: z.string(),
+      website: z.string(),
+      projectTwitter: z.string(),
+      projectGithub: z.string(),
+      userGithub: z.string(),
+      logoImg: z.string(),
+      createdAt: z.number(),
+    })
+    .partial()
+    .nullable(),
+});
 
-export type Application = {
-  id: string;
-  projectId: string;
-  roundId: string;
-  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "IN_REVIEW";
-  amountUSD: number;
-  votes: number;
-  uniqueContributors: number;
-  metadata: {
-    application: {
-      project: {
-        title: string;
-        website: string;
-        projectTwitter: string;
-        projectGithub: string;
-        userGithub: string;
-      };
-      answers: Array<{
-        question: string;
-        answer: string;
-        encryptedAnswer: string | null;
-      }>;
-      recipient: string;
-    };
-  } | null;
-  createdAtBlock: number;
-  statusUpdatedAtBlock: number;
-  statusSnapshots: Array<{
-    status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "IN_REVIEW";
-    statusUpdatedAtBlock: number;
-  }>;
-};
+export const ContributorSchema = z.object({
+  id: z.string(),
+  amountUSD: z.number(),
+  votes: z.number(),
+});
 
-export type Vote = {
-  id: string;
-  transaction: Hex;
-  blockNumber: number;
-  projectId: string;
-  roundId: string;
-  applicationId: string;
-  token: string;
-  voter: string;
-  grantAddress: string;
-  amount: string;
-  amountUSD: number;
-  amountRoundToken: string;
-};
+export const ApplicationStatusSchema = z.enum([
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+  "CANCELLED",
+  "IN_REVIEW",
+]);
 
-export type DetailedVote = Vote & {
-  roundName?: string;
-  projectTitle?: string;
-  roundStartTime?: string;
-  roundEndTime?: string;
-};
+export const ApplicationSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  roundId: z.string(),
+  status: ApplicationStatusSchema,
+  amountUSD: z.number(),
+  votes: z.number(),
+  uniqueContributors: z.number(),
+  metadata: z
+    .object({
+      application: z.object({
+        project: z.object({
+          title: z.string(),
+          website: z.string(),
+          projectTwitter: z.string().optional(),
+          projectGithub: z.string().optional(),
+          userGithub: z.string().optional(),
+        }),
+        answers: z.array(
+          z.object({
+            question: z.string(),
+            encryptedAnswer: z
+              .object({
+                ciphertext: z.string(),
+                encryptedSymmetricKey: z.string(),
+              })
+              .optional(),
+            answer: z.string().or(z.array(z.string())).optional(),
+          })
+        ),
+        recipient: z.string(),
+      }),
+    })
+    .nullable(),
+  createdAtBlock: z.number(),
+  statusUpdatedAtBlock: z.number(),
+  statusSnapshots: z.array(
+    z.object({
+      status: ApplicationStatusSchema,
+      statusUpdatedAtBlock: z.number(),
+    })
+  ),
+});
+
+export const VoteSchema = z.object({
+  id: z.string(),
+  transaction: HexSchema,
+  blockNumber: z.number(),
+  projectId: z.string(),
+  roundId: z.string(),
+  applicationId: z.string(),
+  token: z.string(),
+  voter: z.string(),
+  grantAddress: z.string(),
+  amount: z.string(),
+  amountUSD: z.number(),
+  amountRoundToken: z.string(),
+});
+
+export type Hex = z.infer<typeof HexSchema>;
+export type MetaPtr = z.infer<typeof MetaPtrSchema>;
+export type Round = z.infer<typeof RoundSchema>;
+export type Project = z.infer<typeof ProjectSchema>;
+export type Contributor = z.infer<typeof ContributorSchema>;
+export type Application = z.infer<typeof ApplicationSchema>;
+
+export type Vote = z.infer<typeof VoteSchema>;

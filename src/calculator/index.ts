@@ -5,7 +5,7 @@ import type { PassportProvider } from "../passport/index.js";
 import { PriceProvider } from "../prices/provider.js";
 import { convertTokenToFiat, convertFiatToToken } from "../tokenMath.js";
 import { Chain, getDecimalsForToken } from "../config.js";
-import type { Round, Application, Vote } from "../indexer/types.js";
+import type { Round, Application } from "../indexer/types.js";
 import { getVotesWithCoefficients, VoteWithCoefficient } from "./votes.js";
 import {
   CalculatorError,

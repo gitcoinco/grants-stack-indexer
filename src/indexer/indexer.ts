@@ -1,6 +1,7 @@
 import { Logger } from "pino";
 import { PriceProvider } from "../prices/provider.js";
-import { Database, Indexer as ChainsauceIndexer } from "chainsauce";
+import { Indexer as ChainsauceIndexer } from "chainsauce";
+import { Database } from "../database.js";
 
 import abis from "./abis/index.js";
 
