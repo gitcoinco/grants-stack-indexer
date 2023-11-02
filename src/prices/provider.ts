@@ -7,6 +7,7 @@ import {
   UnknownTokenError,
 } from "./common.js";
 import { convertTokenToFiat, convertFiatToToken } from "../tokenMath.js";
+import { ChainId, Address } from "../indexer/types.js";
 
 const DEFAULT_REFRESH_PRICE_INTERVAL_MS = 10000;
 
@@ -18,20 +19,20 @@ interface PriceProviderConfig {
 
 export interface PriceProvider {
   convertToUSD: (
-    chainId: number,
+    chainId: ChainId,
     token: string,
     amount: bigint,
     blockNumber?: number
   ) => Promise<{ amount: number; price: number }>;
   convertFromUSD: (
-    chainId: number,
+    chainId: ChainId,
     token: string,
     amount: number,
     blockNumber?: number
   ) => Promise<{ amount: bigint; price: number }>;
   getAllPricesForChain: (chainId: number) => Promise<Price[]>;
   getUSDConversionRate: (
-    chainId: number,
+    chainId: ChainId,
     tokenAddress: string,
     blockNumber?: number
   ) => Promise<PriceWithDecimals>;
@@ -44,42 +45,61 @@ export function createPriceProvider(
 
   // STATE
 
-  type Prices = { lastUpdatedAt: Date; prices: Promise<Price[]> };
+  type ChainPrices = {
+    lastUpdatedAt: Date;
+    pricesByTokenAddress: Promise<Map<Address, Price[]>>;
+  };
 
-  const prices: { [key: number]: Prices } = {};
+  const prices: Record<ChainId, ChainPrices> = {};
 
   // PUBLIC
 
-  async function getAllPricesForChain(chainId: number): Promise<Price[]> {
+  async function getAllPricesForChain(chainId: ChainId): Promise<Price[]> {
     return readPricesFile(chainId, config.chainDataDir);
   }
 
   // INTERNALS
 
-  function shouldRefreshPrices(prices: Prices) {
+  function shouldReloadPrices(prices: ChainPrices) {
     return (
       new Date().getTime() - prices.lastUpdatedAt.getTime() >
       (config.updateEveryMs ?? DEFAULT_REFRESH_PRICE_INTERVAL_MS)
     );
   }
 
-  function updatePrices(chainId: number) {
-    const chainPrices = readPricesFile(chainId, config.chainDataDir);
+  function loadChainPricesFromDisk(chainId: ChainId) {
+    const tokenPrices = readPricesFile(chainId, config.chainDataDir).then(
+      (prices) => {
+        // group prices by token address
+        return prices.reduce((acc, price) => {
+          const tokenAddress = price.token;
+          const tokenPrices = acc.get(tokenAddress) ?? [];
+          tokenPrices.push(price);
+          acc.set(tokenAddress, tokenPrices);
+          return acc;
+        }, new Map<Address, Price[]>());
+      }
+    );
 
     prices[chainId] = {
-      prices: chainPrices,
+      pricesByTokenAddress: tokenPrices,
       lastUpdatedAt: new Date(),
     };
 
-    return chainPrices;
+    return tokenPrices;
   }
 
-  async function getPrices(chainId: number): Promise<Price[]> {
-    if (!(chainId in prices) || shouldRefreshPrices(prices[chainId])) {
-      await updatePrices(chainId);
+  async function getPricesForChainAndTokenAddress(
+    chainId: number,
+    tokenAddress: Address
+  ): Promise<Price[] | null> {
+    if (!(chainId in prices) || shouldReloadPrices(prices[chainId])) {
+      await loadChainPricesFromDisk(chainId);
     }
 
-    return prices[chainId].prices;
+    const pricesByTokenAddress = await prices[chainId].pricesByTokenAddress;
+
+    return pricesByTokenAddress.get(tokenAddress) ?? null;
   }
 
   async function convertToUSD(
@@ -144,10 +164,12 @@ export function createPriceProvider(
       throw new UnknownTokenError(tokenAddress, chainId);
     }
 
-    const pricesForToken = (await getPrices(chainId)).filter(
-      (p) => p.token === tokenAddress
+    const pricesForToken = await getPricesForChainAndTokenAddress(
+      chainId,
+      tokenAddress.toLowerCase() as Address
     );
-    if (pricesForToken.length === 0) {
+
+    if (pricesForToken === null) {
       throw new Error(
         `No prices found for token ${tokenAddress} on chain ${chainId} at ${String(
           blockNumber

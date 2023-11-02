@@ -1,8 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { Address } from "../indexer/types.js";
 
 export type Price = {
-  token: string;
+  token: Address;
   code: string;
   price: number;
   timestamp: number;

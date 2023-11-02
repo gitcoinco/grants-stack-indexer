@@ -1,4 +1,7 @@
+export type ChainId = number;
+
 export type Hex = `0x${string}`;
+export type Address = Hex;
 
 export type MetaPtr = {
   pointer: string;
