@@ -139,7 +139,7 @@ describe("JsonDatabase", () => {
     await users.insert({ id: "1", name: "Alice", email: "alice@example.com" });
 
     // wait for the write delay
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await db.flushWrites();
 
     const dbData = await readJSON(path.join(dbDir, "sub/users6.json"));
 
@@ -163,7 +163,7 @@ describe("JsonDatabase", () => {
     ]);
 
     // wait for the write delay
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await db.flushWrites();
 
     const dbData = await readJSON(path.join(dbDir, "sub/users7.json"));
 

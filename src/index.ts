@@ -87,12 +87,6 @@ async function main(): Promise<void> {
         catchupAndWatchChain({ chain, baseLogger, ...config })
       )
     );
-    // Workaround for active handles preventing process to terminate
-    // (to investigate: console.log(process._getActiveHandles()))
-    // Note: the delay is necessary to allow completing writes.
-    baseLogger.info("exiting");
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    process.exit(0);
   } else {
     // Promises will be resolved once the initial catchup is done. Afterwards, services
     // will still be in listen-and-update mode.
@@ -183,8 +177,9 @@ async function catchupAndWatchChain(
     // any sort of stop-and-resume.
     await fs.rm(CHAIN_DIR_PATH, { force: true, recursive: true });
 
-    const storage = createJsonDatabase({
+    const jsonDb = createJsonDatabase({
       dir: CHAIN_DIR_PATH,
+      maxConcurrentWrites: 5,
       writeDelay: 500,
     });
 
@@ -272,7 +267,7 @@ async function catchupAndWatchChain(
 
     const eventHandlerContext: EventHandlerContext = {
       chainId: config.chain.id,
-      db: storage,
+      db: jsonDb,
       ipfsGet: cachedIpfsGet,
       priceProvider,
       logger: indexerLogger,
@@ -366,6 +361,7 @@ async function catchupAndWatchChain(
 
     if (config.runOnce) {
       priceUpdater.stop();
+      await jsonDb.flushWrites();
     } else {
       chainLogger.info("listening to new blockchain events");
 

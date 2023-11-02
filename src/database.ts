@@ -17,6 +17,7 @@ export interface Collection<T extends Document> {
 
 export interface Database {
   collection<T extends Document>(name: string): Collection<T>;
+  flushWrites(): Promise<void>;
 }
 
 export function createChainJsonDatabase(
