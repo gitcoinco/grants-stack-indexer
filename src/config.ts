@@ -493,7 +493,7 @@ const CHAINS: Chain[] = [
       },
       {
         code: "USDC",
-        address: "0xe6b8a5cf854791412c1f6efc7caf629f5df1c747",
+        address: "0x9999f7Fea5938fD3b1E26A12c3f2fb024e194f97",
         decimals: 6,
         priceSource: {
           chainId: 1,
@@ -535,7 +535,7 @@ const CHAINS: Chain[] = [
       },
       {
         code: "USDC",
-        address: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+        address: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
         decimals: 6,
         priceSource: {
           chainId: 1,
