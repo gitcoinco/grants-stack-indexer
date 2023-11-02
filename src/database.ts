@@ -1,8 +1,28 @@
 import { getChainConfigById } from "./config.js";
 import path from "node:path";
-import { createJsonDatabase, Database } from "chainsauce";
+import { createJsonDatabase } from "./database/json.js";
 
-export default function load(storageDir: string, chainId?: number): Database {
+export type Document = { id: string; [key: string]: unknown };
+
+export interface Collection<T extends Document> {
+  insert(document: T): Promise<T>;
+  findById(id: string): Promise<T | null>;
+  updateById(id: string, fun: (doc: T) => Omit<T, "id">): Promise<T | null>;
+  upsertById(
+    id: string,
+    fun: (doc: T | null) => Omit<T, "id">
+  ): Promise<boolean>;
+  all(): Promise<T[]>;
+}
+
+export interface Database {
+  collection<T extends Document>(name: string): Collection<T>;
+}
+
+export function createChainJsonDatabase(
+  storageDir: string,
+  chainId?: number
+): Database {
   if (chainId) {
     const chain = getChainConfigById(chainId);
 

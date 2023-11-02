@@ -1,6 +1,5 @@
 import {
   createIndexer,
-  createJsonDatabase,
   createSqliteCache,
   createSqliteSubscriptionStore,
   createHttpRpcClient,
@@ -24,6 +23,7 @@ import { createPriceProvider } from "./prices/provider.js";
 import { createHttpApi } from "./http/app.js";
 import { FileSystemDataProvider } from "./calculator/index.js";
 import { ethers } from "ethers";
+import { createJsonDatabase } from "./database/json.js";
 
 import abis from "./indexer/abis/index.js";
 import type { EventHandlerContext } from "./indexer/indexer.js";

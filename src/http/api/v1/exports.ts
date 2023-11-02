@@ -2,11 +2,10 @@ import {
   createObjectCsvStringifier,
   createArrayCsvStringifier,
 } from "csv-writer";
-import { Database } from "chainsauce";
 import express from "express";
 import { pino } from "pino";
 
-import database from "../../../database.js";
+import { Database, createChainJsonDatabase } from "../../../database.js";
 import { createPriceProvider } from "../../../prices/provider.js";
 import { Round, Application, Vote } from "../../../indexer/types.js";
 import { getVotesWithCoefficients } from "../../../calculator/votes.js";
@@ -243,7 +242,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     async (req, res) => {
       const chainId = Number(req.params.chainId);
       const roundId = req.params.roundId;
-      const db = database(config.chainDataDir, chainId);
+      const db = createChainJsonDatabase(config.chainDataDir, chainId);
       const round = await db.collection<Round>("rounds").findById(roundId);
 
       if (!round) {
@@ -270,7 +269,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       const exportName = req.params.exportName;
       let body = "";
 
-      const db = database(config.chainDataDir, chainId);
+      const db = createChainJsonDatabase(config.chainDataDir, chainId);
       const round = await db.collection<Round>("rounds").findById(roundId);
 
       if (!round) {
