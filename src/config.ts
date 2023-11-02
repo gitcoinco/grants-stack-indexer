@@ -345,6 +345,15 @@ const CHAINS: Chain[] = [
           address: "0xde30da39c46104798bb5aa3fe8b9e0e1f348163f",
         },
       },
+      {
+        code: "DAI",
+        address: "0x6C121674ba6736644A7e73A8741407fE8a5eE5BA",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        },
+      },
     ],
     subscriptions: [
       {
