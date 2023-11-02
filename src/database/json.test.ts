@@ -27,7 +27,7 @@ describe("JsonDatabase", () => {
     dbDir = await fs.mkdtemp(path.join(os.tmpdir(), "db-"));
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     setTimeout(() => fs.rm(dbDir, { recursive: true }), 1000);
   });
 
