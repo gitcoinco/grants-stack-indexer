@@ -17,6 +17,7 @@ import {
 } from "./common.js";
 import { BlockCache } from "../blockCache.js";
 import { createSqliteBlockCache } from "../blockCache/sqlite.js";
+import { Address } from "../indexer/types.js";
 
 const POLL_INTERVAL_MS = 60 * 1000;
 
@@ -222,7 +223,7 @@ export function createPriceUpdater(
               }
 
               newPrices.push({
-                token: token.address.toLowerCase(),
+                token: token.address.toLowerCase() as Address,
                 code: token.code,
                 price,
                 timestamp: timestampMs,

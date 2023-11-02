@@ -22,17 +22,26 @@ vi.spyOn(os, "hostname").mockReturnValue("dummy-hostname");
 // Typed version of supertest's Response
 type Response<T> = Omit<SupertestResponse, "body"> & { body: T };
 
-const MOCK_CHAINS = [
+const MOCK_CHAINS: Chain[] = [
   {
+    rpc: "http://localhost:8545",
+    name: "testnet",
+    pricesFromTimestamp: 0,
+    subscriptions: [],
     id: 1,
     tokens: [
       {
         code: "ETH",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
         address: "0x0000000000000000000000000000000000000000",
       },
     ],
   },
-] as Chain[];
+];
 
 const DUMMY_LOGGER = {
   debug: () => {},

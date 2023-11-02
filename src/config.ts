@@ -4,20 +4,20 @@ import { ToBlock } from "chainsauce";
 import { z } from "zod";
 import path from "node:path";
 import abis from "./indexer/abis/index.js";
-import { Hex, ChainId } from "./indexer/types.js";
+import { Hex, Address, ChainId } from "./indexer/types.js";
 
 type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114;
 
 export type Token = {
   code: string;
-  address: string;
+  address: Address;
   decimals: number;
   priceSource: { chainId: CoingeckoSupportedChainId; address: string };
   voteAmountCap?: bigint;
 };
 
 export type Subscription = {
-  address: Hex;
+  address: Address;
   contractName: keyof typeof abis;
   fromBlock?: number;
   eventsRenames?: Record<string, string>;

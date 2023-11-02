@@ -3,6 +3,7 @@ import path from "path";
 import { DataProvider, FileNotFoundError } from "../calculator/index.js";
 import { PassportScore } from "../passport/index.js";
 import { Price } from "../prices/common.js";
+import { Address } from "../indexer/types.js";
 
 type Fixtures = { [path: string]: string | undefined | unknown[] };
 
@@ -64,7 +65,7 @@ export class TestPriceProvider {
 
   async getUSDConversionRate(
     chainId: number,
-    tokenAddress: string,
+    tokenAddress: Address,
     _blockNumber?: number
   ): Promise<Price & { decimals: number }> {
     return Promise.resolve({
