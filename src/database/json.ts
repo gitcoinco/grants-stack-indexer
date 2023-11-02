@@ -58,12 +58,20 @@ class JsonCollection<T extends Document> implements Collection<T> {
     this.debouncedSave = debounce(options.writeDelay ?? 0, () => this.save());
   }
 
-  private async executeOperation<TReturn>(
+  private async executeWriteOperation<TReturn>(
     op: (data: { data: T[]; index: Index }) => TReturn
   ): Promise<TReturn> {
     const { data, index } = await this.load();
     const result = op({ data, index });
     this.debouncedSave(data);
+    return result;
+  }
+
+  private async executeReadOperation<TReturn>(
+    op: (data: { data: T[]; index: Index }) => TReturn
+  ): Promise<TReturn> {
+    const { data, index } = await this.load();
+    const result = op({ data, index });
     return result;
   }
 
@@ -92,8 +100,7 @@ class JsonCollection<T extends Document> implements Collection<T> {
 
     this.savingPromise = fs
       .mkdir(path.dirname(this.filename), { recursive: true })
-      .then(() => fs.writeFile(`${this.filename}.write`, this.encodeJson(data)))
-      .then(() => fs.rename(`${this.filename}.write`, this.filename))
+      .then(() => fs.writeFile(this.filename, this.encodeJson(data)))
       .finally(() => {
         this.savingPromise = null;
         this.loadingPromise = null;
@@ -107,7 +114,7 @@ class JsonCollection<T extends Document> implements Collection<T> {
       throw new Error("Document must be an object");
     }
 
-    return this.executeOperation(({ data, index }) => {
+    return this.executeWriteOperation(({ data, index }) => {
       data.push(document);
       index[document.id] = data.length - 1;
 
@@ -116,13 +123,13 @@ class JsonCollection<T extends Document> implements Collection<T> {
   }
 
   async findById(id: string): Promise<T | null> {
-    return this.executeOperation(({ data, index }) => {
+    return this.executeReadOperation(({ data, index }) => {
       return data[index[id]] ?? null;
     });
   }
 
   async updateById(id: string, fun: (doc: T) => T): Promise<T | null> {
-    return this.executeOperation(({ data, index }) => {
+    return this.executeWriteOperation(({ data, index }) => {
       if (index[id] === undefined) {
         return null;
       }
@@ -136,7 +143,7 @@ class JsonCollection<T extends Document> implements Collection<T> {
 
   // returns true it inserted a new record
   async upsertById(id: string, fun: (doc: T | null) => T): Promise<boolean> {
-    return this.executeOperation(({ data, index }) => {
+    return this.executeWriteOperation(({ data, index }) => {
       const isNewDocument = index[id] === undefined;
 
       if (isNewDocument) {
@@ -153,7 +160,7 @@ class JsonCollection<T extends Document> implements Collection<T> {
   }
 
   async all(): Promise<T[]> {
-    return this.executeOperation(({ data }) => {
+    return this.executeReadOperation(({ data }) => {
       return data;
     });
   }
