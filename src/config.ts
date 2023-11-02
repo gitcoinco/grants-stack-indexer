@@ -4,7 +4,7 @@ import { ToBlock } from "chainsauce";
 import { z } from "zod";
 import path from "node:path";
 import abis from "./indexer/abis/index.js";
-import { Hex, Address, ChainId } from "./indexer/types.js";
+import { Address, ChainId } from "./indexer/types.js";
 
 type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114;
 
