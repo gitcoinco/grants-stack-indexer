@@ -68,7 +68,7 @@ class JsonCollection<T extends Document> implements Collection<T> {
   }
 
   private async load(): Promise<{ data: T[]; index: Index }> {
-    this.debouncedSave.cancel();
+    this.debouncedSave.cancel({ upcomingOnly: true });
     // Wait for any ongoing save operation to complete
     if (this.savingPromise !== null) {
       await this.savingPromise;
