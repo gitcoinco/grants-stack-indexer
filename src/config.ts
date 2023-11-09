@@ -502,13 +502,8 @@ const CHAINS: Chain[] = [
         abi: abis.v2.RoundFactory,
       },
       {
-<<<<<<< Updated upstream
-        address: "0x04b194b14532070F5cc8D3A760c9a0957D85ad5B",
-        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
-=======
-        contractName: "QuadraticFundingVotingStrategyFactoryV2",
         address: "0xF7c101A95Ea4cBD5DA0Ab9827D7B2C9857440143",
->>>>>>> Stashed changes
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
       },
     ],
   },
@@ -549,13 +544,8 @@ const CHAINS: Chain[] = [
         abi: abis.v2.RoundFactory,
       },
       {
-<<<<<<< Updated upstream
-        address: "0x74c3665540FC8B92Dd06a7e56a51eCa038C18180",
-        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
-=======
-        contractName: "QuadraticFundingVotingStrategyFactoryV2",
         address: "0xc1a26b0789C3E93b07713e90596Cad8d0442C826",
->>>>>>> Stashed changes
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
       },
     ],
   },
