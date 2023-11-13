@@ -3,7 +3,6 @@ import { ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
 
 import { getChainConfigById } from "../config.js";
-import { Application, Project, Vote } from "./types.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
@@ -11,7 +10,13 @@ import applicationMetaPtrUpdated from "./handlers/applicationMetaPtrUpdated.js";
 import matchAmountUpdated from "./handlers/matchAmountUpdated.js";
 import { UnknownTokenError } from "../prices/common.js";
 import type { Indexer } from "./indexer.js";
-import { getAddress } from "viem";
+import { Address, getAddress } from "viem";
+import {
+  NewApplication,
+  Application,
+  Project,
+  Donation,
+} from "../database/postgres.js";
 
 enum ApplicationStatus {
   PENDING = 0,
@@ -48,14 +53,14 @@ const getFinalEventName = (chainId: number, originalEvent: Event): string => {
 function updateApplicationStatus(
   application: Application,
   newStatus: Application["status"],
-  blockNumber: number
+  blockNumber: bigint
 ): Pick<Application, "status" | "statusUpdatedAtBlock" | "statusSnapshots"> {
   const statusSnapshots = [...application.statusSnapshots];
 
   if (application.status !== newStatus) {
     statusSnapshots.push({
       status: newStatus,
-      statusUpdatedAtBlock: blockNumber,
+      statusUpdatedAtBlock: Number(blockNumber),
     });
   }
 
@@ -87,12 +92,14 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
 
       try {
         await db.insertProject({
+          chainId,
+          registryAddress: event.address,
           id: projectId,
           projectNumber: Number(event.params.projectID),
-          metaPtr: null,
+          metadataCid: null,
           metadata: null,
-          owners: [event.params.owner],
-          createdAtBlock: Number(event.blockNumber),
+          ownerAddresses: [event.params.owner],
+          createdAtBlock: event.blockNumber,
         });
       } catch (e) {
         console.log(e);
@@ -120,7 +127,7 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
       );
 
       await db.updateProjectById(id, {
-        metaPtr: event.params.metaPtr.pointer,
+        metadataCid: event.params.metaPtr.pointer,
         metadata: metadata ?? null,
       });
 
@@ -142,7 +149,7 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
       }
 
       await db.updateProjectById(id, {
-        owners: [...project.owners, event.params.owner],
+        ownerAddresses: [...project.ownerAddresses, event.params.owner],
       });
 
       break;
@@ -163,7 +170,9 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
       }
 
       await db.updateProjectById(id, {
-        owners: project.owners.filter((o: string) => o == event.params.owner),
+        ownerAddresses: project.ownerAddresses.filter(
+          (o: string) => o == event.params.owner
+        ),
       });
 
       break;
@@ -235,34 +244,45 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
         }),
       ]);
 
-      const applicationMetaPtr = applicationMetaPtrResolved[1];
-      const metaPtr = metaPtrResolved[1];
-      const token = tokenResolved.toString().toLowerCase();
+      const applicationMetadataCid = applicationMetaPtrResolved[1];
+      const roundMetadataCid = metaPtrResolved[1];
+      const matchTokenAddress = tokenResolved
+        .toString()
+        .toLowerCase() as Address;
       const matchAmount = matchAmountResolved;
-      const applicationsStartTime = applicationsStartTimeResolved.toString();
-      const applicationsEndTime = applicationsEndTimeResolved.toString();
-      const roundStartTime = roundStartTimeResolved.toString();
-      const roundEndTime = roundEndTimeResolved.toString();
+      const applicationsStartTime = new Date(
+        Number(applicationsStartTimeResolved) * 1000
+      );
+      const applicationsEndTime = new Date(
+        Number(applicationsEndTimeResolved) * 1000
+      );
+      const donationsStartTime = new Date(
+        Number(roundStartTimeResolved) * 1000
+      );
+      const donationsEndTime = new Date(Number(roundEndTimeResolved) * 1000);
 
-      await db.insertRound({
-        id: roundId,
-        amountUSD: 0,
-        votes: 0,
-        token,
-        matchAmount: "0",
-        matchAmountUSD: 0,
-        uniqueContributors: 0,
-        applicationMetaPtr,
-        applicationMetadata: null,
-        metaPtr,
-        metadata: null,
-        applicationsStartTime,
-        applicationsEndTime,
-        roundStartTime,
-        roundEndTime,
-        createdAtBlock: Number(event.blockNumber),
-        updatedAtBlock: Number(event.blockNumber),
-      });
+      await db
+        .insertRound({
+          chainId,
+          id: roundId,
+          totalUniqueDonors: 0,
+          totalDonationsCount: 0,
+          totalAmountDonatedInUSD: 0,
+          matchTokenAddress,
+          matchAmount: 0n,
+          matchAmountInUSD: 0,
+          applicationMetadataCid,
+          applicationMetadata: null,
+          roundMetadataCid,
+          roundMetadata: null,
+          applicationsStartTime,
+          applicationsEndTime,
+          donationsStartTime,
+          donationsEndTime,
+          createdAtBlock: event.blockNumber,
+          updatedAtBlock: event.blockNumber,
+        })
+        .catch((e) => console.log(e));
 
       await Promise.all([
         matchAmountUpdated({
@@ -283,7 +303,7 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
             name: "RoundMetaPtrUpdated",
             address: event.params.roundAddress,
             params: {
-              newMetaPtr: { protocol: 0n, pointer: metaPtr },
+              newMetaPtr: { protocol: 0n, pointer: roundMetadataCid },
               oldMetaPtr: { protocol: 0n, pointer: "" },
             },
           },
@@ -295,7 +315,7 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
             name: "ApplicationMetaPtrUpdated",
             address: event.params.roundAddress,
             params: {
-              newMetaPtr: { protocol: 0n, pointer: applicationMetaPtr },
+              newMetaPtr: { protocol: 0n, pointer: applicationMetadataCid },
               oldMetaPtr: { protocol: 0n, pointer: "" },
             },
           },
@@ -332,23 +352,26 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
         event.params.applicationMetaPtr.pointer
       );
 
-      const application: Application = {
+      const application: NewApplication = {
+        chainId,
         id: applicationIndex,
         projectId: projectId,
         roundId: event.address,
         status: "PENDING",
-        amountUSD: 0,
-        votes: 0,
-        uniqueContributors: 0,
+        metadataCid: event.params.applicationMetaPtr.pointer,
         metadata: metadata ?? null,
-        createdAtBlock: Number(event.blockNumber),
-        statusUpdatedAtBlock: Number(event.blockNumber),
+        createdAtBlock: event.blockNumber,
+        statusUpdatedAtBlock: event.blockNumber,
         statusSnapshots: [
           {
             status: "PENDING",
             statusUpdatedAtBlock: Number(event.blockNumber),
           },
         ],
+
+        totalAmountDonatedInUSD: 0,
+        totalDonationsCount: 0,
+        totalUniqueDonors: 0,
       };
 
       await db.insertApplication(application);
@@ -370,12 +393,13 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
 
         await db.updateApplicationById(
           {
+            chainId,
             roundId: event.address,
             applicationId: projectId,
           },
           {
             status: projectApp.status,
-            statusUpdatedAtBlock: Number(event.blockNumber),
+            statusUpdatedAtBlock: event.blockNumber,
           }
         );
       }
@@ -391,6 +415,7 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
       for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
         const status = bitmap.getStatus(i);
         const applicationId = {
+          chainId,
           roundId: event.address,
           applicationId: i.toString(),
         };
@@ -403,11 +428,7 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
 
         await db.updateApplicationById(
           applicationId,
-          updateApplicationStatus(
-            application,
-            statusString,
-            Number(event.blockNumber)
-          )
+          updateApplicationStatus(application, statusString, event.blockNumber)
         );
       }
       break;
@@ -431,7 +452,7 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
 
     // --- Votes
     case "Voted": {
-      const voteId = ethers.utils.solidityKeccak256(
+      const donationId = ethers.utils.solidityKeccak256(
         ["string"],
         [`${event.blockNumber}-${event.logIndex}`]
       );
@@ -443,17 +464,19 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
 
       // If an `origin` field is present, this event comes from MRC, thus ignore the
       // `voter` field because that's the contract. See AIP-13
-      const realVoterAddress =
+      const realDonorAddress =
         "origin" in event.params ? event.params.origin : event.params.voter;
 
       const roundId = getAddress(event.params.roundAddress);
 
+      console.time("donation");
       const application = await db.getApplicationById({
+        chainId,
         roundId,
         applicationId,
       });
 
-      const round = await db.getRoundById(roundId);
+      const round = await db.getRoundById({ chainId, roundId });
 
       if (
         application === null ||
@@ -465,6 +488,7 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
 
       const token = event.params.token.toLowerCase();
 
+      console.time("token");
       const conversionToUSD = await priceProvider.convertToUSD(
         chainId,
         token,
@@ -474,23 +498,23 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
 
       const amountUSD = conversionToUSD.amount;
 
-      let amountRoundToken: string | null = null;
+      let amountInRoundMatchToken: bigint | null = null;
       try {
-        amountRoundToken =
-          round.token === token
-            ? event.params.amount.toString()
+        amountInRoundMatchToken =
+          round.matchTokenAddress === token
+            ? event.params.amount
             : (
                 await priceProvider.convertFromUSD(
                   chainId,
-                  round.token,
+                  round.matchTokenAddress,
                   conversionToUSD.amount,
                   Number(event.blockNumber)
                 )
-              ).amount.toString();
+              ).amount;
       } catch (err) {
         if (err instanceof UnknownTokenError) {
           logger.error({
-            msg: `Skipping event ${event.name} on chain ${chainId} due to unknown token ${round.token}`,
+            msg: `Skipping event ${event.name} on chain ${chainId} due to unknown token ${round.matchTokenAddress}`,
             err,
             event,
           });
@@ -499,54 +523,43 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
           throw err;
         }
       }
+      console.timeEnd("token");
 
-      const vote: Vote = {
-        id: voteId,
-        transaction: event.transactionHash,
-        blockNumber: Number(event.blockNumber),
+      const donation: Donation = {
+        id: donationId,
+        chainId,
+        transactionHash: event.transactionHash,
+        blockNumber: event.blockNumber,
         projectId: event.params.projectId,
         applicationId: applicationId,
         roundId: event.params.roundAddress,
-        voter: realVoterAddress,
-        grantAddress: event.params.grantAddress,
-        token: event.params.token,
-        amount: event.params.amount.toString(),
-        amountUSD: amountUSD,
-        amountRoundToken,
+        donorAddress: realDonorAddress,
+        recipientAddress: event.params.grantAddress,
+        tokenAddress: event.params.token,
+        amount: event.params.amount,
+        amountInUSD: amountUSD,
+        amountInRoundMatchToken,
       };
 
       await Promise.all([
-        db.getContributorById(realVoterAddress).then((contributor) => {
-          if (contributor === null) {
-            return db.insertContributor({
-              id: realVoterAddress,
-              amountUSD: amountUSD,
-              votes: 1,
-            });
-          }
-
-          return db.updateContributorById(realVoterAddress, {
-            amountUSD: contributor.amountUSD + amountUSD,
-            votes: contributor.votes + 1,
-          });
-        }),
-        db.updateApplicationById(
-          {
-            roundId: round.id,
-            applicationId: applicationId,
-          },
-          {
-            amountUSD: application.amountUSD + amountUSD,
-            votes: application.votes + 1,
-          }
-        ),
-        db.updateRoundById(event.address, {
-          amountUSD: round.amountUSD + amountUSD,
-          votes: round.votes + 1,
-        }),
-
-        db.insertVote(vote),
+        // db.updateApplicationById(
+        //   {
+        //     roundId: round.id,
+        //     applicationId: applicationId,
+        //   },
+        //   {
+        //     totalAmountDonatedInUSD:
+        //       application.totalAmountDonatedInUSD + amountUSD,
+        //     totalDonationsCount: application.totalDonationsCount + 1,
+        //   }
+        // ),
+        // db.updateRoundById(event.address, {
+        //   totalAmountDonatedInUSD: round.totalAmountDonatedInUSD + amountUSD,
+        //   totalDonationsCount: round.totalDonationsCount + 1,
+        // }),
+        db.insertDonation(donation),
       ]);
+      console.timeEnd("donation");
 
       break;
     }
@@ -575,6 +588,7 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
       for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
         const newStatus = bitmap.getStatus(i);
         const applicationId = {
+          chainId,
           roundId: round,
           applicationId: i.toString(),
         };
@@ -589,7 +603,7 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
             updateApplicationStatus(
               application,
               statusString,
-              Number(event.blockNumber)
+              event.blockNumber
             )
           );
         }

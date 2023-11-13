@@ -27,8 +27,7 @@ import { ethers } from "ethers";
 import abis from "./indexer/abis/index.js";
 import type { EventHandlerContext } from "./indexer/indexer.js";
 import { handleEvent } from "./indexer/handleEvent.js";
-import { createSqliteDatabase, Database } from "./database.js";
-import { ZodError } from "zod";
+import { PostgresDatabase } from "./database/postgres.js";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
 
@@ -58,6 +57,14 @@ async function main(): Promise<void> {
     service: `indexer-${config.deploymentEnvironment}`,
   });
 
+  const db = new PostgresDatabase({
+    connString:
+      "postgres://postgres:postgres@localhost:5432/grants_stack_indexer",
+    version: "1",
+  });
+
+  await db.migrate();
+
   baseLogger.info({
     msg: "starting",
     buildTag: config.buildTag,
@@ -85,7 +92,7 @@ async function main(): Promise<void> {
   if (config.runOnce) {
     await Promise.all(
       config.chains.map(async (chain) =>
-        catchupAndWatchChain({ chain, baseLogger, ...config })
+        catchupAndWatchChain({ chain, db, baseLogger, ...config })
       )
     );
     // Workaround for active handles preventing process to terminate
@@ -98,21 +105,16 @@ async function main(): Promise<void> {
     // Promises will be resolved once the initial catchup is done. Afterwards, services
     // will still be in listen-and-update mode.
 
-    const [passportProvider, ...chanDbEntries] = await Promise.all([
+    const [passportProvider] = await Promise.all([
       catchupAndWatchPassport({
         ...config,
         baseLogger,
         runOnce: config.runOnce,
       }),
       ...config.chains.map(async (chain) =>
-        catchupAndWatchChain({ chain, baseLogger, ...config }).then((db) => [
-          chain.id,
-          db,
-        ])
+        catchupAndWatchChain({ chain, db, baseLogger, ...config })
       ),
     ]);
-
-    const chainDb = Object.fromEntries(chanDbEntries);
 
     const httpApi = createHttpApi({
       chainDataDir: config.chainDataDir,
@@ -168,11 +170,17 @@ async function catchupAndWatchPassport(
 }
 
 async function catchupAndWatchChain(
-  config: Omit<Config, "chains"> & { chain: Chain; baseLogger: Logger }
-): Promise<Database> {
+  config: Omit<Config, "chains"> & {
+    db: PostgresDatabase;
+    chain: Chain;
+    baseLogger: Logger;
+  }
+) {
   const chainLogger = config.baseLogger.child({
     chain: config.chain.id,
   });
+
+  const db = config.db;
 
   try {
     const CHAIN_DIR_PATH = path.join(
@@ -187,12 +195,6 @@ async function catchupAndWatchChain(
     const pricesCache: DeprecatedDiskCache | null = config.cacheDir
       ? new DeprecatedDiskCache(path.join(config.cacheDir, "prices"))
       : null;
-
-    const db = createSqliteDatabase({
-      dbPath: path.join(CHAIN_DIR_PATH, "data.db"),
-    });
-
-    await db.migrate();
 
     const priceProvider = createPriceProvider({
       ...config,
@@ -327,15 +329,16 @@ async function catchupAndWatchChain(
     });
 
     indexer.on("event", async (args) => {
-      try {
-        await handleEvent(args);
-      } catch (err) {
-        indexerLogger.warn({
-          msg: "skipping event due to error while processing",
-          err,
-          event: args.event,
-        });
-      }
+      // try {
+      console.log("-------------", args.event.name);
+      await handleEvent(args);
+      // } catch (err) {
+      //   indexerLogger.warn({
+      //     msg: "skipping event due to error while processing",
+      //     err,
+      //     event: args.event,
+      //   });
+      // }
     });
 
     indexer.on(

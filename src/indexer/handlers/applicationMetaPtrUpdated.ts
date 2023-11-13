@@ -5,7 +5,7 @@ import type { Indexer } from "../indexer.js";
 
 export default async function ({
   event,
-  context: { ipfsGet, db },
+  context: { chainId, ipfsGet, db },
 }: EventHandlerArgs<
   Indexer,
   "RoundImplementationV2",
@@ -14,9 +14,12 @@ export default async function ({
   const metaPtr = event.params.newMetaPtr.pointer;
   const metadata = await ipfsGet<Round["applicationMetadata"]>(metaPtr);
 
-  await db.updateRoundById(event.address, {
-    applicationMetaPtr: event.params.newMetaPtr.pointer,
-    updatedAtBlock: Number(event.blockNumber),
-    applicationMetadata: metadata ?? null,
-  });
+  await db.updateRoundById(
+    { roundId: event.address, chainId },
+    {
+      applicationMetadataCid: event.params.newMetaPtr.pointer,
+      updatedAtBlock: event.blockNumber,
+      applicationMetadata: metadata ?? null,
+    }
+  );
 }

@@ -7,9 +7,9 @@ export default async function ({
   context: { chainId, priceProvider, db },
 }: EventHandlerArgs<Indexer, "RoundImplementationV2", "MatchAmountUpdated">) {
   const id = event.address;
-  const matchAmount = event.params.newAmount.toString();
+  const matchAmount = event.params.newAmount;
 
-  const round = await db.getRoundById(id);
+  const round = await db.getRoundById({ roundId: id, chainId });
 
   if (round === null) {
     throw new Error(`Round ${id} not found`);
@@ -17,14 +17,17 @@ export default async function ({
 
   const amountUSD = await priceProvider.convertToUSD(
     chainId,
-    round.token,
+    round.matchTokenAddress,
     BigInt(matchAmount),
     Number(event.blockNumber)
   );
 
-  await db.updateRoundById(id, {
-    updatedAtBlock: Number(event.blockNumber.toString()),
-    matchAmount: matchAmount,
-    matchAmountUSD: amountUSD.amount,
-  });
+  await db.updateRoundById(
+    { roundId: id, chainId },
+    {
+      updatedAtBlock: event.blockNumber,
+      matchAmount: matchAmount,
+      matchAmountInUSD: amountUSD.amount,
+    }
+  );
 }
