@@ -12,6 +12,7 @@
     "test:snapshot:generate-after": "NODE_ENV=snapshot-testing INDEXED_CHAINS=mainnet STORAGE_DIR=test/snapshot.AFTER/data CACHE_DIR=test/snapshot.AFTER/cache tsx src/index.ts --to-block 17199975 --run-once | pino-pretty",
     "test:snapshot:compare": "diff -r --brief test/snapshot.BEFORE/data test/snapshot.AFTER/data",
     "test:snapshot": "test -d test/snapshot.BEFORE/data || (echo 'Missing BEFORE snapshot.'; exit 1); npm run test:snapshot:generate-after && npm run test:snapshot:compare && echo 'Snapshots match!'",
+    "generate:migrations": " rm -rf migrations && drizzle-kit generate:pg  --schema src/database/schema.ts --out migrations",
     "build": "tsc",
     "lint": "eslint src",
     "test": "vitest run --reporter verbose",

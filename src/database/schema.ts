@@ -50,10 +50,10 @@ export const rounds = pgTable(
     roundMetadataCid: text("round_metadata_cid").notNull(),
     roundMetadata: jsonb("round_metadata"),
 
-    applicationsStartTime: timestamp("applications_start_time").notNull(),
-    applicationsEndTime: timestamp("applications_end_time").notNull(),
-    donationsStartTime: timestamp("voting_start_time").notNull(),
-    donationsEndTime: timestamp("voting_end_time").notNull(),
+    applicationsStartTime: timestamp("applications_start_time"),
+    applicationsEndTime: timestamp("applications_end_time"),
+    donationsStartTime: timestamp("voting_start_time"),
+    donationsEndTime: timestamp("voting_end_time"),
 
     createdAtBlock: bigint("created_at_block").notNull(),
     updatedAtBlock: bigint("updated_at_block").notNull(),

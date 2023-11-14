@@ -329,16 +329,16 @@ async function catchupAndWatchChain(
     });
 
     indexer.on("event", async (args) => {
-      // try {
-      console.log("-------------", args.event.name);
-      await handleEvent(args);
-      // } catch (err) {
-      //   indexerLogger.warn({
-      //     msg: "skipping event due to error while processing",
-      //     err,
-      //     event: args.event,
-      //   });
-      // }
+      try {
+        // console.log("-------------", args.event.name);
+        await handleEvent(args);
+      } catch (err) {
+        indexerLogger.warn({
+          msg: "skipping event due to error while processing",
+          err,
+          event: args.event,
+        });
+      }
     });
 
     indexer.on(

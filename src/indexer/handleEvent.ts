@@ -275,14 +275,22 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
           applicationMetadata: null,
           roundMetadataCid,
           roundMetadata: null,
-          applicationsStartTime,
-          applicationsEndTime,
-          donationsStartTime,
-          donationsEndTime,
+          applicationsStartTime: isNaN(applicationsStartTime.getTime())
+            ? null
+            : applicationsStartTime,
+          applicationsEndTime: isNaN(applicationsEndTime.getTime())
+            ? null
+            : applicationsEndTime,
+          donationsStartTime: isNaN(donationsStartTime.getTime())
+            ? null
+            : donationsStartTime,
+          donationsEndTime: isNaN(donationsEndTime.getTime())
+            ? null
+            : donationsEndTime,
           createdAtBlock: event.blockNumber,
           updatedAtBlock: event.blockNumber,
         })
-        .catch((e) => console.log(e));
+        .catch((e) => console.error("insert rounderror", e));
 
       await Promise.all([
         matchAmountUpdated({
@@ -290,7 +298,7 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
           event: {
             ...event,
             name: "MatchAmountUpdated",
-            address: event.params.roundAddress,
+            address: roundId,
             params: {
               newAmount: matchAmount,
             },
@@ -301,7 +309,7 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
           event: {
             ...event,
             name: "RoundMetaPtrUpdated",
-            address: event.params.roundAddress,
+            address: roundId,
             params: {
               newMetaPtr: { protocol: 0n, pointer: roundMetadataCid },
               oldMetaPtr: { protocol: 0n, pointer: "" },
@@ -313,7 +321,7 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
           event: {
             ...event,
             name: "ApplicationMetaPtrUpdated",
-            address: event.params.roundAddress,
+            address: roundId,
             params: {
               newMetaPtr: { protocol: 0n, pointer: applicationMetadataCid },
               oldMetaPtr: { protocol: 0n, pointer: "" },
@@ -452,6 +460,7 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
 
     // --- Votes
     case "Voted": {
+      return;
       const donationId = ethers.utils.solidityKeccak256(
         ["string"],
         [`${event.blockNumber}-${event.logIndex}`]
