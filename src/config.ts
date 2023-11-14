@@ -186,6 +186,16 @@ const CHAINS: Chain[] = [
         },
       },
       {
+        code: "GIST",
+        address: "0xCE47Bd89c342Dab2232652573a64B0A4252a7049",
+        decimals: 0,
+        voteAmountCap: BigInt(10),
+        priceSource: {
+          chainId: 10,
+          address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        },
+      },
+      {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
