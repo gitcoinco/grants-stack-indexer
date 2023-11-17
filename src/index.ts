@@ -108,6 +108,7 @@ async function main(): Promise<void> {
       logger: baseLogger.child({ subsystem: "HttpApi" }),
       buildTag: config.buildTag,
       chains: config.chains,
+      enableSentry: config.sentryDsn !== null,
     });
 
     await httpApi.start();

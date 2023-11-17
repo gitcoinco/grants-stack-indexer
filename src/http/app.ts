@@ -6,6 +6,7 @@ import express from "express";
 import { Logger } from "pino";
 import cors from "cors";
 import serveIndex from "serve-index";
+import * as Sentry from "@sentry/node";
 
 import { createHandler as createApiHandler } from "./api/v1/index.js";
 import { PriceProvider } from "../prices/provider.js";
@@ -22,6 +23,7 @@ export interface HttpApiConfig {
   dataProvider: DataProvider;
   passportProvider: PassportProvider;
   chains: Chain[];
+  enableSentry: boolean;
 }
 
 interface HttpApi {
@@ -36,6 +38,23 @@ export const createHttpApi = (config: HttpApiConfig): HttpApi => {
   app.use(express.json());
 
   const api = createApiHandler(config);
+
+  if (config.enableSentry) {
+    app.use(
+      Sentry.Handlers.requestHandler({
+        // default is "cookies", "data", "headers", "method", "query_string", "url"
+        request: [
+          "cookies",
+          "data",
+          "headers",
+          "method",
+          "query_string",
+          "url",
+          "body",
+        ],
+      })
+    );
+  }
 
   app.use((_req, res, next) => {
     if (config.buildTag !== null) {
@@ -64,6 +83,10 @@ export const createHttpApi = (config: HttpApiConfig): HttpApi => {
 
   // temporary route for backwards compatibility
   app.use("/", api);
+
+  if (config.enableSentry) {
+    app.use(Sentry.Handlers.errorHandler());
+  }
 
   return {
     app,
