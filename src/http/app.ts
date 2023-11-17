@@ -6,6 +6,7 @@ import express from "express";
 import { Logger } from "pino";
 import cors from "cors";
 import serveIndex from "serve-index";
+import { postgraphile } from "postgraphile";
 
 import { createHandler as createApiHandler } from "./api/v1/index.js";
 import { PriceProvider } from "../prices/provider.js";
@@ -21,6 +22,9 @@ export interface HttpApiConfig {
   priceProvider: PriceProvider;
   dataProvider: DataProvider;
   passportProvider: PassportProvider;
+  databaseUrl: string;
+  databaseSchemaName: string;
+  hostname: string;
   chains: Chain[];
 }
 
@@ -41,7 +45,7 @@ export const createHttpApi = (config: HttpApiConfig): HttpApi => {
     if (config.buildTag !== null) {
       res.setHeader("x-build-tag", config.buildTag);
     }
-    res.setHeader("x-machine-hostname", os.hostname());
+    res.setHeader("x-machine-hostname", config.hostname);
     next();
   });
 
@@ -54,6 +58,14 @@ export const createHttpApi = (config: HttpApiConfig): HttpApi => {
       },
     }),
     serveIndex(config.chainDataDir, { icons: true, view: "details" })
+  );
+
+  app.use(
+    postgraphile(config.databaseUrl, config.databaseSchemaName, {
+      watchPg: true,
+      graphiql: true,
+      enhanceGraphiql: true,
+    })
   );
 
   app.get("/", (_req, res) => {

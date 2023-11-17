@@ -69,6 +69,13 @@ export const rounds = pgTable(
     };
   }
 );
+import { sql } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
+
+const pgDialect = new PgDialect();
+
+console.log(pgDialect.sqlToQuery(rounds.getSQL()));
+process.exit(0);
 
 export const projects = pgTable("projects", {
   chainId: chainId().notNull(),

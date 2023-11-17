@@ -1,4 +1,3 @@
-import os from "os";
 import express from "express";
 
 import { HttpApiConfig } from "../../app.js";
@@ -8,7 +7,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
 
   router.get("/status", (_req, res) => {
     res.json({
-      hostname: os.hostname(),
+      hostname: config.hostname,
       buildTag: config.buildTag,
     });
   });

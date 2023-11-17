@@ -5,6 +5,7 @@ import { z } from "zod";
 import path from "node:path";
 import abis from "./indexer/abis/index.js";
 import { Hex } from "./indexer/types.js";
+import os from "node:os";
 
 type ChainId = number;
 type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114;
@@ -696,9 +697,14 @@ export type Config = {
   runOnce: boolean;
   apiHttpPort: number;
   sentryDsn: string | null;
+  databaseUrl: string;
+  databaseSchemaName: string;
+  hostname: string;
   deploymentEnvironment: "local" | "development" | "staging" | "production";
   enableResourceMonitor: boolean;
 };
+
+const CHAIN_DATA_VERSION = "3";
 
 export function getConfig(): Config {
   const buildTag = z
@@ -811,6 +817,11 @@ export function getConfig(): Config {
     .default(null)
     .parse(process.env.SENTRY_DSN);
 
+  const hostname = os.hostname();
+
+  const databaseUrl = z.string().url().parse(process.env.DATABASE_URL);
+  const databaseSchemaName = `chain_data_${hostname}_${CHAIN_DATA_VERSION}`;
+
   return {
     buildTag: buildTag,
     sentryDsn,
@@ -829,5 +840,8 @@ export function getConfig(): Config {
     apiHttpPort,
     deploymentEnvironment,
     enableResourceMonitor,
+    databaseUrl,
+    databaseSchemaName,
+    hostname: os.hostname(),
   };
 }

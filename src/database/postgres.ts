@@ -1,15 +1,10 @@
-import {
-  PostgresJsDatabase,
-  PostgresJsQueryResultHKT,
-  drizzle,
-} from "drizzle-orm/postgres-js";
-import { sql } from "drizzle-orm";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
+import { NodePgDatabase } from "drizzle-orm/node-postgres";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
 import * as schema from "./schema.js";
-import postgres from "postgres";
+import { Pool } from "pg";
 import { eq, and } from "drizzle-orm";
 import { Address } from "viem";
-import { PgInsertBase, PgInsertPrepare } from "drizzle-orm/pg-core";
 
 const { projects, rounds, applications, donations } = schema;
 
@@ -26,94 +21,53 @@ export type Donation = typeof donations.$inferSelect;
 export type NewDonation = typeof donations.$inferInsert;
 
 export class PostgresDatabase {
-  db: PostgresJsDatabase<typeof schema> | null = null;
-  version: string;
-  connString: string;
-  preparedInsertDonation: PgInsertPrepare<
-    PgInsertBase<typeof donations, PostgresJsQueryResultHKT>
-  > | null = null;
+  pool: Pool | null = null;
+  db: NodePgDatabase<typeof schema> | null = null;
+  databaseUrl: string;
+  databaseSchemaName: string;
 
-  constructor(options: { connString: string; version: string }) {
-    this.connString = options.connString;
-    this.version = options.version;
+  constructor(options: { databaseUrl: string; databaseSchemaName: string }) {
+    this.databaseUrl = options.databaseUrl;
+    this.databaseSchemaName = options.databaseSchemaName;
   }
 
   async migrate() {
-    const psql = postgres(this.connString);
+    const pool = new Pool({ connectionString: this.databaseUrl });
 
-    const dbName = `chain_data_${this.version}`;
-    const exists =
-      await psql`SELECT 1 FROM pg_database WHERE datname = ${dbName}`;
-    console.log("exists");
-
-    if (exists.length === 1) {
-      const result = await psql`DROP DATABASE ${psql(dbName)}`;
-      console.log("dropped", result);
-      const result1 = await psql`CREATE DATABASE ${psql(dbName)}`;
-      console.log("created", result1);
-    }
-
-    if (exists.length === 0) {
-      const result = await psql`CREATE DATABASE ${psql(dbName)}`;
-      console.log("created", result);
-    }
-
-    await psql.end();
-
-    const conn = postgres(this.connString, {
-      db: dbName,
+    pool.on("connect", async (client) => {
+      await client.query(`SET search_path TO ${this.databaseSchemaName}`);
     });
 
-    // this.db = drizzle(conn, { schema, logger: true });
-    this.db = drizzle(conn, { schema });
+    this.db = drizzle(pool, { schema });
 
     await migrate(this.db, { migrationsFolder: "./migrations" });
-
-    this.preparedInsertDonation = this.db
-      .insert(donations)
-      .values({
-        id: sql.placeholder("id"),
-        chainId: sql.placeholder("chainId"),
-        roundId: sql.placeholder("roundId"),
-        transactionHash: sql.placeholder("transactionHash"),
-        blockNumber: sql.placeholder("blockNumber"),
-        projectId: sql.placeholder("projectId"),
-        applicationId: sql.placeholder("applicationId"),
-        donorAddress: sql.placeholder("donorAddress"),
-        tokenAddress: sql.placeholder("tokenAddress"),
-        recipientAddress: sql.placeholder("recipientAddress"),
-        amount: sql.placeholder("amount"),
-        amountInUSD: sql.placeholder("amountInUSD"),
-        amountInRoundMatchToken: sql.placeholder("amountInRoundMatchToken"),
-      })
-      .prepare("insert_donation");
   }
 
-  ensureDatabaseIsMigrated(): PostgresJsDatabase<typeof schema> {
+  ensureDatabaseIsInitialized(): NodePgDatabase<typeof schema> {
     if (this.db === null) {
-      throw new Error("Database is not migrated");
+      throw new Error("Database is not initialized");
     }
     return this.db;
   }
 
   async insertProject(project: NewProject) {
-    const db = this.ensureDatabaseIsMigrated();
+    const db = this.ensureDatabaseIsInitialized();
     await db.insert(projects).values(project);
   }
 
   async getProjectById(id: string): Promise<Project | null> {
-    const db = this.ensureDatabaseIsMigrated();
+    const db = this.ensureDatabaseIsInitialized();
     const results = await db.select().from(projects).where(eq(projects.id, id));
     return results[0] ?? null;
   }
 
   async updateProjectById(id: string, project: Partial<NewProject>) {
-    const db = this.ensureDatabaseIsMigrated();
+    const db = this.ensureDatabaseIsInitialized();
     await db.update(projects).set(project).where(eq(projects.id, id));
   }
 
   async insertRound(round: NewRound) {
-    const db = this.ensureDatabaseIsMigrated();
+    const db = this.ensureDatabaseIsInitialized();
     await db.insert(rounds).values(round);
   }
 
@@ -121,7 +75,7 @@ export class PostgresDatabase {
     chainId: number;
     roundId: Address;
   }): Promise<Round | null> {
-    const db = this.ensureDatabaseIsMigrated();
+    const db = this.ensureDatabaseIsInitialized();
     const results = await db
       .select()
       .from(rounds)
@@ -133,7 +87,7 @@ export class PostgresDatabase {
     id: { chainId: number; roundId: Address },
     round: Partial<NewRound>
   ) {
-    const db = this.ensureDatabaseIsMigrated();
+    const db = this.ensureDatabaseIsInitialized();
     await db
       .update(rounds)
       .set(round)
@@ -141,7 +95,7 @@ export class PostgresDatabase {
   }
 
   async insertApplication(application: NewApplication) {
-    const db = this.ensureDatabaseIsMigrated();
+    const db = this.ensureDatabaseIsInitialized();
     await db.insert(applications).values(application);
   }
 
@@ -150,7 +104,7 @@ export class PostgresDatabase {
     applicationId: string;
     roundId: Address;
   }): Promise<Application | null> {
-    const db = this.ensureDatabaseIsMigrated();
+    const db = this.ensureDatabaseIsInitialized();
     const results = await db
       .select()
       .from(applications)
@@ -168,7 +122,7 @@ export class PostgresDatabase {
     id: { chainId: number; applicationId: string; roundId: Address },
     application: Partial<NewApplication>
   ) {
-    const db = this.ensureDatabaseIsMigrated();
+    const db = this.ensureDatabaseIsInitialized();
     await db
       .update(applications)
       .set(application)

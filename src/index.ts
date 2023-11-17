@@ -58,9 +58,8 @@ async function main(): Promise<void> {
   });
 
   const db = new PostgresDatabase({
-    connString:
-      "postgres://postgres:postgres@localhost:5432/grants_stack_indexer",
-    version: "1",
+    connString: config.databaseUrl,
+    version: "3",
   });
 
   await db.migrate();
