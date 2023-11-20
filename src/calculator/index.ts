@@ -167,21 +167,13 @@ export default class Calculator {
     });
   }
 
-  async calculate(): Promise<Array<AugmentedResult>> {
-    const votes = await this.parseJSONFile<Vote>(
-      "votes",
-      `${this.chainId}/rounds/${this.roundId}/votes.json`
-    );
-
-    return this._calculate(votes);
-  }
-
-  private async _calculate(votes: Vote[]): Promise<Array<AugmentedResult>> {
-    const applications = await this.parseJSONFile<Application>(
-      "applications",
-      `${this.chainId}/rounds/${this.roundId}/applications.json`
-    );
-
+  async _calculate({
+    votes,
+    applications,
+  }: {
+    votes: Vote[];
+    applications: Application[];
+  }): Promise<Array<AugmentedResult>> {
     const rounds = await this.parseJSONFile<Round>(
       "rounds",
       `${this.chainId}/rounds.json`
@@ -225,17 +217,22 @@ export default class Calculator {
         10000n;
     }
 
+    const passportScoresByAddress =
+      await this.passportProvider.getScoresByAddresses(
+        votes.map((vote) => vote.voter)
+      );
+
     const votesWithCoefficients = await getVotesWithCoefficients({
       chain: this.chain,
       round,
       applications,
       votes,
-      passportProvider: this.passportProvider,
       options: {
         minimumAmountUSD: this.minimumAmountUSD,
         enablePassport: this.enablePassport,
       },
       proportionalMatchOptions: this.proportionalMatch,
+      passportScoresByAddress,
     });
 
     const contributions: Contribution[] =
@@ -284,26 +281,25 @@ export default class Calculator {
    * Estimates matching for a given project and potential additional votes
    * @param potentialVotes
    */
-  async estimateMatching(
-    potentialVotes: PotentialVote[]
-  ): Promise<MatchingEstimateResult[]> {
-    const votes = await this.parseJSONFile<Vote>(
-      "votes",
-      `${this.chainId}/rounds/${this.roundId}/votes.json`
-    );
-
-    const rounds = await this.parseJSONFile<Round>(
-      "rounds",
-      `${this.chainId}/rounds.json`
-    );
-
+  async estimateMatching({
+    votes,
+    potentialVotes,
+    applications,
+    rounds,
+    currentMatches: currentResults,
+  }: {
+    currentMatches: AugmentedResult[];
+    votes: Vote[];
+    potentialVotes: PotentialVote[];
+    applications: Application[];
+    rounds: Round[];
+  }): Promise<MatchingEstimateResult[]> {
     const round = rounds.find((round) => round.id === this.roundId);
 
     if (round === undefined) {
       throw new ResourceNotFoundError("round");
     }
 
-    const currentResults = await this._calculate(votes);
     const usdPriceByAddress: Record<string, PriceWithDecimals> = {};
 
     // fetch each token price only once
@@ -347,10 +343,10 @@ export default class Calculator {
       };
     });
 
-    const potentialResults = await this._calculate([
-      ...votes,
-      ...potentialVotesAugmented,
-    ]);
+    const potentialResults = await this._calculate({
+      votes: [...votes, ...potentialVotesAugmented],
+      applications,
+    });
 
     const finalResults: MatchingEstimateResult[] = [];
 
@@ -394,7 +390,7 @@ export default class Calculator {
   }
 }
 
-type MatchingEstimateResult = Calculation & {
+export type MatchingEstimateResult = Calculation & {
   difference: bigint;
   differenceInUSD: number;
   roundId: string;

@@ -5,12 +5,12 @@ const upload = multer();
 import multer from "multer";
 import ClientError from "../clientError.js";
 
-import Calculator, {
-  Overrides,
-  CalculatorOptions,
-  parseOverrides,
-} from "../../../calculator/index.js";
+import { Overrides, parseOverrides } from "../../../calculator/index.js";
 import { HttpApiConfig } from "../../app.js";
+import {
+  calculateMatches,
+  calculateMatchingEstimates,
+} from "../../../calculator/__refactor.js";
 
 export const createHandler = (config: HttpApiConfig): express.Router => {
   const router = express.Router();
@@ -83,7 +83,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       throw new Error(`Chain ${chainId} not configured`);
     }
 
-    const calculatorOptions: CalculatorOptions = {
+    const matches = await calculateMatches({
       priceProvider: config.priceProvider,
       dataProvider: config.dataProvider,
       passportProvider: config.passportProvider,
@@ -97,10 +97,8 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       ignoreSaturation: ignoreSaturation,
       overrides,
       chain: chainConfig,
-    };
+    });
 
-    const calculator = new Calculator(calculatorOptions);
-    const matches = await calculator.calculate();
     const responseBody = JSON.stringify(matches, (_key, value) =>
       typeof value === "bigint" ? value.toString() : (value as unknown)
     );
@@ -132,7 +130,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       throw new ClientError(`Chain ${chainId} not configured`, 400);
     }
 
-    const calculatorOptions: CalculatorOptions = {
+    const matches = await calculateMatchingEstimates({
       priceProvider: config.priceProvider,
       dataProvider: config.dataProvider,
       chainId: chainId,
@@ -142,10 +140,9 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       overrides: {},
       passportProvider: config.passportProvider,
       chain: chainConfig,
-    };
+      potentialVotes,
+    });
 
-    const calculator = new Calculator(calculatorOptions);
-    const matches = await calculator.estimateMatching(potentialVotes);
     const responseBody = JSON.stringify(matches, (_key, value) =>
       typeof value === "bigint" ? value.toString() : (value as unknown)
     );
