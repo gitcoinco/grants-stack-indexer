@@ -334,14 +334,14 @@ export default class Calculator {
 
       const voteAmountInUsd = convertTokenToFiat({
         tokenAmount: vote.amount,
-        tokenDecimals: token.decimals,
+        tokenDecimals: tokenPrice.decimals,
         tokenPrice: tokenPrice.price,
         tokenPriceDecimals: 8,
       });
 
       const voteAmountInRoundToken = convertFiatToToken({
         fiatAmount: voteAmountInUsd,
-        tokenDecimals: tokenPrice.decimals,
+        tokenDecimals: conversionRateRoundToken.decimals,
         tokenPrice: conversionRateRoundToken.price,
         tokenPriceDecimals: 8,
       });
