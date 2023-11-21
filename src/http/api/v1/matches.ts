@@ -7,10 +7,8 @@ import ClientError from "../clientError.js";
 
 import { Overrides, parseOverrides } from "../../../calculator/index.js";
 import { HttpApiConfig } from "../../app.js";
-import {
-  calculateMatches,
-  calculateMatchingEstimates,
-} from "../../../calculator/__refactor.js";
+import { calculateMatches } from "../../../calculator/calculateMatches.js";
+import { calculateMatchingEstimates } from "../../../calculator/calculateMatchingEstimates.js";
 
 export const createHandler = (config: HttpApiConfig): express.Router => {
   const router = express.Router();
@@ -84,9 +82,6 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     }
 
     const matches = await calculateMatches({
-      priceProvider: config.priceProvider,
-      dataProvider: config.dataProvider,
-      passportProvider: config.passportProvider,
       chainId: chainId,
       roundId: roundId,
       minimumAmountUSD: minimumAmountUSD ? Number(minimumAmountUSD) : undefined,
@@ -97,6 +92,13 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       ignoreSaturation: ignoreSaturation,
       overrides,
       chain: chainConfig,
+      implementationType: "in-process",
+      deps: {
+        dataProvider: config.dataProvider,
+        passportProvider: config.passportProvider,
+      },
+      // TODO for the `in-process` implementation type, priceProvider should be in `deps`
+      priceProvider: config.priceProvider,
     });
 
     const responseBody = JSON.stringify(matches, (_key, value) =>
@@ -131,16 +133,20 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     }
 
     const matches = await calculateMatchingEstimates({
-      priceProvider: config.priceProvider,
-      dataProvider: config.dataProvider,
       chainId: chainId,
       roundId: roundId,
       minimumAmountUSD: undefined,
       matchingCapAmount: undefined,
       overrides: {},
-      passportProvider: config.passportProvider,
       chain: chainConfig,
       potentialVotes,
+      implementationType: "in-process",
+      deps: {
+        dataProvider: config.dataProvider,
+        passportProvider: config.passportProvider,
+      },
+      // TODO for the `in-process` implementation type, priceProvider should be in `deps`
+      priceProvider: config.priceProvider,
     });
 
     const responseBody = JSON.stringify(matches, (_key, value) =>

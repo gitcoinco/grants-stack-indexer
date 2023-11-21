@@ -54,6 +54,7 @@
     "stream-to-string": "^1.2.1",
     "throttle-debounce": "^5.0.0",
     "tmp": "^0.2.1",
+    "ts-essentials": "^9.4.1",
     "ts-is-present": "^1.2.2",
     "viem": "^1.16.4",
     "vitest": "^0.34.5",
