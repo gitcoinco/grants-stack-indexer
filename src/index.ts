@@ -162,6 +162,7 @@ async function main(): Promise<void> {
         graphiqlRoute: "/graphiql",
         enhanceGraphiql: true,
         disableDefaultMutations: true,
+        dynamicJson: true,
 
         // TODO: buy pro version?
         // defaultPaginationCap: 1000,
@@ -360,6 +361,7 @@ async function catchupAndWatchChain(
           maxRetries: 3,
           url: config.chain.rpc,
           onRequest({ method, params, url }) {
+            // TODO: this is a temporary log to investigate high request counts
             indexerLogger.debug({
               msg: "RPC request",
               url,
