@@ -51,7 +51,7 @@ Indexed JSON data is found in the `.var/storage/chainData` directory by default.
 To only index data without tracking new events nor starting a server, provide the `--run-once` option:
 
 ```
-npm run start -- --chains=mainnet,goerli --run-once
+npm run start -- --chains=mainnet --run-once
 ```
 
 ## Deployment
