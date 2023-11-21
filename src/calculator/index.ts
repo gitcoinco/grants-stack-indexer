@@ -4,7 +4,7 @@ import { linearQF, Contribution, Calculation } from "pluralistic";
 import type { PassportProvider } from "../passport/index.js";
 import { PriceProvider } from "../prices/provider.js";
 import { convertTokenToFiat, convertFiatToToken } from "../tokenMath.js";
-import { Chain, getChainConfigById, getDecimalsForToken } from "../config.js";
+import { Chain, getDecimalsForToken } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
 import { getVotesWithCoefficients, VoteWithCoefficient } from "./votes.js";
 import {
@@ -15,7 +15,7 @@ import {
   OverridesInvalidRowError,
 } from "./errors.js";
 import { PotentialVote } from "../http/api/v1/matches.js";
-import { PriceWithDecimals, UnknownTokenError } from "../prices/common.js";
+import { PriceWithDecimals } from "../prices/common.js";
 import { zeroAddress } from "viem";
 import { ProportionalMatchOptions } from "./options.js";
 
