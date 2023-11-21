@@ -358,6 +358,14 @@ async function catchupAndWatchChain(
           maxConcurrentRequests: 10,
           maxRetries: 3,
           url: config.chain.rpc,
+          onRequest({ method, params, url }) {
+            indexerLogger.debug({
+              msg: "RPC request",
+              url,
+              method,
+              params,
+            });
+          },
         }),
       },
       context: eventHandlerContext,
