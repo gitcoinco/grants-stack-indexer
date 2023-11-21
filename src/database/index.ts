@@ -1,70 +1,72 @@
+import { Pool } from "pg";
+import { Address } from "viem";
+import { sql, Kysely, PostgresDialect } from "kysely";
+
 import {
   ProjectTable,
   RoundTable,
   ApplicationTable,
+  DonationTable,
+  Round,
   Donation,
-  migrate,
+  Application,
+  Project,
+  NewProject,
+  PartialProject,
+  NewRound,
+  PartialRound,
+  NewApplication,
+  PartialApplication,
+  NewDonation,
 } from "./schema.js";
-import { Pool } from "pg";
-
-import { Address } from "viem";
-import {
-  sql,
-  Kysely,
-  PostgresDialect,
-  Updateable,
-  Insertable,
-  Selectable,
-} from "kysely";
+import { migrate } from "./migrate.js";
 import { encodeJsonWithBigInts } from "../utils/index.js";
 
 interface Tables {
   projects: ProjectTable;
   rounds: RoundTable;
   applications: ApplicationTable;
-  donations: Donation;
+  donations: DonationTable;
 }
 
-type ChainId = number;
-
-export type Round = Selectable<RoundTable>;
-
 type KyselyDb = Kysely<Tables>;
+
+type ChainId = number;
 
 export type Mutation =
   | {
       type: "InsertProject";
-      project: Insertable<ProjectTable>;
+      project: NewProject;
     }
   | {
       type: "UpdateProject";
       projectId: string;
-      project: Updateable<ProjectTable>;
+      project: PartialProject;
     }
   | {
       type: "InsertRound";
-      round: Insertable<RoundTable>;
+      round: NewRound;
     }
   | {
       type: "UpdateRound";
       roundId: Address;
       chainId: ChainId;
-      round: Updateable<RoundTable>;
+      round: PartialRound;
     }
   | {
       type: "InsertApplication";
-      application: Insertable<ApplicationTable>;
+      application: NewApplication;
     }
   | {
       type: "UpdateApplication";
       roundId: Address;
       chainId: ChainId;
       applicationId: string;
-      application: Updateable<ApplicationTable>;
+      application: PartialApplication;
     }
   | {
       type: "InsertDonation";
-      donation: Insertable<Donation>;
+      donation: NewDonation;
     };
 
 type ExtractQuery<TQueryDefinition, TQueryName> = Extract<
@@ -83,7 +85,7 @@ export type QueryInteraction =
         type: "ProjectById";
         projectId: string;
       };
-      response: Selectable<ProjectTable> | null;
+      response: Project | null;
     }
   | {
       query: {
@@ -91,14 +93,14 @@ export type QueryInteraction =
         roundId: Address;
         chainId: ChainId;
       };
-      response: Selectable<RoundTable> | null;
+      response: Round | null;
     }
   | {
       query: {
         type: "AllChainRounds";
         chainId: ChainId;
       };
-      response: Selectable<RoundTable>[];
+      response: Round[];
     }
   | {
       query: {
@@ -106,7 +108,7 @@ export type QueryInteraction =
         chainId: ChainId;
         roundId: Address;
       };
-      response: Selectable<ApplicationTable>[];
+      response: Application[];
     }
   | {
       query: {
@@ -115,7 +117,7 @@ export type QueryInteraction =
         roundId: Address;
         applicationId: string;
       };
-      response: Selectable<ApplicationTable> | null;
+      response: Application | null;
     }
   | {
       query: {
@@ -123,76 +125,88 @@ export type QueryInteraction =
         chainId: ChainId;
         roundId: Address;
       };
-      response: Selectable<Donation>[];
+      response: Donation[];
     };
 
-export class PostgresDatabase {
-  db: KyselyDb;
-  databaseSchemaName: string;
+export class Database {
+  #db: KyselyDb;
+  readonly databaseSchemaName: string;
 
   constructor(options: { connectionPool: Pool; schemaName: string }) {
     const dialect = new PostgresDialect({
       pool: options.connectionPool,
     });
 
-    this.db = new Kysely<Tables>({
+    this.#db = new Kysely<Tables>({
       dialect,
     });
 
-    this.db = this.db.withSchema(options.schemaName);
+    this.#db = this.#db.withSchema(options.schemaName);
 
     this.databaseSchemaName = options.schemaName;
   }
 
-  async dropSchema() {
-    console.log("dropping database", this.databaseSchemaName);
-
-    await this.db.schema
+  async dropSchemaIfExists() {
+    await this.#db.schema
       .dropSchema(this.databaseSchemaName)
       .ifExists()
       .cascade()
       .execute();
   }
 
-  async migrateSchema() {
-    console.log("Migrating database", this.databaseSchemaName);
+  async createSchemaIfNotExists() {
+    const exists = await sql<{ exists: boolean }>`
+    SELECT EXISTS (
+      SELECT 1 FROM information_schema.schemata 
+      WHERE schema_name = ${this.databaseSchemaName}
+    )`.execute(this.#db);
 
-    await this.db.transaction().execute(async (tx) => {
+    if (exists.rows.length > 0 && exists.rows[0].exists) {
+      return;
+    }
+
+    await this.#db.transaction().execute(async (tx) => {
       await tx.schema
         .createSchema(this.databaseSchemaName)
         .ifNotExists()
         .execute();
 
+      // DDL statements inside the migrate call below are scoped to the schema
+      // but when using custom types kysely doesn't seem to use the schema
       await sql
         .raw(`SET LOCAL SEARCH_PATH TO "${this.databaseSchemaName}"`)
         .execute(tx);
 
       await migrate(tx);
     });
-
-    console.log("migrated");
   }
 
   async mutate(mutation: Mutation): Promise<void> {
     switch (mutation.type) {
       case "InsertProject": {
-        await this.db.insertInto("projects").values(mutation.project).execute();
+        await this.#db
+          .insertInto("projects")
+          .values(mutation.project)
+          .execute();
         break;
       }
+
       case "UpdateProject": {
-        await this.db
+        await this.#db
           .updateTable("projects")
           .set(mutation.project)
           .where("id", "=", mutation.projectId)
           .execute();
         break;
       }
+
       case "InsertRound": {
-        await this.db.insertInto("rounds").values(mutation.round).execute();
+        await this.#db.insertInto("rounds").values(mutation.round).execute();
         break;
       }
+
       case "UpdateRound": {
-        await this.db
+        await this.#db
           .updateTable("rounds")
           .set(mutation.round)
           .where("chainId", "=", mutation.chainId)
@@ -200,6 +214,7 @@ export class PostgresDatabase {
           .execute();
         break;
       }
+
       case "InsertApplication": {
         let application = mutation.application;
         if (application.statusSnapshots !== undefined) {
@@ -209,9 +224,10 @@ export class PostgresDatabase {
           };
         }
 
-        await this.db.insertInto("applications").values(application).execute();
+        await this.#db.insertInto("applications").values(application).execute();
         break;
       }
+
       case "UpdateApplication": {
         let application = mutation.application;
         if (application.statusSnapshots !== undefined) {
@@ -221,7 +237,7 @@ export class PostgresDatabase {
           };
         }
 
-        await this.db
+        await this.#db
           .updateTable("applications")
           .set(application)
           .where("chainId", "=", mutation.chainId)
@@ -230,8 +246,9 @@ export class PostgresDatabase {
           .execute();
         break;
       }
+
       case "InsertDonation": {
-        await this.db
+        await this.#db
           .insertInto("donations")
           .values(mutation.donation)
           .execute();
@@ -263,7 +280,7 @@ export class PostgresDatabase {
   ): Promise<QueryInteraction["response"]> {
     switch (query.type) {
       case "ProjectById": {
-        const project = await this.db
+        const project = await this.#db
           .selectFrom("projects")
           .where("id", "=", query.projectId)
           .selectAll()
@@ -271,8 +288,9 @@ export class PostgresDatabase {
 
         return project ?? null;
       }
+
       case "RoundById": {
-        const round = await this.db
+        const round = await this.#db
           .selectFrom("rounds")
           .where("chainId", "=", query.chainId)
           .where("id", "=", query.roundId)
@@ -281,8 +299,9 @@ export class PostgresDatabase {
 
         return round ?? null;
       }
+
       case "AllChainRounds": {
-        const rounds = await this.db
+        const rounds = await this.#db
           .selectFrom("rounds")
           .where("chainId", "=", query.chainId)
           .selectAll()
@@ -290,24 +309,27 @@ export class PostgresDatabase {
 
         return rounds;
       }
+
       case "AllRoundApplications": {
-        return await this.db
+        return await this.#db
           .selectFrom("applications")
           .where("chainId", "=", query.chainId)
           .where("roundId", "=", query.roundId)
           .selectAll()
           .execute();
       }
+
       case "AllRoundDonations": {
-        return await this.db
+        return await this.#db
           .selectFrom("donations")
           .where("chainId", "=", query.chainId)
           .where("roundId", "=", query.roundId)
           .selectAll()
           .execute();
       }
+
       case "ApplicationById": {
-        const application = await this.db
+        const application = await this.#db
           .selectFrom("applications")
           .where("chainId", "=", query.chainId)
           .where("roundId", "=", query.roundId)

@@ -1,6 +1,7 @@
 import { EventHandlerArgs } from "chainsauce";
 import type { Indexer } from "../indexer.js";
-import { Mutation, Round } from "../../database/postgres.js";
+import { Mutation } from "../../database/index.js";
+import { Round } from "../../database/schema.js";
 
 export default async function ({
   event,

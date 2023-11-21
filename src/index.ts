@@ -1,8 +1,9 @@
 import {
   createIndexer,
   createSqliteCache,
-  createSqliteSubscriptionStore,
+  createPostgresSubscriptionStore,
   createHttpRpcClient,
+  SubscriptionStore,
 } from "chainsauce";
 import { Logger, pino } from "pino";
 import path from "node:path";
@@ -30,18 +31,9 @@ import { ethers } from "ethers";
 import abis from "./indexer/abis/index.js";
 import type { EventHandlerContext } from "./indexer/indexer.js";
 import { handleEvent } from "./indexer/handleEvent.js";
-import { PostgresDatabase } from "./database/postgres.js";
+import { Database } from "./database/index.js";
 import { decodeJsonWithBigInts } from "./utils/index.js";
-
-// parse postgres numeric(78,0) as bigint
-types.setTypeParser(1700, function (val) {
-  return BigInt(val);
-});
-
-// parse postgres jsonb with bigint support
-types.setTypeParser(3802, function (val) {
-  return decodeJsonWithBigInts(val);
-});
+import { postgraphile } from "postgraphile";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
 
@@ -71,17 +63,35 @@ async function main(): Promise<void> {
     service: `indexer-${config.deploymentEnvironment}`,
   });
 
+  // parse postgres numeric(78,0) as bigint
+  types.setTypeParser(1700, function (val) {
+    return BigInt(val);
+  });
+
+  // parse postgres jsonb with bigint support
+  types.setTypeParser(3802, function (val) {
+    return decodeJsonWithBigInts(val);
+  });
+
   const databaseConnectionPool = new Pool({
     connectionString: config.databaseUrl,
   });
 
-  const db = new PostgresDatabase({
+  const subscriptionStore = createPostgresSubscriptionStore({
+    pool: databaseConnectionPool,
+    schema: config.databaseSchemaName,
+  });
+
+  const db = new Database({
     connectionPool: databaseConnectionPool,
     schemaName: config.databaseSchemaName,
   });
 
-  await db.dropSchema();
-  await db.migrateSchema();
+  if (config.dropDb) {
+    await db.dropSchemaIfExists();
+  }
+
+  await db.createSchemaIfNotExists();
 
   baseLogger.info({
     msg: "starting",
@@ -110,15 +120,16 @@ async function main(): Promise<void> {
   if (config.runOnce) {
     await Promise.all(
       config.chains.map(async (chain) =>
-        catchupAndWatchChain({ chain, db, baseLogger, ...config })
+        catchupAndWatchChain({
+          chain,
+          db,
+          subscriptionStore,
+          baseLogger,
+          ...config,
+        })
       )
     );
-    // Workaround for active handles preventing process to terminate
-    // (to investigate: console.log(process._getActiveHandles()))
-    // Note: the delay is necessary to allow completing writes.
     baseLogger.info("exiting");
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    process.exit(0);
   } else {
     // Promises will be resolved once the initial catchup is done. Afterwards, services
     // will still be in listen-and-update mode.
@@ -130,9 +141,34 @@ async function main(): Promise<void> {
         runOnce: config.runOnce,
       }),
       ...config.chains.map(async (chain) =>
-        catchupAndWatchChain({ chain, db, baseLogger, ...config })
+        catchupAndWatchChain({
+          chain,
+          db,
+          subscriptionStore,
+          baseLogger,
+          ...config,
+        })
       ),
     ]);
+
+    // TODO: use read only connection, use separate pool?
+    const graphqlHandler = postgraphile(
+      databaseConnectionPool,
+      config.databaseSchemaName,
+      {
+        watchPg: false,
+        graphqlRoute: "/graphql",
+        graphiql: true,
+        graphiqlRoute: "/graphiql",
+        enhanceGraphiql: true,
+        disableDefaultMutations: true,
+
+        // TODO: buy pro version?
+        // defaultPaginationCap: 1000,
+        // readOnlyConnection: true,
+        // graphqlDepthLimit: 2
+      }
+    );
 
     const httpApi = createHttpApi({
       chainDataDir: config.chainDataDir,
@@ -147,8 +183,7 @@ async function main(): Promise<void> {
       buildTag: config.buildTag,
       chains: config.chains,
       hostname: config.hostname,
-      databaseConnectionPool: databaseConnectionPool,
-      databaseSchemaName: config.databaseSchemaName,
+      graphqlHandler: graphqlHandler,
     });
 
     await httpApi.start();
@@ -192,7 +227,8 @@ async function catchupAndWatchPassport(
 
 async function catchupAndWatchChain(
   config: Omit<Config, "chains"> & {
-    db: PostgresDatabase;
+    subscriptionStore: SubscriptionStore;
+    db: Database;
     chain: Chain;
     baseLogger: Logger;
   }
@@ -312,12 +348,6 @@ async function catchupAndWatchChain(
       ? createSqliteCache(path.join(config.cacheDir, "chainsauceCache.db"))
       : null;
 
-    // the subscription store is used to keep track of indexed events for resuming
-    // indexing after a restart, it goes with the chain data
-    const subscriptionStore = createSqliteSubscriptionStore(
-      path.join(CHAIN_DIR_PATH, "subscriptions.db")
-    );
-
     const indexer = createIndexer({
       contracts: abis,
       chain: {
@@ -331,7 +361,7 @@ async function catchupAndWatchChain(
         }),
       },
       context: eventHandlerContext,
-      subscriptionStore,
+      subscriptionStore: config.subscriptionStore,
       cache: chainsauceCache,
       logLevel: "trace",
       logger: (level, msg, data) => {

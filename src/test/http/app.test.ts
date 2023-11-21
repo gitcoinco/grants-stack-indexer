@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { describe, test, expect, beforeEach, vi } from "vitest";
+import { describe, test, expect, beforeEach } from "vitest";
 import express from "express";
-import os from "os";
 import request, { Response as SupertestResponse } from "supertest";
 import { createHttpApi } from "../../http/app.js";
 import { AugmentedResult, DataProvider } from "../../calculator/index.js";
@@ -16,8 +15,6 @@ import {
   TestDataProvider,
   loadFixture,
 } from "../utils.js";
-
-vi.spyOn(os, "hostname").mockReturnValue("dummy-hostname");
 
 // Typed version of supertest's Response
 type Response<T> = Omit<SupertestResponse, "body"> & { body: T };
@@ -49,6 +46,7 @@ describe("server", () => {
         logger: DUMMY_LOGGER,
         port: 0,
         chainDataDir: "/dev/null",
+        hostname: "dummy-hostname",
         buildTag: "123abc",
         priceProvider: new TestPriceProvider() as unknown as PriceProvider,
         passportProvider: new TestPassportProvider(),
@@ -101,6 +99,7 @@ describe("server", () => {
             "1/rounds/0x1234/applications.json": "applications",
             "1/rounds.json": [], // empty file so the round won't be found
           }) as DataProvider,
+          hostname: "dummy-hostname",
           buildTag: "123abc",
           chains: MOCK_CHAINS,
         });
@@ -116,6 +115,7 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           chainDataDir: "/dev/null",
+          hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -138,6 +138,7 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           chainDataDir: "/dev/null",
+          hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -160,6 +161,7 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           chainDataDir: "/dev/null",
+          hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -182,6 +184,7 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           chainDataDir: "/dev/null",
+          hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -207,6 +210,7 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           chainDataDir: "/dev/null",
+          hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -377,6 +381,7 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           chainDataDir: "/dev/null",
+          hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -458,6 +463,7 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           chainDataDir: "/dev/null",
+          hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -528,6 +534,7 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           chainDataDir: "/dev/null",
+          hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -655,6 +662,7 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           chainDataDir: "/dev/null",
+          hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -879,6 +887,7 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           chainDataDir: "/dev/null",
+          hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -1051,6 +1060,7 @@ describe("server", () => {
           logger: DUMMY_LOGGER,
           port: 0,
           chainDataDir: "/dev/null",
+          hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({

@@ -5,7 +5,7 @@ import type { PassportProvider } from "../passport/index.js";
 import { PriceProvider } from "../prices/provider.js";
 import { convertTokenToFiat, convertFiatToToken } from "../tokenMath.js";
 import { Chain, getDecimalsForToken } from "../config.js";
-import type { Round, Application } from "../indexer/types.js";
+import type { Round, Application, Vote } from "../indexer/types.js";
 import { getVotesWithCoefficients, VoteWithCoefficient } from "./votes.js";
 import {
   CalculatorError,
@@ -17,7 +17,7 @@ import {
 import { PotentialVote } from "../http/api/v1/matches.js";
 import { PriceWithDecimals } from "../prices/common.js";
 import { getAddress, zeroAddress } from "viem";
-import { PostgresDatabase } from "../database/postgres.js";
+import { Database } from "../database/index.js";
 import { ProportionalMatchOptions } from "./options.js";
 
 export {
@@ -35,21 +35,24 @@ export interface DataProvider {
 export type Overrides = Record<string, number>;
 
 export class DatabaseDataProvider implements DataProvider {
-  #db: PostgresDatabase;
+  #db: Database;
 
-  constructor(db: PostgresDatabase) {
+  constructor(db: Database) {
     this.#db = db;
   }
 
   async loadFile<T>(description: string, path: string): Promise<Array<T>> {
     const segments = path.split("/");
-
-    console.log("segments", segments);
-
+    //
     // /:chainId/rounds.json
     if (segments.length === 2 && segments[1] === "rounds.json") {
       const chainId = Number(segments[0]);
-      const rounds = await this.#db.getRoundsForChain(chainId);
+
+      const rounds = await this.#db.query({
+        type: "AllChainRounds",
+        chainId,
+      });
+
       return rounds as unknown as Array<T>;
     }
 
@@ -62,7 +65,8 @@ export class DatabaseDataProvider implements DataProvider {
       const chainId = Number(segments[0]);
       const roundId = getAddress(segments[2]);
 
-      const applications = await this.#db.getApplicationsForRound({
+      const applications = await this.#db.query({
+        type: "AllRoundApplications",
         chainId,
         roundId,
       });
@@ -79,12 +83,28 @@ export class DatabaseDataProvider implements DataProvider {
       const chainId = Number(segments[0]);
       const roundId = getAddress(segments[2]);
 
-      const donations = await this.#db.getDonationsForRound({
+      const donations = await this.#db.query({
+        type: "AllRoundDonations",
         chainId,
         roundId,
       });
 
-      return donations as unknown as Array<T>;
+      const votes: Vote[] = donations.map((donation) => ({
+        id: donation.id,
+        transaction: donation.transactionHash,
+        blockNumber: Number(donation.blockNumber),
+        projectId: donation.projectId,
+        roundId: donation.roundId,
+        applicationId: donation.applicationId,
+        token: donation.tokenAddress,
+        voter: donation.donorAddress,
+        grantAddress: donation.recipientAddress,
+        amount: donation.amount.toString(),
+        amountUSD: donation.amountInUSD,
+        amountRoundToken: donation.amountInRoundMatchToken.toString(),
+      }));
+
+      return votes as unknown as Array<T>;
     }
 
     throw new FileNotFoundError(description);

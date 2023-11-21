@@ -18,9 +18,10 @@ import {
   Application,
   ProjectTable,
   Donation,
+  Round,
   NewApplication,
 } from "../database/schema.js";
-import { Mutation, Round } from "../database/postgres.js";
+import { Mutation } from "../database/index.js";
 
 enum ApplicationStatus {
   PENDING = 0,

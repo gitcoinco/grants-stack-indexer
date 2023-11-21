@@ -1,13 +1,13 @@
 import { Logger } from "pino";
 import { PriceProvider } from "../prices/provider.js";
 import { Indexer as ChainsauceIndexer } from "chainsauce";
-import { PostgresDatabase } from "../database/postgres.js";
+import { Database } from "../database/index.js";
 
 import abis from "./abis/index.js";
 
 export interface EventHandlerContext {
   chainId: number;
-  db: PostgresDatabase;
+  db: Database;
   ipfsGet: <T>(cid: string) => Promise<T | undefined>;
   priceProvider: PriceProvider;
   logger: Logger;

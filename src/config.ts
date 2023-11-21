@@ -702,6 +702,7 @@ export type Config = {
   hostname: string;
   deploymentEnvironment: "local" | "development" | "staging" | "production";
   enableResourceMonitor: boolean;
+  dropDb: boolean;
 };
 
 const CHAIN_DATA_VERSION = "3";
@@ -761,6 +762,9 @@ export function getConfig(): Config {
       },
       "from-block": {
         type: "string",
+      },
+      "drop-db": {
+        type: "boolean",
       },
       "log-level": {
         type: "string",
@@ -822,6 +826,8 @@ export function getConfig(): Config {
   const databaseUrl = z.string().url().parse(process.env.DATABASE_URL);
   const databaseSchemaName = `chain_data_${hostname}_${CHAIN_DATA_VERSION}`;
 
+  const dropDb = z.boolean().default(false).parse(args["drop-db"]);
+
   return {
     buildTag: buildTag,
     sentryDsn,
@@ -841,6 +847,7 @@ export function getConfig(): Config {
     deploymentEnvironment,
     enableResourceMonitor,
     databaseUrl,
+    dropDb,
     databaseSchemaName,
     hostname: os.hostname(),
   };
