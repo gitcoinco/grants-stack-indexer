@@ -317,15 +317,6 @@ export default class Calculator {
       }
     }
 
-    const chain = getChainConfigById(this.chainId);
-    const token = chain.tokens.find(
-      (t) => t.address.toLowerCase() === round.token.toLowerCase()
-    );
-
-    if (token === undefined) {
-      throw new UnknownTokenError(round.token, this.chainId);
-    }
-
     const conversionRateRoundToken =
       await this.priceProvider.getUSDConversionRate(this.chainId, round.token);
 
