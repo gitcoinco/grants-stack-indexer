@@ -12,7 +12,7 @@ kill_timeout = 5
   LOG_LEVEL = "debug"
   STORAGE_DIR = "/mnt/indexer"
   INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-mainnet,arbitrum,arbitrum-goerli,polygon-mumbai,polygon"
-  NODE_OPTIONS="--max-old-space-size=8192"
+  NODE_OPTIONS="--max-old-space-size=7168"
   # BUILD_TAG = # set in deploy github action
 
 [processes]
@@ -38,7 +38,7 @@ kill_timeout = 5
 
   [services.concurrency]
     type = "connections"
-    hard_limit = 40
+    hard_limit = 60
     soft_limit = 20
 
   [[services.tcp_checks]]
