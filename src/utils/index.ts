@@ -1,3 +1,6 @@
+// TODO: why is eslint not recognizing type narrowing?
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 export function wait(delay: number) {
   return new Promise((resolve) => setTimeout(resolve, delay));
 }
