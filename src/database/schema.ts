@@ -1,168 +1,222 @@
 import {
-  timestamp,
-  integer,
-  jsonb,
-  pgTable,
-  real,
-  text,
-  varchar,
-  primaryKey,
-  pgEnum,
-  foreignKey,
-  customType,
-} from "drizzle-orm/pg-core";
-import { Address } from "viem";
+  Selectable,
+  Kysely,
+  sql,
+  ColumnType,
+  Updateable,
+  Insertable,
+} from "kysely";
 
-function address(name: string) {
-  return varchar(name, { length: 42 }).$type<Address>();
-}
+type ChainId = number;
+type Address = `0x${string}`;
 
-function chainId() {
-  return integer("chain_id").$type<number>();
-}
+export type RoundTable = {
+  id: Address;
+  chainId: ChainId;
+  matchAmount: bigint;
+  matchTokenAddress: Address;
+  matchAmountInUSD: number;
+  applicationMetadataCid: string | null;
+  applicationMetadata: unknown | null;
+  roundMetadataCid: string;
+  roundMetadata: unknown;
+  applicationsStartTime: Date | null;
+  applicationsEndTime: Date | null;
+  donationsStartTime: Date | null;
+  donationsEndTime: Date | null;
+  createdAtBlock: bigint;
+  updatedAtBlock: bigint;
+  totalAmountDonatedInUSD: number;
+  totalDonationsCount: number;
+};
 
-function bigint(name: string) {
-  return customType<{ data: bigint }>({
-    dataType() {
-      return "text";
-    },
-    toDriver(value) {
-      return value.toString();
-    },
-    fromDriver(value: unknown) {
-      return BigInt(value as string);
-    },
-  })(name);
-}
+export type Round = Selectable<RoundTable>;
+export type NewRound = Insertable<RoundTable>;
+export type UpdateableRound = Updateable<RoundTable>;
 
-export const rounds = pgTable(
-  "rounds",
-  {
-    id: address("id").notNull(),
-    chainId: chainId().notNull(),
+export type ProjectTable = {
+  id: string;
+  chainId: ChainId;
+  projectNumber: number;
+  registryAddress: Address;
+  metadataCid: string | null;
+  metadata: unknown | null;
+  ownerAddresses: Address[];
+  createdAtBlock: bigint;
+};
 
-    matchAmount: bigint("match_amount").notNull(),
-    matchTokenAddress: address("match_token").notNull(),
-    matchAmountInUSD: real("match_token_amount_in_usd").notNull(),
+export type ApplicationStatus = "PENDING" | "REJECTED" | "APPROVED";
 
-    applicationMetadataCid: text("application_metadata_cid").notNull(),
-    applicationMetadata: jsonb("application_metadata"),
-    roundMetadataCid: text("round_metadata_cid").notNull(),
-    roundMetadata: jsonb("round_metadata"),
+export type StatusSnapshot = {
+  status: ApplicationStatus;
+  statusUpdatedAtBlock: bigint;
+};
 
-    applicationsStartTime: timestamp("applications_start_time"),
-    applicationsEndTime: timestamp("applications_end_time"),
-    donationsStartTime: timestamp("voting_start_time"),
-    donationsEndTime: timestamp("voting_end_time"),
+export type ApplicationTable = {
+  id: string;
+  chainId: ChainId;
+  roundId: Address;
+  projectId: string;
+  status: ApplicationStatus;
+  statusSnapshots: ColumnType<
+    StatusSnapshot[],
+    StatusSnapshot[] | string,
+    StatusSnapshot[] | string
+  >;
+  metadataCid: string | null;
+  metadata: unknown | null;
+  createdAtBlock: bigint;
+  statusUpdatedAtBlock: bigint;
+  totalDonationsCount: number;
+  totalAmountDonatedInUSD: number;
+};
 
-    createdAtBlock: bigint("created_at_block").notNull(),
-    updatedAtBlock: bigint("updated_at_block").notNull(),
+export type Application = Selectable<ApplicationTable>;
+export type NewApplication = Insertable<ApplicationTable>;
+export type UpdateableApplication = Updateable<ApplicationTable>;
+
+export type Donation = {
+  id: string;
+  chainId: ChainId;
+  roundId: Address;
+  applicationId: string;
+  donorAddress: Address;
+  recipientAddress: Address;
+  projectId: string;
+  transactionHash: string;
+  blockNumber: bigint;
+  tokenAddress: Address;
+  amount: bigint;
+  amountInUSD: number;
+  amountInRoundMatchToken: bigint;
+};
+
+export type NewDonation = Insertable<Donation>;
+
+// todo: decimal(78, 0)
+const bigintType = sql`decimal(78,0)`;
+const addressType = "text";
+const chainIdType = "integer";
+
+export async function migrate<T>(db: Kysely<T>) {
+  await db.schema
+    .createTable("rounds")
+    .addColumn("id", "text")
+    .addColumn("chainId", chainIdType)
+
+    .addColumn("matchAmount", bigintType)
+    .addColumn("matchTokenAddress", addressType)
+    .addColumn("matchAmountInUSD", "real")
+
+    .addColumn("applicationMetadataCid", "text")
+    .addColumn("applicationMetadata", "jsonb")
+    .addColumn("roundMetadataCid", "text")
+    .addColumn("roundMetadata", "jsonb")
+
+    .addColumn("applicationsStartTime", "timestamp")
+    .addColumn("applicationsEndTime", "timestamp")
+    .addColumn("donationsStartTime", "timestamp")
+    .addColumn("donationsEndTime", "timestamp")
+
+    .addColumn("createdAtBlock", bigintType)
+    .addColumn("updatedAtBlock", bigintType)
 
     // aggregates
-    totalUniqueDonors: integer("total_unique_donors").notNull(),
-    totalAmountDonatedInUSD: real("total_votes_amount_usd").notNull(),
-    totalDonationsCount: integer("total_votes_count").notNull(),
-  },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.id, table.chainId] }),
-    };
-  }
-);
-import { sql } from "drizzle-orm";
-import { PgDialect } from "drizzle-orm/pg-core";
 
-const pgDialect = new PgDialect();
+    .addColumn("totalAmountDonatedInUSD", "real")
+    .addColumn("totalDonationsCount", "integer")
 
-console.log(pgDialect.sqlToQuery(rounds.getSQL()));
-process.exit(0);
+    .addPrimaryKeyConstraint("rounds_pkey", ["id", "chainId"])
+    .execute();
 
-export const projects = pgTable("projects", {
-  chainId: chainId().notNull(),
-  id: text("id").primaryKey(),
-  projectNumber: integer("project_number").notNull(),
-  registryAddress: varchar("registry_address", { length: 42 }).notNull(),
-  metadataCid: text("metadata_cid"),
-  metadata: jsonb("metadata"),
-  ownerAddresses: address("owner_address").array().notNull(),
-  createdAtBlock: bigint("created_at_block").notNull(),
-});
+  console.log("rounds table created");
 
-export const applicationStatus = pgEnum("status", [
-  "PENDING",
-  "APPROVED",
-  "REJECTED",
-  "CANCELLED",
-  "IN_REVIEW",
-]);
+  await db.schema
+    .createTable("projects")
 
-type StatusSnapshots = {
-  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "IN_REVIEW";
-  statusUpdatedAtBlock: number;
-}[];
+    .addColumn("id", "text")
+    .addColumn("chainId", chainIdType)
+    .addColumn("projectNumber", "integer")
+    .addColumn("registryAddress", addressType)
+    .addColumn("metadataCid", "text")
+    .addColumn("metadata", "jsonb")
+    .addColumn("ownerAddresses", sql`text[]`)
+    .addColumn("createdAtBlock", bigintType)
 
-export const applications = pgTable(
-  "applications",
-  {
-    chainId: chainId().notNull(),
-    id: text("id"),
-    roundId: address("round_id").notNull(),
-    projectId: text("project_id").notNull(),
-    status: applicationStatus("status").notNull(),
-    statusSnapshots: jsonb("status_snapshots")
-      .$type<StatusSnapshots>()
-      .notNull(),
+    .addPrimaryKeyConstraint("projects_pkey", ["id", "chainId"])
+    .execute();
 
-    metadataCid: text("metadata_cid").notNull(),
-    metadata: jsonb("metadata"),
+  console.log("projects table created");
 
-    createdAtBlock: bigint("created_at_block").notNull(),
-    statusUpdatedAtBlock: bigint("status_updated_at_block").notNull(),
+  await db.schema
+    .createType("application_status")
+    .asEnum(["PENDING", "APPROVED", "REJECTED", "CANCELLED", "IN_REVIEW"])
+    .execute();
+
+  console.log("application_status enum created");
+
+  await db.schema
+    .createTable("applications")
+
+    .addColumn("id", "text")
+    .addColumn("chainId", chainIdType)
+    .addColumn("roundId", addressType)
+    .addColumn("projectId", "text")
+    .addColumn("status", sql`"application_status"`)
+    .addColumn("statusSnapshots", "jsonb")
+
+    .addColumn("metadataCid", "text")
+    .addColumn("metadata", "jsonb")
+
+    .addColumn("createdAtBlock", bigintType)
+    .addColumn("statusUpdatedAtBlock", bigintType)
 
     // aggregates
-    totalUniqueDonors: integer("total_unique_donors").notNull(),
-    totalDonationsCount: integer("total_donations").notNull(),
-    totalAmountDonatedInUSD: real("total_amount_donated_in_usd").notNull(),
-  },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.id, table.roundId, table.chainId] }),
-      applications_rounds_fk: foreignKey({
-        columns: [table.chainId, table.roundId],
-        foreignColumns: [rounds.chainId, rounds.id],
-      }),
-    };
-  }
-);
+    .addColumn("totalDonationsCount", "integer")
+    .addColumn("totalAmountDonatedInUSD", "real")
 
-export const donations = pgTable(
-  "donations",
-  {
-    id: text("id").primaryKey(),
+    .addPrimaryKeyConstraint("applications_pkey", ["chainId", "roundId", "id"])
+    .addForeignKeyConstraint(
+      "applications_rounds_fkey",
+      ["roundId", "chainId"],
+      "rounds",
+      ["id", "chainId"],
+      (cb) => cb.onDelete("cascade")
+    )
 
-    chainId: chainId().notNull(),
-    roundId: address("round_id").notNull(),
-    applicationId: text("application_id"),
-    donorAddress: address("donor_address").notNull(),
-    tokenAddress: address("token_address").notNull(),
-    recipientAddress: address("recipient_address").notNull(),
-    projectId: text("project_id"),
-    transactionHash: varchar("transaction_hash", { length: 66 }).notNull(),
-    blockNumber: bigint("block_number").notNull(),
-    amount: bigint("amount").notNull(),
-    amountInUSD: real("amount_usd").notNull(),
-    amountInRoundMatchToken: bigint("amount_in_round_match_token").notNull(),
-  },
-  (table) => {
-    return {
-      donations_applications_fk: foreignKey({
-        columns: [table.applicationId, table.roundId, table.chainId],
-        foreignColumns: [
-          applications.id,
-          applications.roundId,
-          applications.chainId,
-        ],
-      }),
-    };
-  }
-);
+    .execute();
+
+  console.log("applications table created");
+
+  await db.schema
+    .createTable("donations")
+
+    .addColumn("id", "text")
+    .addColumn("chainId", chainIdType)
+    .addColumn("roundId", addressType)
+    .addColumn("applicationId", "text")
+    .addColumn("donorAddress", addressType)
+    .addColumn("recipientAddress", addressType)
+    .addColumn("projectId", "text")
+    .addColumn("transactionHash", "text")
+    .addColumn("blockNumber", bigintType)
+    .addColumn("tokenAddress", addressType)
+
+    .addColumn("amount", bigintType)
+    .addColumn("amountInUSD", "real")
+    .addColumn("amountInRoundMatchToken", bigintType)
+
+    .addPrimaryKeyConstraint("donations_pkey", ["id"])
+
+    .addForeignKeyConstraint(
+      "donations_applications_fkey",
+      ["applicationId", "roundId", "chainId"],
+      "applications",
+      ["id", "roundId", "chainId"],
+      (cb) => cb.onDelete("cascade")
+    )
+
+    .execute();
+
+  console.log("donations table created");
+}

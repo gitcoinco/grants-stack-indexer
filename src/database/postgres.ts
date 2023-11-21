@@ -1,141 +1,322 @@
-import { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
-import * as schema from "./schema.js";
+import {
+  ProjectTable,
+  RoundTable,
+  ApplicationTable,
+  Donation,
+  migrate,
+} from "./schema.js";
 import { Pool } from "pg";
-import { eq, and } from "drizzle-orm";
+
 import { Address } from "viem";
+import {
+  sql,
+  Kysely,
+  PostgresDialect,
+  Updateable,
+  Insertable,
+  Selectable,
+} from "kysely";
+import { encodeJsonWithBigInts } from "../utils/index.js";
 
-const { projects, rounds, applications, donations } = schema;
+interface Tables {
+  projects: ProjectTable;
+  rounds: RoundTable;
+  applications: ApplicationTable;
+  donations: Donation;
+}
 
-export type Project = typeof projects.$inferSelect;
-export type NewProject = typeof projects.$inferInsert;
+type ChainId = number;
 
-export type Round = typeof rounds.$inferSelect;
-export type NewRound = typeof rounds.$inferInsert;
+export type Round = Selectable<RoundTable>;
 
-export type Application = typeof applications.$inferSelect;
-export type NewApplication = typeof applications.$inferInsert;
+type KyselyDb = Kysely<Tables>;
 
-export type Donation = typeof donations.$inferSelect;
-export type NewDonation = typeof donations.$inferInsert;
+export type Mutation =
+  | {
+      type: "InsertProject";
+      project: Insertable<ProjectTable>;
+    }
+  | {
+      type: "UpdateProject";
+      projectId: string;
+      project: Updateable<ProjectTable>;
+    }
+  | {
+      type: "InsertRound";
+      round: Insertable<RoundTable>;
+    }
+  | {
+      type: "UpdateRound";
+      roundId: Address;
+      chainId: ChainId;
+      round: Updateable<RoundTable>;
+    }
+  | {
+      type: "InsertApplication";
+      application: Insertable<ApplicationTable>;
+    }
+  | {
+      type: "UpdateApplication";
+      roundId: Address;
+      chainId: ChainId;
+      applicationId: string;
+      application: Updateable<ApplicationTable>;
+    }
+  | {
+      type: "InsertDonation";
+      donation: Insertable<Donation>;
+    };
+
+type ExtractQuery<TQueryDefinition, TQueryName> = Extract<
+  TQueryDefinition,
+  { query: { type: TQueryName } }
+>["query"];
+
+type ExtractQueryResponse<I extends { response: unknown }, T> = Extract<
+  I,
+  { query: { type: T } }
+>["response"];
+
+export type QueryInteraction =
+  | {
+      query: {
+        type: "ProjectById";
+        projectId: string;
+      };
+      response: Selectable<ProjectTable> | null;
+    }
+  | {
+      query: {
+        type: "RoundById";
+        roundId: Address;
+        chainId: ChainId;
+      };
+      response: Selectable<RoundTable> | null;
+    }
+  | {
+      query: {
+        type: "AllChainRounds";
+        chainId: ChainId;
+      };
+      response: Selectable<RoundTable>[];
+    }
+  | {
+      query: {
+        type: "AllRoundApplications";
+        chainId: ChainId;
+        roundId: Address;
+      };
+      response: Selectable<ApplicationTable>[];
+    }
+  | {
+      query: {
+        type: "ApplicationById";
+        chainId: ChainId;
+        roundId: Address;
+        applicationId: string;
+      };
+      response: Selectable<ApplicationTable> | null;
+    }
+  | {
+      query: {
+        type: "AllRoundDonations";
+        chainId: ChainId;
+        roundId: Address;
+      };
+      response: Selectable<Donation>[];
+    };
 
 export class PostgresDatabase {
-  pool: Pool | null = null;
-  db: NodePgDatabase<typeof schema> | null = null;
-  databaseUrl: string;
+  db: KyselyDb;
   databaseSchemaName: string;
 
-  constructor(options: { databaseUrl: string; databaseSchemaName: string }) {
-    this.databaseUrl = options.databaseUrl;
-    this.databaseSchemaName = options.databaseSchemaName;
-  }
-
-  async migrate() {
-    const pool = new Pool({ connectionString: this.databaseUrl });
-
-    pool.on("connect", async (client) => {
-      await client.query(`SET search_path TO ${this.databaseSchemaName}`);
+  constructor(options: { connectionPool: Pool; schemaName: string }) {
+    const dialect = new PostgresDialect({
+      pool: options.connectionPool,
     });
 
-    this.db = drizzle(pool, { schema });
+    this.db = new Kysely<Tables>({
+      dialect,
+    });
 
-    await migrate(this.db, { migrationsFolder: "./migrations" });
+    this.db = this.db.withSchema(options.schemaName);
+
+    this.databaseSchemaName = options.schemaName;
   }
 
-  ensureDatabaseIsInitialized(): NodePgDatabase<typeof schema> {
-    if (this.db === null) {
-      throw new Error("Database is not initialized");
+  async dropSchema() {
+    console.log("dropping database", this.databaseSchemaName);
+
+    await this.db.schema
+      .dropSchema(this.databaseSchemaName)
+      .ifExists()
+      .cascade()
+      .execute();
+  }
+
+  async migrateSchema() {
+    console.log("Migrating database", this.databaseSchemaName);
+
+    await this.db.transaction().execute(async (tx) => {
+      await tx.schema
+        .createSchema(this.databaseSchemaName)
+        .ifNotExists()
+        .execute();
+
+      await sql
+        .raw(`SET LOCAL SEARCH_PATH TO "${this.databaseSchemaName}"`)
+        .execute(tx);
+
+      await migrate(tx);
+    });
+
+    console.log("migrated");
+  }
+
+  async mutate(mutation: Mutation): Promise<void> {
+    switch (mutation.type) {
+      case "InsertProject": {
+        await this.db.insertInto("projects").values(mutation.project).execute();
+        break;
+      }
+      case "UpdateProject": {
+        await this.db
+          .updateTable("projects")
+          .set(mutation.project)
+          .where("id", "=", mutation.projectId)
+          .execute();
+        break;
+      }
+      case "InsertRound": {
+        await this.db.insertInto("rounds").values(mutation.round).execute();
+        break;
+      }
+      case "UpdateRound": {
+        await this.db
+          .updateTable("rounds")
+          .set(mutation.round)
+          .where("chainId", "=", mutation.chainId)
+          .where("id", "=", mutation.roundId)
+          .execute();
+        break;
+      }
+      case "InsertApplication": {
+        let application = mutation.application;
+        if (application.statusSnapshots !== undefined) {
+          application = {
+            ...application,
+            statusSnapshots: encodeJsonWithBigInts(application.statusSnapshots),
+          };
+        }
+
+        await this.db.insertInto("applications").values(application).execute();
+        break;
+      }
+      case "UpdateApplication": {
+        let application = mutation.application;
+        if (application.statusSnapshots !== undefined) {
+          application = {
+            ...application,
+            statusSnapshots: encodeJsonWithBigInts(application.statusSnapshots),
+          };
+        }
+
+        await this.db
+          .updateTable("applications")
+          .set(application)
+          .where("chainId", "=", mutation.chainId)
+          .where("roundId", "=", mutation.roundId)
+          .where("id", "=", mutation.applicationId)
+          .execute();
+        break;
+      }
+      case "InsertDonation": {
+        await this.db
+          .insertInto("donations")
+          .values(mutation.donation)
+          .execute();
+        break;
+      }
     }
-    return this.db;
   }
 
-  async insertProject(project: NewProject) {
-    const db = this.ensureDatabaseIsInitialized();
-    await db.insert(projects).values(project);
-  }
+  query(
+    query: ExtractQuery<QueryInteraction, "ProjectById">
+  ): Promise<ExtractQueryResponse<QueryInteraction, "ProjectById">>;
+  query(
+    query: ExtractQuery<QueryInteraction, "RoundById">
+  ): Promise<ExtractQueryResponse<QueryInteraction, "RoundById">>;
+  query(
+    query: ExtractQuery<QueryInteraction, "AllChainRounds">
+  ): Promise<ExtractQueryResponse<QueryInteraction, "AllChainRounds">>;
+  query(
+    query: ExtractQuery<QueryInteraction, "AllRoundApplications">
+  ): Promise<ExtractQueryResponse<QueryInteraction, "AllRoundApplications">>;
+  query(
+    query: ExtractQuery<QueryInteraction, "ApplicationById">
+  ): Promise<ExtractQueryResponse<QueryInteraction, "ApplicationById">>;
+  query(
+    query: ExtractQuery<QueryInteraction, "AllRoundDonations">
+  ): Promise<ExtractQueryResponse<QueryInteraction, "AllRoundDonations">>;
+  async query(
+    query: QueryInteraction["query"]
+  ): Promise<QueryInteraction["response"]> {
+    switch (query.type) {
+      case "ProjectById": {
+        const project = await this.db
+          .selectFrom("projects")
+          .where("id", "=", query.projectId)
+          .selectAll()
+          .executeTakeFirst();
 
-  async getProjectById(id: string): Promise<Project | null> {
-    const db = this.ensureDatabaseIsInitialized();
-    const results = await db.select().from(projects).where(eq(projects.id, id));
-    return results[0] ?? null;
-  }
+        return project ?? null;
+      }
+      case "RoundById": {
+        const round = await this.db
+          .selectFrom("rounds")
+          .where("chainId", "=", query.chainId)
+          .where("id", "=", query.roundId)
+          .selectAll()
+          .executeTakeFirst();
 
-  async updateProjectById(id: string, project: Partial<NewProject>) {
-    const db = this.ensureDatabaseIsInitialized();
-    await db.update(projects).set(project).where(eq(projects.id, id));
-  }
+        return round ?? null;
+      }
+      case "AllChainRounds": {
+        const rounds = await this.db
+          .selectFrom("rounds")
+          .where("chainId", "=", query.chainId)
+          .selectAll()
+          .execute();
 
-  async insertRound(round: NewRound) {
-    const db = this.ensureDatabaseIsInitialized();
-    await db.insert(rounds).values(round);
-  }
+        return rounds;
+      }
+      case "AllRoundApplications": {
+        return await this.db
+          .selectFrom("applications")
+          .where("chainId", "=", query.chainId)
+          .where("roundId", "=", query.roundId)
+          .selectAll()
+          .execute();
+      }
+      case "AllRoundDonations": {
+        return await this.db
+          .selectFrom("donations")
+          .where("chainId", "=", query.chainId)
+          .where("roundId", "=", query.roundId)
+          .selectAll()
+          .execute();
+      }
+      case "ApplicationById": {
+        const application = await this.db
+          .selectFrom("applications")
+          .where("chainId", "=", query.chainId)
+          .where("roundId", "=", query.roundId)
+          .where("id", "=", query.applicationId)
+          .selectAll()
+          .executeTakeFirst();
 
-  async getRoundById(id: {
-    chainId: number;
-    roundId: Address;
-  }): Promise<Round | null> {
-    const db = this.ensureDatabaseIsInitialized();
-    const results = await db
-      .select()
-      .from(rounds)
-      .where(and(eq(rounds.chainId, id.chainId), eq(rounds.id, id.roundId)));
-    return results[0] ?? null;
-  }
-
-  async updateRoundById(
-    id: { chainId: number; roundId: Address },
-    round: Partial<NewRound>
-  ) {
-    const db = this.ensureDatabaseIsInitialized();
-    await db
-      .update(rounds)
-      .set(round)
-      .where(and(eq(rounds.chainId, id.chainId), eq(rounds.id, id.roundId)));
-  }
-
-  async insertApplication(application: NewApplication) {
-    const db = this.ensureDatabaseIsInitialized();
-    await db.insert(applications).values(application);
-  }
-
-  async getApplicationById(id: {
-    chainId: number;
-    applicationId: string;
-    roundId: Address;
-  }): Promise<Application | null> {
-    const db = this.ensureDatabaseIsInitialized();
-    const results = await db
-      .select()
-      .from(applications)
-      .where(
-        and(
-          eq(applications.id, id.applicationId),
-          eq(applications.roundId, id.roundId),
-          eq(applications.chainId, id.chainId)
-        )
-      );
-    return results[0] ?? null;
-  }
-
-  async updateApplicationById(
-    id: { chainId: number; applicationId: string; roundId: Address },
-    application: Partial<NewApplication>
-  ) {
-    const db = this.ensureDatabaseIsInitialized();
-    await db
-      .update(applications)
-      .set(application)
-      .where(
-        and(
-          eq(applications.id, id.applicationId),
-          eq(applications.roundId, id.roundId),
-          eq(applications.chainId, id.chainId)
-        )
-      );
-  }
-
-  async insertDonation(donation: NewDonation) {
-    await this.preparedInsertDonation?.execute(donation);
+        return application ?? null;
+      }
+    }
   }
 }

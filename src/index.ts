@@ -10,6 +10,9 @@ import * as Sentry from "@sentry/node";
 import fs from "node:fs/promises";
 import fetch from "make-fetch-happen";
 import { throttle } from "throttle-debounce";
+import * as pg from "pg";
+
+const { Pool, types } = pg.default;
 
 import { createPassportProvider, PassportProvider } from "./passport/index.js";
 
@@ -21,13 +24,24 @@ import { Chain, getConfig, Config } from "./config.js";
 import { createPriceUpdater } from "./prices/updater.js";
 import { createPriceProvider } from "./prices/provider.js";
 import { createHttpApi } from "./http/app.js";
-import { FileSystemDataProvider } from "./calculator/index.js";
+import { DatabaseDataProvider } from "./calculator/index.js";
 import { ethers } from "ethers";
 
 import abis from "./indexer/abis/index.js";
 import type { EventHandlerContext } from "./indexer/indexer.js";
 import { handleEvent } from "./indexer/handleEvent.js";
 import { PostgresDatabase } from "./database/postgres.js";
+import { decodeJsonWithBigInts } from "./utils/index.js";
+
+// parse postgres numeric(78,0) as bigint
+types.setTypeParser(1700, function (val) {
+  return BigInt(val);
+});
+
+// parse postgres jsonb with bigint support
+types.setTypeParser(3802, function (val) {
+  return decodeJsonWithBigInts(val);
+});
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
 
@@ -57,12 +71,17 @@ async function main(): Promise<void> {
     service: `indexer-${config.deploymentEnvironment}`,
   });
 
-  const db = new PostgresDatabase({
-    connString: config.databaseUrl,
-    version: "3",
+  const databaseConnectionPool = new Pool({
+    connectionString: config.databaseUrl,
   });
 
-  await db.migrate();
+  const db = new PostgresDatabase({
+    connectionPool: databaseConnectionPool,
+    schemaName: config.databaseSchemaName,
+  });
+
+  await db.dropSchema();
+  await db.migrateSchema();
 
   baseLogger.info({
     msg: "starting",
@@ -122,11 +141,14 @@ async function main(): Promise<void> {
         logger: baseLogger.child({ subsystem: "PriceProvider" }),
       }),
       passportProvider: passportProvider,
-      dataProvider: new FileSystemDataProvider(config.chainDataDir),
+      dataProvider: new DatabaseDataProvider(db),
       port: config.apiHttpPort,
       logger: baseLogger.child({ subsystem: "HttpApi" }),
       buildTag: config.buildTag,
       chains: config.chains,
+      hostname: config.hostname,
+      databaseConnectionPool: databaseConnectionPool,
+      databaseSchemaName: config.databaseSchemaName,
     });
 
     await httpApi.start();
@@ -329,8 +351,11 @@ async function catchupAndWatchChain(
 
     indexer.on("event", async (args) => {
       try {
-        // console.log("-------------", args.event.name);
-        await handleEvent(args);
+        const mutations = await handleEvent(args);
+
+        for (const mutation of mutations) {
+          await db.mutate(mutation);
+        }
       } catch (err) {
         indexerLogger.warn({
           msg: "skipping event due to error while processing",

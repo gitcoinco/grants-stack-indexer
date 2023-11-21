@@ -16,7 +16,8 @@ import {
 } from "./errors.js";
 import { PotentialVote } from "../http/api/v1/matches.js";
 import { PriceWithDecimals } from "../prices/common.js";
-import { zeroAddress } from "viem";
+import { getAddress, zeroAddress } from "viem";
+import { PostgresDatabase } from "../database/postgres.js";
 import { ProportionalMatchOptions } from "./options.js";
 
 export {
@@ -32,6 +33,63 @@ export interface DataProvider {
 }
 
 export type Overrides = Record<string, number>;
+
+export class DatabaseDataProvider implements DataProvider {
+  #db: PostgresDatabase;
+
+  constructor(db: PostgresDatabase) {
+    this.#db = db;
+  }
+
+  async loadFile<T>(description: string, path: string): Promise<Array<T>> {
+    const segments = path.split("/");
+
+    console.log("segments", segments);
+
+    // /:chainId/rounds.json
+    if (segments.length === 2 && segments[1] === "rounds.json") {
+      const chainId = Number(segments[0]);
+      const rounds = await this.#db.getRoundsForChain(chainId);
+      return rounds as unknown as Array<T>;
+    }
+
+    // /:chainId/rounds/:roundId/applications.json
+    if (
+      segments.length === 4 &&
+      segments[1] === "rounds" &&
+      segments[3] === "applications.json"
+    ) {
+      const chainId = Number(segments[0]);
+      const roundId = getAddress(segments[2]);
+
+      const applications = await this.#db.getApplicationsForRound({
+        chainId,
+        roundId,
+      });
+
+      return applications as unknown as Array<T>;
+    }
+
+    // /:chainId/rounds/:roundId/votes.json
+    if (
+      segments.length === 4 &&
+      segments[1] === "rounds" &&
+      segments[3] === "votes.json"
+    ) {
+      const chainId = Number(segments[0]);
+      const roundId = getAddress(segments[2]);
+
+      const donations = await this.#db.getDonationsForRound({
+        chainId,
+        roundId,
+      });
+
+      return donations as unknown as Array<T>;
+    }
+
+    throw new FileNotFoundError(description);
+  }
+}
 
 export class FileSystemDataProvider implements DataProvider {
   basePath: string;

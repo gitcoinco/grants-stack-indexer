@@ -1,25 +1,30 @@
 import { EventHandlerArgs } from "chainsauce";
 
-import { Round } from "../types.js";
 import type { Indexer } from "../indexer.js";
+import { Mutation, Round } from "../../database/postgres.js";
 
 export default async function ({
   event,
-  context: { chainId, ipfsGet, db },
+  context: { chainId, ipfsGet },
 }: EventHandlerArgs<
   Indexer,
   "RoundImplementationV2",
   "ApplicationMetaPtrUpdated"
->) {
+>): Promise<Mutation[]> {
+  const id = event.address;
   const metaPtr = event.params.newMetaPtr.pointer;
   const metadata = await ipfsGet<Round["applicationMetadata"]>(metaPtr);
 
-  await db.updateRoundById(
-    { roundId: event.address, chainId },
+  return [
     {
-      applicationMetadataCid: event.params.newMetaPtr.pointer,
-      updatedAtBlock: event.blockNumber,
-      applicationMetadata: metadata ?? null,
-    }
-  );
+      type: "UpdateRound",
+      roundId: id,
+      chainId,
+      round: {
+        applicationMetadataCid: event.params.newMetaPtr.pointer,
+        updatedAtBlock: event.blockNumber,
+        applicationMetadata: metadata ?? null,
+      },
+    },
+  ];
 }

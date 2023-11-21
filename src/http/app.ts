@@ -1,7 +1,6 @@
 //  this catches async errors so uncaught promise rejects call the error handler
 import "express-async-errors";
 
-import os from "os";
 import express from "express";
 import { Logger } from "pino";
 import cors from "cors";
@@ -13,6 +12,7 @@ import { PriceProvider } from "../prices/provider.js";
 import { PassportProvider } from "../passport/index.js";
 import { DataProvider } from "../calculator/index.js";
 import { Chain } from "../config.js";
+import { Pool } from "pg";
 
 export interface HttpApiConfig {
   logger: Logger;
@@ -22,7 +22,7 @@ export interface HttpApiConfig {
   priceProvider: PriceProvider;
   dataProvider: DataProvider;
   passportProvider: PassportProvider;
-  databaseUrl: string;
+  databaseConnectionPool: Pool;
   databaseSchemaName: string;
   hostname: string;
   chains: Chain[];
@@ -60,16 +60,42 @@ export const createHttpApi = (config: HttpApiConfig): HttpApi => {
     serveIndex(config.chainDataDir, { icons: true, view: "details" })
   );
 
+  // TODO: use read only connection?
   app.use(
-    postgraphile(config.databaseUrl, config.databaseSchemaName, {
-      watchPg: true,
+    postgraphile(config.databaseConnectionPool, config.databaseSchemaName, {
+      watchPg: false,
+      graphqlRoute: "/graphql",
       graphiql: true,
+      graphiqlRoute: "/graphiql",
       enhanceGraphiql: true,
+      disableDefaultMutations: true,
+
+      // TODO: buy pro version?
+      // defaultPaginationCap: 1000,
+      // readOnlyConnection: true,
+      // graphqlDepthLimit: 2
     })
   );
 
-  app.get("/", (_req, res) => {
-    res.redirect("/data");
+  app.get("/data/*", async (req, res) => {
+    console.log(req.params);
+    if (
+      typeof req.params &&
+      "0" in req.params &&
+      typeof req.params["0"] === "string"
+    ) {
+      const path = req.params["0"];
+      const data = await config.dataProvider.loadFile(path, path);
+      const body = JSON.stringify(data, (_key, value) => {
+        if (typeof value === "bigint") {
+          return value.toString();
+        }
+        return value as unknown;
+      });
+
+      res.header("content-type", "application/json");
+      res.send(body);
+    }
   });
 
   app.use("/api/v1", api);

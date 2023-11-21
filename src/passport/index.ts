@@ -102,10 +102,10 @@ export const createPassportProvider = (
       };
 
       if (config.deprecatedJSONPassportDumpPath !== undefined) {
-        await writeDeprecatedCompatibilityJSONDump(
-          state.db,
-          config.deprecatedJSONPassportDumpPath
-        );
+        // await writeDeprecatedCompatibilityJSONDump(
+        //   state.db,
+        //   config.deprecatedJSONPassportDumpPath
+        // );
       }
     } catch (err) {
       logger.info(

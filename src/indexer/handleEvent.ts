@@ -7,16 +7,20 @@ import { getChainConfigById } from "../config.js";
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
 import applicationMetaPtrUpdated from "./handlers/applicationMetaPtrUpdated.js";
-import matchAmountUpdated from "./handlers/matchAmountUpdated.js";
+import matchAmountUpdated, {
+  updateRoundMatchAmount,
+} from "./handlers/matchAmountUpdated.js";
 import { UnknownTokenError } from "../prices/common.js";
 import type { Indexer } from "./indexer.js";
 import { Address, getAddress } from "viem";
 import {
-  NewApplication,
+  ApplicationTable,
   Application,
-  Project,
+  ProjectTable,
   Donation,
-} from "../database/postgres.js";
+  NewApplication,
+} from "../database/schema.js";
+import { Mutation, Round } from "../database/postgres.js";
 
 enum ApplicationStatus {
   PENDING = 0,
@@ -60,7 +64,7 @@ function updateApplicationStatus(
   if (application.status !== newStatus) {
     statusSnapshots.push({
       status: newStatus,
-      statusUpdatedAtBlock: Number(blockNumber),
+      statusUpdatedAtBlock: blockNumber,
     });
   }
 
@@ -71,7 +75,9 @@ function updateApplicationStatus(
   };
 }
 
-export async function handleEvent(args: EventHandlerArgs<Indexer>) {
+export async function handleEvent(
+  args: EventHandlerArgs<Indexer>
+): Promise<Mutation[]> {
   const {
     event,
     subscribeToContract,
@@ -90,92 +96,101 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
         event.address
       );
 
-      try {
-        await db.insertProject({
-          chainId,
-          registryAddress: event.address,
-          id: projectId,
-          projectNumber: Number(event.params.projectID),
-          metadataCid: null,
-          metadata: null,
-          ownerAddresses: [event.params.owner],
-          createdAtBlock: event.blockNumber,
-        });
-      } catch (e) {
-        console.log(e);
-        if (
-          projectId ===
-          "0x9e286e7acf36c59ff7e3c7eb2ea1ad2fcfefa7d181a3cbe05bd9e4df55b99680"
-        ) {
-          console.log(event);
-          process.exit(1);
-        }
-      }
+      return [
+        {
+          type: "InsertProject",
+          project: {
+            chainId,
+            registryAddress: event.address,
+            id: projectId,
+            projectNumber: Number(event.params.projectID),
+            metadataCid: null,
+            metadata: null,
+            ownerAddresses: [event.params.owner],
+            createdAtBlock: event.blockNumber,
+          },
+        },
+      ];
 
       break;
     }
 
     case "MetadataUpdated": {
-      const id = fullProjectId(
+      const projectId = fullProjectId(
         chainId,
         Number(event.params.projectID),
         event.address
       );
 
-      const metadata = await ipfsGet<Project["metadata"]>(
-        event.params.metaPtr.pointer
-      );
+      const metadataCid = event.params.metaPtr.pointer;
 
-      await db.updateProjectById(id, {
-        metadataCid: event.params.metaPtr.pointer,
-        metadata: metadata ?? null,
-      });
+      const metadata = await ipfsGet<ProjectTable["metadata"]>(metadataCid);
 
-      break;
+      return [
+        {
+          type: "UpdateProject",
+          projectId,
+          project: { metadata, metadataCid },
+        },
+      ];
     }
 
     case "OwnerAdded": {
-      const id = fullProjectId(
+      const projectId = fullProjectId(
         chainId,
         Number(event.params.projectID),
         event.address
       );
 
-      const project = await db.getProjectById(id);
-
-      if (project === null) {
-        logger.error({ msg: `Project ${id} not found`, event });
-        return;
-      }
-
-      await db.updateProjectById(id, {
-        ownerAddresses: [...project.ownerAddresses, event.params.owner],
+      const project = await db.query({
+        type: "ProjectById",
+        projectId,
       });
 
-      break;
+      if (project === null) {
+        logger.error({ msg: `Project ${projectId} not found`, event });
+        return [];
+      }
+
+      return [
+        {
+          type: "UpdateProject",
+          projectId,
+          project: {
+            ownerAddresses: [...project.ownerAddresses, event.params.owner],
+          },
+        },
+      ];
     }
 
     case "OwnerRemoved": {
-      const id = fullProjectId(
+      const projectId = fullProjectId(
         chainId,
         Number(event.params.projectID),
         event.address
       );
 
-      const project = await db.getProjectById(id);
-
-      if (project === null) {
-        logger.error({ msg: `Project ${id} not found`, event });
-        return;
-      }
-
-      await db.updateProjectById(id, {
-        ownerAddresses: project.ownerAddresses.filter(
-          (o: string) => o == event.params.owner
-        ),
+      const project = await db.query({
+        type: "ProjectById",
+        projectId,
       });
 
-      break;
+      if (project === null) {
+        logger.error({ msg: `Project ${projectId} not found`, event });
+        return [];
+      }
+
+      return [
+        {
+          type: "UpdateProject",
+          projectId,
+          project: {
+            ownerAddresses: project.ownerAddresses.filter(
+              (o: string) => o == event.params.owner
+            ),
+          },
+        },
+      ];
     }
 
     // --- ROUND
@@ -261,76 +276,55 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
       );
       const donationsEndTime = new Date(Number(roundEndTimeResolved) * 1000);
 
-      await db
-        .insertRound({
-          chainId,
-          id: roundId,
-          totalUniqueDonors: 0,
-          totalDonationsCount: 0,
-          totalAmountDonatedInUSD: 0,
-          matchTokenAddress,
-          matchAmount: 0n,
-          matchAmountInUSD: 0,
-          applicationMetadataCid,
-          applicationMetadata: null,
-          roundMetadataCid,
-          roundMetadata: null,
-          applicationsStartTime: isNaN(applicationsStartTime.getTime())
-            ? null
-            : applicationsStartTime,
-          applicationsEndTime: isNaN(applicationsEndTime.getTime())
-            ? null
-            : applicationsEndTime,
-          donationsStartTime: isNaN(donationsStartTime.getTime())
-            ? null
-            : donationsStartTime,
-          donationsEndTime: isNaN(donationsEndTime.getTime())
-            ? null
-            : donationsEndTime,
-          createdAtBlock: event.blockNumber,
-          updatedAtBlock: event.blockNumber,
-        })
-        .catch((e) => console.error("insert rounderror", e));
+      const roundMetadata =
+        await ipfsGet<Round["roundMetadata"]>(roundMetadataCid);
 
-      await Promise.all([
-        matchAmountUpdated({
-          ...args,
-          event: {
-            ...event,
-            name: "MatchAmountUpdated",
-            address: roundId,
-            params: {
-              newAmount: matchAmount,
-            },
-          },
-        }),
-        roundMetaPtrUpdated({
-          ...args,
-          event: {
-            ...event,
-            name: "RoundMetaPtrUpdated",
-            address: roundId,
-            params: {
-              newMetaPtr: { protocol: 0n, pointer: roundMetadataCid },
-              oldMetaPtr: { protocol: 0n, pointer: "" },
-            },
-          },
-        }),
-        applicationMetaPtrUpdated({
-          ...args,
-          event: {
-            ...event,
-            name: "ApplicationMetaPtrUpdated",
-            address: roundId,
-            params: {
-              newMetaPtr: { protocol: 0n, pointer: applicationMetadataCid },
-              oldMetaPtr: { protocol: 0n, pointer: "" },
-            },
-          },
-        }),
-      ]);
+      const applicationMetadata = await ipfsGet<Round["applicationMetadata"]>(
+        applicationMetadataCid
+      );
 
-      break;
+      const newRound = {
+        chainId,
+        id: roundId,
+        totalDonationsCount: 0,
+        totalAmountDonatedInUSD: 0,
+        matchTokenAddress,
+        matchAmount: 0n,
+        matchAmountInUSD: 0,
+        applicationMetadataCid,
+        applicationMetadata: applicationMetadata,
+        roundMetadataCid,
+        roundMetadata: roundMetadata,
+        applicationsStartTime: isNaN(applicationsStartTime.getTime())
+          ? null
+          : applicationsStartTime,
+        applicationsEndTime: isNaN(applicationsEndTime.getTime())
+          ? null
+          : applicationsEndTime,
+        donationsStartTime: isNaN(donationsStartTime.getTime())
+          ? null
+          : donationsStartTime,
+        donationsEndTime: isNaN(donationsEndTime.getTime())
+          ? null
+          : donationsEndTime,
+        createdAtBlock: event.blockNumber,
+        updatedAtBlock: event.blockNumber,
+      };
+
+      const insertRoundMutation: Mutation = {
+        type: "InsertRound",
+        round: newRound,
+      };
+
+      return [
+        insertRoundMutation,
+        await updateRoundMatchAmount({
+          round: newRound,
+          newMatchAmount: matchAmount,
+          blockNumber: event.blockNumber,
+          priceProvider: priceProvider,
+        }),
+      ];
     }
 
     case "MatchAmountUpdated": {
@@ -356,7 +350,7 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
           ? event.params.applicationIndex.toString()
           : projectId;
 
-      const metadata = await ipfsGet<Application["metadata"]>(
+      const metadata = await ipfsGet<ApplicationTable["metadata"]>(
         event.params.applicationMetaPtr.pointer
       );
 
@@ -373,73 +367,92 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
         statusSnapshots: [
           {
             status: "PENDING",
-            statusUpdatedAtBlock: Number(event.blockNumber),
+            statusUpdatedAtBlock: event.blockNumber,
           },
         ],
-
         totalAmountDonatedInUSD: 0,
         totalDonationsCount: 0,
-        totalUniqueDonors: 0,
       };
 
-      await db.insertApplication(application);
-
-      break;
+      return [
+        {
+          type: "InsertApplication",
+          application,
+        },
+      ];
     }
 
     case "ProjectsMetaPtrUpdated": {
       const projects = await ipfsGet<
-        { id: string; status: Application["status"]; payoutAddress: string }[]
+        {
+          id: string;
+          status: ApplicationTable["status"];
+          payoutAddress: string;
+        }[]
       >(event.params.newMetaPtr.pointer);
 
-      if (!projects) {
-        return;
+      if (projects === undefined) {
+        return [];
       }
 
-      for (const projectApp of projects) {
-        const projectId = projectApp.id.split("-")[0];
+      return projects.map((project) => {
+        const projectId = project.id.split("-")[0];
 
-        await db.updateApplicationById(
-          {
-            chainId,
-            roundId: event.address,
-            applicationId: projectId,
-          },
-          {
-            status: projectApp.status,
+        return {
+          type: "UpdateApplication",
+          chainId,
+          roundId: event.address,
+          applicationId: projectId,
+          application: {
+            status: project.status,
             statusUpdatedAtBlock: event.blockNumber,
-          }
-        );
-      }
-      break;
+          },
+        };
+      });
     }
 
     case "ApplicationStatusesUpdated": {
+      const roundId = event.address;
+
       const bitmap = new StatusesBitmap(256n, 2n);
       bitmap.setRow(event.params.index, event.params.status);
       const startIndex = event.params.index * bitmap.itemsPerRow;
 
       // XXX should be translatable to Promise.all([/* ... */].map(...)) but leaving for later as it's non-straightforward
+      const mutations: Mutation[] = [];
+
       for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
         const status = bitmap.getStatus(i);
-        const applicationId = {
+        const statusString = ApplicationStatus[
+          status
+        ] as ApplicationTable["status"];
+        const applicationId = i.toString();
+
+        const application = await db.query({
+          type: "ApplicationById",
           chainId,
-          roundId: event.address,
-          applicationId: i.toString(),
-        };
-        const statusString = ApplicationStatus[status] as Application["status"];
-        const application = await db.getApplicationById(applicationId);
+          roundId,
+          applicationId,
+        });
 
         if (application === null) {
           continue;
         }
 
-        await db.updateApplicationById(
-          applicationId,
-          updateApplicationStatus(application, statusString, event.blockNumber)
-        );
+        mutations.push({
+          type: "UpdateApplication",
+          chainId,
+          roundId,
+          applicationId: i.toString(),
+          application: updateApplicationStatus(
+            application,
+            statusString,
+            event.blockNumber
+          ),
+        });
       }
-      break;
+
+      return mutations;
     }
 
     // --- Voting Strategy
@@ -460,7 +473,6 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
 
     // --- Votes
     case "Voted": {
-      return;
       const donationId = ethers.utils.solidityKeccak256(
         ["string"],
         [`${event.blockNumber}-${event.logIndex}`]
@@ -478,26 +490,25 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
 
       const roundId = getAddress(event.params.roundAddress);
 
-      console.time("donation");
-      const application = await db.getApplicationById({
+      const application = await db.query({
+        type: "ApplicationById",
         chainId,
         roundId,
         applicationId,
       });
 
-      const round = await db.getRoundById({ chainId, roundId });
+      const round = await db.query({ type: "RoundById", chainId, roundId });
 
       if (
         application === null ||
         application.status !== "APPROVED" ||
         round === null
       ) {
-        return;
+        return [];
       }
 
       const token = event.params.token.toLowerCase();
 
-      console.time("token");
       const conversionToUSD = await priceProvider.convertToUSD(
         chainId,
         token,
@@ -527,12 +538,11 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
             err,
             event,
           });
-          return;
+          return [];
         } else {
           throw err;
         }
       }
-      console.timeEnd("token");
 
       const donation: Donation = {
         id: donationId,
@@ -550,27 +560,32 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
         amountInRoundMatchToken,
       };
 
-      await Promise.all([
-        // db.updateApplicationById(
-        //   {
-        //     roundId: round.id,
-        //     applicationId: applicationId,
-        //   },
-        //   {
-        //     totalAmountDonatedInUSD:
-        //       application.totalAmountDonatedInUSD + amountUSD,
-        //     totalDonationsCount: application.totalDonationsCount + 1,
-        //   }
-        // ),
-        // db.updateRoundById(event.address, {
-        //   totalAmountDonatedInUSD: round.totalAmountDonatedInUSD + amountUSD,
-        //   totalDonationsCount: round.totalDonationsCount + 1,
-        // }),
-        db.insertDonation(donation),
-      ]);
-      console.timeEnd("donation");
-
-      break;
+      return [
+        {
+          type: "UpdateApplication",
+          chainId: chainId,
+          roundId: round.id,
+          applicationId: applicationId,
+          application: {
+            totalAmountDonatedInUSD:
+              application.totalAmountDonatedInUSD + amountUSD,
+            totalDonationsCount: application.totalDonationsCount + 1,
+          },
+        },
+        {
+          type: "UpdateRound",
+          chainId: chainId,
+          roundId: round.id,
+          round: {
+            totalAmountDonatedInUSD: round.totalAmountDonatedInUSD + amountUSD,
+            totalDonationsCount: round.totalDonationsCount + 1,
+          },
+        },
+        {
+          type: "InsertDonation",
+          donation,
+        },
+      ];
     }
 
     // --- Direct Payout Strategy
@@ -583,7 +598,7 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
     }
 
     case "ApplicationInReviewUpdated": {
-      const round = await readContract({
+      const roundId = await readContract({
         contract: "DirectPayoutStrategyImplementationV2",
         address: event.address,
         functionName: "roundAddress",
@@ -594,34 +609,42 @@ export async function handleEvent(args: EventHandlerArgs<Indexer>) {
       const startIndex = event.params.index * bitmap.itemsPerRow;
 
       // XXX should be translatable to Promise.all([/* ... */].map(...)) but leaving for later as it's non-straightforward
+      const mutations: Mutation[] = [];
+
       for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
         const newStatus = bitmap.getStatus(i);
-        const applicationId = {
+        const applicationId = i.toString();
+
+        const application = await db.query({
+          type: "ApplicationById",
           chainId,
-          roundId: round,
-          applicationId: i.toString(),
-        };
-        const application = await db.getApplicationById(applicationId);
+          roundId,
+          applicationId,
+        });
 
         // DirectPayoutStrategy uses status 1 for signaling IN REVIEW. In order to be considered as IN REVIEW the
         // application must be on PENDING status on the round
         if (application && application.status == "PENDING" && newStatus == 1) {
-          const statusString = ApplicationStatus[4] as Application["status"];
-          await db.updateApplicationById(
+          const statusString =
+            ApplicationStatus[4] as ApplicationTable["status"];
+
+          mutations.push({
+            type: "UpdateApplication",
+            chainId,
+            roundId,
             applicationId,
-            updateApplicationStatus(
+            application: updateApplicationStatus(
               application,
               statusString,
               event.blockNumber
-            )
-          );
+            ),
+          });
         }
       }
 
-      break;
+      return mutations;
     }
-
-    default:
-    // console.log("TODO", event.name, event.params);
   }
+
+  return [];
 }
