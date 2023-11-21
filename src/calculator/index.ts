@@ -258,11 +258,20 @@ export default class Calculator {
       const calc = results[id];
       const application = applicationsMap[id];
 
-      const conversionUSD = await this.priceProvider.convertToUSD(
+      const usdConversionRate = await this.priceProvider.getUSDConversionRate(
         this.chainId,
-        round.token,
-        calc.matched
+        round.token
       );
+
+      const conversionUSD = {
+        amount: convertTokenToFiat({
+          tokenAmount: calc.matched,
+          tokenDecimals: usdConversionRate.decimals,
+          tokenPrice: usdConversionRate.price,
+          tokenPriceDecimals: 8,
+        }),
+        price: usdConversionRate.price,
+      };
 
       augmented.push({
         ...calc,
