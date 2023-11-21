@@ -184,6 +184,7 @@ async function main(): Promise<void> {
       chains: config.chains,
       hostname: config.hostname,
       graphqlHandler: graphqlHandler,
+      enableSentry: config.sentryDsn !== null,
     });
 
     await httpApi.start();

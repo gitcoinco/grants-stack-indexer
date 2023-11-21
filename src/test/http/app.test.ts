@@ -57,6 +57,7 @@ describe("server", () => {
           "passport_scores.json": "passport_scores",
         }) as DataProvider,
         chains: MOCK_CHAINS,
+        enableSentry: false,
       }).app;
     });
 
@@ -102,6 +103,7 @@ describe("server", () => {
           hostname: "dummy-hostname",
           buildTag: "123abc",
           chains: MOCK_CHAINS,
+          enableSentry: false,
         });
 
         const resp = await request(app).get(
@@ -125,6 +127,7 @@ describe("server", () => {
           }) as DataProvider,
           buildTag: "123abc",
           chains: MOCK_CHAINS,
+          enableSentry: false,
         });
 
         const resp = await request(app).get(
@@ -148,6 +151,7 @@ describe("server", () => {
           }) as DataProvider,
           buildTag: "123abc",
           chains: MOCK_CHAINS,
+          enableSentry: false,
         });
 
         const resp = await request(app).get(
@@ -171,6 +175,7 @@ describe("server", () => {
           }) as DataProvider,
           buildTag: "123abc",
           chains: MOCK_CHAINS,
+          enableSentry: false,
         });
 
         const resp = await request(app).get(
@@ -194,6 +199,7 @@ describe("server", () => {
           }) as DataProvider,
           buildTag: "123abc",
           chains: MOCK_CHAINS,
+          enableSentry: false,
         });
 
         const resp = await request(app).get(
@@ -220,6 +226,7 @@ describe("server", () => {
           }) as DataProvider,
           buildTag: "123abc",
           chains: MOCK_CHAINS,
+          enableSentry: false,
         }).app;
       });
 
@@ -401,6 +408,7 @@ describe("server", () => {
           }) as DataProvider,
           buildTag: "123abc",
           chains: MOCK_CHAINS,
+          enableSentry: false,
         }).app;
       });
 
@@ -473,6 +481,7 @@ describe("server", () => {
           }) as DataProvider,
           buildTag: "123abc",
           chains: MOCK_CHAINS,
+          enableSentry: false,
         }).app;
       });
 
@@ -544,6 +553,7 @@ describe("server", () => {
           }) as DataProvider,
           buildTag: "123abc",
           chains: MOCK_CHAINS,
+          enableSentry: false,
         }).app;
       });
 
@@ -674,6 +684,7 @@ describe("server", () => {
           }) as DataProvider,
           buildTag: "123abc",
           chains: MOCK_CHAINS,
+          enableSentry: false,
         }).app;
       });
 
@@ -899,6 +910,7 @@ describe("server", () => {
           }) as DataProvider,
           buildTag: "123abc",
           chains: MOCK_CHAINS,
+          enableSentry: false,
         }).app;
       });
 
@@ -1072,6 +1084,7 @@ describe("server", () => {
           }) as DataProvider,
           buildTag: "123abc",
           chains: MOCK_CHAINS,
+          enableSentry: false,
         }).app;
       });
 
