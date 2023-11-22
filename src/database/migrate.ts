@@ -116,5 +116,16 @@ export async function migrate<T>(db: Kysely<T>) {
 
     .execute();
 
+  await sql`
+  comment on constraint "applications_rounds_fkey" on "applications" is
+  E'@foreignFieldName applications\n@fieldName round';
+
+  comment on table "applications" is
+  E'@foreignKey ("projectId") references projects(id)|@fieldName project';
+
+  comment on constraint "donations_applications_fkey" on "donations" is
+  E'@foreignFieldName donations\n@fieldName application';
+  `.execute(db);
+
   console.log("donations table created");
 }

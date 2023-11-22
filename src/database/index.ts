@@ -1,5 +1,4 @@
 import { Pool } from "pg";
-import { Address } from "viem";
 import { sql, Kysely, PostgresDialect } from "kysely";
 
 import {
@@ -7,20 +6,15 @@ import {
   RoundTable,
   ApplicationTable,
   DonationTable,
-  Round,
-  Donation,
-  Application,
-  Project,
-  NewProject,
-  PartialProject,
-  NewRound,
-  PartialRound,
-  NewApplication,
-  PartialApplication,
-  NewDonation,
 } from "./schema.js";
 import { migrate } from "./migrate.js";
 import { encodeJsonWithBigInts } from "../utils/index.js";
+import { Mutation } from "./mutation.js";
+import {
+  ExtractQuery,
+  ExtractQueryResponse,
+  QueryInteraction,
+} from "./query.js";
 
 interface Tables {
   projects: ProjectTable;
@@ -30,103 +24,6 @@ interface Tables {
 }
 
 type KyselyDb = Kysely<Tables>;
-
-type ChainId = number;
-
-export type Mutation =
-  | {
-      type: "InsertProject";
-      project: NewProject;
-    }
-  | {
-      type: "UpdateProject";
-      projectId: string;
-      project: PartialProject;
-    }
-  | {
-      type: "InsertRound";
-      round: NewRound;
-    }
-  | {
-      type: "UpdateRound";
-      roundId: Address;
-      chainId: ChainId;
-      round: PartialRound;
-    }
-  | {
-      type: "InsertApplication";
-      application: NewApplication;
-    }
-  | {
-      type: "UpdateApplication";
-      roundId: Address;
-      chainId: ChainId;
-      applicationId: string;
-      application: PartialApplication;
-    }
-  | {
-      type: "InsertDonation";
-      donation: NewDonation;
-    };
-
-type ExtractQuery<TQueryDefinition, TQueryName> = Extract<
-  TQueryDefinition,
-  { query: { type: TQueryName } }
->["query"];
-
-type ExtractQueryResponse<I extends { response: unknown }, T> = Extract<
-  I,
-  { query: { type: T } }
->["response"];
-
-export type QueryInteraction =
-  | {
-      query: {
-        type: "ProjectById";
-        projectId: string;
-      };
-      response: Project | null;
-    }
-  | {
-      query: {
-        type: "RoundById";
-        roundId: Address;
-        chainId: ChainId;
-      };
-      response: Round | null;
-    }
-  | {
-      query: {
-        type: "AllChainRounds";
-        chainId: ChainId;
-      };
-      response: Round[];
-    }
-  | {
-      query: {
-        type: "AllRoundApplications";
-        chainId: ChainId;
-        roundId: Address;
-      };
-      response: Application[];
-    }
-  | {
-      query: {
-        type: "ApplicationById";
-        chainId: ChainId;
-        roundId: Address;
-        applicationId: string;
-      };
-      response: Application | null;
-    }
-  | {
-      query: {
-        type: "AllRoundDonations";
-        chainId: ChainId;
-        roundId: Address;
-      };
-      response: Donation[];
-    };
 
 export class Database {
   #db: KyselyDb;
@@ -172,7 +69,9 @@ export class Database {
         .execute();
 
       // DDL statements inside the migrate call below are scoped to the schema
-      // but when using custom types kysely doesn't seem to use the schema
+      // but when using custom types Kysely doesn't prefix them with the schema,
+      // this is a workaround for that, it's local to the transacit tion
+      // and doesn't affect other connections
       await sql
         .raw(`SET LOCAL SEARCH_PATH TO "${this.databaseSchemaName}"`)
         .execute(tx);

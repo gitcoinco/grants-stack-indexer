@@ -142,15 +142,17 @@ async function main(): Promise<void> {
         baseLogger,
         runOnce: config.runOnce,
       }),
-      ...config.chains.map(async (chain) =>
+      ...config.chains.map(async (chain) => {
         catchupAndWatchChain({
           chain,
           db,
           subscriptionStore,
           baseLogger,
           ...config,
-        })
-      ),
+        });
+
+        return null;
+      }),
     ]);
 
     // TODO: use read only connection, use separate pool?
@@ -170,6 +172,12 @@ async function main(): Promise<void> {
         appendPlugins: [PgSimplifyInflectorPlugin.default],
         legacyRelations: "omit",
         setofFunctionsContainNulls: false,
+        exportGqlSchemaPath: "./schema.graphql",
+        simpleCollections: "only",
+        graphileBuildOptions: {
+          pgOmitListSuffix: true,
+          pgShortPk: true,
+        },
 
         // TODO: buy pro version?
         // defaultPaginationCap: 1000,
@@ -369,12 +377,12 @@ async function catchupAndWatchChain(
           url: config.chain.rpc,
           onRequest({ method, params, url }) {
             // TODO: this is a temporary log to investigate high request counts
-            indexerLogger.debug({
-              msg: "RPC request",
-              url,
-              method,
-              params,
-            });
+            // indexerLogger.debug({
+            //   msg: "RPC request",
+            //   url,
+            //   method,
+            //   params,
+            // });
           },
         }),
       },

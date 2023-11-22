@@ -1,8 +1,8 @@
 import { Selectable, ColumnType, Updateable, Insertable } from "kysely";
 
-type ChainId = number;
-type Address = `0x${string}`;
-type Hex = `0x${string}`;
+export type ChainId = number;
+export type Address = `0x${string}`;
+export type Hex = `0x${string}`;
 
 export type RoundTable = {
   id: Address;
