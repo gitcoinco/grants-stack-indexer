@@ -28,6 +28,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@graphile-contrib/pg-simplify-inflector": "^6.1.0",
     "@sentry/node": "^7.51.0",
     "better-sqlite3": "^8.6.0",
     "chainsauce": "github:boudra/chainsauce#main",

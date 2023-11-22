@@ -35,6 +35,8 @@ import { Database } from "./database/index.js";
 import { decodeJsonWithBigInts } from "./utils/index.js";
 import { postgraphile } from "postgraphile";
 
+import PgSimplifyInflectorPlugin from "@graphile-contrib/pg-simplify-inflector";
+
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
 
 async function main(): Promise<void> {
@@ -163,6 +165,11 @@ async function main(): Promise<void> {
         enhanceGraphiql: true,
         disableDefaultMutations: true,
         dynamicJson: true,
+        bodySizeLimit: "100kb", // response body limit
+        disableQueryLog: true,
+        appendPlugins: [PgSimplifyInflectorPlugin.default],
+        legacyRelations: "omit",
+        setofFunctionsContainNulls: false,
 
         // TODO: buy pro version?
         // defaultPaginationCap: 1000,
