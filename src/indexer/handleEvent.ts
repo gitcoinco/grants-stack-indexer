@@ -21,7 +21,7 @@ import {
   Round,
   NewApplication,
 } from "../database/schema.js";
-import { Mutation } from "../database/mutation.js";
+import { Mutation } from "../database/index.js";
 
 enum ApplicationStatus {
   PENDING = 0,

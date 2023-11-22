@@ -89,12 +89,6 @@ async function main(): Promise<void> {
     schemaName: config.databaseSchemaName,
   });
 
-  if (config.dropDb) {
-    await db.dropSchemaIfExists();
-  }
-
-  await db.createSchemaIfNotExists();
-
   baseLogger.info({
     msg: "starting",
     buildTag: config.buildTag,
@@ -109,6 +103,13 @@ async function main(): Promise<void> {
         ")"
     ),
   });
+
+  if (config.dropDb) {
+    baseLogger.info("dropping schema");
+    await db.dropSchemaIfExists();
+  }
+
+  await db.createSchemaIfNotExists(baseLogger);
 
   if (config.enableResourceMonitor) {
     monitorAndLogResources({
@@ -142,17 +143,15 @@ async function main(): Promise<void> {
         baseLogger,
         runOnce: config.runOnce,
       }),
-      ...config.chains.map(async (chain) => {
+      ...config.chains.map((chain) =>
         catchupAndWatchChain({
           chain,
           db,
           subscriptionStore,
           baseLogger,
           ...config,
-        });
-
-        return null;
-      }),
+        })
+      ),
     ]);
 
     // TODO: use read only connection, use separate pool?
@@ -377,12 +376,12 @@ async function catchupAndWatchChain(
           url: config.chain.rpc,
           onRequest({ method, params, url }) {
             // TODO: this is a temporary log to investigate high request counts
-            // indexerLogger.debug({
-            //   msg: "RPC request",
-            //   url,
-            //   method,
-            //   params,
-            // });
+            indexerLogger.debug({
+              msg: "RPC request",
+              url,
+              method,
+              params,
+            });
           },
         }),
       },

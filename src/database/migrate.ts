@@ -1,11 +1,17 @@
 import { Kysely, sql } from "kysely";
 
+// enough to hold 256 bit integers
 const BIGINT_TYPE = sql`decimal(78,0)`;
+
 const ADDRESS_TYPE = "text";
 const CHAIN_ID_TYPE = "integer";
 
-export async function migrate<T>(db: Kysely<T>) {
-  await db.schema
+export async function migrate<T>(db: Kysely<T>, schemaName: string) {
+  const ref = (name: string) => sql.table(`${schemaName}.${name}`);
+
+  const schema = db.withSchema(schemaName).schema;
+
+  await schema
     .createTable("rounds")
     .addColumn("id", "text")
     .addColumn("chainId", CHAIN_ID_TYPE)
@@ -35,7 +41,7 @@ export async function migrate<T>(db: Kysely<T>) {
     .addPrimaryKeyConstraint("rounds_pkey", ["id", "chainId"])
     .execute();
 
-  await db.schema
+  await schema
     .createTable("projects")
     .addColumn("id", "text")
     .addColumn("chainId", CHAIN_ID_TYPE)
@@ -49,18 +55,18 @@ export async function migrate<T>(db: Kysely<T>) {
     .addPrimaryKeyConstraint("projects_pkey", ["id", "chainId"])
     .execute();
 
-  await db.schema
+  await schema
     .createType("application_status")
     .asEnum(["PENDING", "APPROVED", "REJECTED", "CANCELLED", "IN_REVIEW"])
     .execute();
 
-  await db.schema
+  await schema
     .createTable("applications")
     .addColumn("id", "text")
     .addColumn("chainId", CHAIN_ID_TYPE)
     .addColumn("roundId", ADDRESS_TYPE)
     .addColumn("projectId", "text")
-    .addColumn("status", sql`"application_status"`)
+    .addColumn("status", ref("application_status"))
     .addColumn("statusSnapshots", "jsonb")
 
     .addColumn("metadataCid", "text")
@@ -84,9 +90,7 @@ export async function migrate<T>(db: Kysely<T>) {
 
     .execute();
 
-  console.log("applications table created");
-
-  await db.schema
+  await schema
     .createTable("donations")
 
     .addColumn("id", "text")
@@ -116,16 +120,35 @@ export async function migrate<T>(db: Kysely<T>) {
 
     .execute();
 
+  // https://www.graphile.org/postgraphile/smart-tags/
+  // https://www.graphile.org/postgraphile/computed-columns/
   await sql`
-  comment on constraint "applications_rounds_fkey" on "applications" is
+  comment on constraint "applications_rounds_fkey" on ${ref("applications")} is
   E'@foreignFieldName applications\n@fieldName round';
 
-  comment on table "applications" is
-  E'@foreignKey ("projectId") references projects(id)|@fieldName project';
+  comment on table ${ref("applications")} is
+  E'@foreignKey ("project_id") references ${ref(
+    "projects"
+  )}(id)|@fieldName project';
 
-  comment on constraint "donations_applications_fkey" on "donations" is
+  comment on constraint "donations_applications_fkey" on ${ref("donations")} is
   E'@foreignFieldName donations\n@fieldName application';
-  `.execute(db);
 
-  console.log("donations table created");
+  -- this adds a computed column to the rounds table, could be slow
+  CREATE FUNCTION ${ref("rounds_unique_donors_count")}(round ${ref(
+    "rounds"
+  )}) RETURNS integer AS $$
+    SELECT COUNT(DISTINCT "donations"."donor_address")
+    FROM ${ref("donations")} AS donations
+    WHERE donations."round_id" = round.id AND donations."chain_id" = round."chain_id";
+  $$ LANGUAGE sql STABLE;
+
+  CREATE FUNCTION ${ref("applications_unique_donors_count")}(application ${ref(
+    "applications"
+  )}) RETURNS integer AS $$
+    SELECT COUNT(DISTINCT "donations"."donor_address")
+    FROM ${ref("donations")} AS donations
+    WHERE donations."application_id" = application.id AND donations."round_id" = application."round_id" AND donations."chain_id" = application."chain_id";
+  $$ LANGUAGE sql STABLE;
+  `.execute(db);
 }

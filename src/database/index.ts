@@ -1,5 +1,5 @@
 import { Pool } from "pg";
-import { sql, Kysely, PostgresDialect } from "kysely";
+import { sql, Kysely, PostgresDialect, CamelCasePlugin } from "kysely";
 
 import {
   ProjectTable,
@@ -15,6 +15,7 @@ import {
   ExtractQueryResponse,
   QueryInteraction,
 } from "./query.js";
+import { Logger } from "pino";
 
 interface Tables {
   projects: ProjectTable;
@@ -36,6 +37,7 @@ export class Database {
 
     this.#db = new Kysely<Tables>({
       dialect,
+      plugins: [new CamelCasePlugin()],
     });
 
     this.#db = this.#db.withSchema(options.schemaName);
@@ -51,7 +53,7 @@ export class Database {
       .execute();
   }
 
-  async createSchemaIfNotExists() {
+  async createSchemaIfNotExists(logger: Logger) {
     const exists = await sql<{ exists: boolean }>`
     SELECT EXISTS (
       SELECT 1 FROM information_schema.schemata 
@@ -59,8 +61,16 @@ export class Database {
     )`.execute(this.#db);
 
     if (exists.rows.length > 0 && exists.rows[0].exists) {
+      logger.info({
+        msg: `schema "${this.databaseSchemaName}" exists, skipping creation`,
+      });
+
       return;
     }
+
+    logger.info({
+      msg: `schema "${this.databaseSchemaName}" does not exist, creating schema`,
+    });
 
     await this.#db.transaction().execute(async (tx) => {
       await tx.schema
@@ -68,15 +78,7 @@ export class Database {
         .ifNotExists()
         .execute();
 
-      // DDL statements inside the migrate call below are scoped to the schema
-      // but when using custom types Kysely doesn't prefix them with the schema,
-      // this is a workaround for that, it's local to the transacit tion
-      // and doesn't affect other connections
-      await sql
-        .raw(`SET LOCAL SEARCH_PATH TO "${this.databaseSchemaName}"`)
-        .execute(tx);
-
-      await migrate(tx);
+      await migrate(tx, this.databaseSchemaName);
     });
   }
 
@@ -241,3 +243,5 @@ export class Database {
     }
   }
 }
+
+export type { Mutation };

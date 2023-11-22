@@ -757,7 +757,9 @@ export function getConfig(): Config {
   const hostname = os.hostname();
 
   const databaseUrl = z.string().url().parse(process.env.DATABASE_URL);
-  const databaseSchemaName = `chain_data_${hostname}_${CHAIN_DATA_VERSION}`;
+
+  const sqlSafeHostname = hostname.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+  const databaseSchemaName = `chain_data_${sqlSafeHostname}_${CHAIN_DATA_VERSION}`;
 
   const dropDb = z.boolean().default(false).parse(args["drop-db"]);
 
