@@ -81,10 +81,11 @@ export async function handleEvent(
   args: EventHandlerArgs<Indexer>
 ): Promise<Mutation[]> {
   const {
+    chainId,
     event,
     subscribeToContract,
     readContract,
-    context: { db, ipfsGet, priceProvider, chainId, logger },
+    context: { db, ipfsGet, priceProvider, logger },
   } = args;
 
   const finalEventName = getFinalEventName(chainId, event);
@@ -189,7 +190,7 @@ export async function handleEvent(
           projectId,
           project: {
             ownerAddresses: project.ownerAddresses.filter(
-              (o: string) => o == event.params.owner
+              (owner) => owner !== parseAddress(event.params.owner)
             ),
           },
         },
