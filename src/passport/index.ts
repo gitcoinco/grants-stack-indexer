@@ -4,7 +4,6 @@ import split2 from "split2";
 import { Level } from "level";
 import enhancedFetch from "make-fetch-happen";
 import { access } from "node:fs/promises";
-import { createWriteStream } from "node:fs";
 import { Logger } from "pino";
 
 const DEFAULT_DELAY_BETWEEN_FULL_UPDATES_MS = 1000 * 60 * 30;
@@ -28,7 +27,6 @@ export interface PassportProviderConfig {
   scorerId: number;
   logger: Logger;
   dbPath: string;
-  deprecatedJSONPassportDumpPath?: string;
   fetch?: typeof enhancedFetch;
   delayBetweenFullUpdatesMs?: number;
 }
@@ -251,37 +249,6 @@ export const createPassportProvider = (
           reject(err);
         });
     });
-
-    if (config.deprecatedJSONPassportDumpPath !== undefined) {
-      await writeDeprecatedCompatibilityJSONDump(
-        db,
-        config.deprecatedJSONPassportDumpPath
-      );
-    }
-  };
-
-  const writeDeprecatedCompatibilityJSONDump = async (
-    db: Level<string, PassportScore>,
-    path: string
-  ): Promise<void> => {
-    logger.info("writing passport JSON dump for backward compatibility");
-
-    const deprecatedCompatibilityDumpStream = createWriteStream(path);
-    deprecatedCompatibilityDumpStream.write("[\n");
-    let isFirst = true;
-    for await (const passportScore of db.values()) {
-      if (isFirst) {
-        isFirst = false;
-      } else {
-        deprecatedCompatibilityDumpStream.write(",\n");
-      }
-
-      deprecatedCompatibilityDumpStream.write(JSON.stringify(passportScore));
-    }
-    deprecatedCompatibilityDumpStream.write("\n]");
-    deprecatedCompatibilityDumpStream.end();
-
-    logger.info(`passport JSON dump written`);
   };
 
   // EXPORTS

@@ -2,7 +2,8 @@ import fs from "fs/promises";
 import path from "path";
 import { DataProvider, FileNotFoundError } from "../calculator/index.js";
 import { PassportScore } from "../passport/index.js";
-import { Price } from "../prices/common.js";
+import { Price } from "../database/schema.js";
+import { Address } from "../types.js";
 
 type Fixtures = { [path: string]: string | undefined | unknown[] };
 
@@ -64,16 +65,17 @@ export class TestPriceProvider {
 
   async getUSDConversionRate(
     chainId: number,
-    tokenAddress: string,
-    _blockNumber?: number
+    tokenAddress: Address,
+    blockNumber: bigint
   ): Promise<Price & { decimals: number }> {
     return Promise.resolve({
-      price: 1_000_000_000,
-      token: tokenAddress,
-      block: 0,
-      code: "",
+      id: 0,
       decimals: 18,
-      timestamp: 0,
+      chainId: chainId,
+      priceInUSD: 1_000_000_000,
+      tokenAddress: tokenAddress,
+      blockNumber: blockNumber,
+      timestamp: new Date(),
     });
   }
 }

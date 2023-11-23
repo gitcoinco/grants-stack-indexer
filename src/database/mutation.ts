@@ -1,3 +1,4 @@
+import { ChainId, Address } from "../types.js";
 import {
   NewProject,
   PartialProject,
@@ -5,9 +6,8 @@ import {
   PartialRound,
   NewApplication,
   PartialApplication,
-  Address,
-  ChainId,
   NewDonation,
+  NewPrice,
 } from "./schema.js";
 
 export type Mutation =
@@ -48,4 +48,8 @@ export type Mutation =
   | {
       type: "InsertManyDonations";
       donations: NewDonation[];
+    }
+  | {
+      type: "InsertManyPrices";
+      prices: NewPrice[];
     };

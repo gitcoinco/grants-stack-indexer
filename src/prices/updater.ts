@@ -1,22 +1,16 @@
-import path from "node:path";
-import fs from "node:fs/promises";
 import { Logger } from "pino";
 import { ToBlock } from "chainsauce";
 import { ethers } from "ethers";
-import writeFileAtomic from "write-file-atomic";
 
 import { getBlockFromTimestamp } from "../utils/getBlockFromTimestamp.js";
 import { getPricesByHour } from "./coinGecko.js";
 import { Chain } from "../config.js";
-import {
-  days,
-  hours,
-  Price,
-  pricesFilename,
-  readPricesFile,
-} from "./common.js";
+import { days, hours } from "./common.js";
 import { BlockCache } from "../blockCache.js";
 import { createSqliteBlockCache } from "../blockCache/sqlite.js";
+import { Database } from "../database/index.js";
+import { NewPrice } from "../database/schema.js";
+import { Address } from "../types.js";
 
 const POLL_INTERVAL_MS = 60 * 1000;
 
@@ -28,21 +22,18 @@ export interface PriceUpdaterService {
 interface PriceUpdaterConfig {
   rpcProvider: ethers.providers.StaticJsonRpcProvider;
   chain: Chain;
-  chainDataDir: string;
   coingeckoApiKey: string | null;
   coingeckoApiUrl: string;
   blockCachePath?: string;
   withCacheFn?: <T>(cacheKey: string, fn: () => Promise<T>) => Promise<T>;
+  db: Database;
   logger: Logger;
 }
 
 export function createPriceUpdater(
   config: PriceUpdaterConfig
 ): PriceUpdaterService {
-  const {
-    logger,
-    chain: { id: chainId },
-  } = config;
+  const { logger } = config;
   const withCacheMaybe = config.withCacheFn ?? ((_cacheKey, fn) => fn());
   let pollTimeoutId: NodeJS.Timeout | null = null;
   let blockCache: BlockCache | null = null;
@@ -86,22 +77,25 @@ export function createPriceUpdater(
 
   async function update(toBlock: ToBlock) {
     try {
-      const { rpcProvider: provider } = config;
+      const {
+        chain: { id: chainId },
+        db,
+        rpcProvider: provider,
+      } = config;
 
       logger.debug({
         msg: `updating prices to block: ${toBlock}`,
         fromTimestamp: new Date(config.chain.pricesFromTimestamp),
       });
-      const currentPrices = await readPricesFile(
-        config.chain.id,
-        config.chainDataDir
-      );
 
-      // get last updated price
-      const lastPriceAt = currentPrices.reduce(
-        (acc, price) => Math.max(price.timestamp + hours(1), acc),
-        config.chain.pricesFromTimestamp
-      );
+      const lastPersistedPriceDate = await db.query({
+        type: "LatestPriceTimestampForChain",
+        chainId,
+      });
+
+      const lastPriceTimestampInMs = lastPersistedPriceDate
+        ? lastPersistedPriceDate.getTime()
+        : config.chain.pricesFromTimestamp;
 
       let toDate = undefined;
 
@@ -114,7 +108,8 @@ export function createPriceUpdater(
 
       // time elapsed from the last update, rounded to hours
       const timeElapsed =
-        Math.floor((toDate.getTime() - lastPriceAt) / hours(1)) * hours(1);
+        Math.floor((toDate.getTime() - lastPriceTimestampInMs) / hours(1)) *
+        hours(1);
 
       // only fetch new prices every new hour
       if (timeElapsed < hours(1)) {
@@ -156,27 +151,27 @@ export function createPriceUpdater(
       for (const chunk of timeChunks) {
         for (const token of config.chain.tokens) {
           const cacheKey = `${config.chain.id}-${token.address}-${
-            lastPriceAt + chunk[0]
-          }-${lastPriceAt + chunk[1]}`;
+            lastPriceTimestampInMs + chunk[0]
+          }-${lastPriceTimestampInMs + chunk[1]}`;
 
           logger.debug(
             `fetching prices for ${token.code} from ${new Date(
-              lastPriceAt + chunk[0]
+              lastPriceTimestampInMs + chunk[0]
             ).toISOString()} to ${new Date(
-              lastPriceAt + chunk[1]
+              lastPriceTimestampInMs + chunk[1]
             ).toISOString()}`
           );
 
           const prices = await withCacheMaybe(cacheKey, () =>
             getPricesByHour(
               token,
-              (lastPriceAt + chunk[0]) / 1000,
-              (lastPriceAt + chunk[1]) / 1000,
+              (lastPriceTimestampInMs + chunk[0]) / 1000,
+              (lastPriceTimestampInMs + chunk[1]) / 1000,
               config
             )
           );
 
-          const newPrices: Price[] = [];
+          const newPrices: NewPrice[] = [];
 
           for (const [timestampMs, price] of prices) {
             try {
@@ -222,11 +217,11 @@ export function createPriceUpdater(
               }
 
               newPrices.push({
-                token: token.address.toLowerCase(),
-                code: token.code,
-                price,
-                timestamp: timestampMs,
-                block: Number(blockNumber),
+                chainId,
+                tokenAddress: token.address.toLowerCase() as Address,
+                priceInUsd: price,
+                timestamp: new Date(timestampMs),
+                blockNumber,
               });
             } catch (err) {
               throw new Error(
@@ -238,30 +233,15 @@ export function createPriceUpdater(
 
           logger.debug(`fetched ${newPrices.length} prices`);
 
-          await appendPrices(config.chain.id, newPrices);
+          await db.mutate({
+            type: "InsertManyPrices",
+            prices: newPrices,
+          });
         }
       }
     } catch (err) {
       logger.error({ msg: "error updating prices", err });
     }
-  }
-
-  async function appendPrices(chainId: number, newPrices: Price[]) {
-    const currentPrices = await readPricesFile(chainId, config.chainDataDir);
-    await writePrices(chainId, currentPrices.concat(newPrices));
-  }
-
-  async function writePrices(chainId: number, prices: Price[]) {
-    return writePricesFile(
-      pricesFilename(chainId, config.chainDataDir),
-      prices
-    );
-  }
-
-  async function writePricesFile(filename: string, prices: Price[]) {
-    await fs.mkdir(path.dirname(filename), { recursive: true });
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    await writeFileAtomic(filename, JSON.stringify(prices));
   }
 
   // API

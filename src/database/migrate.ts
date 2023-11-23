@@ -120,6 +120,22 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
 
     .execute();
 
+  await schema
+    .createTable("prices")
+    .addColumn("id", "serial", (cb) => cb.primaryKey())
+    .addColumn("chainId", CHAIN_ID_TYPE)
+    .addColumn("tokenAddress", ADDRESS_TYPE)
+    .addColumn("priceInUSD", "real")
+    .addColumn("timestamp", "timestamp")
+    .addColumn("blockNumber", BIGINT_TYPE)
+    .execute();
+
+  await db.schema
+    .createIndex("idx_prices_chain_token_block")
+    .on("prices")
+    .expression(sql`chain_id, token_address, block_number DESC`)
+    .execute();
+
   // https://www.graphile.org/postgraphile/smart-tags/
   // https://www.graphile.org/postgraphile/computed-columns/
   await sql`

@@ -6,6 +6,7 @@ import {
   RoundTable,
   ApplicationTable,
   DonationTable,
+  PriceTable,
 } from "./schema.js";
 import { migrate } from "./migrate.js";
 import { encodeJsonWithBigInts } from "../utils/index.js";
@@ -22,6 +23,7 @@ interface Tables {
   rounds: RoundTable;
   applications: ApplicationTable;
   donations: DonationTable;
+  prices: PriceTable;
 }
 
 type KyselyDb = Kysely<Tables>;
@@ -38,6 +40,12 @@ export class Database {
     this.#db = new Kysely<Tables>({
       dialect,
       plugins: [new CamelCasePlugin()],
+      // log(event) {
+      //   if (event.level === "query") {
+      //     console.log(event.query.sql);
+      //     console.log(event.query.parameters);
+      //   }
+      // },
     });
 
     this.#db = this.#db.withSchema(options.schemaName);
@@ -163,6 +171,14 @@ export class Database {
           .execute();
         break;
       }
+
+      case "InsertManyPrices": {
+        await this.#db.insertInto("prices").values(mutation.prices).execute();
+        break;
+      }
+
+      default:
+        throw new Error(`Unknown mutation type`);
     }
   }
 
@@ -184,6 +200,20 @@ export class Database {
   query(
     query: ExtractQuery<QueryInteraction, "AllRoundDonations">
   ): Promise<ExtractQueryResponse<QueryInteraction, "AllRoundDonations">>;
+  query(
+    query: ExtractQuery<QueryInteraction, "LatestPriceTimestampForChain">
+  ): Promise<
+    ExtractQueryResponse<QueryInteraction, "LatestPriceTimestampForChain">
+  >;
+  query(
+    query: ExtractQuery<QueryInteraction, "AllChainPrices">
+  ): Promise<ExtractQueryResponse<QueryInteraction, "AllChainPrices">>;
+  query(
+    query: ExtractQuery<QueryInteraction, "TokenPriceByBlockNumber">
+  ): Promise<ExtractQueryResponse<QueryInteraction, "TokenPriceByBlockNumber">>;
+  query(
+    query: ExtractQuery<QueryInteraction, "AllChainProjects">
+  ): Promise<ExtractQueryResponse<QueryInteraction, "AllChainProjects">>;
   async query(
     query: QueryInteraction["query"]
   ): Promise<QueryInteraction["response"]> {
@@ -247,6 +277,53 @@ export class Database {
           .executeTakeFirst();
 
         return application ?? null;
+      }
+
+      case "LatestPriceTimestampForChain": {
+        const latestPriceTimestamp = await this.#db
+          .selectFrom("prices")
+          .where("chainId", "=", query.chainId)
+          .orderBy("timestamp", "desc")
+          .select("timestamp")
+          .limit(1)
+          .executeTakeFirst();
+
+        return latestPriceTimestamp?.timestamp ?? null;
+      }
+
+      case "TokenPriceByBlockNumber": {
+        let priceQuery = this.#db
+          .selectFrom("prices")
+          .where("chainId", "=", query.chainId)
+          .where("tokenAddress", "=", query.tokenAddress)
+          .orderBy("blockNumber", "desc")
+          .selectAll()
+          .limit(1);
+
+        if (query.blockNumber !== "latest") {
+          priceQuery = priceQuery.where("blockNumber", "<=", query.blockNumber);
+        }
+
+        const price = await priceQuery.executeTakeFirst();
+
+        return price ?? null;
+      }
+
+      case "AllChainPrices": {
+        return await this.#db
+          .selectFrom("prices")
+          .where("chainId", "=", query.chainId)
+          .orderBy("blockNumber", "asc")
+          .selectAll()
+          .execute();
+      }
+
+      case "AllChainProjects": {
+        return await this.#db
+          .selectFrom("projects")
+          .where("chainId", "=", query.chainId)
+          .selectAll()
+          .execute();
       }
     }
   }

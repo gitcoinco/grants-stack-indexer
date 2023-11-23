@@ -1,92 +1,58 @@
 import { Logger } from "pino";
 import { getChainConfigById } from "../config.js";
-import {
-  Price,
-  PriceWithDecimals,
-  readPricesFile,
-  UnknownTokenError,
-} from "./common.js";
+import { UnknownTokenError } from "./common.js";
 import { convertTokenToFiat, convertFiatToToken } from "../tokenMath.js";
+import { Database } from "../database/index.js";
+import { Price } from "../database/schema.js";
+import { Address, ChainId } from "../types.js";
 
-const DEFAULT_REFRESH_PRICE_INTERVAL_MS = 10000;
+export type PriceWithDecimals = Price & { tokenDecimals: number };
 
 interface PriceProviderConfig {
   updateEveryMs?: number;
-  chainDataDir: string;
+  db: Database;
   logger: Logger;
 }
 
 export interface PriceProvider {
   convertToUSD: (
-    chainId: number,
-    token: string,
+    chainId: ChainId,
+    token: Address,
     amount: bigint,
-    blockNumber?: number
+    blockNumber: bigint | "latest"
   ) => Promise<{ amount: number; price: number }>;
   convertFromUSD: (
-    chainId: number,
-    token: string,
+    chainId: ChainId,
+    token: Address,
     amount: number,
-    blockNumber?: number
+    blockNumber: bigint | "latest"
   ) => Promise<{ amount: bigint; price: number }>;
-  getAllPricesForChain: (chainId: number) => Promise<Price[]>;
+  getAllPricesForChain: (chainId: ChainId) => Promise<Price[]>;
   getUSDConversionRate: (
-    chainId: number,
-    tokenAddress: string,
-    blockNumber?: number
+    chainId: ChainId,
+    tokenAddress: Address,
+    blockNumber: bigint | "latest"
   ) => Promise<PriceWithDecimals>;
 }
 
 export function createPriceProvider(
   config: PriceProviderConfig
 ): PriceProvider {
-  const { logger: _logger } = config;
-
-  // STATE
-
-  type Prices = { lastUpdatedAt: Date; prices: Promise<Price[]> };
-
-  const prices: { [key: number]: Prices } = {};
+  const { db, logger: _logger } = config;
 
   // PUBLIC
 
-  async function getAllPricesForChain(chainId: number): Promise<Price[]> {
-    return readPricesFile(chainId, config.chainDataDir);
+  async function getAllPricesForChain(chainId: ChainId): Promise<Price[]> {
+    return await db.query({ type: "AllChainPrices", chainId });
   }
 
   // INTERNALS
 
-  function shouldRefreshPrices(prices: Prices) {
-    return (
-      new Date().getTime() - prices.lastUpdatedAt.getTime() >
-      (config.updateEveryMs ?? DEFAULT_REFRESH_PRICE_INTERVAL_MS)
-    );
-  }
-
-  function updatePrices(chainId: number) {
-    const chainPrices = readPricesFile(chainId, config.chainDataDir);
-
-    prices[chainId] = {
-      prices: chainPrices,
-      lastUpdatedAt: new Date(),
-    };
-
-    return chainPrices;
-  }
-
-  async function getPrices(chainId: number): Promise<Price[]> {
-    if (!(chainId in prices) || shouldRefreshPrices(prices[chainId])) {
-      await updatePrices(chainId);
-    }
-
-    return prices[chainId].prices;
-  }
-
   async function convertToUSD(
-    chainId: number,
-    token: string,
+    chainId: ChainId,
+    token: Address,
     amount: bigint,
-    blockNumber?: number
+    blockNumber: bigint | "latest"
   ): Promise<{ amount: number; price: number }> {
     const closestPrice = await getUSDConversionRate(
       chainId,
@@ -97,19 +63,19 @@ export function createPriceProvider(
     return {
       amount: convertTokenToFiat({
         tokenAmount: amount,
-        tokenDecimals: closestPrice.decimals,
-        tokenPrice: closestPrice.price,
+        tokenDecimals: closestPrice.tokenDecimals,
+        tokenPrice: closestPrice.priceInUsd,
         tokenPriceDecimals: 8,
       }),
-      price: closestPrice.price,
+      price: closestPrice.priceInUsd,
     };
   }
 
   async function convertFromUSD(
-    chainId: number,
-    token: string,
+    chainId: ChainId,
+    token: Address,
     amountInUSD: number,
-    blockNumber?: number
+    blockNumber: bigint | "latest"
   ): Promise<{ amount: bigint; price: number }> {
     const closestPrice = await getUSDConversionRate(
       chainId,
@@ -120,21 +86,19 @@ export function createPriceProvider(
     return {
       amount: convertFiatToToken({
         fiatAmount: amountInUSD,
-        tokenPrice: closestPrice.price,
+        tokenPrice: closestPrice.priceInUsd,
         tokenPriceDecimals: 8,
-        tokenDecimals: closestPrice.decimals,
+        tokenDecimals: closestPrice.tokenDecimals,
       }),
-      price: 1 / closestPrice.price, // price is the token price in USD, we return the inverse
+      price: 1 / closestPrice.priceInUsd, // price is the token price in USD, we return the inverse
     };
   }
 
   async function getUSDConversionRate(
     chainId: number,
-    tokenAddress: string,
-    blockNumber?: number
-  ): Promise<Price & { decimals: number }> {
-    let closestPrice: Price | null = null;
-
+    tokenAddress: Address,
+    blockNumber: bigint | "latest"
+  ): Promise<PriceWithDecimals> {
     const chain = getChainConfigById(chainId);
 
     const token = chain.tokens.find(
@@ -144,46 +108,20 @@ export function createPriceProvider(
       throw new UnknownTokenError(tokenAddress, chainId);
     }
 
-    const pricesForToken = (await getPrices(chainId)).filter(
-      (p) => p.token === tokenAddress
-    );
-    if (pricesForToken.length === 0) {
-      throw new Error(
-        `No prices found for token ${tokenAddress} on chain ${chainId} at ${String(
-          blockNumber
-        )}`
-      );
-    }
+    const price = await db.query({
+      type: "TokenPriceByBlockNumber",
+      chainId,
+      tokenAddress,
+      blockNumber,
+    });
 
-    const firstAvailablePrice = pricesForToken.at(0)!;
-    const lastAvailablePrice = pricesForToken.at(-1)!;
-
-    if (blockNumber === undefined) {
-      closestPrice = lastAvailablePrice;
-    } else if (blockNumber > lastAvailablePrice.block) {
-      // TODO decide how to warn about potential inconsistencies without spamming
-      // logger.warn(
-      //   `requested price for block ${blockNumber} newer than last available ${lastAvailablePrice.block}`
-      // );
-      closestPrice = lastAvailablePrice;
-    } else if (blockNumber < firstAvailablePrice.block) {
-      // TODO decide how to warn about potential inconsistencies without spamming
-      // logger.warn(
-      //   `requested price for block ${blockNumber} older than earliest available ${firstAvailablePrice.block}`
-      // );
-      closestPrice = firstAvailablePrice;
-    } else {
-      closestPrice =
-        pricesForToken.reverse().find((p) => p.block < blockNumber) ?? null;
-    }
-
-    if (closestPrice === null) {
+    if (price === null) {
       throw Error(
-        `Price not found for token ${tokenAddress} on chain ${chainId}`
+        `Price not found for token ${tokenAddress} on chain ${chainId} and block ${blockNumber}`
       );
     }
 
-    return { ...closestPrice, decimals: token.decimals };
+    return { ...price, tokenDecimals: token.decimals };
   }
 
   return {

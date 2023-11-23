@@ -5,6 +5,7 @@ import { Mutation } from "../../database/index.js";
 import { Round } from "../../database/schema.js";
 
 import { PriceProvider } from "../../prices/provider.js";
+import { parseAddress } from "../../address.js";
 
 export async function updateRoundMatchAmount(args: {
   round: Round;
@@ -17,8 +18,8 @@ export async function updateRoundMatchAmount(args: {
   const amountUSD = await priceProvider.convertToUSD(
     round.chainId,
     round.matchTokenAddress,
-    BigInt(newMatchAmount),
-    Number(blockNumber)
+    newMatchAmount,
+    blockNumber
   );
 
   return {
@@ -37,7 +38,7 @@ export default async function ({
   event,
   context: { chainId, priceProvider, db },
 }: EventHandlerArgs<Indexer, "RoundImplementationV2", "MatchAmountUpdated">) {
-  const id = event.address;
+  const id = parseAddress(event.address);
   const matchAmount = event.params.newAmount;
 
   const round = await db.query({ type: "RoundById", roundId: id, chainId });

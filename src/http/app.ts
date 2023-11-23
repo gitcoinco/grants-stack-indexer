@@ -4,7 +4,6 @@ import "express-async-errors";
 import express from "express";
 import { Logger } from "pino";
 import cors from "cors";
-import serveIndex from "serve-index";
 import * as Sentry from "@sentry/node";
 
 import { createHandler as createApiHandler } from "./api/v1/index.js";
@@ -12,6 +11,7 @@ import { PriceProvider } from "../prices/provider.js";
 import { PassportProvider } from "../passport/index.js";
 import { DataProvider } from "../calculator/index.js";
 import { Chain } from "../config.js";
+import { Database } from "../database/index.js";
 
 type AsyncRequestHandler = (
   req: express.Request,
@@ -22,9 +22,9 @@ type AsyncRequestHandler = (
 export interface HttpApiConfig {
   logger: Logger;
   port: number;
-  chainDataDir: string;
   buildTag: string | null;
   priceProvider: PriceProvider;
+  db: Database;
   dataProvider: DataProvider;
   passportProvider: PassportProvider;
   graphqlHandler?: AsyncRequestHandler;
@@ -70,17 +70,6 @@ export const createHttpApi = (config: HttpApiConfig): HttpApi => {
     res.setHeader("x-machine-hostname", config.hostname);
     next();
   });
-
-  app.use(
-    "/data",
-    express.static(config.chainDataDir, {
-      acceptRanges: true,
-      setHeaders: (res) => {
-        res.setHeader("Accept-Ranges", "bytes");
-      },
-    }),
-    serveIndex(config.chainDataDir, { icons: true, view: "details" })
-  );
 
   app.get("/data/*", staticJsonDataHandler(config.dataProvider));
 

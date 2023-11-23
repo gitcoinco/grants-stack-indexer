@@ -144,16 +144,17 @@ async function main(): Promise<void> {
         baseLogger,
         runOnce: config.runOnce,
       }),
-      ...config.chains.map((chain) =>
-        catchupAndWatchChain({
-          chain,
-          db,
-          subscriptionStore,
-          baseLogger,
-          ...config,
-        })
-      ),
     ]);
+
+    config.chains.map((chain) =>
+      catchupAndWatchChain({
+        chain,
+        db,
+        subscriptionStore,
+        baseLogger,
+        ...config,
+      })
+    );
 
     // TODO: use read only connection, use separate pool?
     const graphqlHandler = postgraphile(
@@ -187,9 +188,9 @@ async function main(): Promise<void> {
     );
 
     const httpApi = createHttpApi({
-      chainDataDir: config.chainDataDir,
+      db,
       priceProvider: createPriceProvider({
-        chainDataDir: config.chainDataDir,
+        db,
         logger: baseLogger.child({ subsystem: "PriceProvider" }),
       }),
       passportProvider: passportProvider,
@@ -218,16 +219,11 @@ async function catchupAndWatchPassport(
   const logger = config.baseLogger.child({ subsystem: "PassportProvider" });
   try {
     await fs.mkdir(config.storageDir, { recursive: true });
-    await fs.mkdir(config.chainDataDir, { recursive: true });
 
     const passportProvider = createPassportProvider({
       logger,
       scorerId: config.passportScorerId,
       dbPath: path.join(config.storageDir, "passport_scores.leveldb"),
-      deprecatedJSONPassportDumpPath: path.join(
-        config.chainDataDir,
-        "passport_scores.json"
-      ),
     });
 
     await passportProvider.start({ watch: !config.runOnce });
@@ -257,22 +253,13 @@ async function catchupAndWatchChain(
   const db = config.db;
 
   try {
-    const CHAIN_DIR_PATH = path.join(
-      config.chainDataDir,
-      config.chain.id.toString()
-    );
-
-    // Force a full re-indexing on every startup.
-    await fs.rm(CHAIN_DIR_PATH, { recursive: true, force: true });
-    await fs.mkdir(CHAIN_DIR_PATH, { recursive: true });
-
     const pricesCache: DeprecatedDiskCache | null = config.cacheDir
       ? new DeprecatedDiskCache(path.join(config.cacheDir, "prices"))
       : null;
 
     const priceProvider = createPriceProvider({
       ...config,
-      chainDataDir: config.chainDataDir,
+      db,
       logger: chainLogger.child({ subsystem: "PriceProvider" }),
     });
 
@@ -316,7 +303,7 @@ async function catchupAndWatchChain(
 
     const priceUpdater = createPriceUpdater({
       ...config,
-      chainDataDir: config.chainDataDir,
+      db,
       rpcProvider,
       chain: config.chain,
       logger: chainLogger.child({ subsystem: "PriceUpdater" }),
@@ -417,10 +404,14 @@ async function catchupAndWatchChain(
       const donations = [...newDonationsQueue];
       newDonationsQueue = [];
 
-      await db.mutate({
-        type: "InsertManyDonations",
-        donations: donations,
-      });
+      try {
+        await db.mutate({
+          type: "InsertManyDonations",
+          donations: donations,
+        });
+      } catch (err) {
+        console.log(err);
+      }
     }, 1000);
 
     indexer.on("event", async (args) => {
@@ -429,10 +420,10 @@ async function catchupAndWatchChain(
         const mutations = await handleEvent(args);
 
         for (const mutation of mutations) {
-          // if (mutation.type === "InsertDonation") {
-          //   newDonationsQueue.push(mutation.donation);
-          //   continue;
-          // }
+          if (mutation.type === "InsertDonation") {
+            newDonationsQueue.push(mutation.donation);
+            continue;
+          }
 
           await db.mutate(mutation);
         }
@@ -443,6 +434,9 @@ async function catchupAndWatchChain(
           err,
           event: args.event,
         });
+        throw err;
+      } finally {
+        // console.timeEnd(args.event.name);
       }
     });
 

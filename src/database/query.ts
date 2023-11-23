@@ -1,11 +1,5 @@
-import {
-  ChainId,
-  Address,
-  Round,
-  Donation,
-  Application,
-  Project,
-} from "./schema.js";
+import { Round, Donation, Application, Project, Price } from "./schema.js";
+import { Address, ChainId } from "../types.js";
 
 export type ExtractQuery<TQueryDefinition, TQueryName> = Extract<
   TQueryDefinition,
@@ -64,4 +58,34 @@ export type QueryInteraction =
         roundId: Address;
       };
       response: Donation[];
+    }
+  | {
+      query: {
+        type: "LatestPriceTimestampForChain";
+        chainId: ChainId;
+      };
+      response: Date | null;
+    }
+  | {
+      query: {
+        type: "AllChainPrices";
+        chainId: ChainId;
+      };
+      response: Price[];
+    }
+  | {
+      query: {
+        type: "TokenPriceByBlockNumber";
+        chainId: ChainId;
+        tokenAddress: Address;
+        blockNumber: bigint | "latest";
+      };
+      response: Price | null;
+    }
+  | {
+      query: {
+        type: "AllChainProjects";
+        chainId: ChainId;
+      };
+      response: Project[];
     };

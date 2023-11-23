@@ -4,7 +4,7 @@ import { ToBlock } from "chainsauce";
 import { z } from "zod";
 import path from "node:path";
 import abis from "./indexer/abis/index.js";
-import { Hex } from "./indexer/types.js";
+import { Hex } from "./types.js";
 import os from "node:os";
 
 type ChainId = number;
@@ -222,7 +222,7 @@ const CHAINS: Chain[] = [
     rpc: rpcUrl
       .default("https://sepolia.publicgoods.network")
       .parse(process.env.PGN_TESTNET_RPC_URL),
-    pricesFromTimestamp: Date.UTC(2023, 6, 12, 0, 0, 0),
+    pricesFromTimestamp: Date.UTC(2023, 5, 2, 0, 0, 0),
     tokens: [
       {
         code: "ETH",
@@ -266,7 +266,7 @@ const CHAINS: Chain[] = [
     rpc: rpcUrl
       .default("https://rpc.publicgoods.network")
       .parse(process.env.PGN_RPC_URL),
-    pricesFromTimestamp: Date.UTC(2023, 6, 12, 0, 0, 0),
+    pricesFromTimestamp: Date.UTC(2023, 5, 2, 0, 0, 0),
     tokens: [
       {
         code: "ETH",
@@ -618,7 +618,6 @@ export type Config = {
   buildTag: string | null;
   storageDir: string;
   cacheDir: string | null;
-  chainDataDir: string;
   fromBlock: bigint;
   toBlock: ToBlock;
   passportScorerId: number;
@@ -685,8 +684,6 @@ export function getConfig(): Config {
     .union([z.string(), z.null()])
     .default(path.join(storageDir, "cache"))
     .parse(process.env.CACHE_DIR);
-
-  const chainDataDir = path.join(storageDir, "chainData");
 
   const { values: args } = parseArgs({
     options: {
@@ -771,7 +768,6 @@ export function getConfig(): Config {
     storageDir,
     chains,
     toBlock,
-    chainDataDir,
     fromBlock,
     cacheDir,
     logLevel,

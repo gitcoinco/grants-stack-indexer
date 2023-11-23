@@ -1,16 +1,20 @@
-import { Selectable, ColumnType, Updateable, Insertable } from "kysely";
+import {
+  Selectable,
+  ColumnType,
+  Updateable,
+  Insertable,
+  Generated,
+} from "kysely";
 
-export type ChainId = number;
-export type Address = `0x${string}`;
-export type Hex = `0x${string}`;
+import { Address, Hex, ChainId } from "../types.js";
 
 export type RoundTable = {
   id: Address;
   chainId: ChainId;
   matchAmount: bigint;
   matchTokenAddress: Address;
-  matchAmountInUSD: number;
-  applicationMetadataCid: string | null;
+  matchAmountInUsd: number;
+  applicationMetadataCid: string;
   applicationMetadata: unknown | null;
   roundMetadataCid: string;
   roundMetadata: unknown;
@@ -20,7 +24,7 @@ export type RoundTable = {
   donationsEndTime: Date | null;
   createdAtBlock: bigint;
   updatedAtBlock: bigint;
-  totalAmountDonatedInUSD: number;
+  totalAmountDonatedInUsd: number;
   totalDonationsCount: number;
 };
 
@@ -66,7 +70,7 @@ export type ApplicationTable = {
   createdAtBlock: bigint;
   statusUpdatedAtBlock: bigint;
   totalDonationsCount: number;
-  totalAmountDonatedInUSD: number;
+  totalAmountDonatedInUsd: number;
 };
 
 export type Application = Selectable<ApplicationTable>;
@@ -85,10 +89,23 @@ export type DonationTable = {
   blockNumber: bigint;
   tokenAddress: Address;
   amount: bigint;
-  amountInUSD: number;
+  amountInUsd: number;
   amountInRoundMatchToken: bigint;
 };
 
 export type NewDonation = Insertable<DonationTable>;
 export type Donation = Selectable<DonationTable>;
 export type PartialDonation = Updateable<DonationTable>;
+
+export type PriceTable = {
+  id: Generated<number>;
+  chainId: ChainId;
+  tokenAddress: Address;
+  priceInUsd: number;
+  timestamp: Date;
+  blockNumber: bigint;
+};
+
+export type NewPrice = Insertable<PriceTable>;
+export type Price = Selectable<PriceTable>;
+export type PartialPrice = Updateable<PriceTable>;

@@ -12,7 +12,6 @@ import matchAmountUpdated, {
 } from "./handlers/matchAmountUpdated.js";
 import { UnknownTokenError } from "../prices/common.js";
 import type { Indexer } from "./indexer.js";
-import { Address, getAddress } from "viem";
 import {
   ApplicationTable,
   Application,
@@ -22,6 +21,7 @@ import {
   NewApplication,
 } from "../database/schema.js";
 import { Mutation } from "../database/index.js";
+import { Address, parseAddress } from "../address.js";
 
 enum ApplicationStatus {
   PENDING = 0,
@@ -102,18 +102,16 @@ export async function handleEvent(
           type: "InsertProject",
           project: {
             chainId,
-            registryAddress: event.address,
+            registryAddress: parseAddress(event.address),
             id: projectId,
             projectNumber: Number(event.params.projectID),
             metadataCid: null,
             metadata: null,
-            ownerAddresses: [event.params.owner],
+            ownerAddresses: [parseAddress(event.params.owner)],
             createdAtBlock: event.blockNumber,
           },
         },
       ];
-
-      break;
     }
 
     case "MetadataUpdated": {
@@ -158,7 +156,10 @@ export async function handleEvent(
           type: "UpdateProject",
           projectId,
           project: {
-            ownerAddresses: [...project.ownerAddresses, event.params.owner],
+            ownerAddresses: [
+              ...project.ownerAddresses,
+              parseAddress(event.params.owner),
+            ],
           },
         },
       ];
@@ -201,7 +202,7 @@ export async function handleEvent(
           ? "RoundImplementationV1"
           : "RoundImplementationV2";
 
-      const roundId = getAddress(event.params.roundAddress);
+      const roundId = parseAddress(event.params.roundAddress);
 
       subscribeToContract({
         contract,
@@ -359,7 +360,7 @@ export async function handleEvent(
         chainId,
         id: applicationIndex,
         projectId: projectId,
-        roundId: event.address,
+        roundId: parseAddress(event.address),
         status: "PENDING",
         metadataCid: event.params.applicationMetaPtr.pointer,
         metadata: metadata ?? null,
@@ -384,6 +385,8 @@ export async function handleEvent(
     }
 
     case "ProjectsMetaPtrUpdated": {
+      const roundId = parseAddress(event.address);
+
       const projects = await ipfsGet<
         {
           id: string;
@@ -402,7 +405,7 @@ export async function handleEvent(
         return {
           type: "UpdateApplication",
           chainId,
-          roundId: event.address,
+          roundId,
           applicationId: projectId,
           application: {
             status: project.status,
@@ -413,7 +416,7 @@ export async function handleEvent(
     }
 
     case "ApplicationStatusesUpdated": {
-      const roundId = event.address;
+      const roundId = parseAddress(event.address);
 
       const bitmap = new StatusesBitmap(256n, 2n);
       bitmap.setRow(event.params.index, event.params.status);
@@ -486,10 +489,11 @@ export async function handleEvent(
 
       // If an `origin` field is present, this event comes from MRC, thus ignore the
       // `voter` field because that's the contract. See AIP-13
-      const realDonorAddress =
-        "origin" in event.params ? event.params.origin : event.params.voter;
+      const realDonorAddress = parseAddress(
+        "origin" in event.params ? event.params.origin : event.params.voter
+      );
 
-      const roundId = getAddress(event.params.roundAddress);
+      const roundId = parseAddress(event.params.roundAddress);
 
       const application = await db.query({
         type: "ApplicationById",
@@ -508,16 +512,16 @@ export async function handleEvent(
         return [];
       }
 
-      const token = event.params.token.toLowerCase();
+      const token = parseAddress(event.params.token);
 
       const conversionToUSD = await priceProvider.convertToUSD(
         chainId,
         token,
         event.params.amount,
-        Number(event.blockNumber)
+        event.blockNumber
       );
 
-      const amountUSD = conversionToUSD.amount;
+      const amountUsd = conversionToUSD.amount;
 
       let amountInRoundMatchToken: bigint | null = null;
       try {
@@ -529,7 +533,7 @@ export async function handleEvent(
                   chainId,
                   round.matchTokenAddress,
                   conversionToUSD.amount,
-                  Number(event.blockNumber)
+                  event.blockNumber
                 )
               ).amount;
       } catch (err) {
@@ -552,12 +556,12 @@ export async function handleEvent(
         blockNumber: event.blockNumber,
         projectId: event.params.projectId,
         applicationId: applicationId,
-        roundId: event.params.roundAddress,
+        roundId: parseAddress(event.params.roundAddress),
         donorAddress: realDonorAddress,
-        recipientAddress: event.params.grantAddress,
-        tokenAddress: event.params.token,
+        recipientAddress: parseAddress(event.params.grantAddress),
+        tokenAddress: parseAddress(event.params.token),
         amount: event.params.amount,
-        amountInUSD: amountUSD,
+        amountInUsd: amountUsd,
         amountInRoundMatchToken,
       };
 
@@ -568,8 +572,8 @@ export async function handleEvent(
           roundId: round.id,
           applicationId: applicationId,
           application: {
-            totalAmountDonatedInUSD:
-              application.totalAmountDonatedInUSD + amountUSD,
+            totalAmountDonatedInUsd:
+              application.totalAmountDonatedInUsd + amountUsd,
             totalDonationsCount: application.totalDonationsCount + 1,
           },
         },
@@ -578,7 +582,7 @@ export async function handleEvent(
           chainId: chainId,
           roundId: round.id,
           round: {
-            totalAmountDonatedInUSD: round.totalAmountDonatedInUSD + amountUSD,
+            totalAmountDonatedInUsd: round.totalAmountDonatedInUsd + amountUsd,
             totalDonationsCount: round.totalDonationsCount + 1,
           },
         },
@@ -599,11 +603,13 @@ export async function handleEvent(
     }
 
     case "ApplicationInReviewUpdated": {
-      const roundId = await readContract({
-        contract: "DirectPayoutStrategyImplementationV2",
-        address: event.address,
-        functionName: "roundAddress",
-      });
+      const roundId = parseAddress(
+        await readContract({
+          contract: "DirectPayoutStrategyImplementationV2",
+          address: event.address,
+          functionName: "roundAddress",
+        })
+      );
 
       const bitmap = new StatusesBitmap(256n, 1n);
       bitmap.setRow(event.params.index, event.params.status);

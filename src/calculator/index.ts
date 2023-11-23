@@ -2,10 +2,18 @@ import fs from "fs/promises";
 import csv from "csv-parser";
 import { linearQF, Contribution, Calculation } from "pluralistic";
 import type { PassportProvider } from "../passport/index.js";
-import { PriceProvider } from "../prices/provider.js";
+import { PriceProvider, PriceWithDecimals } from "../prices/provider.js";
 import { convertTokenToFiat, convertFiatToToken } from "../tokenMath.js";
 import { Chain, getDecimalsForToken } from "../config.js";
-import type { Round, Application, Vote } from "../indexer/types.js";
+import {
+  type DeprecatedRound,
+  type DeprecatedApplication,
+  type DeprecatedVote,
+  createDeprecatedRound,
+  createDeprecatedVote,
+  createDeprecatedProject,
+  createDeprecatedApplication,
+} from "../deprecatedJsonDatabase.js";
 import { getVotesWithCoefficients, VoteWithCoefficient } from "./votes.js";
 import {
   CalculatorError,
@@ -15,10 +23,10 @@ import {
   OverridesInvalidRowError,
 } from "./errors.js";
 import { PotentialVote } from "../http/api/v1/matches.js";
-import { PriceWithDecimals } from "../prices/common.js";
-import { getAddress, zeroAddress } from "viem";
+import { zeroAddress } from "viem";
 import { Database } from "../database/index.js";
 import { ProportionalMatchOptions } from "./options.js";
+import { parseAddress } from "../address.js";
 
 export {
   CalculatorError,
@@ -43,7 +51,7 @@ export class DatabaseDataProvider implements DataProvider {
 
   async loadFile<T>(description: string, path: string): Promise<Array<T>> {
     const segments = path.split("/");
-    //
+
     // /:chainId/rounds.json
     if (segments.length === 2 && segments[1] === "rounds.json") {
       const chainId = Number(segments[0]);
@@ -53,7 +61,23 @@ export class DatabaseDataProvider implements DataProvider {
         chainId,
       });
 
-      return rounds as unknown as Array<T>;
+      const deprecatedRounds = rounds.map(createDeprecatedRound);
+
+      return deprecatedRounds as unknown as Array<T>;
+    }
+
+    // /:chainId/projects.json
+    if (segments.length === 2 && segments[1] === "projects.json") {
+      const chainId = Number(segments[0]);
+
+      const projects = await this.#db.query({
+        type: "AllChainProjects",
+        chainId,
+      });
+
+      const deprecatedProjects = projects.map(createDeprecatedProject);
+
+      return deprecatedProjects as unknown as Array<T>;
     }
 
     // /:chainId/rounds/:roundId/applications.json
@@ -63,7 +87,7 @@ export class DatabaseDataProvider implements DataProvider {
       segments[3] === "applications.json"
     ) {
       const chainId = Number(segments[0]);
-      const roundId = getAddress(segments[2]);
+      const roundId = parseAddress(segments[2]);
 
       const applications = await this.#db.query({
         type: "AllRoundApplications",
@@ -71,7 +95,11 @@ export class DatabaseDataProvider implements DataProvider {
         roundId,
       });
 
-      return applications as unknown as Array<T>;
+      const deprecatedApplications = applications.map(
+        createDeprecatedApplication
+      );
+
+      return deprecatedApplications as unknown as Array<T>;
     }
 
     // /:chainId/rounds/:roundId/votes.json
@@ -81,7 +109,7 @@ export class DatabaseDataProvider implements DataProvider {
       segments[3] === "votes.json"
     ) {
       const chainId = Number(segments[0]);
-      const roundId = getAddress(segments[2]);
+      const roundId = parseAddress(segments[2]);
 
       const donations = await this.#db.query({
         type: "AllRoundDonations",
@@ -89,20 +117,7 @@ export class DatabaseDataProvider implements DataProvider {
         roundId,
       });
 
-      const votes: Vote[] = donations.map((donation) => ({
-        id: donation.id,
-        transaction: donation.transactionHash,
-        blockNumber: Number(donation.blockNumber),
-        projectId: donation.projectId,
-        roundId: donation.roundId,
-        applicationId: donation.applicationId,
-        token: donation.tokenAddress,
-        voter: donation.donorAddress,
-        grantAddress: donation.recipientAddress,
-        amount: donation.amount.toString(),
-        amountUSD: donation.amountInUSD,
-        amountRoundToken: donation.amountInRoundMatchToken.toString(),
-      }));
+      const votes: DeprecatedVote[] = donations.map(createDeprecatedVote);
 
       return votes as unknown as Array<T>;
     }
@@ -246,7 +261,7 @@ export default class Calculator {
   }
 
   async calculate(): Promise<Array<AugmentedResult>> {
-    const votes = await this.parseJSONFile<Vote>(
+    const votes = await this.parseJSONFile<DeprecatedVote>(
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
@@ -254,18 +269,20 @@ export default class Calculator {
     return this._calculate(votes);
   }
 
-  private async _calculate(votes: Vote[]): Promise<Array<AugmentedResult>> {
-    const applications = await this.parseJSONFile<Application>(
+  private async _calculate(
+    votes: DeprecatedVote[]
+  ): Promise<Array<AugmentedResult>> {
+    const applications = await this.parseJSONFile<DeprecatedApplication>(
       "applications",
       `${this.chainId}/rounds/${this.roundId}/applications.json`
     );
 
-    const rounds = await this.parseJSONFile<Round>(
+    const rounds = await this.parseJSONFile<DeprecatedRound>(
       "rounds",
       `${this.chainId}/rounds.json`
     );
 
-    const round = rounds.find((r: Round) => r.id === this.roundId);
+    const round = rounds.find((r: DeprecatedRound) => r.id === this.roundId);
 
     if (round === undefined) {
       throw new ResourceNotFoundError("round");
@@ -332,7 +349,7 @@ export default class Calculator {
         all[current.id] = current;
         return all;
       },
-      {} as Record<string, Application>
+      {} as Record<string, DeprecatedApplication>
     );
 
     for (const id in results) {
@@ -341,8 +358,9 @@ export default class Calculator {
 
       const conversionUSD = await this.priceProvider.convertToUSD(
         this.chainId,
-        round.token,
-        calc.matched
+        parseAddress(round.token),
+        calc.matched,
+        "latest"
       );
 
       augmented.push({
@@ -365,12 +383,12 @@ export default class Calculator {
   async estimateMatching(
     potentialVotes: PotentialVote[]
   ): Promise<MatchingEstimateResult[]> {
-    const votes = await this.parseJSONFile<Vote>(
+    const votes = await this.parseJSONFile<DeprecatedVote>(
       "votes",
       `${this.chainId}/rounds/${this.roundId}/votes.json`
     );
 
-    const rounds = await this.parseJSONFile<Round>(
+    const rounds = await this.parseJSONFile<DeprecatedRound>(
       "rounds",
       `${this.chainId}/rounds.json`
     );
@@ -390,44 +408,51 @@ export default class Calculator {
         usdPriceByAddress[vote.token] =
           await this.priceProvider.getUSDConversionRate(
             this.chainId,
-            vote.token
+            parseAddress(vote.token),
+            "latest"
           );
       }
     }
 
     const conversionRateRoundToken =
-      await this.priceProvider.getUSDConversionRate(this.chainId, round.token);
+      await this.priceProvider.getUSDConversionRate(
+        this.chainId,
+        parseAddress(round.token),
+        "latest"
+      );
 
-    const potentialVotesAugmented: Vote[] = potentialVotes.map((vote) => {
-      const tokenPrice = usdPriceByAddress[vote.token];
+    const potentialVotesAugmented: DeprecatedVote[] = potentialVotes.map(
+      (vote) => {
+        const tokenPrice = usdPriceByAddress[vote.token];
 
-      const voteAmountInUsd = convertTokenToFiat({
-        tokenAmount: vote.amount,
-        tokenDecimals: tokenPrice.decimals,
-        tokenPrice: tokenPrice.price,
-        tokenPriceDecimals: 8,
-      });
+        const voteAmountInUsd = convertTokenToFiat({
+          tokenAmount: vote.amount,
+          tokenDecimals: tokenPrice.tokenDecimals,
+          tokenPrice: tokenPrice.priceInUSD,
+          tokenPriceDecimals: 8,
+        });
 
-      const voteAmountInRoundToken = convertFiatToToken({
-        fiatAmount: voteAmountInUsd,
-        tokenDecimals: conversionRateRoundToken.decimals,
-        tokenPrice: conversionRateRoundToken.price,
-        tokenPriceDecimals: 8,
-      });
+        const voteAmountInRoundToken = convertFiatToToken({
+          fiatAmount: voteAmountInUsd,
+          tokenDecimals: conversionRateRoundToken.tokenDecimals,
+          tokenPrice: conversionRateRoundToken.priceInUSD,
+          tokenPriceDecimals: 8,
+        });
 
-      return {
-        ...vote,
-        amount: vote.amount.toString(),
-        amountRoundToken: voteAmountInRoundToken.toString(),
-        amountUSD: voteAmountInUsd,
-        applicationId: vote.applicationId,
-        // FIXME: Vote needs a blockNumber, transaction and id,
-        // are we using the right type here?
-        blockNumber: 0,
-        transaction: "0x0",
-        id: "",
-      };
-    });
+        return {
+          ...vote,
+          amount: vote.amount.toString(),
+          amountRoundToken: voteAmountInRoundToken.toString(),
+          amountUSD: voteAmountInUsd,
+          applicationId: vote.applicationId,
+          // FIXME: Vote needs a blockNumber, transaction and id,
+          // are we using the right type here?
+          blockNumber: 0,
+          transaction: "0x0",
+          id: "",
+        };
+      }
+    );
 
     const potentialResults = await this._calculate([
       ...votes,
@@ -449,8 +474,9 @@ export default class Calculator {
         potentialResult.matched - (currentResult?.matched ?? 0n);
       const differenceInUSD = await this.priceProvider.convertToUSD(
         this.chainId,
-        round.token,
-        difference
+        parseAddress(round.token),
+        difference,
+        "latest"
       );
 
       /** Can be undefined, but spreading an undefined is a no-op, so it's okay here */

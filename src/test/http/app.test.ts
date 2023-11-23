@@ -15,6 +15,7 @@ import {
   TestDataProvider,
   loadFixture,
 } from "../utils.js";
+import { Database } from "../../database/index.js";
 
 // Typed version of supertest's Response
 type Response<T> = Omit<SupertestResponse, "body"> & { body: T };
@@ -38,14 +39,16 @@ const DUMMY_LOGGER = {
   error: () => {},
 } as unknown as Logger;
 
+const DUMMY_DB = {} as Database;
+
 describe("server", () => {
   describe("/status", () => {
     let app: express.Application;
     beforeEach(() => {
       app = createHttpApi({
         logger: DUMMY_LOGGER,
+        db: DUMMY_DB,
         port: 0,
-        chainDataDir: "/dev/null",
         hostname: "dummy-hostname",
         buildTag: "123abc",
         priceProvider: new TestPriceProvider() as unknown as PriceProvider,
@@ -91,8 +94,8 @@ describe("server", () => {
       test("should render 404 if round is not present in rounds.json", async () => {
         const { app } = createHttpApi({
           logger: DUMMY_LOGGER,
+          db: DUMMY_DB,
           port: 0,
-          chainDataDir: "/dev/null",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
@@ -115,8 +118,8 @@ describe("server", () => {
       test("should render 404 if rounds file doesn't exist", async () => {
         const { app } = createHttpApi({
           logger: DUMMY_LOGGER,
+          db: DUMMY_DB,
           port: 0,
-          chainDataDir: "/dev/null",
           hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
@@ -139,8 +142,8 @@ describe("server", () => {
       test("should render 404 if votes file doesn't exist", async () => {
         const { app } = createHttpApi({
           logger: DUMMY_LOGGER,
+          db: DUMMY_DB,
           port: 0,
-          chainDataDir: "/dev/null",
           hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
@@ -163,8 +166,8 @@ describe("server", () => {
       test("should render 404 if applications file doesn't exist", async () => {
         const { app } = createHttpApi({
           logger: DUMMY_LOGGER,
+          db: DUMMY_DB,
           port: 0,
-          chainDataDir: "/dev/null",
           hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
@@ -187,8 +190,8 @@ describe("server", () => {
       test("should render 404 if passport_scores file doesn't exist", async () => {
         const { app } = createHttpApi({
           logger: DUMMY_LOGGER,
+          db: DUMMY_DB,
           port: 0,
-          chainDataDir: "/dev/null",
           hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
@@ -214,8 +217,8 @@ describe("server", () => {
       beforeEach(() => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
+          db: DUMMY_DB,
           port: 0,
-          chainDataDir: "/dev/null",
           hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
@@ -386,8 +389,8 @@ describe("server", () => {
       beforeEach(() => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
+          db: DUMMY_DB,
           port: 0,
-          chainDataDir: "/dev/null",
           hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
@@ -469,8 +472,8 @@ describe("server", () => {
       beforeEach(() => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
+          db: DUMMY_DB,
           port: 0,
-          chainDataDir: "/dev/null",
           hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
@@ -541,8 +544,8 @@ describe("server", () => {
       beforeEach(() => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
+          db: DUMMY_DB,
           port: 0,
-          chainDataDir: "/dev/null",
           hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
@@ -670,8 +673,8 @@ describe("server", () => {
       beforeEach(() => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
+          db: DUMMY_DB,
           port: 0,
-          chainDataDir: "/dev/null",
           hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
@@ -896,8 +899,8 @@ describe("server", () => {
       beforeEach(() => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
+          db: DUMMY_DB,
           port: 0,
-          chainDataDir: "/dev/null",
           hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
@@ -1070,8 +1073,8 @@ describe("server", () => {
       beforeEach(() => {
         app = createHttpApi({
           logger: DUMMY_LOGGER,
+          db: DUMMY_DB,
           port: 0,
-          chainDataDir: "/dev/null",
           hostname: "dummy-hostname",
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
