@@ -98,13 +98,6 @@ export const createPassportProvider = (
           valueEncoding: "json",
         }),
       };
-
-      if (config.deprecatedJSONPassportDumpPath !== undefined) {
-        // await writeDeprecatedCompatibilityJSONDump(
-        //   state.db,
-        //   config.deprecatedJSONPassportDumpPath
-        // );
-      }
     } catch (err) {
       logger.info(
         "no passports dataset found locally, fetching remote dataset before starting"

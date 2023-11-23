@@ -379,6 +379,7 @@ describe("server", () => {
               replacer
             )
           );
+
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
       });

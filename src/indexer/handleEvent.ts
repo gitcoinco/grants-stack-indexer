@@ -19,6 +19,7 @@ import {
   Donation,
   Round,
   NewApplication,
+  NewRound,
 } from "../database/schema.js";
 import { Mutation } from "../database/index.js";
 import { Address, parseAddress } from "../address.js";
@@ -285,14 +286,14 @@ export async function handleEvent(
         applicationMetadataCid
       );
 
-      const newRound = {
+      const newRound: NewRound = {
         chainId,
         id: roundId,
         totalDonationsCount: 0,
-        totalAmountDonatedInUSD: 0,
+        totalAmountDonatedInUsd: 0,
         matchTokenAddress,
         matchAmount: 0n,
-        matchAmountInUSD: 0,
+        matchAmountInUsd: 0,
         applicationMetadataCid,
         applicationMetadata: applicationMetadata,
         roundMetadataCid,
@@ -372,7 +373,7 @@ export async function handleEvent(
             statusUpdatedAtBlock: event.blockNumber,
           },
         ],
-        totalAmountDonatedInUSD: 0,
+        totalAmountDonatedInUsd: 0,
         totalDonationsCount: 0,
       };
 

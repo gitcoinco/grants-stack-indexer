@@ -67,12 +67,12 @@ export class TestPriceProvider {
     chainId: number,
     tokenAddress: Address,
     blockNumber: bigint
-  ): Promise<Price & { decimals: number }> {
+  ): Promise<Price & { tokenDecimals: number }> {
     return Promise.resolve({
       id: 0,
-      decimals: 18,
+      tokenDecimals: 18,
       chainId: chainId,
-      priceInUSD: 1_000_000_000,
+      priceInUsd: 1_000_000_000,
       tokenAddress: tokenAddress,
       blockNumber: blockNumber,
       timestamp: new Date(),

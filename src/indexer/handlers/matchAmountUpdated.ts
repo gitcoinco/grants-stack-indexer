@@ -2,13 +2,13 @@ import { EventHandlerArgs } from "chainsauce";
 
 import type { Indexer } from "../indexer.js";
 import { Mutation } from "../../database/index.js";
-import { Round } from "../../database/schema.js";
+import { NewRound, Round } from "../../database/schema.js";
 
 import { PriceProvider } from "../../prices/provider.js";
 import { parseAddress } from "../../address.js";
 
 export async function updateRoundMatchAmount(args: {
-  round: Round;
+  round: Round | NewRound;
   priceProvider: PriceProvider;
   blockNumber: bigint;
   newMatchAmount: bigint;
@@ -29,7 +29,7 @@ export async function updateRoundMatchAmount(args: {
     round: {
       updatedAtBlock: blockNumber,
       matchAmount: newMatchAmount,
-      matchAmountInUSD: amountUSD.amount,
+      matchAmountInUsd: amountUSD.amount,
     },
   };
 }

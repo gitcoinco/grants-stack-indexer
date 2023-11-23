@@ -5,11 +5,11 @@ import { getAddress } from "viem";
 export function createDeprecatedRound(round: Round): DeprecatedRound {
   return {
     id: round.id,
-    amountUSD: round.totalAmountDonatedInUSD,
+    amountUSD: round.totalAmountDonatedInUsd,
     votes: round.totalDonationsCount,
     token: getAddress(round.matchTokenAddress),
     matchAmount: round.matchAmount.toString(),
-    matchAmountUSD: round.matchAmountInUSD,
+    matchAmountUSD: round.matchAmountInUsd,
     uniqueContributors: 0,
     applicationMetaPtr: round.applicationMetadataCid,
     applicationMetadata: round.applicationMetadata,
@@ -44,7 +44,7 @@ export function createDeprecatedVote(donation: Donation): DeprecatedVote {
     voter: getAddress(donation.donorAddress),
     grantAddress: getAddress(donation.recipientAddress),
     amount: donation.amount.toString(),
-    amountUSD: donation.amountInUSD,
+    amountUSD: donation.amountInUsd,
     amountRoundToken: donation.amountInRoundMatchToken.toString(),
   };
 }
@@ -56,7 +56,7 @@ export function createDeprecatedApplication(
     id: application.id,
     projectId: application.projectId,
     status: application.status,
-    amountUSD: application.totalAmountDonatedInUSD,
+    amountUSD: application.totalAmountDonatedInUsd,
     votes: application.totalDonationsCount,
     uniqueContributors: 0,
     metadata: application.metadata as DeprecatedApplication["metadata"],
