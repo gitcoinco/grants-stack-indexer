@@ -11,9 +11,13 @@ import * as Sentry from "@sentry/node";
 import fs from "node:fs/promises";
 import fetch from "make-fetch-happen";
 import { throttle } from "throttle-debounce";
-import * as pg from "pg";
 
+import * as pg from "pg";
 const { Pool, types } = pg.default;
+
+import { postgraphile } from "postgraphile";
+import ConnectionFilterPlugin from "postgraphile-plugin-connection-filter";
+import PgSimplifyInflectorPlugin from "@graphile-contrib/pg-simplify-inflector";
 
 import { createPassportProvider, PassportProvider } from "./passport/index.js";
 
@@ -33,9 +37,6 @@ import type { EventHandlerContext } from "./indexer/indexer.js";
 import { handleEvent } from "./indexer/handleEvent.js";
 import { Database } from "./database/index.js";
 import { decodeJsonWithBigInts } from "./utils/index.js";
-import { postgraphile } from "postgraphile";
-
-import PgSimplifyInflectorPlugin from "@graphile-contrib/pg-simplify-inflector";
 import { NewDonation } from "./database/schema.js";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
@@ -144,17 +145,16 @@ async function main(): Promise<void> {
         baseLogger,
         runOnce: config.runOnce,
       }),
+      ...config.chains.map((chain) =>
+        catchupAndWatchChain({
+          chain,
+          db,
+          subscriptionStore,
+          baseLogger,
+          ...config,
+        })
+      ),
     ]);
-
-    config.chains.map((chain) =>
-      catchupAndWatchChain({
-        chain,
-        db,
-        subscriptionStore,
-        baseLogger,
-        ...config,
-      })
-    );
 
     // TODO: use read only connection, use separate pool?
     const graphqlHandler = postgraphile(
@@ -170,7 +170,10 @@ async function main(): Promise<void> {
         dynamicJson: true,
         bodySizeLimit: "100kb", // response body limit
         disableQueryLog: true,
-        appendPlugins: [PgSimplifyInflectorPlugin.default],
+        appendPlugins: [
+          PgSimplifyInflectorPlugin.default,
+          ConnectionFilterPlugin,
+        ],
         legacyRelations: "omit",
         setofFunctionsContainNulls: false,
         exportGqlSchemaPath: "./schema.graphql",
