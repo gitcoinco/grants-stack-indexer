@@ -44,4 +44,8 @@ export type Mutation =
   | {
       type: "InsertDonation";
       donation: NewDonation;
+    }
+  | {
+      type: "InsertManyDonations";
+      donations: NewDonation[];
     };

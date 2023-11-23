@@ -36,6 +36,7 @@ import { decodeJsonWithBigInts } from "./utils/index.js";
 import { postgraphile } from "postgraphile";
 
 import PgSimplifyInflectorPlugin from "@graphile-contrib/pg-simplify-inflector";
+import { NewDonation } from "./database/schema.js";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
 
@@ -404,13 +405,38 @@ async function catchupAndWatchChain(
       },
     });
 
+    let newDonationsQueue: NewDonation[] = [];
+
+    setInterval(async () => {
+      if (newDonationsQueue.length === 0) {
+        return;
+      }
+
+      console.log("Inserting new donations into db", newDonationsQueue.length);
+
+      const donations = [...newDonationsQueue];
+      newDonationsQueue = [];
+
+      await db.mutate({
+        type: "InsertManyDonations",
+        donations: donations,
+      });
+    }, 1000);
+
     indexer.on("event", async (args) => {
       try {
+        // console.time(args.event.name);
         const mutations = await handleEvent(args);
 
         for (const mutation of mutations) {
+          // if (mutation.type === "InsertDonation") {
+          //   newDonationsQueue.push(mutation.donation);
+          //   continue;
+          // }
+
           await db.mutate(mutation);
         }
+        // console.timeEnd(args.event.name);
       } catch (err) {
         indexerLogger.warn({
           msg: "skipping event due to error while processing",

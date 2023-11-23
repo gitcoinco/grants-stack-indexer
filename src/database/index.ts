@@ -155,6 +155,14 @@ export class Database {
           .execute();
         break;
       }
+
+      case "InsertManyDonations": {
+        await this.#db
+          .insertInto("donations")
+          .values(mutation.donations)
+          .execute();
+        break;
+      }
     }
   }
 
