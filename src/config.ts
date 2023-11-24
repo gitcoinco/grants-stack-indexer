@@ -90,73 +90,6 @@ const CHAINS: Chain[] = [
     ],
   },
   {
-    id: 5,
-    name: "goerli",
-    rpc: rpcUrl
-      .default("https://goerli.infura.io/v3/")
-      .parse(process.env.GOERLI_RPC_URL),
-    pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
-    tokens: [
-      {
-        code: "USDC",
-        address: "0x07865c6E87B9F70255377e024ace6630C1Eaa37F",
-        decimals: 6,
-        priceSource: {
-          chainId: 1,
-          address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-        },
-      },
-      {
-        code: "DAI",
-        address: "0x11fE4B6AE13d2a6055C8D9cF65c55bac32B5d844",
-        decimals: 18,
-        priceSource: {
-          chainId: 1,
-          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-        },
-      },
-      {
-        code: "ETH",
-        address: "0x0000000000000000000000000000000000000000",
-        decimals: 18,
-        priceSource: {
-          chainId: 1,
-          address: "0x0000000000000000000000000000000000000000",
-        },
-      },
-    ],
-    subscriptions: [
-      {
-        contractName: "ProjectRegistryV1",
-        address: "0x832c5391dc7931312CbdBc1046669c9c3A4A28d5",
-      },
-      {
-        contractName: "RoundFactoryV1",
-        address: "0x5770b7a57BD252FC4bB28c9a70C9572aE6400E48",
-      },
-      {
-        contractName: "ProjectRegistryV2",
-        address: "0xa71864fAd36439C50924359ECfF23Bb185FFDf21",
-        fromBlock: 8738420,
-      },
-      {
-        contractName: "RoundFactoryV2",
-        address: "0x24F9EBFAdf095e0afe3d98635ee83CD72e49B5B0",
-        fromBlock: 8738430,
-      },
-      {
-        contractName: "QuadraticFundingVotingStrategyFactoryV2",
-        address: "0x06A6Cc566c5A88E77B1353Cdc3110C2e6c828e38",
-        fromBlock: 8790265,
-      },
-      {
-        contractName: "DirectPayoutStrategyFactoryV2",
-        address: "0x0077551e24bfB910aBABedC4336246e34B5fB0A2",
-        fromBlock: 9284367,
-      },
-    ],
-  },
-  {
     id: 10,
     name: "optimism",
     rpc: rpcUrl
@@ -519,7 +452,7 @@ const CHAINS: Chain[] = [
       },
       {
         contractName: "QuadraticFundingVotingStrategyFactoryV2",
-        address: "0x04b194b14532070F5cc8D3A760c9a0957D85ad5B",
+        address: "0xF7c101A95Ea4cBD5DA0Ab9827D7B2C9857440143",
       },
     ],
   },
@@ -561,7 +494,7 @@ const CHAINS: Chain[] = [
       },
       {
         contractName: "QuadraticFundingVotingStrategyFactoryV2",
-        address: "0x74c3665540FC8B92Dd06a7e56a51eCa038C18180",
+        address: "0xc1a26b0789C3E93b07713e90596Cad8d0442C826",
       },
     ],
   },
