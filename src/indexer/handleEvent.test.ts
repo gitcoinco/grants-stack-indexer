@@ -9,6 +9,7 @@ import { Indexer } from "./indexer.js";
 import { Address as ChecksumAddress, Hex } from "viem";
 import { Project } from "../database/schema.js";
 import { parseAddress } from "../address.js";
+import { QueryInteraction } from "../database/query.js";
 
 const zeroAddress =
   "0x0000000000000000000000000000000000000000" as ChecksumAddress;
@@ -137,7 +138,13 @@ describe("handleEvent", () => {
         createdAtBlock: 1n,
       };
 
-      const queryMock = vi.fn().mockResolvedValueOnce(project);
+      const queryMock = vi
+        .fn()
+        .mockImplementationOnce((q: QueryInteraction["query"]) => {
+          if (q.type === "ProjectById") {
+            return Promise.resolve(project);
+          }
+        });
 
       MOCK_DB.query = queryMock;
 

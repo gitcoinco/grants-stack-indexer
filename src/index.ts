@@ -419,7 +419,6 @@ async function catchupAndWatchChain(
 
     indexer.on("event", async (args) => {
       try {
-        // console.time(args.event.name);
         const mutations = await handleEvent(args);
 
         for (const mutation of mutations) {
@@ -437,9 +436,6 @@ async function catchupAndWatchChain(
           err,
           event: args.event,
         });
-        throw err;
-      } finally {
-        // console.timeEnd(args.event.name);
       }
     });
 

@@ -4,7 +4,6 @@ import { DataProvider, FileNotFoundError } from "../calculator/index.js";
 import { PassportScore } from "../passport/index.js";
 import { Price } from "../database/schema.js";
 import { Address } from "../types.js";
-import { PriceProvider } from "../prices/provider.js";
 
 type Fixtures = { [path: string]: string | undefined | unknown[] };
 
@@ -55,17 +54,13 @@ export class TestDataProvider implements DataProvider {
   }
 }
 
-export class TestPriceProvider implements PriceProvider {
+export class TestPriceProvider {
   async convertToUSD() {
     return Promise.resolve({ amount: 0 });
   }
 
   async convertFromUSD() {
     return Promise.resolve({ amount: 0 });
-  }
-
-  async getAllPricesForChain(_chainId: number): Promise<Price[]> {
-    return Promise.resolve([]);
   }
 
   async getUSDConversionRate(
