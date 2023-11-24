@@ -153,6 +153,50 @@ const CHAINS: Chain[] = [
     ],
   },
   {
+    id: 1,
+    name: "sepolia",
+    rpc: rpcUrl
+      .default("https://sepolia.infura.io/v3/")
+      .parse(process.env.SEPOLIA_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2023, 11, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "DAI",
+        address: "0x20231D192a739B289c60144b83e4878983b3240e",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        },
+      },
+      {
+        code: "ETH",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+    ],
+    subscriptions: [
+      {
+        address: "0x2420EABfA2C0e6f77E435B0B7615c848bF4963AF",
+        abi: abis.v2.ProjectRegistry,
+      },
+      {
+        address: "0xF1d4F5f21746bCD75fD71eB18992443f4F0edb6f",
+        abi: abis.v2.RoundFactory,
+        fromBlock: 4738000,
+      },
+      {
+        address: "0xf5D111B57de221774866AC32c4435841F5c141D5",
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
+        fromBlock: 4738000,
+      },
+    ],
+  },
+  {
     id: 250,
     name: "fantom",
     rpc: rpcUrl
