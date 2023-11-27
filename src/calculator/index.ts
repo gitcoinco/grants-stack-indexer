@@ -227,7 +227,7 @@ export default class Calculator {
 
     const passportScoresByAddress =
       await this.passportProvider.getScoresByAddresses(
-        votes.map((vote) => vote.voter)
+        votes.map((vote) => vote.voter.toLowerCase())
       );
 
     const votesWithCoefficients = await getVotesWithCoefficients({

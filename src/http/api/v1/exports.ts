@@ -86,7 +86,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
 
     const passportScoresByAddress =
       await config.passportProvider.getScoresByAddresses(
-        votes.map((vote) => vote.voter)
+        votes.map((vote) => vote.voter.toLowerCase())
       );
 
     const votesWithCoefficients = await getVotesWithCoefficients({
