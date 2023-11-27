@@ -39,6 +39,7 @@ const DUMMY_LOGGER = {
   info: () => {},
   warn: () => {},
   error: () => {},
+  child: () => {},
 } as unknown as Logger;
 
 describe("server", () => {

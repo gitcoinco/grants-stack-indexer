@@ -92,8 +92,9 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       ignoreSaturation: ignoreSaturation,
       overrides,
       chain: chainConfig,
-      implementationType: "in-process",
+      implementationType: "load-inprocess-calc-inprocess",
       deps: {
+        logger: config.logger.child({ subsystem: "Calculator" }),
         dataProvider: config.dataProvider,
         passportProvider: config.passportProvider,
         priceProvider: config.priceProvider,
@@ -139,11 +140,12 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       overrides: {},
       chain: chainConfig,
       potentialVotes,
-      implementationType: "in-process",
+      implementationType: "load-inprocess-calc-inprocess",
       deps: {
         dataProvider: config.dataProvider,
         passportProvider: config.passportProvider,
         priceProvider: config.priceProvider,
+        logger: config.logger.child({ subsystem: "Calculator" }),
       },
     });
 
