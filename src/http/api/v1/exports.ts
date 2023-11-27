@@ -84,12 +84,17 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       throw new Error(`Chain ${chainId} not configured`);
     }
 
+    const passportScoresByAddress =
+      await config.passportProvider.getScoresByAddresses(
+        votes.map((vote) => vote.voter)
+      );
+
     const votesWithCoefficients = await getVotesWithCoefficients({
       chain: chainConfig,
       round,
       applications,
       votes,
-      passportProvider: config.passportProvider,
+      passportScoresByAddress,
       options: {},
     });
 

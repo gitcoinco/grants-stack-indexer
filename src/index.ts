@@ -21,8 +21,10 @@ import { createPriceUpdater } from "./prices/updater.js";
 import { createPriceProvider } from "./prices/provider.js";
 import { createHttpApi } from "./http/app.js";
 import { FileSystemDataProvider } from "./calculator/index.js";
+import { CachedDataProvider } from "./calculator/cachedDataProvider.js";
 import { AsyncSentinel } from "./utils/asyncSentinel.js";
 import { ethers } from "ethers";
+import TTLCache from "@isaacs/ttlcache";
 
 // If, during reindexing, a chain has these many blocks left to index, consider
 // it caught up and start serving
@@ -103,7 +105,14 @@ async function main(): Promise<void> {
         logger: baseLogger.child({ subsystem: "PriceProvider" }),
       }),
       passportProvider: passportProvider,
-      dataProvider: new FileSystemDataProvider(config.chainDataDir),
+      dataProvider: new CachedDataProvider({
+        dataProvider: new FileSystemDataProvider(config.chainDataDir),
+        cache: new TTLCache({
+          max: 10,
+          updateAgeOnGet: true,
+          ttl: 1000 * 60 * 5,
+        }),
+      }),
       port: config.apiHttpPort,
       logger: baseLogger.child({ subsystem: "HttpApi" }),
       buildTag: config.buildTag,

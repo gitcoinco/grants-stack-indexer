@@ -225,12 +225,17 @@ export default class Calculator {
         10000n;
     }
 
+    const passportScoresByAddress =
+      await this.passportProvider.getScoresByAddresses(
+        votes.map((vote) => vote.voter)
+      );
+
     const votesWithCoefficients = await getVotesWithCoefficients({
       chain: this.chain,
       round,
       applications,
       votes,
-      passportProvider: this.passportProvider,
+      passportScoresByAddress,
       options: {
         minimumAmountUSD: this.minimumAmountUSD,
         enablePassport: this.enablePassport,

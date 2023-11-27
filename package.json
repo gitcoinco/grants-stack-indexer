@@ -28,6 +28,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@isaacs/ttlcache": "^1.4.1",
     "@sentry/node": "^7.51.0",
     "better-sqlite3": "^8.6.0",
     "chainsauce": "github:gitcoinco/chainsauce#main",
