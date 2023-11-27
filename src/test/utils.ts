@@ -1,8 +1,13 @@
 import fs from "fs/promises";
 import path from "path";
 import { DataProvider, FileNotFoundError } from "../calculator/index.js";
-import { PassportScore } from "../passport/index.js";
+import {
+  AddressToPassportScoreMap,
+  PassportProvider,
+  PassportScore,
+} from "../passport/index.js";
 import { Price } from "../prices/common.js";
+import { isPresent } from "ts-is-present";
 
 type Fixtures = { [path: string]: string | undefined | unknown[] };
 
@@ -15,7 +20,7 @@ export const loadFixture = async (
   return data;
 };
 
-export class TestPassportProvider {
+export class TestPassportProvider implements PassportProvider {
   _fixture: PassportScore[] | null = null;
 
   async start() {}
@@ -29,6 +34,23 @@ export class TestPassportProvider {
       ) as PassportScore[];
     }
     return this._fixture.find((score) => score.address === address);
+  }
+
+  async getScoresByAddresses(
+    addresses: string[]
+  ): Promise<AddressToPassportScoreMap> {
+    if (this._fixture === null) {
+      this._fixture = JSON.parse(
+        await loadFixture("passport_scores")
+      ) as PassportScore[];
+    }
+    const fixture = this._fixture;
+    return Object.fromEntries(
+      addresses
+        .map((address) => fixture.find((score) => score.address === address))
+        .filter(isPresent)
+        .map((score) => [score.address, score])
+    );
   }
 }
 
