@@ -109,8 +109,7 @@ async function main(): Promise<void> {
         dataProvider: new FileSystemDataProvider(config.chainDataDir),
         cache: new TTLCache({
           max: 10,
-          updateAgeOnGet: true,
-          ttl: 1000 * 60 * 5,
+          ttl: 1000 * 60 * 1, // 1 minute
         }),
       }),
       port: config.apiHttpPort,
