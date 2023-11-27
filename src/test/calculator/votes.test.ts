@@ -1,14 +1,7 @@
 import type { Vote, Round, Application } from "../../indexer/types.js";
-import type { PassportProvider } from "../../passport/index.js";
 import { describe, test, expect } from "vitest";
 import { getVotesWithCoefficients } from "../../calculator/votes.js";
 import { Chain } from "../../config.js";
-
-const noOpPassportProvider: PassportProvider = {
-  start: (_opts?: { watch: boolean } | undefined) => Promise.resolve(undefined),
-  stop: () => {},
-  getScoreByAddress: (_address: string) => Promise.resolve(undefined),
-};
 
 const round: Round = {
   id: "0x1234",
@@ -121,8 +114,8 @@ describe("getVotesWithCoefficients", () => {
         round,
         applications,
         votes,
-        passportProvider: noOpPassportProvider,
         options: {},
+        passportScoresByAddress: {},
       });
 
       expect(res[testVoteIndex]).toEqual({
@@ -140,8 +133,8 @@ describe("getVotesWithCoefficients", () => {
         round,
         applications,
         votes,
-        passportProvider: noOpPassportProvider,
         options: {},
+        passportScoresByAddress: {},
       });
 
       expect(res[testVoteIndex]).toEqual({

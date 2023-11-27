@@ -1,6 +1,9 @@
 import { Chain } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
-import type { PassportScore, PassportProvider } from "../passport/index.js";
+import type {
+  PassportScore,
+  AddressToPassportScoreMap,
+} from "../passport/index.js";
 import { ProportionalMatchOptions } from "./options.js";
 import { defaultProportionalMatchOptions } from "./options.js";
 
@@ -14,12 +17,12 @@ interface GetVotesWithCoefficientsArgs {
   round: Round;
   applications: Array<Application>;
   votes: Array<Vote>;
-  passportProvider: PassportProvider;
   options: {
     minimumAmountUSD?: number;
     enablePassport?: boolean;
   };
   proportionalMatchOptions?: ProportionalMatchOptions;
+  passportScoresByAddress: AddressToPassportScoreMap;
 }
 
 /* TODO: ripe for a functional rewrite, also: https://massimilianomirra.com/notes/the-dangers-of-greedy-functions */
@@ -45,7 +48,9 @@ export async function getVotesWithCoefficients(
       0
   );
 
-  const votePromises = args.votes.map(async (originalVote) => {
+  const { passportScoresByAddress: passportScoresByAddress } = args;
+
+  const votePromises = args.votes.map((originalVote) => {
     const vote = applyVoteCap(args.chain, originalVote);
     const voter = vote.voter.toLowerCase();
     const application = applicationMap[vote.applicationId];
@@ -76,7 +81,7 @@ export async function getVotesWithCoefficients(
       coefficient = 0;
     }
 
-    const passportScore = await args.passportProvider.getScoreByAddress(voter);
+    const passportScore = passportScoresByAddress[voter];
 
     // Passport check
     if (minAmountCheckPassed && enablePassport) {
@@ -93,7 +98,7 @@ export async function getVotesWithCoefficients(
         ...vote,
         voter,
         coefficient,
-        passportScore: passportScore,
+        passportScore,
       },
     ];
   });
