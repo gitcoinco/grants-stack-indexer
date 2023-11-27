@@ -96,9 +96,8 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       deps: {
         dataProvider: config.dataProvider,
         passportProvider: config.passportProvider,
+        priceProvider: config.priceProvider,
       },
-      // TODO for the `in-process` implementation type, priceProvider should be in `deps`
-      priceProvider: config.priceProvider,
     });
 
     const responseBody = JSON.stringify(matches, (_key, value) =>
@@ -144,9 +143,8 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       deps: {
         dataProvider: config.dataProvider,
         passportProvider: config.passportProvider,
+        priceProvider: config.priceProvider,
       },
-      // TODO for the `in-process` implementation type, priceProvider should be in `deps`
-      priceProvider: config.priceProvider,
     });
 
     const responseBody = JSON.stringify(matches, (_key, value) =>

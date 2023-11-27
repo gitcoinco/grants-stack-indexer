@@ -8,6 +8,8 @@ import Calculator, {
   MatchingEstimateResult,
   ResourceNotFoundError,
 } from "./index.js";
+import { PriceWithDecimals } from "../prices/common.js";
+import { PriceProvider } from "../prices/provider.js";
 
 export const calculateMatchingEstimates = async (
   params: CalculatorOptions & {
@@ -18,6 +20,7 @@ export const calculateMatchingEstimates = async (
           deps: {
             passportProvider: PassportProvider;
             dataProvider: DataProvider;
+            priceProvider: PriceProvider;
           };
         }
       | {
@@ -46,6 +49,7 @@ export const calculateMatchingEstimatesInProcess = async ({
         deps: {
           passportProvider: PassportProvider;
           dataProvider: DataProvider;
+          priceProvider: PriceProvider;
         };
       }
     | {
@@ -56,9 +60,7 @@ export const calculateMatchingEstimatesInProcess = async ({
     params.implementationType === undefined ||
     params.implementationType === "in-process"
   ) {
-    const { passportProvider, dataProvider } = params.deps;
-    // TODO move to `deps` after removing the dependency from the calculator
-    const { priceProvider } = params;
+    const { passportProvider, dataProvider, priceProvider } = params.deps;
 
     const applications = await dataProvider.loadFile<Application>(
       "applications",
@@ -98,6 +100,33 @@ export const calculateMatchingEstimatesInProcess = async ({
       passportScoresByAddress,
     });
 
+    const tokenAddressToPriceInUsd: Record<string, PriceWithDecimals> = {};
+
+    // fetch each token price only once
+    for (const vote of potentialVotes) {
+      if (tokenAddressToPriceInUsd[vote.token] === undefined) {
+        tokenAddressToPriceInUsd[vote.token] =
+          await priceProvider.getUSDConversionRate(params.chainId, vote.token);
+      }
+    }
+
+    // TODO alternative faster implementation, can be enabled after manual checking
+    //
+    // const uniqueTokenAddresses = Array.from(
+    //   new Set(potentialVotes.map(({ token }) => token))
+    // );
+    // const tokenAddressToPriceInUsdArray = await Promise.all(
+    //   uniqueTokenAddresses.map(async (tokenAddress) => [
+    //     tokenAddress,
+    //     await params.priceProvider.getUSDConversionRate(
+    //       params.chainId,
+    //       tokenAddress
+    //     ),
+    //   ])
+    // );
+    // const tokenAddressToPriceInUsd: Record<string, PriceWithDecimals> = ({} =
+    //   Object.fromEntries(tokenAddressToPriceInUsdArray));
+
     const matchingEstimates = await new Calculator(params).estimateMatching({
       round,
       currentMatches,
@@ -106,6 +135,7 @@ export const calculateMatchingEstimatesInProcess = async ({
       applications,
       passportScoresByAddress,
       roundTokenPriceInUsd,
+      tokenAddressToPriceInUsd,
     });
 
     return matchingEstimates;

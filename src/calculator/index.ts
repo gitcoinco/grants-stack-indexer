@@ -93,7 +93,6 @@ export function parseOverrides(buf: Buffer): Promise<Overrides> {
 }
 
 export type CalculatorOptions = {
-  priceProvider: PriceProvider;
   chainId: number;
   roundId: string;
   minimumAmountUSD?: number;
@@ -114,8 +113,7 @@ export type AugmentedResult = Calculation & {
 };
 
 export default class Calculator {
-  private priceProvider: PriceProvider;
-  private chainId: number; // XXX remove
+  private chainId: number; // XXX remove in favour of chain.id
   private chain: Chain;
   private roundId: string;
   private minimumAmountUSD: number | undefined;
@@ -126,8 +124,7 @@ export default class Calculator {
   private proportionalMatch?: ProportionalMatchOptions;
 
   constructor(options: CalculatorOptions) {
-    this.priceProvider = options.priceProvider;
-    this.chainId = options.chainId; // XXX remove
+    this.chainId = options.chainId; // XXX remove in favour of chain.id
     this.roundId = options.roundId;
     this.minimumAmountUSD = options.minimumAmountUSD;
     this.enablePassport = options.enablePassport;
@@ -287,6 +284,7 @@ export default class Calculator {
     currentMatches,
     passportScoresByAddress,
     roundTokenPriceInUsd,
+    tokenAddressToPriceInUsd,
   }: {
     round: Round;
     currentMatches: AugmentedResult[];
@@ -295,25 +293,10 @@ export default class Calculator {
     applications: Application[];
     passportScoresByAddress: AddressToPassportScoreMap;
     roundTokenPriceInUsd: PriceWithDecimals;
+    tokenAddressToPriceInUsd: Record<string, PriceWithDecimals>;
   }): Promise<MatchingEstimateResult[]> {
-    const usdPriceByTokenAddress: Record<string, PriceWithDecimals> = {};
-
-    // fetch each token price only once
-    for (const vote of potentialVotes) {
-      if (usdPriceByTokenAddress[vote.token] === undefined) {
-        usdPriceByTokenAddress[vote.token] =
-          await this.priceProvider.getUSDConversionRate(
-            this.chainId,
-            vote.token
-          );
-      }
-    }
-
-    const conversionRateRoundToken =
-      await this.priceProvider.getUSDConversionRate(this.chainId, round.token);
-
     const potentialVotesAugmented: Vote[] = potentialVotes.map((vote) => {
-      const tokenPrice = usdPriceByTokenAddress[vote.token];
+      const tokenPrice = tokenAddressToPriceInUsd[vote.token];
 
       const voteAmountInUsd = convertTokenToFiat({
         tokenAmount: vote.amount,
@@ -325,7 +308,7 @@ export default class Calculator {
       const voteAmountInRoundToken = convertFiatToToken({
         fiatAmount: voteAmountInUsd,
         tokenDecimals: 18,
-        tokenPrice: conversionRateRoundToken.price,
+        tokenPrice: roundTokenPriceInUsd.price,
         tokenPriceDecimals: 8,
       });
 
@@ -360,11 +343,16 @@ export default class Calculator {
        * so we explicitly subtract 0 if it's undefined */
       const difference =
         potentialResult.matched - (currentResult?.matched ?? 0n);
-      const differenceInUSD = await this.priceProvider.convertToUSD(
-        this.chainId,
-        round.token,
-        difference
-      );
+
+      const differenceInUSD = {
+        amount: convertTokenToFiat({
+          tokenAmount: difference,
+          tokenDecimals: roundTokenPriceInUsd.decimals,
+          tokenPrice: roundTokenPriceInUsd.price,
+          tokenPriceDecimals: 8,
+        }),
+        price: roundTokenPriceInUsd.price,
+      };
 
       /** Can be undefined, but spreading an undefined is a no-op, so it's okay here */
       finalResults.push({

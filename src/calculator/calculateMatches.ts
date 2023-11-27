@@ -7,6 +7,7 @@ import Calculator, {
   DataProvider,
   ResourceNotFoundError,
 } from "./index.js";
+import { PriceProvider } from "../prices/provider.js";
 
 export const calculateMatches = async (
   params: CalculatorOptions &
@@ -16,6 +17,7 @@ export const calculateMatches = async (
           deps: {
             passportProvider: PassportProvider;
             dataProvider: DataProvider;
+            priceProvider: PriceProvider;
           };
         }
       | {
@@ -38,11 +40,11 @@ const calculateMatchesInProcess = async (
     deps: {
       passportProvider: PassportProvider;
       dataProvider: DataProvider;
+      priceProvider: PriceProvider;
     };
   }
 ): Promise<AugmentedResult[]> => {
-  const { passportProvider, dataProvider } = params.deps;
-  const { priceProvider } = params;
+  const { passportProvider, dataProvider, priceProvider } = params.deps;
 
   const applications = await dataProvider.loadFile<Application>(
     "applications",
