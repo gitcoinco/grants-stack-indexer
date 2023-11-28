@@ -1,6 +1,12 @@
 import fs from "fs/promises";
 import csv from "csv-parser";
-import { Calculation, Contribution, linearQF } from "pluralistic";
+import {
+  AggregatedContributions,
+  Calculation,
+  Contribution,
+  aggregateContributions as aggregateContributionsPluralistic,
+  linearQF,
+} from "pluralistic";
 import type {
   AddressToPassportScoreMap,
   PassportProvider,
@@ -22,6 +28,15 @@ import { zeroAddress } from "viem";
 import { ProportionalMatchOptions } from "./options.js";
 import TTLCache from "@isaacs/ttlcache";
 import { VoteWithCoefficient, getVotesWithCoefficients } from "./votes.js";
+import { StaticPool } from "node-worker-threads-pool";
+import type { CalculatorWorkerArgs, CalculatorWorkerResult } from "./worker.js";
+
+const linearQfWorkerPool = new StaticPool<
+  (msg: CalculatorWorkerArgs) => CalculatorWorkerResult
+>({
+  size: 10,
+  task: "./dist/src/calculator/worker.js",
+});
 
 export type Overrides = Record<string, number>;
 
@@ -40,10 +55,10 @@ export interface RoundContributionsCacheKey {
 }
 
 class RoundContributionsCache {
-  private cache: TTLCache<string, Contribution[]>;
+  private cache: TTLCache<string, AggregatedContributions>;
 
   constructor() {
-    this.cache = new TTLCache<string, Contribution[]>({
+    this.cache = new TTLCache<string, AggregatedContributions>({
       ttl: 5 * 60 * 1000, // 5 minutes
       max: 10, // keep a maximum of 10 rounds in memory
     });
@@ -51,7 +66,7 @@ class RoundContributionsCache {
 
   async getCalculationForRound(
     key: RoundContributionsCacheKey
-  ): Promise<Contribution[] | undefined> {
+  ): Promise<AggregatedContributions | undefined> {
     return await this.cache.get(`${key.roundId}-${key.chainId}`);
   }
 
@@ -59,7 +74,9 @@ class RoundContributionsCache {
     roundId,
     chainId,
     contributions,
-  }: RoundContributionsCacheKey & { contributions: Contribution[] }): void {
+  }: RoundContributionsCacheKey & {
+    contributions: AggregatedContributions;
+  }): void {
     this.cache.set(`${roundId}-${chainId}`, contributions);
   }
 }
@@ -88,7 +105,47 @@ function votesWithCoefficientToContribution(config: {
   });
 }
 
-interface AggregateContributionsConfig {
+function mergeAggregatedContributions(
+  contributions1: AggregatedContributions,
+  contributions2: AggregatedContributions
+): AggregatedContributions {
+  const merged: AggregatedContributions = {
+    totalReceived: contributions1.totalReceived + contributions2.totalReceived,
+    list: {},
+  };
+
+  for (const recipient in contributions1.list) {
+    merged.list[recipient] = {
+      totalReceived: contributions1.list[recipient].totalReceived,
+      contributions: { ...contributions1.list[recipient].contributions },
+    };
+  }
+
+  for (const recipient in contributions2.list) {
+    if (!merged.list[recipient]) {
+      merged.list[recipient] = {
+        totalReceived: 0n,
+        contributions: {},
+      };
+    }
+
+    merged.list[recipient].totalReceived +=
+      contributions2.list[recipient].totalReceived;
+
+    for (const contributor in contributions2.list[recipient].contributions) {
+      if (!merged.list[recipient].contributions[contributor]) {
+        merged.list[recipient].contributions[contributor] = 0n;
+      }
+
+      merged.list[recipient].contributions[contributor] +=
+        contributions2.list[recipient].contributions[contributor];
+    }
+  }
+
+  return merged;
+}
+
+interface AggregatedContributionsConfig {
   chain: Chain;
   round: Round;
   applications: Application[];
@@ -110,7 +167,7 @@ function aggregateContributions({
   enablePassport,
   overrides,
   proportionalMatchOptions,
-}: AggregateContributionsConfig): Contribution[] {
+}: AggregatedContributionsConfig): AggregatedContributions {
   const votesWithCoefficients = getVotesWithCoefficients({
     chain: chain,
     round,
@@ -124,10 +181,12 @@ function aggregateContributions({
     proportionalMatchOptions: proportionalMatchOptions,
   });
 
-  return votesWithCoefficientToContribution({
+  const contributions = votesWithCoefficientToContribution({
     votes: votesWithCoefficients,
     overrides,
   });
+
+  return aggregateContributionsPluralistic(contributions);
 }
 
 export {
@@ -330,7 +389,7 @@ export default class Calculator {
     priceProvider,
     chainId,
     roundSettings,
-    contributions,
+    aggregatedContributions,
     applications,
     ignoreSaturation,
   }: {
@@ -338,19 +397,18 @@ export default class Calculator {
     chainId: number;
     roundSettings: RoundSettings;
     applications: Application[];
-    contributions: Contribution[];
+    aggregatedContributions: AggregatedContributions;
     ignoreSaturation?: boolean;
   }): Promise<Array<AugmentedResult>> {
-    const results = linearQF(
-      contributions,
-      roundSettings.matchAmount,
-      roundSettings.matchTokenDecimals,
-      {
+    const results = await linearQfWorkerPool.exec({
+      aggregatedContributions,
+      matchAmount: roundSettings.matchAmount,
+      options: {
         minimumAmount: 0n,
         matchingCapAmount: roundSettings.matchingCapAmount,
         ignoreSaturation: ignoreSaturation ?? false,
-      }
-    );
+      },
+    });
 
     const augmented: Array<AugmentedResult> = [];
 
@@ -520,7 +578,7 @@ export default class Calculator {
     const applications = await this._getApplications();
     // console.timeEnd(`${reqId} - getRound`);
 
-    let contributions: Contribution[];
+    let aggregatedContributions: AggregatedContributions;
 
     if (cachedContributions === undefined) {
       // console.log(`--------------- LOADING`);
@@ -532,7 +590,7 @@ export default class Calculator {
           votes.map((v) => v.voter.toLowerCase())
         );
 
-      contributions = aggregateContributions({
+      aggregatedContributions = aggregateContributions({
         chain: this.chain,
         round: round,
         votes: votes,
@@ -547,10 +605,10 @@ export default class Calculator {
       roundCalculationCache.setCalculationForRound({
         roundId: this.roundId,
         chainId: this.chainId,
-        contributions: contributions,
+        contributions: aggregatedContributions,
       });
     } else {
-      contributions = cachedContributions;
+      aggregatedContributions = cachedContributions;
     }
 
     const usdPriceByAddress: Record<string, PriceWithDecimals> = {};
@@ -602,7 +660,7 @@ export default class Calculator {
     const currentResults = await this._linearQF({
       chainId: this.chainId,
       roundSettings: settings,
-      contributions,
+      aggregatedContributions: aggregatedContributions,
       priceProvider: this.priceProvider,
       applications,
       ignoreSaturation: this.ignoreSaturation,
@@ -610,29 +668,35 @@ export default class Calculator {
     // console.timeEnd(`${reqId} - linear1`);
 
     // console.time(`${reqId} - aggregate`);
-    const passportScoresByAddress =
-      await this.passportProvider.getScoresByAddresses(
-        potentialVotesAugmented.map((v) => v.voter.toLowerCase())
-      );
+    // const passportScoresByAddress =
+    //   await this.passportProvider.getScoresByAddresses(
+    //     potentialVotesAugmented.map((v) => v.voter.toLowerCase())
+    //   );
 
     const potentialContributions = aggregateContributions({
       chain: this.chain,
       round: round,
       votes: potentialVotesAugmented,
       applications: applications,
-      passportScoresByAddress: passportScoresByAddress,
+      passportScoresByAddress: new Map(),
       minimumAmountUSD: settings.minimumAmountUSD,
       enablePassport: false,
       overrides: this.overrides,
       proportionalMatchOptions: this.proportionalMatch,
     });
+
+    const totalAggregations = mergeAggregatedContributions(
+      aggregatedContributions,
+      potentialContributions
+    );
+
     // console.timeEnd(`${reqId} - aggregate`);
 
     // console.time(`${reqId} - linear2`);
     const potentialResults = await this._linearQF({
       chainId: this.chainId,
       roundSettings: settings,
-      contributions: contributions.concat(potentialContributions),
+      aggregatedContributions: totalAggregations,
       priceProvider: this.priceProvider,
       applications,
       ignoreSaturation: this.ignoreSaturation,
