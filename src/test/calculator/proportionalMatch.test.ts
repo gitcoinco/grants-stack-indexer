@@ -6,13 +6,13 @@ describe("getVotesWithCoefficients", () => {
   beforeAll(() => {});
 
   describe("should update the amount proportionally based on the passport score", () => {
-    test("returns votes with amounts updated proportionally based on passport score", async ({
+    test("returns votes with amounts updated proportionally based on passport score", ({
       chain,
       round,
       applications,
       data,
     }) => {
-      const res = await getVotesWithCoefficients({
+      const res = getVotesWithCoefficients({
         chain,
         round,
         applications,

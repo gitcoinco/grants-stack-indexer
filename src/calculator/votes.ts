@@ -26,9 +26,9 @@ interface GetVotesWithCoefficientsArgs {
 }
 
 /* TODO: ripe for a functional rewrite, also: https://massimilianomirra.com/notes/the-dangers-of-greedy-functions */
-export async function getVotesWithCoefficients(
+export function getVotesWithCoefficients(
   args: GetVotesWithCoefficientsArgs
-): Promise<Array<VoteWithCoefficient>> {
+): Array<VoteWithCoefficient> {
   const applicationMap = args.applications.reduce(
     (map, application) => {
       map[application.id] = application;
@@ -48,9 +48,13 @@ export async function getVotesWithCoefficients(
       0
   );
 
-  const { passportScoresByAddress: passportScoresByAddress } = args;
+  const { passportScoresByAddress: passportScoresByAddressOb } = args;
 
-  const votePromises = args.votes.map((originalVote) => {
+  const passportScoresByAddress = new Map(
+    Object.entries(passportScoresByAddressOb)
+  );
+
+  return args.votes.flatMap((originalVote) => {
     const vote = applyVoteCap(args.chain, originalVote);
     const voter = vote.voter.toLowerCase();
     const application = applicationMap[vote.applicationId];
@@ -81,7 +85,7 @@ export async function getVotesWithCoefficients(
       coefficient = 0;
     }
 
-    const passportScore = passportScoresByAddress[voter];
+    const passportScore = passportScoresByAddress.get(voter);
 
     // Passport check
     if (minAmountCheckPassed && enablePassport) {
@@ -98,12 +102,10 @@ export async function getVotesWithCoefficients(
         ...vote,
         voter,
         coefficient,
-        passportScore,
+        passportScore: undefined,
       },
     ];
   });
-
-  return (await Promise.all(votePromises)).flat();
 }
 
 function scoreToCoefficient(options: ProportionalMatchOptions, score: number) {

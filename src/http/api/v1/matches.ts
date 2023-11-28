@@ -118,6 +118,8 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     res: Response,
     okStatusCode: number
   ) {
+    const reqId = Math.random().toString(36).substring(7);
+
     const chainId = Number(req.params.chainId);
     const roundId = req.params.roundId;
     const potentialVotes = estimateRequestBody

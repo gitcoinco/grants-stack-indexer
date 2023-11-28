@@ -24,10 +24,7 @@ export type PassportScore = {
   detail?: string;
 };
 
-export type AddressToPassportScoreMap = Record<
-  string,
-  PassportScore | undefined
->;
+export type AddressToPassportScoreMap = Map<string, PassportScore | undefined>;
 
 export interface PassportProviderConfig {
   scorerId: number;

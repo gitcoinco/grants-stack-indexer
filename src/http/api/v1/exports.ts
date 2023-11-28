@@ -89,7 +89,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
         votes.map((vote) => vote.voter.toLowerCase())
       );
 
-    const votesWithCoefficients = await getVotesWithCoefficients({
+    const votesWithCoefficients = getVotesWithCoefficients({
       chain: chainConfig,
       round,
       applications,

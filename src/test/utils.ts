@@ -45,7 +45,7 @@ export class TestPassportProvider implements PassportProvider {
       ) as PassportScore[];
     }
     const fixture = this._fixture;
-    return Object.fromEntries(
+    return new Map(
       addresses
         .map((address) => fixture.find((score) => score.address === address))
         .filter(isPresent)
