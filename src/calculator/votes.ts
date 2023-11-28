@@ -48,11 +48,7 @@ export function getVotesWithCoefficients(
       0
   );
 
-  const { passportScoresByAddress: passportScoresByAddressOb } = args;
-
-  const passportScoresByAddress = new Map(
-    Object.entries(passportScoresByAddressOb)
-  );
+  const { passportScoresByAddress: passportScoresByAddress } = args;
 
   return args.votes.flatMap((originalVote) => {
     const vote = applyVoteCap(args.chain, originalVote);
@@ -102,7 +98,7 @@ export function getVotesWithCoefficients(
         ...vote,
         voter,
         coefficient,
-        passportScore: undefined,
+        passportScore,
       },
     ];
   });
