@@ -17,7 +17,7 @@ describe("getVotesWithCoefficients", () => {
         round,
         applications,
         votes: data.votes,
-        passportScoresByAddress: data.passportScoresByAddress,
+        passportScoreByAddress: data.passportScoresByAddress,
         options: { enablePassport: true },
       });
 

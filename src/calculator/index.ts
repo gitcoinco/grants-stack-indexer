@@ -162,7 +162,7 @@ export default class Calculator {
     votes,
     applications,
     round,
-    passportScoresByAddress,
+    passportScoresByAddress: passportScoreByAddress,
     roundTokenPriceInUsd,
   }: {
     round: Round;
@@ -215,7 +215,7 @@ export default class Calculator {
         enablePassport: this.enablePassport,
       },
       proportionalMatchOptions: this.proportionalMatch,
-      passportScoresByAddress,
+      passportScoreByAddress,
     });
 
     const contributions: Contribution[] =

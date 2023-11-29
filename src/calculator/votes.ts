@@ -22,7 +22,7 @@ interface GetVotesWithCoefficientsArgs {
     enablePassport?: boolean;
   };
   proportionalMatchOptions?: ProportionalMatchOptions;
-  passportScoresByAddress: AddressToPassportScoreMap;
+  passportScoreByAddress: AddressToPassportScoreMap;
 }
 
 /* TODO: ripe for a functional rewrite, also: https://massimilianomirra.com/notes/the-dangers-of-greedy-functions */
@@ -48,7 +48,7 @@ export async function getVotesWithCoefficients(
       0
   );
 
-  const { passportScoresByAddress: passportScoresByAddress } = args;
+  const { passportScoreByAddress: passportScoresByAddress } = args;
 
   const votePromises = args.votes.map((originalVote) => {
     const vote = applyVoteCap(args.chain, originalVote);

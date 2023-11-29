@@ -175,7 +175,7 @@ export const createPassportProvider = (
     }
   };
 
-  const getScoresByAddress: PassportProvider["getScoresByAddresses"] = async (
+  const getScoresByAddresses: PassportProvider["getScoresByAddresses"] = async (
     addresses: string[]
   ): Promise<AddressToPassportScoreMap> => {
     if (state.type !== "ready") {
@@ -312,6 +312,6 @@ export const createPassportProvider = (
     start,
     stop,
     getScoreByAddress,
-    getScoresByAddresses: getScoresByAddress,
+    getScoresByAddresses,
   };
 };

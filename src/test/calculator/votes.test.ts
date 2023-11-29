@@ -115,7 +115,7 @@ describe("getVotesWithCoefficients", () => {
         applications,
         votes,
         options: {},
-        passportScoresByAddress: {},
+        passportScoreByAddress: {},
       });
 
       expect(res[testVoteIndex]).toEqual({
@@ -134,7 +134,7 @@ describe("getVotesWithCoefficients", () => {
         applications,
         votes,
         options: {},
-        passportScoresByAddress: {},
+        passportScoreByAddress: {},
       });
 
       expect(res[testVoteIndex]).toEqual({
