@@ -42,7 +42,7 @@ export interface EstimatedMatch {
   original: Calculation;
   estimated: Calculation;
   applicationId: string;
-  recipient: string;
+  recipient?: string;
   difference: bigint;
   differenceInUSD: number;
 }
@@ -229,9 +229,7 @@ export async function estimateMatches({
   const finalResults: EstimatedMatch[] = [];
 
   const applicationRecipientAddresses = Object.fromEntries(
-    applications.map(
-      (a) => [a.id, a.metadata?.application.recipient] as [string, string]
-    )
+    applications.map((a) => [a.id, a.metadata?.application.recipient])
   );
 
   for (const applicationId in potentialResults) {
