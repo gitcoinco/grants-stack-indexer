@@ -171,16 +171,6 @@ export default class Calculator {
     passportScoresByAddress: AddressToPassportScoreMap;
     roundTokenPriceInUsd: PriceWithDecimals;
   }): Promise<Array<AugmentedResult>> {
-    // TODO remove? according to the Round type, `matchAmount` is always defined
-    if (round.matchAmount === undefined) {
-      throw new ResourceNotFoundError("round match amount");
-    }
-
-    // TODO remove? according to the Round type, `token` is always defined
-    if (round.token === undefined) {
-      throw new ResourceNotFoundError("round token");
-    }
-
     const matchAmount = BigInt(round.matchAmount);
     const matchTokenDecimals = BigInt(
       getDecimalsForToken(this.chainId, round.token)
