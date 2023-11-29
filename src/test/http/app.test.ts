@@ -6,7 +6,7 @@ import request, { Response as SupertestResponse } from "supertest";
 import { createHttpApi } from "../../http/app.js";
 import { AugmentedResult, DataProvider } from "../../calculator/index.js";
 import { PriceProvider } from "../../prices/provider.js";
-import { Logger } from "pino";
+import { pino, Logger } from "pino";
 import { PotentialVotes } from "../../http/api/v1/matches.js";
 import { Chain } from "../../config.js";
 import { constants } from "ethers";
@@ -34,12 +34,7 @@ const MOCK_CHAINS = [
   },
 ] as Chain[];
 
-const DUMMY_LOGGER = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-} as unknown as Logger;
+const DUMMY_LOGGER = pino({ level: "silent" });
 
 describe("server", () => {
   describe("/status", () => {
