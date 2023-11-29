@@ -6,7 +6,7 @@ import request, { Response as SupertestResponse } from "supertest";
 import { createHttpApi } from "../../http/app.js";
 import { AugmentedResult, DataProvider } from "../../calculator/index.js";
 import { PriceProvider } from "../../prices/provider.js";
-import { pino, Logger } from "pino";
+import { pino } from "pino";
 import { PotentialVote } from "../../calculator/estimate.js";
 import { Chain } from "../../config.js";
 import { constants } from "ethers";
