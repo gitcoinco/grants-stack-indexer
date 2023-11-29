@@ -6,18 +6,18 @@ import {
 import { parentPort } from "worker_threads";
 
 if (parentPort === null) {
-  throw new Error("No parent port");
+  throw new Error("needs to run as worker thread");
 }
 
-export type CalculatorWorkerArgs = {
+export type CalculatorArgs = {
   aggregatedContributions: AggregatedContributions;
   matchAmount: bigint;
   options: LinearQFOptions;
 };
 
-export type CalculatorWorkerResult = ReturnType<typeof linearQFWithAggregates>;
+export type CalculatorResult = ReturnType<typeof linearQFWithAggregates>;
 
-parentPort.on("message", (msg: CalculatorWorkerArgs) => {
+parentPort.on("message", (msg: CalculatorArgs) => {
   const result = linearQFWithAggregates(
     msg.aggregatedContributions,
     msg.matchAmount,
