@@ -25,7 +25,6 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
         return;
       }
 
-      console.error(err);
       config.logger.error({ msg: "Unexpected exception", err });
 
       Sentry.captureException(err);
