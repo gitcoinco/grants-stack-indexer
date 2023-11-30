@@ -1,7 +1,6 @@
 import {
   AggregatedContributions,
   Contribution,
-  RecipientsCalculations,
   aggregateContributions as aggregateContributionsPluralistic,
 } from "pluralistic";
 import { Chain } from "../config.js";
@@ -10,10 +9,9 @@ import type {
   PassportScore,
   AddressToPassportScoreMap,
 } from "../passport/index.js";
-import { AugmentedResult, Overrides, RoundCalculationConfig } from "./index.js";
 import { ProportionalMatchOptions } from "./options.js";
 import { defaultProportionalMatchOptions } from "./options.js";
-import { PriceProvider } from "../prices/provider.js";
+import { CoefficientOverrides } from "./coefficientOverrides.js";
 
 export type VoteWithCoefficient = Vote & {
   coefficient: number;
@@ -25,15 +23,12 @@ interface GetVotesWithCoefficientsArgs {
   round: Round;
   applications: Array<Application>;
   votes: Array<Vote>;
-  options: {
-    minimumAmountUSD?: number;
-    enablePassport?: boolean;
-  };
+  enablePassport?: boolean;
+  minimumAmountUSD?: number;
   proportionalMatchOptions?: ProportionalMatchOptions;
   passportScoreByAddress: AddressToPassportScoreMap;
 }
 
-// FIXME: can be simplified by receiving RoundCalculationConfig
 export function getVotesWithCoefficients(
   args: GetVotesWithCoefficientsArgs
 ): Array<VoteWithCoefficient> {
@@ -45,16 +40,9 @@ export function getVotesWithCoefficients(
     {} as Record<string, Application>
   );
 
-  const enablePassport =
-    args.options.enablePassport ??
-    args.round?.metadata?.quadraticFundingConfig?.sybilDefense ??
-    false;
+  const enablePassport = args.enablePassport ?? false;
 
-  const minimumAmountUSD = Number(
-    args.options.minimumAmountUSD ??
-      args.round.metadata?.quadraticFundingConfig?.minDonationThresholdAmount ??
-      0
-  );
+  const minimumAmountUSD = Number(args.minimumAmountUSD ?? 0);
 
   const { passportScoreByAddress: passportScoresByAddress } = args;
 
@@ -163,7 +151,7 @@ export function applyVoteCap(chain: Chain, vote: Vote): Vote {
 
 export function applyCoefficients(config: {
   votes: VoteWithCoefficient[];
-  overrides: Overrides;
+  overrides: CoefficientOverrides;
 }): (Contribution & { recipientAddress: string })[] {
   return config.votes.map((vote) => {
     const scaleFactor = 10_000;
@@ -223,63 +211,15 @@ export function mergeAggregatedContributions(
   return merged;
 }
 
-export async function augmentMatches({
-  matches,
-  priceProvider,
-  chainId,
-  roundSettings,
-  applications,
-}: {
-  matches: RecipientsCalculations;
-  priceProvider: PriceProvider;
-  chainId: number;
-  roundSettings: RoundCalculationConfig;
-  applications: Application[];
-  aggregatedContributions: AggregatedContributions;
-  ignoreSaturation?: boolean;
-}): Promise<AugmentedResult[]> {
-  const augmented: Array<AugmentedResult> = [];
-
-  const applicationsMap = applications.reduce(
-    (all, current) => {
-      all[current.id] = current;
-      return all;
-    },
-    {} as Record<string, Application>
-  );
-
-  for (const id in matches) {
-    const calc = matches[id];
-    const application = applicationsMap[id];
-
-    const conversionUSD = await priceProvider.convertToUSD(
-      chainId,
-      roundSettings.token,
-      calc.matched
-    );
-
-    augmented.push({
-      ...calc,
-      matchedUSD: conversionUSD.amount,
-      projectId: application.projectId,
-      applicationId: application.id,
-      projectName: application.metadata?.application?.project?.title,
-      payoutAddress: application.metadata?.application?.recipient,
-    });
-  }
-
-  return augmented;
-}
-
 interface AggregatedContributionsConfig {
   chain: Chain;
   round: Round;
   applications: Application[];
   votes: Vote[];
   passportScoreByAddress: AddressToPassportScoreMap;
-  minimumAmountUSD?: number;
   enablePassport?: boolean;
-  overrides: Record<string, number>;
+  minimumAmountUSD?: number;
+  coefficientOverrides: Record<string, number>;
   proportionalMatchOptions?: ProportionalMatchOptions;
 }
 
@@ -289,9 +229,9 @@ export function aggregateContributions({
   applications,
   votes,
   passportScoreByAddress,
-  minimumAmountUSD,
   enablePassport,
-  overrides,
+  minimumAmountUSD,
+  coefficientOverrides: overrides,
   proportionalMatchOptions,
 }: AggregatedContributionsConfig): AggregatedContributions {
   const votesWithCoefficients = getVotesWithCoefficients({
@@ -299,11 +239,9 @@ export function aggregateContributions({
     round,
     applications,
     votes,
+    minimumAmountUSD,
+    enablePassport,
     passportScoreByAddress,
-    options: {
-      minimumAmountUSD: minimumAmountUSD,
-      enablePassport: enablePassport,
-    },
     proportionalMatchOptions: proportionalMatchOptions,
   });
 

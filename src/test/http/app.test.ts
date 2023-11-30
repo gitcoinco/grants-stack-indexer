@@ -4,7 +4,8 @@ import express from "express";
 import os from "os";
 import request, { Response as SupertestResponse } from "supertest";
 import { createHttpApi } from "../../http/app.js";
-import { AugmentedResult, DataProvider } from "../../calculator/index.js";
+import { DataProvider } from "../../calculator/dataProvider/index.js";
+import { AugmentedResult } from "../../calculator/calculateMatches.js";
 import { PriceProvider } from "../../prices/provider.js";
 import { pino } from "pino";
 import { PotentialVote } from "../../calculator/calculateMatchingEstimates.js";
@@ -795,7 +796,7 @@ describe("server", () => {
           expect(resp.body).toEqual(expectedResults);
         });
 
-        test("enables passport from round metadata and respects success in evidence when no threshold provided", async () => {
+        test.only("enables passport from round metadata and respects success in evidence when no threshold provided", async () => {
           const expectedResults = [
             {
               applicationId: "application-id-1",

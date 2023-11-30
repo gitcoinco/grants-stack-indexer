@@ -114,7 +114,6 @@ describe("getVotesWithCoefficients", () => {
         round,
         applications,
         votes,
-        options: {},
         passportScoreByAddress: new Map(),
       });
 
@@ -133,7 +132,6 @@ describe("getVotesWithCoefficients", () => {
         round,
         applications,
         votes,
-        options: {},
         passportScoreByAddress: new Map(),
       });
 

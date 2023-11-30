@@ -10,6 +10,54 @@ import { convertTokenToFiat, convertFiatToToken } from "../tokenMath.js";
 
 const DEFAULT_REFRESH_PRICE_INTERVAL_MS = 10000;
 
+export async function convertFromUSD(
+  priceProvider: PriceProvider,
+  chainId: number,
+  token: string,
+  amountInUSD: number,
+  blockNumber?: number
+): Promise<{ amount: bigint; price: number }> {
+  const closestPrice = await priceProvider.getUSDConversionRate(
+    chainId,
+    token,
+    blockNumber
+  );
+
+  return {
+    amount: convertFiatToToken({
+      fiatAmount: amountInUSD,
+      tokenPrice: closestPrice.price,
+      tokenPriceDecimals: 8,
+      tokenDecimals: closestPrice.decimals,
+    }),
+    price: 1 / closestPrice.price, // price is the token price in USD, we return the inverse
+  };
+}
+
+export async function convertToUSD(
+  priceProvider: PriceProvider,
+  chainId: number,
+  token: string,
+  amount: bigint,
+  blockNumber?: number
+): Promise<{ amount: number; price: number }> {
+  const closestPrice = await priceProvider.getUSDConversionRate(
+    chainId,
+    token,
+    blockNumber
+  );
+
+  return {
+    amount: convertTokenToFiat({
+      tokenAmount: amount,
+      tokenDecimals: closestPrice.decimals,
+      tokenPrice: closestPrice.price,
+      tokenPriceDecimals: 8,
+    }),
+    price: closestPrice.price,
+  };
+}
+
 interface PriceProviderConfig {
   updateEveryMs?: number;
   chainDataDir: string;
@@ -17,18 +65,6 @@ interface PriceProviderConfig {
 }
 
 export interface PriceProvider {
-  convertToUSD: (
-    chainId: number,
-    token: string,
-    amount: bigint,
-    blockNumber?: number
-  ) => Promise<{ amount: number; price: number }>;
-  convertFromUSD: (
-    chainId: number,
-    token: string,
-    amount: number,
-    blockNumber?: number
-  ) => Promise<{ amount: bigint; price: number }>;
   getAllPricesForChain: (chainId: number) => Promise<Price[]>;
   getUSDConversionRate: (
     chainId: number,
@@ -80,52 +116,6 @@ export function createPriceProvider(
     }
 
     return prices[chainId].prices;
-  }
-
-  async function convertToUSD(
-    chainId: number,
-    token: string,
-    amount: bigint,
-    blockNumber?: number
-  ): Promise<{ amount: number; price: number }> {
-    const closestPrice = await getUSDConversionRate(
-      chainId,
-      token,
-      blockNumber
-    );
-
-    return {
-      amount: convertTokenToFiat({
-        tokenAmount: amount,
-        tokenDecimals: closestPrice.decimals,
-        tokenPrice: closestPrice.price,
-        tokenPriceDecimals: 8,
-      }),
-      price: closestPrice.price,
-    };
-  }
-
-  async function convertFromUSD(
-    chainId: number,
-    token: string,
-    amountInUSD: number,
-    blockNumber?: number
-  ): Promise<{ amount: bigint; price: number }> {
-    const closestPrice = await getUSDConversionRate(
-      chainId,
-      token,
-      blockNumber
-    );
-
-    return {
-      amount: convertFiatToToken({
-        fiatAmount: amountInUSD,
-        tokenPrice: closestPrice.price,
-        tokenPriceDecimals: 8,
-        tokenDecimals: closestPrice.decimals,
-      }),
-      price: 1 / closestPrice.price, // price is the token price in USD, we return the inverse
-    };
   }
 
   async function getUSDConversionRate(
@@ -187,8 +177,6 @@ export function createPriceProvider(
   }
 
   return {
-    convertToUSD,
-    convertFromUSD,
     getAllPricesForChain,
     getUSDConversionRate,
   };

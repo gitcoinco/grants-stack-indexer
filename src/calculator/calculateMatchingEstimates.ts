@@ -4,11 +4,7 @@ import type {
 } from "./worker.js";
 import { Chain } from "../config.js";
 import { Application, Round, Vote } from "../indexer/types.js";
-import {
-  DataProvider,
-  extractCalculationConfigFromRound,
-  RoundCalculationConfig,
-} from "./index.js";
+import { DataProvider } from "./dataProvider/index.js";
 import { PriceProvider } from "../prices/provider.js";
 import { PassportProvider } from "../passport/index.js";
 import { RoundContributionsCache } from "./roundContributionsCache.js";
@@ -21,6 +17,11 @@ import {
 } from "./votes.js";
 import { PriceWithDecimals } from "../prices/common.js";
 import { convertFiatToToken, convertTokenToFiat } from "../tokenMath.js";
+import {
+  CalculationConfig,
+  extractCalculationConfigFromRound,
+  overrideCalculationConfig,
+} from "./calculationConfig.js";
 
 export type CalculateFunction = (
   msg: CalculatorArgs
@@ -53,7 +54,7 @@ export async function calculateMatchingEstimates({
   dataProvider,
   priceProvider,
   passportProvider,
-  roundCalculationConfig,
+  calculationConfigOverride,
   roundContributionsCache,
   potentialVotes,
   proportionalMatchOptions,
@@ -67,40 +68,30 @@ export async function calculateMatchingEstimates({
   roundContributionsCache?: RoundContributionsCache;
   proportionalMatchOptions?: ProportionalMatchOptions;
   potentialVotes: PotentialVote[];
-  roundCalculationConfig: Partial<RoundCalculationConfig>;
+  calculationConfigOverride: Partial<CalculationConfig>;
   calculate: CalculateFunction;
 }): Promise<EstimatedMatch[]> {
-  // const reqId = Math.random().toString(36).substring(7);
+  const roundCalculationConfig = extractCalculationConfigFromRound(round);
 
-  // console.time(`${reqId} - total`);
-
-  // console.time(`${reqId} - getRound`);
-  const roundConfig = extractCalculationConfigFromRound(round);
-
-  const finalRoundConfig: RoundCalculationConfig = {
-    ...roundConfig,
-    ...roundCalculationConfig,
-  };
+  const calculationConfig: CalculationConfig = overrideCalculationConfig(
+    roundCalculationConfig,
+    calculationConfigOverride ?? {}
+  );
 
   const applications = await dataProvider.loadFile<Application>(
     `${chain.id}/rounds/${round.id}/applications.json`,
     `${chain.id}/rounds/${round.id}/applications.json`
   );
 
-  // console.timeEnd(`${reqId} - getRound`);
-
-  // console.time(`${reqId} - get`);
   const cachedAggregatedContributions =
     await roundContributionsCache?.getCalculationForRound({
       roundId: round.id,
       chainId: chain.id,
     });
-  // console.timeEnd(`${reqId} - get`);
 
   let aggregatedContributions: AggregatedContributions;
 
   if (cachedAggregatedContributions === undefined) {
-    // console.log(`--------------- LOADING`);
     const votes = await dataProvider.loadFile<Vote>(
       `${chain.id}/rounds/${round.id}/votes.json`,
       `${chain.id}/rounds/${round.id}/votes.json`
@@ -116,9 +107,9 @@ export async function calculateMatchingEstimates({
       votes: votes,
       applications: applications,
       passportScoreByAddress: passportScoresByAddress,
-      minimumAmountUSD: roundConfig.minimumAmountUSD,
-      enablePassport: finalRoundConfig.enablePassport,
-      overrides: {},
+      minimumAmountUSD: calculationConfig.minimumAmountUSD,
+      enablePassport: calculationConfig.enablePassport,
+      coefficientOverrides: {},
       proportionalMatchOptions: proportionalMatchOptions,
     });
 
@@ -143,7 +134,6 @@ export async function calculateMatchingEstimates({
     }
   }
 
-  // console.time(`${reqId} - augment`);
   const conversionRateRoundToken = await priceProvider.getUSDConversionRate(
     chain.id,
     round.token
@@ -175,21 +165,17 @@ export async function calculateMatchingEstimates({
       id: "",
     };
   });
-  // console.timeEnd(`${reqId} - augment`);
 
-  // console.time(`${reqId} - linear1`);
   const originalResults = await calculate({
     aggregatedContributions,
-    matchAmount: finalRoundConfig.matchAmount,
+    matchAmount: calculationConfig.matchAmount,
     options: {
       minimumAmount: 0n,
-      matchingCapAmount: finalRoundConfig.matchingCapAmount,
+      matchingCapAmount: calculationConfig.matchingCapAmount,
       ignoreSaturation: false,
     },
   });
-  // console.timeEnd(`${reqId} - linear1`);
 
-  // console.time(`${reqId} - aggregate`);
   const passportScoreByAddress = await passportProvider.getScoresByAddresses(
     potentialVotesAugmented.map((v) => v.voter.toLowerCase())
   );
@@ -200,9 +186,9 @@ export async function calculateMatchingEstimates({
     votes: potentialVotesAugmented,
     applications: applications,
     passportScoreByAddress,
-    minimumAmountUSD: roundConfig.minimumAmountUSD,
-    enablePassport: false,
-    overrides: {},
+    minimumAmountUSD: calculationConfig.minimumAmountUSD,
+    enablePassport: calculationConfig.enablePassport,
+    coefficientOverrides: {},
     proportionalMatchOptions: proportionalMatchOptions,
   });
 
@@ -211,21 +197,16 @@ export async function calculateMatchingEstimates({
     potentialContributions
   );
 
-  // console.timeEnd(`${reqId} - aggregate`);
-
-  // console.time(`${reqId} - linear2`);
   const potentialResults = await calculate({
+    matchAmount: calculationConfig.matchAmount,
     aggregatedContributions: totalAggregations,
-    matchAmount: finalRoundConfig.matchAmount,
     options: {
       minimumAmount: 0n,
-      matchingCapAmount: finalRoundConfig.matchingCapAmount,
+      matchingCapAmount: calculationConfig.matchingCapAmount,
       ignoreSaturation: false,
     },
   });
-  // console.timeEnd(`${reqId} - linear2`);
 
-  // console.time(`${reqId} - diff`);
   const finalResults: EstimatedMatch[] = [];
 
   const applicationRecipientAddresses = Object.fromEntries(
@@ -239,24 +220,22 @@ export async function calculateMatchingEstimates({
     const difference =
       estimatedResult.matched - (originalResult?.matched ?? 0n);
 
-    const differenceInUSD = await priceProvider.convertToUSD(
-      chain.id,
-      round.token,
-      difference
-    );
+    const differenceInUSD = convertTokenToFiat({
+      tokenAmount: difference,
+      tokenDecimals: conversionRateRoundToken.decimals,
+      tokenPrice: conversionRateRoundToken.price,
+      tokenPriceDecimals: 8,
+    });
 
     finalResults.push({
       original: originalResult,
       estimated: estimatedResult,
       difference: difference,
-      differenceInUSD: differenceInUSD.amount,
+      differenceInUSD: differenceInUSD,
       applicationId: applicationId,
       recipient: applicationRecipientAddresses[applicationId],
     });
   }
-  // console.timeEnd(`${reqId} - diff`);
-
-  // console.timeEnd(`${reqId} - total`);
 
   return finalResults;
 }

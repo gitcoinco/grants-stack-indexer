@@ -508,7 +508,8 @@ async function handleEvent(
 
       const token = event.args.token.toLowerCase();
 
-      const conversionToUSD = await priceProvider.convertToUSD(
+      const conversionToUSD = await convertToUSD(
+        priceProvider,
         chainId,
         token,
         event.args.amount.toBigInt(),
@@ -523,7 +524,8 @@ async function handleEvent(
           round.token === token
             ? event.args.amount.toString()
             : (
-                await priceProvider.convertFromUSD(
+                await convertFromUSD(
+                  priceProvider,
                   chainId,
                   round.token,
                   conversionToUSD.amount,

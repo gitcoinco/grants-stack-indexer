@@ -13,7 +13,10 @@ import {
   CalculatorResult,
 } from "../../../calculator/worker.js";
 import { RoundContributionsCache } from "../../../calculator/roundContributionsCache.js";
-import { Overrides, parseOverrides } from "../../../calculator/index.js";
+import {
+  CoefficientOverrides,
+  parseCoefficientOverridesCsv,
+} from "../../../calculator/coefficientOverrides.js";
 import { calculateMatches } from "../../../calculator/calculateMatches.js";
 import {
   potentialVoteSchema,
@@ -81,7 +84,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     const enablePassport = boolParam(req.query, "enablePassport");
     const ignoreSaturation = boolParam(req.query, "ignoreSaturation");
 
-    let overrides: Overrides = {};
+    let overrides: CoefficientOverrides = {};
 
     if (useOverrides) {
       const file = req.file;
@@ -92,7 +95,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       }
 
       const buf = file.buffer;
-      overrides = await parseOverrides(buf);
+      overrides = await parseCoefficientOverridesCsv(buf);
     }
 
     const chainConfig = config.chains.find((c) => c.id === chainId);
@@ -101,16 +104,19 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     }
 
     const matches = await calculateMatches({
-      chainId: chainId,
       roundId: roundId,
-      minimumAmountUSD: minimumAmountUSD ? Number(minimumAmountUSD) : undefined,
-      matchingCapAmount: matchingCapAmount
-        ? BigInt(matchingCapAmount)
-        : undefined,
-      enablePassport: enablePassport,
-      ignoreSaturation: ignoreSaturation,
-      overrides,
+      coefficientOverrides: overrides,
       chain: chainConfig,
+      calculationConfigOverride: {
+        minimumAmountUSD: minimumAmountUSD
+          ? Number(minimumAmountUSD)
+          : undefined,
+        matchingCapAmount: matchingCapAmount
+          ? BigInt(matchingCapAmount)
+          : undefined,
+        enablePassport: enablePassport,
+        ignoreSaturation: ignoreSaturation,
+      },
       deps: {
         logger: config.logger.child({ subsystem: "Calculator" }),
         dataProvider: config.dataProvider,
@@ -173,7 +179,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       dataProvider: config.dataProvider,
       priceProvider: config.priceProvider,
       passportProvider: config.passportProvider,
-      roundCalculationConfig: {},
+      calculationConfigOverride: {},
       roundContributionsCache,
       calculate: (args) => calculatorWorkerPool.exec(args),
     });
