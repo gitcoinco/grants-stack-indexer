@@ -7,7 +7,7 @@ import { createHttpApi } from "../../http/app.js";
 import { DataProvider } from "../../calculator/dataProvider/index.js";
 import { AugmentedResult } from "../../calculator/calculateMatches.js";
 import { PriceProvider } from "../../prices/provider.js";
-import { pino } from "pino";
+import { Logger } from "pino";
 import { PotentialVote } from "../../calculator/calculateMatchingEstimates.js";
 import { Chain } from "../../config.js";
 import { constants } from "ethers";
@@ -35,7 +35,12 @@ const MOCK_CHAINS = [
   },
 ] as Chain[];
 
-const DUMMY_LOGGER = pino({ level: "silent" });
+const DUMMY_LOGGER = {
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+} as unknown as Logger;
 
 describe("server", () => {
   describe("/status", () => {
