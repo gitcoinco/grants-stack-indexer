@@ -38,7 +38,7 @@ kill_timeout = 5
 
   [services.concurrency]
     type = "connections"
-    hard_limit = 100
+    hard_limit = 60
     soft_limit = 20
 
   [[services.tcp_checks]]
@@ -49,7 +49,7 @@ kill_timeout = 5
   [[services.http_checks]]
     interval = "60s"
     grace_period = "1m"
-    timeout = "10s"
+    timeout = "5s"
     method = "get"
     path = "/api/v1/status"
     protocol = "http"
