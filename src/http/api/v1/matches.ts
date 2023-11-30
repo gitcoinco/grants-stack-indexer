@@ -6,20 +6,19 @@ const upload = multer();
 import multer from "multer";
 import ClientError from "../clientError.js";
 
-import Calculator, {
-  Overrides,
-  CalculatorOptions,
-  parseOverrides,
-} from "../../../calculator/index.js";
-import { estimateMatches } from "../../../calculator/estimate.js";
 import { HttpApiConfig } from "../../app.js";
-import { potentialVoteSchema } from "../../../calculator/estimate.js";
 import { Round } from "../../../indexer/types.js";
 import {
   CalculatorArgs,
   CalculatorResult,
 } from "../../../calculator/worker.js";
 import { RoundContributionsCache } from "../../../calculator/roundContributionsCache.js";
+import { Overrides, parseOverrides } from "../../../calculator/index.js";
+import { calculateMatches } from "../../../calculator/calculateMatches.js";
+import {
+  potentialVoteSchema,
+  calculateMatchingEstimates,
+} from "../../../calculator/calculateMatchingEstimates.js";
 
 export const createHandler = (config: HttpApiConfig): express.Router => {
   const router = express.Router();
@@ -101,10 +100,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       throw new Error(`Chain ${chainId} not configured`);
     }
 
-    const calculatorOptions: CalculatorOptions = {
-      priceProvider: config.priceProvider,
-      dataProvider: config.dataProvider,
-      passportProvider: config.passportProvider,
+    const matches = await calculateMatches({
       chainId: chainId,
       roundId: roundId,
       minimumAmountUSD: minimumAmountUSD ? Number(minimumAmountUSD) : undefined,
@@ -115,10 +111,14 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       ignoreSaturation: ignoreSaturation,
       overrides,
       chain: chainConfig,
-    };
+      deps: {
+        logger: config.logger.child({ subsystem: "Calculator" }),
+        dataProvider: config.dataProvider,
+        passportProvider: config.passportProvider,
+        priceProvider: config.priceProvider,
+      },
+    });
 
-    const calculator = new Calculator(calculatorOptions);
-    const matches = await calculator.calculate();
     const responseBody = JSON.stringify(matches, (_key, value) =>
       typeof value === "bigint" ? value.toString() : (value as unknown)
     );
@@ -140,8 +140,6 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     res: Response,
     okStatusCode: number
   ) {
-    // const reqId = Math.random().toString(36).substring(7);
-
     const chainId = Number(req.params.chainId);
     const roundId = req.params.roundId;
     const potentialVotes = estimateRequestBody
@@ -168,7 +166,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       throw new ClientError(`Round ${roundId} not found`, 400);
     }
 
-    const matches = await estimateMatches({
+    const matches = await calculateMatchingEstimates({
       round,
       chain: chainConfig,
       potentialVotes,

@@ -47,7 +47,7 @@ export interface EstimatedMatch {
   differenceInUSD: number;
 }
 
-export async function estimateMatches({
+export async function calculateMatchingEstimates({
   chain,
   round,
   dataProvider,

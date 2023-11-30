@@ -1,12 +1,7 @@
 import fs from "fs/promises";
 import csv from "csv-parser";
-import {
-  Calculation,
-  Contribution,
-  linearQF as pluralisticLinearQF,
-} from "pluralistic";
-import type { PassportProvider } from "../passport/index.js";
-import { PriceProvider } from "../prices/provider.js";
+import type { AddressToPassportScoreMap } from "../passport/index.js";
+import { linearQF, Contribution, Calculation } from "pluralistic";
 import { Chain, getDecimalsForToken } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
 import {
@@ -18,6 +13,8 @@ import {
 } from "./errors.js";
 import { ProportionalMatchOptions } from "./options.js";
 import { applyCoefficients, getVotesWithCoefficients } from "./votes.js";
+import { PriceWithDecimals } from "../prices/common.js";
+import { convertTokenToFiat } from "../tokenMath.js";
 
 export type Overrides = Record<string, number>;
 
@@ -145,9 +142,6 @@ export function parseOverrides(buf: Buffer): Promise<Overrides> {
 }
 
 export type CalculatorOptions = {
-  priceProvider: PriceProvider;
-  dataProvider: DataProvider;
-  passportProvider: PassportProvider;
   chainId: number;
   roundId: string;
   minimumAmountUSD?: number;
@@ -168,12 +162,8 @@ export type AugmentedResult = Calculation & {
 };
 
 export default class Calculator {
-  private passportProvider: PassportProvider;
-  private priceProvider: PriceProvider;
-  private dataProvider: DataProvider;
-  private chainId: number; // XXX remove
+  private chainId: number; // XXX remove in favour of chain.id
   private chain: Chain;
-  private roundId: string;
   private minimumAmountUSD: number | undefined;
   private matchingCapAmount: bigint | undefined;
   private enablePassport: boolean | undefined;
@@ -182,11 +172,7 @@ export default class Calculator {
   private proportionalMatch?: ProportionalMatchOptions;
 
   constructor(options: CalculatorOptions) {
-    this.passportProvider = options.passportProvider;
-    this.priceProvider = options.priceProvider;
-    this.dataProvider = options.dataProvider;
-    this.chainId = options.chainId; // XXX remove
-    this.roundId = options.roundId;
+    this.chainId = options.chainId; // XXX remove in favour of chain.id
     this.minimumAmountUSD = options.minimumAmountUSD;
     this.enablePassport = options.enablePassport;
     this.matchingCapAmount = options.matchingCapAmount;
@@ -196,40 +182,19 @@ export default class Calculator {
     this.proportionalMatch = options.proportionalMatch;
   }
 
-  async calculate(): Promise<Array<AugmentedResult>> {
-    const votes = await this.parseJSONFile<Vote>(
-      "votes",
-      `${this.chainId}/rounds/${this.roundId}/votes.json`
-    );
-
-    return this._calculate(votes);
-  }
-
-  private async _calculate(votes: Vote[]): Promise<Array<AugmentedResult>> {
-    const applications = await this.parseJSONFile<Application>(
-      "applications",
-      `${this.chainId}/rounds/${this.roundId}/applications.json`
-    );
-
-    const rounds = await this.parseJSONFile<Round>(
-      "rounds",
-      `${this.chainId}/rounds.json`
-    );
-
-    const round = rounds.find((r: Round) => r.id === this.roundId);
-
-    if (round === undefined) {
-      throw new ResourceNotFoundError("round");
-    }
-
-    if (round.matchAmount === undefined) {
-      throw new ResourceNotFoundError("round match amount");
-    }
-
-    if (round.token === undefined) {
-      throw new ResourceNotFoundError("round token");
-    }
-
+  _calculate({
+    votes,
+    applications,
+    round,
+    passportScoresByAddress,
+    roundTokenPriceInUsd,
+  }: {
+    round: Round;
+    votes: Vote[];
+    applications: Application[];
+    passportScoresByAddress: AddressToPassportScoreMap;
+    roundTokenPriceInUsd: PriceWithDecimals;
+  }): Array<AugmentedResult> {
     const matchAmount = BigInt(round.matchAmount);
     const matchTokenDecimals = BigInt(
       getDecimalsForToken(this.chainId, round.token)
@@ -254,22 +219,17 @@ export default class Calculator {
         10000n;
     }
 
-    const passportScoresByAddress =
-      await this.passportProvider.getScoresByAddresses(
-        votes.map((vote) => vote.voter.toLowerCase())
-      );
-
     const votesWithCoefficients = getVotesWithCoefficients({
       chain: this.chain,
       round,
       applications,
       votes,
-      passportScoresByAddress,
       options: {
         minimumAmountUSD: this.minimumAmountUSD,
         enablePassport: this.enablePassport,
       },
       proportionalMatchOptions: this.proportionalMatch,
+      passportScoresByAddress,
     });
 
     const contributions: Contribution[] = applyCoefficients({
@@ -277,16 +237,11 @@ export default class Calculator {
       overrides: this.overrides,
     });
 
-    const results = pluralisticLinearQF(
-      contributions,
-      matchAmount,
-      matchTokenDecimals,
-      {
-        minimumAmount: 0n,
-        matchingCapAmount,
-        ignoreSaturation: this.ignoreSaturation ?? false,
-      }
-    );
+    const results = linearQF(contributions, matchAmount, matchTokenDecimals, {
+      minimumAmount: 0n,
+      matchingCapAmount,
+      ignoreSaturation: this.ignoreSaturation ?? false,
+    });
 
     const augmented: Array<AugmentedResult> = [];
 
@@ -302,11 +257,23 @@ export default class Calculator {
       const calc = results[id];
       const application = applicationsMap[id];
 
-      const conversionUSD = await this.priceProvider.convertToUSD(
-        this.chainId,
-        round.token,
-        calc.matched
-      );
+      // TODO fix TestPriceProvider in utils.ts to fix tests affected by this change
+      //
+      // const conversionUSD = await this.priceProvider.convertToUSD(
+      //   this.chainId,
+      //   round.token,
+      //   calc.matched
+      // );
+
+      const conversionUSD = {
+        amount: convertTokenToFiat({
+          tokenAmount: calc.matched,
+          tokenDecimals: roundTokenPriceInUsd.decimals,
+          tokenPrice: roundTokenPriceInUsd.price,
+          tokenPriceDecimals: 8,
+        }),
+        price: roundTokenPriceInUsd.price,
+      };
 
       augmented.push({
         ...calc,
@@ -319,12 +286,5 @@ export default class Calculator {
     }
 
     return augmented;
-  }
-
-  async parseJSONFile<T>(
-    fileDescription: string,
-    path: string
-  ): Promise<Array<T>> {
-    return this.dataProvider.loadFile<T>(fileDescription, path);
   }
 }

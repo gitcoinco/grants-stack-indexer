@@ -7,7 +7,7 @@ import { createHttpApi } from "../../http/app.js";
 import { AugmentedResult, DataProvider } from "../../calculator/index.js";
 import { PriceProvider } from "../../prices/provider.js";
 import { pino } from "pino";
-import { PotentialVote } from "../../calculator/estimate.js";
+import { PotentialVote } from "../../calculator/calculateMatchingEstimates.js";
 import { Chain } from "../../config.js";
 import { constants } from "ethers";
 import {
@@ -385,6 +385,7 @@ describe("server", () => {
               replacer
             )
           );
+
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
       });
