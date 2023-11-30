@@ -30,7 +30,7 @@ interface GetVotesWithCoefficientsArgs {
     enablePassport?: boolean;
   };
   proportionalMatchOptions?: ProportionalMatchOptions;
-  passportScoresByAddress: AddressToPassportScoreMap;
+  passportScoreByAddress: AddressToPassportScoreMap;
 }
 
 // FIXME: can be simplified by receiving RoundCalculationConfig
@@ -56,7 +56,7 @@ export function getVotesWithCoefficients(
       0
   );
 
-  const { passportScoresByAddress: passportScoresByAddress } = args;
+  const { passportScoreByAddress: passportScoresByAddress } = args;
 
   return args.votes.flatMap((originalVote) => {
     const vote = applyVoteCap(args.chain, originalVote);
@@ -276,7 +276,7 @@ interface AggregatedContributionsConfig {
   round: Round;
   applications: Application[];
   votes: Vote[];
-  passportScoresByAddress: AddressToPassportScoreMap;
+  passportScoreByAddress: AddressToPassportScoreMap;
   minimumAmountUSD?: number;
   enablePassport?: boolean;
   overrides: Record<string, number>;
@@ -288,7 +288,7 @@ export function aggregateContributions({
   round,
   applications,
   votes,
-  passportScoresByAddress,
+  passportScoreByAddress,
   minimumAmountUSD,
   enablePassport,
   overrides,
@@ -299,7 +299,7 @@ export function aggregateContributions({
     round,
     applications,
     votes,
-    passportScoresByAddress,
+    passportScoreByAddress,
     options: {
       minimumAmountUSD: minimumAmountUSD,
       enablePassport: enablePassport,

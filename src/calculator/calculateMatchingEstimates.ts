@@ -115,7 +115,7 @@ export async function calculateMatchingEstimates({
       round,
       votes: votes,
       applications: applications,
-      passportScoresByAddress: passportScoresByAddress,
+      passportScoreByAddress: passportScoresByAddress,
       minimumAmountUSD: roundConfig.minimumAmountUSD,
       enablePassport: finalRoundConfig.enablePassport,
       overrides: {},
@@ -190,7 +190,7 @@ export async function calculateMatchingEstimates({
   // console.timeEnd(`${reqId} - linear1`);
 
   // console.time(`${reqId} - aggregate`);
-  const passportScoresByAddress = await passportProvider.getScoresByAddresses(
+  const passportScoreByAddress = await passportProvider.getScoresByAddresses(
     potentialVotesAugmented.map((v) => v.voter.toLowerCase())
   );
 
@@ -199,7 +199,7 @@ export async function calculateMatchingEstimates({
     round: round,
     votes: potentialVotesAugmented,
     applications: applications,
-    passportScoresByAddress: passportScoresByAddress,
+    passportScoreByAddress,
     minimumAmountUSD: roundConfig.minimumAmountUSD,
     enablePassport: false,
     overrides: {},
