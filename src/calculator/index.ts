@@ -297,7 +297,7 @@ export default class Calculator {
 
       const voteAmountInRoundToken = convertFiatToToken({
         fiatAmount: voteAmountInUsd,
-        tokenDecimals: 18,
+        tokenDecimals: roundTokenPriceInUsd.decimals,
         tokenPrice: roundTokenPriceInUsd.price,
         tokenPriceDecimals: 8,
       });
