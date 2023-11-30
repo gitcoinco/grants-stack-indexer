@@ -796,7 +796,7 @@ describe("server", () => {
           expect(resp.body).toEqual(expectedResults);
         });
 
-        test.only("enables passport from round metadata and respects success in evidence when no threshold provided", async () => {
+        test("enables passport from round metadata and respects success in evidence when no threshold provided", async () => {
           const expectedResults = [
             {
               applicationId: "application-id-1",
