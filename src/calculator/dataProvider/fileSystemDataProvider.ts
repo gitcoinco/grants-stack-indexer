@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import { DataProvider } from "./index.js";
+import { FileNotFoundError } from "../errors.js";
 
 export class FileSystemDataProvider implements DataProvider {
   basePath: string;

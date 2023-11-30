@@ -18,7 +18,7 @@ describe("getVotesWithCoefficients", () => {
         applications,
         votes: data.votes,
         passportScoreByAddress: data.passportScoresByAddress,
-        options: { enablePassport: true },
+        enablePassport: true,
       });
 
       const expectedData = [

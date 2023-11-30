@@ -14,7 +14,11 @@ import {
 } from "./types.js";
 import { Event } from "./events.js";
 import { RoundContract, DirectPayoutContract } from "./contracts.js";
-import { PriceProvider } from "../prices/provider.js";
+import {
+  PriceProvider,
+  convertFromUSD,
+  convertToUSD,
+} from "../prices/provider.js";
 import * as abis from "./abis/index.js";
 
 // Event handlers
