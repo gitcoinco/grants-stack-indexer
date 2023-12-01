@@ -6,7 +6,7 @@ The indexer data is used by [Grants Stack](https://github.com/gitcoinco/grants-s
 
 # Indexed Data
 
-Access indexed data through this URL: https://indexer-grants-stack.gitcoin.co
+Access indexed data through this URL: https://grants-stack-indexer.gitcoin.co/data/
 
 The indexed data follows this structure:
 
