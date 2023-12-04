@@ -7,6 +7,7 @@
   "types": "dist/src/indexer/index.d.ts",
   "scripts": {
     "start": "node dist/src/index.js",
+    "start:run-once": "node dist/src/index.js --run-once | pino-pretty",
     "dev": "tsx watch src/index.ts | pino-pretty",
     "test:snapshot:generate-before": "NODE_ENV=snapshot-testing INDEXED_CHAINS=mainnet STORAGE_DIR=test/snapshot.BEFORE/data CACHE_DIR=test/snapshot.BEFORE/cache tsx src/index.ts --to-block 17199975 --run-once | pino-pretty",
     "test:snapshot:generate-after": "NODE_ENV=snapshot-testing INDEXED_CHAINS=mainnet STORAGE_DIR=test/snapshot.AFTER/data CACHE_DIR=test/snapshot.AFTER/cache tsx src/index.ts --to-block 17199975 --run-once | pino-pretty",
