@@ -499,6 +499,112 @@ const CHAINS: Chain[] = [
     ],
   },
   {
+    id: 324,
+    name: "zksync-era-mainnet",
+    rpc: rpcUrl
+      .default("https://mainnet.era.zksync.io")
+      .parse(process.env.ZKSYNC_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2023, 12, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "USDC",
+        address: "0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4",
+        decimals: 6,
+        priceSource: {
+          chainId: 1,
+          address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        },
+      },
+      {
+        code: "USDT",
+        address: "0x493257fD37EDB34451f62EDf8D2a0C418852bA4C",
+        decimals: 6,
+        priceSource: {
+          chainId: 1,
+          address: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+        },
+      },
+      {
+        code: "DAI",
+        address: "0x4B9eb6c0b6ea15176BBF62841C6B2A8a398cb656",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        },
+      },
+      {
+        code: "LUSD",
+        address: "0x503234F203fC7Eb888EEC8513210612a43Cf6115",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x5f98805a4e8be255a32880fdec7f6728c6568ba0",
+        },
+      },
+      {
+        code: "MUTE",
+        address: "0x0e97c7a0f8b2c9885c8ac9fc6136e829cbc21d42",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0xa49d7499271ae71cd8ab9ac515e6694c755d400c",
+        },
+      },
+    ],
+    subscriptions: [
+      {
+        address: "0x1593FAA41134544354a1509566DDf8D6596e7348",
+        abi: abis.v2.ProjectRegistry,
+      },
+      {
+        address: "0xF631C72e0C5837b794911DDaf167861d1A3eDBf5",
+        abi: abis.v2.RoundFactory,
+        fromBlock: 87169287,
+      },
+      {
+        address: "0xa1F116d1Cb73b6f8dDFD6DDD6E06386553B3af7b",
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
+        fromBlock: 87168143,
+      },
+    ],
+  },
+  {
+    id: 280,
+    name: "zksync-era-testnet",
+    rpc: rpcUrl
+      .default("https://testnet.era.zksync.dev")
+      .parse(process.env.ZKSYNC_TESTNET_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2023, 12, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "DAI",
+        address: "0x3e7676937A7E96CFB7616f255b9AD9FF47363D4b",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        },
+      },
+    ],
+    subscriptions: [
+      {
+        address: "0x2C17D0FAb47bD87333714dC35f84BB669951cea6",
+        abi: abis.v2.ProjectRegistry,
+      },
+      {
+        address: "0x35E5f2abfaCdbe1bc7C2E09Fbe2e051Ea574Dd3b",
+        abi: abis.v2.RoundFactory,
+        fromBlock: 87169287,
+      },
+      {
+        address: "0x7DA751bb567D37fbd5311f8e37629c3355675bEe",
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
+        fromBlock: 87168143,
+      },
+    ],
+  },
+  {
     id: 43114,
     name: "avalanche",
     rpc: rpcUrl
