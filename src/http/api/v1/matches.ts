@@ -9,9 +9,9 @@ import ClientError from "../clientError.js";
 import { HttpApiConfig } from "../../app.js";
 import { Round } from "../../../indexer/types.js";
 import {
-  CalculatorArgs,
-  CalculatorResult,
-} from "../../../calculator/worker.js";
+  LinearQfCalculatorResult,
+  LinearQfCalculatorArgs,
+} from "../../../calculator/linearQf/index.js";
 import { RoundContributionsCache } from "../../../calculator/roundContributionsCache.js";
 import {
   CoefficientOverrides,
@@ -22,16 +22,40 @@ import {
   potentialVoteSchema,
   calculateMatchingEstimates,
 } from "../../../calculator/calculateMatchingEstimates.js";
+import { linearQFWithAggregates } from "pluralistic";
+
+function createLinearQf(
+  config: HttpApiConfig["calculator"]["estimateMatchWorkerPool"]
+) {
+  if (config === undefined) {
+    return (args: LinearQfCalculatorArgs) => {
+      return Promise.resolve(
+        linearQFWithAggregates(
+          args.aggregatedContributions,
+          args.matchAmount,
+          0n,
+          args.options
+        )
+      );
+    };
+  } else {
+    const calculatorWorkerPool = new StaticPool<
+      (msg: LinearQfCalculatorArgs) => LinearQfCalculatorResult
+    >({
+      size: 10,
+      task: "./dist/src/calculator/worker.js",
+    });
+
+    return (args: LinearQfCalculatorArgs) => calculatorWorkerPool.exec(args);
+  }
+}
 
 export const createHandler = (config: HttpApiConfig): express.Router => {
   const router = express.Router();
 
-  const calculatorWorkerPool = new StaticPool<
-    (msg: CalculatorArgs) => CalculatorResult
-  >({
-    size: 10,
-    task: "./dist/src/calculator/worker.js",
-  });
+  const linearQfImpl = createLinearQf(
+    config.calculator.estimateMatchWorkerPool
+  );
 
   const roundContributionsCache = new RoundContributionsCache();
 
@@ -181,7 +205,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       passportProvider: config.passportProvider,
       calculationConfigOverride: {},
       roundContributionsCache,
-      calculate: (args) => calculatorWorkerPool.exec(args),
+      linearQfImpl,
     });
 
     const responseBody = JSON.stringify(matches, (_key, value) =>

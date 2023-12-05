@@ -24,6 +24,11 @@ export interface HttpApiConfig {
   passportProvider: PassportProvider;
   chains: Chain[];
   enableSentry: boolean;
+  calculator: {
+    estimateMatchWorkerPool?: {
+      size: number;
+    };
+  };
 }
 
 interface HttpApi {

@@ -1,7 +1,4 @@
-import type {
-  CalculatorArgs as CalculatorArgs,
-  CalculatorResult as CalculatorResult,
-} from "./worker.js";
+import type { LinearQf } from "./linearQf/index.js";
 import { Chain } from "../config.js";
 import { Application, Round, Vote } from "../indexer/types.js";
 import { DataProvider } from "./dataProvider/index.js";
@@ -22,10 +19,6 @@ import {
   extractCalculationConfigFromRound,
   overrideCalculationConfig,
 } from "./calculationConfig.js";
-
-export type CalculateFunction = (
-  msg: CalculatorArgs
-) => Promise<CalculatorResult>;
 
 export const potentialVoteSchema = z.object({
   projectId: z.string(),
@@ -58,7 +51,7 @@ export async function calculateMatchingEstimates({
   roundContributionsCache,
   potentialVotes,
   proportionalMatchOptions,
-  calculate,
+  linearQfImpl,
 }: {
   chain: Chain;
   round: Round;
@@ -69,7 +62,7 @@ export async function calculateMatchingEstimates({
   proportionalMatchOptions?: ProportionalMatchOptions;
   potentialVotes: PotentialVote[];
   calculationConfigOverride: Partial<CalculationConfig>;
-  calculate: CalculateFunction;
+  linearQfImpl: LinearQf;
 }): Promise<EstimatedMatch[]> {
   const roundCalculationConfig = extractCalculationConfigFromRound(round);
 
@@ -166,7 +159,7 @@ export async function calculateMatchingEstimates({
     };
   });
 
-  const originalResults = await calculate({
+  const originalResults = await linearQfImpl({
     aggregatedContributions,
     matchAmount: calculationConfig.matchAmount,
     options: {
@@ -197,7 +190,7 @@ export async function calculateMatchingEstimates({
     potentialContributions
   );
 
-  const potentialResults = await calculate({
+  const potentialResults = await linearQfImpl({
     matchAmount: calculationConfig.matchAmount,
     aggregatedContributions: totalAggregations,
     options: {
