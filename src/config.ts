@@ -507,6 +507,15 @@ const CHAINS: Chain[] = [
     pricesFromTimestamp: Date.UTC(2023, 12, 1, 0, 0, 0),
     tokens: [
       {
+        code: "ETH",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
         code: "USDC",
         address: "0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4",
         decimals: 6,
@@ -578,8 +587,17 @@ const CHAINS: Chain[] = [
     pricesFromTimestamp: Date.UTC(2023, 12, 1, 0, 0, 0),
     tokens: [
       {
-        code: "DAI",
-        address: "0x3e7676937A7E96CFB7616f255b9AD9FF47363D4b",
+        code: "ETH",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "TEST",
+        address: "0x8fd03Cd97Da068CC242Ab7551Dc4100DD405E8c7",
         decimals: 18,
         priceSource: {
           chainId: 1,
