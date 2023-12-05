@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 import fastq, { queueAsPromised } from "fastq";
 import split2 from "split2";
+import { dirname } from "path";
 import { Level } from "level";
 import enhancedFetch from "make-fetch-happen";
-import { access } from "node:fs/promises";
+import { access, mkdir } from "node:fs/promises";
 import { createWriteStream } from "node:fs";
 import { Logger } from "pino";
 
@@ -265,6 +266,8 @@ export const createPassportProvider = (
     path: string
   ): Promise<void> => {
     logger.info("writing passport JSON dump for backward compatibility");
+
+    await mkdir(dirname(path), { recursive: true });
 
     const deprecatedCompatibilityDumpStream = createWriteStream(path);
     deprecatedCompatibilityDumpStream.write("[\n");
