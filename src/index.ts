@@ -117,6 +117,17 @@ async function main(): Promise<void> {
       buildTag: config.buildTag,
       chains: config.chains,
       enableSentry: config.sentryDsn !== null,
+      calculator: {
+        esimatesLinearQfImplementation:
+          config.estimatesLinearQfWorkerPoolSize === null
+            ? {
+                type: "in-thread",
+              }
+            : {
+                type: "worker-pool",
+                workerPoolSize: config.estimatesLinearQfWorkerPoolSize,
+              },
+      },
     });
 
     await httpApi.start();

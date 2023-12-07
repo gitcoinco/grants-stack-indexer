@@ -11,6 +11,7 @@ import { Round } from "../../../indexer/types.js";
 import {
   LinearQfCalculatorResult,
   LinearQfCalculatorArgs,
+  LinearQf,
 } from "../../../calculator/linearQf/index.js";
 import { RoundContributionsCache } from "../../../calculator/roundContributionsCache.js";
 import {
@@ -25,9 +26,9 @@ import {
 import { linearQFWithAggregates } from "pluralistic";
 
 function createLinearQf(
-  config: HttpApiConfig["calculator"]["estimateMatchWorkerPool"]
-) {
-  if (config === undefined) {
+  config: HttpApiConfig["calculator"]["esimatesLinearQfImplementation"]
+): LinearQf {
+  if (config.type === "in-thread") {
     return (args: LinearQfCalculatorArgs) => {
       return Promise.resolve(
         linearQFWithAggregates(
@@ -38,23 +39,25 @@ function createLinearQf(
         )
       );
     };
-  } else {
+  } else if (config.type === "worker-pool") {
     const calculatorWorkerPool = new StaticPool<
       (msg: LinearQfCalculatorArgs) => LinearQfCalculatorResult
     >({
-      size: 10,
-      task: "./dist/src/calculator/worker.js",
+      size: config.workerPoolSize,
+      task: "./dist/src/calculator/linearQf/worker.js",
     });
 
     return (args: LinearQfCalculatorArgs) => calculatorWorkerPool.exec(args);
   }
+
+  throw new Error("Unimplemented linearQfImplementation type");
 }
 
 export const createHandler = (config: HttpApiConfig): express.Router => {
   const router = express.Router();
 
   const linearQfImpl = createLinearQf(
-    config.calculator.estimateMatchWorkerPool
+    config.calculator.esimatesLinearQfImplementation
   );
 
   const roundContributionsCache = new RoundContributionsCache();

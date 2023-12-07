@@ -25,9 +25,9 @@ export interface HttpApiConfig {
   chains: Chain[];
   enableSentry: boolean;
   calculator: {
-    estimateMatchWorkerPool?: {
-      size: number;
-    };
+    esimatesLinearQfImplementation:
+      | { type: "in-thread" }
+      | { type: "worker-pool"; workerPoolSize: number };
   };
 }
 
