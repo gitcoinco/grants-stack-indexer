@@ -503,7 +503,7 @@ const CHAINS: Chain[] = [
     name: "base",
     rpc: rpcUrl
       .default("https://mainnet.base.org/")
-      .parse(process.env.OPTIMISM_RPC_URL),
+      .parse(process.env.BASE_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 12, 1, 0, 0, 0),
     tokens: [
       {
