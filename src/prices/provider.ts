@@ -1,5 +1,5 @@
 import { Logger } from "pino";
-import { getChainConfigById } from "../config.js";
+import { Token, getChainConfigById } from "../config.js";
 import { UnknownTokenError } from "./common.js";
 import { convertTokenToFiat, convertFiatToToken } from "../tokenMath.js";
 import { Database } from "../database/index.js";
@@ -55,7 +55,7 @@ export function createPriceProvider(
   config: PriceProviderConfig
 ): PriceProvider {
   const { db, logger } = config;
-  const cache = new LRUCache<string, PriceWithDecimals>({
+  const cache = new LRUCache<string, Promise<PriceWithDecimals>>({
     max: 100,
   });
 
@@ -64,8 +64,6 @@ export function createPriceProvider(
   async function getAllPricesForChain(chainId: ChainId): Promise<Price[]> {
     return await db.query({ type: "AllChainPrices", chainId });
   }
-
-  // INTERNALS
 
   async function convertToUSD(
     chainId: ChainId,
@@ -127,8 +125,6 @@ export function createPriceProvider(
       throw new UnknownTokenError(tokenAddress, chainId);
     }
 
-    let price: PriceWithDecimals | null = null;
-
     if (blockNumber === "latest") {
       const priceWithoutDecimals = await db.query({
         type: "TokenPriceByBlockNumber",
@@ -138,87 +134,110 @@ export function createPriceProvider(
       });
 
       if (priceWithoutDecimals !== null) {
-        price = {
+        return {
           ...priceWithoutDecimals,
           tokenDecimals: token.decimals,
         };
       }
-    } else {
-      const fetchNewPriceEveryNthBlock =
-        FETCH_NEW_PRICE_EVERY_NTH_BLOCK_PER_CHAIN[chainId] ??
-        DEFAULT_FETCH_NEW_PRICE_EVERY_NTH_BLOCK;
 
-      const roundedBlockNumber =
-        blockNumber - (blockNumber % fetchNewPriceEveryNthBlock);
-
-      const cacheKey = `${chainId}-${tokenAddress}-${roundedBlockNumber}`;
-      const cachedPrice = cache.get(cacheKey);
-
-      if (cachedPrice !== undefined) {
-        price = cachedPrice;
-      } else {
-        logger.debug({
-          msg: "Fetching price",
-          tokenAddress,
-          roundedBlockNumber,
-        });
-
-        const blockTimestampInMs = await config.getBlockTimestampInMs(
-          chainId,
-          roundedBlockNumber
-        );
-
-        const oneHourInMs = 60 * 60 * 1000;
-
-        const prices = await fetchPricesForRange({
-          chainId: token.priceSource.chainId,
-          tokenAddress: parseAddress(token.priceSource.address),
-          startTimestampInMs: blockTimestampInMs,
-          endTimestampInMs: blockTimestampInMs + oneHourInMs,
-          coingeckoApiUrl: config.coingeckoApiUrl,
-          coingeckoApiKey: config.coingeckoApiKey,
-          fetch: (url, opts) => config.fetch(url, opts),
-        });
-
-        if (prices.length > 0) {
-          const [priceTimestamp, priceInUsd] = prices[0];
-          const newPrice = {
-            chainId,
-            tokenAddress: tokenAddress,
-            blockNumber: roundedBlockNumber,
-            priceInUsd: priceInUsd,
-            timestamp: new Date(blockTimestampInMs),
-          };
-
-          const timestampDiff = Math.abs(blockTimestampInMs - priceTimestamp);
-
-          if (timestampDiff > oneHourInMs) {
-            logger.warn({
-              msg: "Timestamp diff between block and Coingecko timestamps is larger than 1 hour",
-              blockTimestamp: blockTimestampInMs,
-              priceTimestamp: priceTimestamp,
-              timestampDiff,
-            });
-          }
-
-          await db.mutate({
-            type: "InsertManyPrices",
-            prices: [newPrice],
-          });
-
-          price = { ...newPrice, tokenDecimals: token.decimals };
-          cache.set(cacheKey, price);
-        }
-      }
-    }
-
-    if (price === null) {
-      throw Error(
+      throw new Error(
         `Price not found for token ${tokenAddress} on chain ${chainId} and block ${blockNumber}`
       );
     }
 
-    return price;
+    const fetchNewPriceEveryNthBlock =
+      FETCH_NEW_PRICE_EVERY_NTH_BLOCK_PER_CHAIN[chainId] ??
+      DEFAULT_FETCH_NEW_PRICE_EVERY_NTH_BLOCK;
+
+    const roundedBlockNumber =
+      blockNumber - (blockNumber % fetchNewPriceEveryNthBlock);
+
+    const cacheKey = `${chainId}-${tokenAddress}-${roundedBlockNumber}`;
+    const cachedPrice = cache.get(cacheKey);
+
+    if (cachedPrice !== undefined) {
+      return cachedPrice;
+    }
+
+    const pricePromise = fetchPriceForToken(
+      chainId,
+      token,
+      roundedBlockNumber
+    ).then((price) => {
+      if (price === null) {
+        throw new Error(
+          `Price not found for token ${tokenAddress} on chain ${chainId} and block ${blockNumber}`
+        );
+      } else {
+        return price;
+      }
+    });
+
+    cache.set(cacheKey, pricePromise);
+
+    return pricePromise;
+  }
+
+  // INTERNALS
+
+  async function fetchPriceForToken(
+    chainId: ChainId,
+    token: Token,
+    blockNumber: bigint
+  ): Promise<PriceWithDecimals | null> {
+    logger.debug({
+      msg: "Fetching price",
+      tokenAddress: token.address,
+      blockNumber,
+    });
+
+    const blockTimestampInMs = await config.getBlockTimestampInMs(
+      chainId,
+      blockNumber
+    );
+
+    const oneHourInMs = 60 * 60 * 1000;
+
+    const prices = await fetchPricesForRange({
+      chainId: token.priceSource.chainId,
+      tokenAddress: parseAddress(token.priceSource.address),
+      startTimestampInMs: blockTimestampInMs,
+      endTimestampInMs: blockTimestampInMs + oneHourInMs,
+      coingeckoApiUrl: config.coingeckoApiUrl,
+      coingeckoApiKey: config.coingeckoApiKey,
+      fetch: (url, opts) => config.fetch(url, opts),
+    });
+
+    if (prices.length > 0) {
+      const [priceTimestamp, priceInUsd] = prices[0];
+      const newPrice = {
+        chainId,
+        tokenAddress: parseAddress(token.address),
+        blockNumber: blockNumber,
+        priceInUsd: priceInUsd,
+        timestamp: new Date(blockTimestampInMs),
+      };
+
+      const timestampDiff = Math.abs(blockTimestampInMs - priceTimestamp);
+
+      if (timestampDiff > oneHourInMs) {
+        logger.warn({
+          msg: "Timestamp diff between block and Coingecko timestamps is larger than 1 hour",
+          blockTimestamp: blockTimestampInMs,
+          priceTimestamp: priceTimestamp,
+          timestampDiff,
+        });
+      }
+
+      await db.mutate({
+        type: "InsertManyPrices",
+        prices: [newPrice],
+      });
+
+      return { ...newPrice, tokenDecimals: token.decimals };
+    }
+
+    return null;
   }
 
   return {

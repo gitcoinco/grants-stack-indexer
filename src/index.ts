@@ -34,17 +34,12 @@ import { ethers } from "ethers";
 import abis from "./indexer/abis/index.js";
 import type { EventHandlerContext } from "./indexer/indexer.js";
 import { handleEvent } from "./indexer/handleEvent.js";
-import { Database, Mutation } from "./database/index.js";
+import { Database } from "./database/index.js";
 import { decodeJsonWithBigInts } from "./utils/index.js";
 import { Block } from "chainsauce/dist/cache.js";
 import { Hex } from "./types.js";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
-const NON_BLOCKING_MUTATIONS: Set<Mutation["type"]> = new Set([
-  "InsertDonation",
-  "IncrementRoundDonationStats",
-  "IncrementApplicationDonationStats",
-]);
 
 async function main(): Promise<void> {
   const config = getConfig();
@@ -389,11 +384,9 @@ async function catchupAndWatchChain(
           maxConcurrentRequests: 10,
           maxRetries: 3,
           url: config.chain.rpc,
-          onRequest({ method, url }) {
-            // TODO: this is a temporary log to investigate high request counts
-            indexerLogger.debug({
-              msg: "RPC request",
-              url,
+          onRequest({ method }) {
+            indexerLogger.trace({
+              msg: "JSON-RPC request",
               method,
             });
           },
@@ -421,13 +414,22 @@ async function catchupAndWatchChain(
     indexer.on("event", async (args) => {
       try {
         // console.time(args.event.name);
-        const mutations = await handleEvent(args);
-
-        for (const mutation of mutations) {
-          // do not await donation inserts as they are write only
-          if (NON_BLOCKING_MUTATIONS.has(mutation.type)) {
-            void db.mutate(mutation);
-          } else {
+        // do not await donation inserts as they are write only
+        if (args.event.name === "Voted") {
+          void handleEvent(args).then((mutations) => {
+            for (const mutation of mutations) {
+              db.mutate(mutation).catch((err: unknown) => {
+                indexerLogger.warn({
+                  msg: "error while processing vote",
+                  err,
+                  mutation,
+                });
+              });
+            }
+          });
+        } else {
+          const mutations = await handleEvent(args);
+          for (const mutation of mutations) {
             await db.mutate(mutation);
           }
         }
