@@ -136,7 +136,7 @@ async function main(): Promise<void> {
       const chain = getChainConfigById(chainId);
       const rpcProvider = new ethers.providers.JsonRpcProvider(
         chain.rpc,
-        chain.name
+        chain.id
       );
 
       const block = await rpcProvider.getBlock(Number(blockNumber));

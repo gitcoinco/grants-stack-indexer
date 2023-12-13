@@ -160,7 +160,7 @@ export function createPriceProvider(
         const oneHourInMs = 60 * 60 * 1000;
 
         const prices = await fetchPricesForRange({
-          chainId,
+          chainId: token.priceSource.chainId,
           tokenAddress,
           startTimestampInMs: blockTimestampInMs,
           endTimestampInMs: blockTimestampInMs + oneHourInMs,
