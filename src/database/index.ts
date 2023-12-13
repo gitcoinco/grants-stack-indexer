@@ -189,6 +189,41 @@ export class Database {
         break;
       }
 
+      case "IncrementRoundDonationStats": {
+        await this.#db
+          .updateTable("rounds")
+          .set((eb) => ({
+            totalAmountDonatedInUsd: eb(
+              "totalAmountDonatedInUsd",
+              "+",
+              mutation.amountInUsd
+            ),
+            totalDonationsCount: eb("totalDonationsCount", "+", 1),
+          }))
+          .where("chainId", "=", mutation.chainId)
+          .where("id", "=", mutation.roundId)
+          .execute();
+        break;
+      }
+
+      case "IncrementApplicationDonationStats": {
+        await this.#db
+          .updateTable("applications")
+          .set((eb) => ({
+            totalAmountDonatedInUsd: eb(
+              "totalAmountDonatedInUsd",
+              "+",
+              mutation.amountInUsd
+            ),
+            totalDonationsCount: eb("totalDonationsCount", "+", 1),
+          }))
+          .where("chainId", "=", mutation.chainId)
+          .where("roundId", "=", mutation.roundId)
+          .where("id", "=", mutation.applicationId)
+          .execute();
+        break;
+      }
+
       default:
         throw new Error(`Unknown mutation type`);
     }

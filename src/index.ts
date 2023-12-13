@@ -34,12 +34,17 @@ import { ethers } from "ethers";
 import abis from "./indexer/abis/index.js";
 import type { EventHandlerContext } from "./indexer/indexer.js";
 import { handleEvent } from "./indexer/handleEvent.js";
-import { Database } from "./database/index.js";
+import { Database, Mutation } from "./database/index.js";
 import { decodeJsonWithBigInts } from "./utils/index.js";
 import { Block } from "chainsauce/dist/cache.js";
 import { Hex } from "./types.js";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
+const NON_BLOCKING_MUTATIONS: Set<Mutation["type"]> = new Set([
+  "InsertDonation",
+  "IncrementRoundDonationStats",
+  "IncrementApplicationDonationStats",
+]);
 
 async function main(): Promise<void> {
   const config = getConfig();
@@ -420,7 +425,7 @@ async function catchupAndWatchChain(
 
         for (const mutation of mutations) {
           // do not await donation inserts as they are write only
-          if (mutation.type === "InsertDonation") {
+          if (NON_BLOCKING_MUTATIONS.has(mutation.type)) {
             void db.mutate(mutation);
           } else {
             await db.mutate(mutation);

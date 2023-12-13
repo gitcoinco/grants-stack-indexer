@@ -524,7 +524,7 @@ export async function handleEvent(
         event.blockNumber
       );
 
-      const amountUsd = conversionToUSD.amount;
+      const amountInUsd = conversionToUSD.amount;
 
       let amountInRoundMatchToken: bigint | null = null;
       try {
@@ -564,11 +564,24 @@ export async function handleEvent(
         recipientAddress: parseAddress(event.params.grantAddress),
         tokenAddress: parseAddress(event.params.token),
         amount: event.params.amount,
-        amountInUsd: amountUsd,
+        amountInUsd: amountInUsd,
         amountInRoundMatchToken,
       };
 
       return [
+        {
+          type: "IncrementApplicationDonationStats",
+          chainId,
+          roundId,
+          applicationId,
+          amountInUsd,
+        },
+        {
+          type: "IncrementRoundDonationStats",
+          chainId,
+          roundId,
+          amountInUsd,
+        },
         {
           type: "InsertDonation",
           donation,

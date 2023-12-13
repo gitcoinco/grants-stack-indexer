@@ -31,6 +31,19 @@ export type Mutation =
       round: PartialRound;
     }
   | {
+      type: "IncrementRoundDonationStats";
+      roundId: Address;
+      chainId: ChainId;
+      amountInUsd: number;
+    }
+  | {
+      type: "IncrementApplicationDonationStats";
+      roundId: Address;
+      chainId: ChainId;
+      applicationId: string;
+      amountInUsd: number;
+    }
+  | {
       type: "InsertApplication";
       application: NewApplication;
     }
