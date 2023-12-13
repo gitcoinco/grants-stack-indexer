@@ -7,10 +7,16 @@ import { Price } from "../database/schema.js";
 import { Address, ChainId, FetchInterface } from "../types.js";
 import { LRUCache } from "lru-cache";
 import { fetchPricesForRange } from "./coinGecko.js";
+import { parseAddress } from "../address.js";
 
 export type PriceWithDecimals = Omit<Price, "id"> & { tokenDecimals: number };
 
-const ROUND_BLOCK_NUMBER_TO = 2000n;
+const FETCH_NEW_PRICE_EVERY_NTH_BLOCK_PER_CHAIN: Record<number, bigint> = {
+  10: 7200n,
+  424: 7200n,
+};
+
+const DEFAULT_FETCH_NEW_PRICE_EVERY_NTH_BLOCK = 2000n;
 
 interface PriceProviderConfig {
   db: Database;
@@ -138,8 +144,13 @@ export function createPriceProvider(
         };
       }
     } else {
+      const fetchNewPriceEveryNthBlock =
+        FETCH_NEW_PRICE_EVERY_NTH_BLOCK_PER_CHAIN[chainId] ??
+        DEFAULT_FETCH_NEW_PRICE_EVERY_NTH_BLOCK;
+
       const roundedBlockNumber =
-        blockNumber - (blockNumber % ROUND_BLOCK_NUMBER_TO);
+        blockNumber - (blockNumber % fetchNewPriceEveryNthBlock);
+
       const cacheKey = `${chainId}-${tokenAddress}-${roundedBlockNumber}`;
       const cachedPrice = cache.get(cacheKey);
 
@@ -161,7 +172,7 @@ export function createPriceProvider(
 
         const prices = await fetchPricesForRange({
           chainId: token.priceSource.chainId,
-          tokenAddress,
+          tokenAddress: parseAddress(token.priceSource.address),
           startTimestampInMs: blockTimestampInMs,
           endTimestampInMs: blockTimestampInMs + oneHourInMs,
           coingeckoApiUrl: config.coingeckoApiUrl,

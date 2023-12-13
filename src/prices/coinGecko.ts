@@ -67,7 +67,13 @@ export async function fetchPricesForRange({
     headers,
   });
 
-  const data = (await res.json()) as { prices: Array<[TimestampInMs, Price]> };
+  const data = (await res.json()) as
+    | { prices: Array<[TimestampInMs, Price]> }
+    | { error: string };
+
+  if ("error" in data) {
+    throw new Error(`Error from CoinGecko API: ${JSON.stringify(data)}`);
+  }
 
   return data.prices;
 }
