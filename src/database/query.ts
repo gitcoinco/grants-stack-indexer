@@ -29,6 +29,14 @@ export type QueryInteraction =
     }
   | {
       query: {
+        type: "RoundMatchTokenAddressById";
+        roundId: Address;
+        chainId: ChainId;
+      };
+      response: Address | null;
+    }
+  | {
+      query: {
         type: "AllChainRounds";
         chainId: ChainId;
       };

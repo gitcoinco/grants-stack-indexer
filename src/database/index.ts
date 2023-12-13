@@ -1,5 +1,10 @@
 import { Pool } from "pg";
 import { sql, Kysely, PostgresDialect, CamelCasePlugin } from "kysely";
+import {
+  tinybatch,
+  AddToBatch,
+  timeoutScheduler,
+} from "@teamawesome/tiny-batch";
 
 import {
   ProjectTable,
@@ -7,6 +12,7 @@ import {
   ApplicationTable,
   DonationTable,
   PriceTable,
+  NewDonation,
 } from "./schema.js";
 import { migrate } from "./migrate.js";
 import { encodeJsonWithBigInts } from "../utils/index.js";
@@ -17,6 +23,8 @@ import {
   QueryInteraction,
 } from "./query.js";
 import { Logger } from "pino";
+import { LRUCache } from "lru-cache";
+import { Address } from "../address.js";
 
 interface Tables {
   projects: ProjectTable;
@@ -30,6 +38,9 @@ type KyselyDb = Kysely<Tables>;
 
 export class Database {
   #db: KyselyDb;
+  #roundMatchTokenCache = new LRUCache<string, Address>({ max: 500 });
+  #batchDonationInsert: AddToBatch<void, NewDonation[]>;
+
   readonly databaseSchemaName: string;
 
   constructor(options: { connectionPool: Pool; schemaName: string }) {
@@ -40,17 +51,21 @@ export class Database {
     this.#db = new Kysely<Tables>({
       dialect,
       plugins: [new CamelCasePlugin()],
-      // log(event) {
-      //   if (event.level === "query") {
-      //     console.log(event.query.sql);
-      //     console.log(event.query.parameters);
-      //   }
-      // },
     });
 
     this.#db = this.#db.withSchema(options.schemaName);
 
     this.databaseSchemaName = options.schemaName;
+    this.#batchDonationInsert = tinybatch<void, NewDonation[]>(async (args) => {
+      const donations = args.flat();
+
+      await this.mutate({
+        type: "InsertManyDonations",
+        donations: donations,
+      });
+
+      return [];
+    }, timeoutScheduler(500));
   }
 
   async dropSchemaIfExists() {
@@ -157,10 +172,7 @@ export class Database {
       }
 
       case "InsertDonation": {
-        await this.#db
-          .insertInto("donations")
-          .values(mutation.donation)
-          .execute();
+        await this.#batchDonationInsert(mutation.donation);
         break;
       }
 
@@ -188,6 +200,11 @@ export class Database {
   query(
     query: ExtractQuery<QueryInteraction, "RoundById">
   ): Promise<ExtractQueryResponse<QueryInteraction, "RoundById">>;
+  query(
+    query: ExtractQuery<QueryInteraction, "RoundMatchTokenAddressById">
+  ): Promise<
+    ExtractQueryResponse<QueryInteraction, "RoundMatchTokenAddressById">
+  >;
   query(
     query: ExtractQuery<QueryInteraction, "AllChainRounds">
   ): Promise<ExtractQueryResponse<QueryInteraction, "AllChainRounds">>;
@@ -237,6 +254,30 @@ export class Database {
           .executeTakeFirst();
 
         return round ?? null;
+      }
+
+      case "RoundMatchTokenAddressById": {
+        const cacheKey = `${query.chainId}-${query.roundId}`;
+        const cachedRoundMatchTokenAddress =
+          this.#roundMatchTokenCache.get(cacheKey);
+
+        if (cachedRoundMatchTokenAddress) {
+          return cachedRoundMatchTokenAddress;
+        }
+
+        const round = await this.#db
+          .selectFrom("rounds")
+          .where("chainId", "=", query.chainId)
+          .where("id", "=", query.roundId)
+          .select("matchTokenAddress")
+          .executeTakeFirst();
+
+        if (round === undefined) {
+          return null;
+        }
+
+        this.#roundMatchTokenCache.set(cacheKey, round.matchTokenAddress);
+        return round.matchTokenAddress;
       }
 
       case "AllChainRounds": {

@@ -110,14 +110,6 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
 
     .addPrimaryKeyConstraint("donations_pkey", ["id"])
 
-    .addForeignKeyConstraint(
-      "donations_applications_fkey",
-      ["applicationId", "roundId", "chainId"],
-      "applications",
-      ["id", "roundId", "chainId"],
-      (cb) => cb.onDelete("cascade")
-    )
-
     .execute();
 
   await schema
@@ -147,8 +139,15 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     "projects"
   )}(id)|@fieldName project';
 
-  comment on constraint "donations_applications_fkey" on ${ref("donations")} is
-  E'@foreignFieldName donations\n@fieldName application';
+  comment on table ${ref("donations")} is
+  E'@foreignKey ("application_id", "round_id", "chain_id") references ${ref(
+    "applications"
+  )}(id, round_id, chain_id)|@fieldName application|@foreignFieldName donations';
+
+  comment on table ${ref("donations")} is
+  E'@foreignKey ("round_id", "chain_id") references ${ref(
+    "rounds"
+  )}(id, chain_id)|@fieldName round|@foreignFieldName donations';
 
   -- this adds a computed column to the rounds table, could be slow
   CREATE FUNCTION ${ref("rounds_unique_donors_count")}(round ${ref(

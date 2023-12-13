@@ -26,6 +26,7 @@
   "dependencies": {
     "@graphile-contrib/pg-simplify-inflector": "^6.1.0",
     "@sentry/node": "^7.51.0",
+    "@teamawesome/tiny-batch": "^1.0.7",
     "better-sqlite3": "^8.6.0",
     "chainsauce": "github:boudra/chainsauce#main",
     "cors": "^2.8.5",
@@ -41,6 +42,7 @@
     "into-stream": "^8.0.0",
     "kysely": "^0.26.3",
     "level": "^8.0.0",
+    "lru-cache": "^10.1.0",
     "make-fetch-happen": "^11.1.1",
     "multer": "^1.4.5-lts.1",
     "pg": "^8.11.3",

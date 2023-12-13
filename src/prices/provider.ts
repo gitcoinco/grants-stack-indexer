@@ -4,14 +4,24 @@ import { UnknownTokenError } from "./common.js";
 import { convertTokenToFiat, convertFiatToToken } from "../tokenMath.js";
 import { Database } from "../database/index.js";
 import { Price } from "../database/schema.js";
-import { Address, ChainId } from "../types.js";
+import { Address, ChainId, FetchInterface } from "../types.js";
+import { LRUCache } from "lru-cache";
+import { fetchPricesForRange } from "./coinGecko.js";
 
-export type PriceWithDecimals = Price & { tokenDecimals: number };
+export type PriceWithDecimals = Omit<Price, "id"> & { tokenDecimals: number };
+
+const ROUND_BLOCK_NUMBER_TO = 2000n;
 
 interface PriceProviderConfig {
-  updateEveryMs?: number;
   db: Database;
   logger: Logger;
+  coingeckoApiKey: string | null;
+  coingeckoApiUrl: string;
+  getBlockTimestampInMs: (
+    chainId: ChainId,
+    blockNumber: bigint
+  ) => Promise<number>;
+  fetch: FetchInterface;
 }
 
 export interface PriceProvider {
@@ -38,7 +48,10 @@ export interface PriceProvider {
 export function createPriceProvider(
   config: PriceProviderConfig
 ): PriceProvider {
-  const { db, logger: _logger } = config;
+  const { db, logger } = config;
+  const cache = new LRUCache<string, PriceWithDecimals>({
+    max: 100,
+  });
 
   // PUBLIC
 
@@ -108,12 +121,85 @@ export function createPriceProvider(
       throw new UnknownTokenError(tokenAddress, chainId);
     }
 
-    const price = await db.query({
-      type: "TokenPriceByBlockNumber",
-      chainId,
-      tokenAddress,
-      blockNumber,
-    });
+    let price: PriceWithDecimals | null = null;
+
+    if (blockNumber === "latest") {
+      const priceWithoutDecimals = await db.query({
+        type: "TokenPriceByBlockNumber",
+        chainId,
+        tokenAddress,
+        blockNumber,
+      });
+
+      if (priceWithoutDecimals !== null) {
+        price = {
+          ...priceWithoutDecimals,
+          tokenDecimals: token.decimals,
+        };
+      }
+    } else {
+      const roundedBlockNumber =
+        blockNumber - (blockNumber % ROUND_BLOCK_NUMBER_TO);
+      const cacheKey = `${chainId}-${tokenAddress}-${roundedBlockNumber}`;
+      const cachedPrice = cache.get(cacheKey);
+
+      if (cachedPrice !== undefined) {
+        price = cachedPrice;
+      } else {
+        logger.debug({
+          msg: "Fetching price",
+          tokenAddress,
+          roundedBlockNumber,
+        });
+
+        const blockTimestampInMs = await config.getBlockTimestampInMs(
+          chainId,
+          roundedBlockNumber
+        );
+
+        const oneHourInMs = 60 * 60 * 1000;
+
+        const prices = await fetchPricesForRange({
+          chainId,
+          tokenAddress,
+          startTimestampInMs: blockTimestampInMs,
+          endTimestampInMs: blockTimestampInMs + oneHourInMs,
+          coingeckoApiUrl: config.coingeckoApiUrl,
+          coingeckoApiKey: config.coingeckoApiKey,
+          fetch: (url, opts) => config.fetch(url, opts),
+        });
+
+        if (prices.length > 0) {
+          const [priceTimestamp, priceInUsd] = prices[0];
+          const newPrice = {
+            chainId,
+            tokenAddress: tokenAddress,
+            blockNumber: roundedBlockNumber,
+            priceInUsd: priceInUsd,
+            timestamp: new Date(blockTimestampInMs),
+          };
+
+          const timestampDiff = Math.abs(blockTimestampInMs - priceTimestamp);
+
+          if (timestampDiff > oneHourInMs) {
+            logger.warn({
+              msg: "Timestamp diff between block and Coingecko timestamps is larger than 1 hour",
+              blockTimestamp: blockTimestampInMs,
+              priceTimestamp: priceTimestamp,
+              timestampDiff,
+            });
+          }
+
+          await db.mutate({
+            type: "InsertManyPrices",
+            prices: [newPrice],
+          });
+
+          price = { ...newPrice, tokenDecimals: token.decimals };
+          cache.set(cacheKey, price);
+        }
+      }
+    }
 
     if (price === null) {
       throw Error(
@@ -121,7 +207,7 @@ export function createPriceProvider(
       );
     }
 
-    return { ...price, tokenDecimals: token.decimals };
+    return price;
   }
 
   return {

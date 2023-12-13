@@ -4,6 +4,7 @@ import {
   createPostgresSubscriptionStore,
   createHttpRpcClient,
   SubscriptionStore,
+  Cache,
 } from "chainsauce";
 import { Logger, pino } from "pino";
 import path from "node:path";
@@ -24,10 +25,8 @@ import { createPassportProvider, PassportProvider } from "./passport/index.js";
 import { createResourceMonitor } from "./resourceMonitor.js";
 import diskstats from "diskstats";
 
-import { DeprecatedDiskCache } from "./diskCache.js";
-import { Chain, getConfig, Config } from "./config.js";
-import { createPriceUpdater } from "./prices/updater.js";
-import { createPriceProvider } from "./prices/provider.js";
+import { Chain, getConfig, Config, getChainConfigById } from "./config.js";
+import { createPriceProvider, PriceProvider } from "./prices/provider.js";
 import { createHttpApi } from "./http/app.js";
 import { DatabaseDataProvider } from "./calculator/index.js";
 import { ethers } from "ethers";
@@ -37,7 +36,8 @@ import type { EventHandlerContext } from "./indexer/indexer.js";
 import { handleEvent } from "./indexer/handleEvent.js";
 import { Database } from "./database/index.js";
 import { decodeJsonWithBigInts } from "./utils/index.js";
-import { NewDonation } from "./database/schema.js";
+import { Block } from "chainsauce/dist/cache.js";
+import { Hex } from "./types.js";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
 
@@ -113,6 +113,58 @@ async function main(): Promise<void> {
 
   await db.createSchemaIfNotExists(baseLogger);
 
+  // the chainsauce cache is used to cache events and contract reads
+  const chainsauceCache = config.cacheDir
+    ? createSqliteCache(path.join(config.cacheDir, "chainsauceCache.db"))
+    : null;
+
+  const priceProvider = createPriceProvider({
+    db,
+    coingeckoApiUrl: config.coingeckoApiUrl,
+    coingeckoApiKey: config.coingeckoApiKey,
+    logger: baseLogger.child({ subsystem: "PriceProvider" }),
+    getBlockTimestampInMs: async (chainId, blockNumber) => {
+      const cachedBlock = await chainsauceCache?.getBlockByNumber({
+        chainId,
+        blockNumber,
+      });
+
+      if (cachedBlock) {
+        return cachedBlock.timestamp * 1000;
+      }
+
+      const chain = getChainConfigById(chainId);
+      const rpcProvider = new ethers.providers.JsonRpcProvider(
+        chain.rpc,
+        chain.name
+      );
+
+      const block = await rpcProvider.getBlock(Number(blockNumber));
+
+      const chainsauceBlock: Block = {
+        chainId,
+        blockNumber: BigInt(block.number),
+        timestamp: block.timestamp,
+        blockHash: block.hash as Hex,
+      };
+
+      await chainsauceCache?.insertBlock(chainsauceBlock);
+
+      return block.timestamp * 1000;
+    },
+    fetch: (url, options) => {
+      return fetch(url, {
+        ...options,
+        retry: { retries: 3, minTimeout: 2000, maxTimeout: 60 * 10000 },
+        cache: "force-cache",
+        cachePath:
+          config.cacheDir !== null
+            ? path.join(config.cacheDir, "prices")
+            : undefined,
+      });
+    },
+  });
+
   if (config.enableResourceMonitor) {
     monitorAndLogResources({
       logger: baseLogger,
@@ -126,10 +178,12 @@ async function main(): Promise<void> {
     await Promise.all(
       config.chains.map(async (chain) =>
         catchupAndWatchChain({
+          chainsauceCache,
           chain,
           db,
           subscriptionStore,
           baseLogger,
+          priceProvider,
           ...config,
         })
       )
@@ -147,10 +201,12 @@ async function main(): Promise<void> {
       }),
       ...config.chains.map((chain) =>
         catchupAndWatchChain({
+          chainsauceCache,
           chain,
           db,
           subscriptionStore,
           baseLogger,
+          priceProvider,
           ...config,
         })
       ),
@@ -192,10 +248,7 @@ async function main(): Promise<void> {
 
     const httpApi = createHttpApi({
       db,
-      priceProvider: createPriceProvider({
-        db,
-        logger: baseLogger.child({ subsystem: "PriceProvider" }),
-      }),
+      priceProvider,
       passportProvider: passportProvider,
       dataProvider: new DatabaseDataProvider(db),
       port: config.apiHttpPort,
@@ -243,7 +296,9 @@ async function catchupAndWatchPassport(
 
 async function catchupAndWatchChain(
   config: Omit<Config, "chains"> & {
+    chainsauceCache: Cache | null;
     subscriptionStore: SubscriptionStore;
+    priceProvider: PriceProvider;
     db: Database;
     chain: Chain;
     baseLogger: Logger;
@@ -253,19 +308,9 @@ async function catchupAndWatchChain(
     chain: config.chain.id,
   });
 
-  const db = config.db;
+  const { db, priceProvider } = config;
 
   try {
-    const pricesCache: DeprecatedDiskCache | null = config.cacheDir
-      ? new DeprecatedDiskCache(path.join(config.cacheDir, "prices"))
-      : null;
-
-    const priceProvider = createPriceProvider({
-      ...config,
-      db,
-      logger: chainLogger.child({ subsystem: "PriceProvider" }),
-    });
-
     const rpcProvider = new ethers.providers.JsonRpcProvider(config.chain.rpc);
 
     const cachedIpfsGet = async <T>(cid: string): Promise<T | undefined> => {
@@ -302,28 +347,6 @@ async function catchupAndWatchChain(
 
     await rpcProvider.getNetwork();
 
-    // Update prices to present and optionally keep watching for updates
-
-    const priceUpdater = createPriceUpdater({
-      ...config,
-      db,
-      rpcProvider,
-      chain: config.chain,
-      logger: chainLogger.child({ subsystem: "PriceUpdater" }),
-      blockCachePath: config.cacheDir
-        ? path.join(config.cacheDir, "blockCache.db")
-        : undefined,
-      withCacheFn:
-        pricesCache === null
-          ? undefined
-          : (cacheKey, fn) => pricesCache.lazy(cacheKey, fn),
-    });
-
-    await priceUpdater.start({
-      watch: !config.runOnce,
-      toBlock: config.toBlock,
-    });
-
     chainLogger.info("catching up with blockchain events");
 
     const indexerLogger = chainLogger.child({ subsystem: "DataUpdater" });
@@ -350,14 +373,10 @@ async function catchupAndWatchChain(
       logger: indexerLogger,
     };
 
-    // the chainsauce cache is used to cache events and contract reads
-    const chainsauceCache = config.cacheDir
-      ? createSqliteCache(path.join(config.cacheDir, "chainsauceCache.db"))
-      : null;
-
     const indexer = createIndexer({
       contracts: abis,
       chain: {
+        maxBlockRange: 100000n,
         id: config.chain.id,
         pollingIntervalMs: 20 * 1000,
         rpcClient: createHttpRpcClient({
@@ -365,20 +384,19 @@ async function catchupAndWatchChain(
           maxConcurrentRequests: 10,
           maxRetries: 3,
           url: config.chain.rpc,
-          onRequest({ method, params, url }) {
+          onRequest({ method, url }) {
             // TODO: this is a temporary log to investigate high request counts
             indexerLogger.debug({
               msg: "RPC request",
               url,
               method,
-              params,
             });
           },
         }),
       },
       context: eventHandlerContext,
       subscriptionStore: config.subscriptionStore,
-      cache: chainsauceCache,
+      cache: config.chainsauceCache,
       logLevel: "trace",
       logger: (level, msg, data) => {
         if (level === "error") {
@@ -395,47 +413,27 @@ async function catchupAndWatchChain(
       },
     });
 
-    let newDonationsQueue: NewDonation[] = [];
-
-    setInterval(async () => {
-      if (newDonationsQueue.length === 0) {
-        return;
-      }
-
-      console.log("Inserting new donations into db", newDonationsQueue.length);
-
-      const donations = [...newDonationsQueue];
-      newDonationsQueue = [];
-
-      try {
-        await db.mutate({
-          type: "InsertManyDonations",
-          donations: donations,
-        });
-      } catch (err) {
-        console.log(err);
-      }
-    }, 1000);
-
     indexer.on("event", async (args) => {
       try {
+        // console.time(args.event.name);
         const mutations = await handleEvent(args);
 
         for (const mutation of mutations) {
+          // do not await donation inserts as they are write only
           if (mutation.type === "InsertDonation") {
-            newDonationsQueue.push(mutation.donation);
-            continue;
+            void db.mutate(mutation);
+          } else {
+            await db.mutate(mutation);
           }
-
-          await db.mutate(mutation);
         }
-        // console.timeEnd(args.event.name);
       } catch (err) {
         indexerLogger.warn({
           msg: "skipping event due to error while processing",
           err,
           event: args.event,
         });
+      } finally {
+        // console.timeEnd(args.event.name);
       }
     });
 
@@ -471,9 +469,7 @@ async function catchupAndWatchChain(
       toBlock: config.toBlock,
     });
 
-    if (config.runOnce) {
-      priceUpdater.stop();
-    } else {
+    if (!config.runOnce) {
       chainLogger.info("listening to new blockchain events");
 
       indexer.on("error", (err) => {

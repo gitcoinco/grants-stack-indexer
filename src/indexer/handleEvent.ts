@@ -424,41 +424,49 @@ export async function handleEvent(
       bitmap.setRow(event.params.index, event.params.status);
       const startIndex = event.params.index * bitmap.itemsPerRow;
 
-      // XXX should be translatable to Promise.all([/* ... */].map(...)) but leaving for later as it's non-straightforward
-      const mutations: Mutation[] = [];
+      const indexes = [];
 
       for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
-        const status = bitmap.getStatus(i);
-        const statusString = ApplicationStatus[
-          status
-        ] as ApplicationTable["status"];
-        const applicationId = i.toString();
-
-        const application = await db.query({
-          type: "ApplicationById",
-          chainId,
-          roundId,
-          applicationId,
-        });
-
-        if (application === null) {
-          continue;
-        }
-
-        mutations.push({
-          type: "UpdateApplication",
-          chainId,
-          roundId,
-          applicationId: i.toString(),
-          application: updateApplicationStatus(
-            application,
-            statusString,
-            event.blockNumber
-          ),
-        });
+        indexes.push(i);
       }
 
-      return mutations;
+      // TODO: batch update
+      return (
+        await Promise.all(
+          indexes.map(async (i) => {
+            const status = bitmap.getStatus(i);
+            const statusString = ApplicationStatus[
+              status
+            ] as ApplicationTable["status"];
+            const applicationId = i.toString();
+
+            const application = await db.query({
+              type: "ApplicationById",
+              chainId,
+              roundId,
+              applicationId,
+            });
+
+            if (application === null) {
+              return [];
+            }
+
+            return [
+              {
+                type: "UpdateApplication",
+                chainId,
+                roundId,
+                applicationId: i.toString(),
+                application: updateApplicationStatus(
+                  application,
+                  statusString,
+                  event.blockNumber
+                ),
+              } satisfies Mutation,
+            ];
+          })
+        )
+      ).flat();
     }
 
     // --- Voting Strategy
@@ -497,20 +505,13 @@ export async function handleEvent(
 
       const roundId = parseAddress(event.params.roundAddress);
 
-      const application = await db.query({
-        type: "ApplicationById",
+      const roundMatchTokenAddress = await db.query({
+        type: "RoundMatchTokenAddressById",
         chainId,
         roundId,
-        applicationId,
       });
 
-      const round = await db.query({ type: "RoundById", chainId, roundId });
-
-      if (
-        application === null ||
-        application.status !== "APPROVED" ||
-        round === null
-      ) {
+      if (roundMatchTokenAddress === null) {
         return [];
       }
 
@@ -528,12 +529,12 @@ export async function handleEvent(
       let amountInRoundMatchToken: bigint | null = null;
       try {
         amountInRoundMatchToken =
-          round.matchTokenAddress === token
+          roundMatchTokenAddress === token
             ? event.params.amount
             : (
                 await priceProvider.convertFromUSD(
                   chainId,
-                  round.matchTokenAddress,
+                  roundMatchTokenAddress,
                   conversionToUSD.amount,
                   event.blockNumber
                 )
@@ -541,7 +542,7 @@ export async function handleEvent(
       } catch (err) {
         if (err instanceof UnknownTokenError) {
           logger.error({
-            msg: `Skipping event ${event.name} on chain ${chainId} due to unknown token ${round.matchTokenAddress}`,
+            msg: `Skipping event ${event.name} on chain ${chainId} due to unknown token ${roundMatchTokenAddress}`,
             err,
             event,
           });
@@ -568,26 +569,6 @@ export async function handleEvent(
       };
 
       return [
-        {
-          type: "UpdateApplication",
-          chainId: chainId,
-          roundId: round.id,
-          applicationId: applicationId,
-          application: {
-            totalAmountDonatedInUsd:
-              application.totalAmountDonatedInUsd + amountUsd,
-            totalDonationsCount: application.totalDonationsCount + 1,
-          },
-        },
-        {
-          type: "UpdateRound",
-          chainId: chainId,
-          roundId: round.id,
-          round: {
-            totalAmountDonatedInUsd: round.totalAmountDonatedInUsd + amountUsd,
-            totalDonationsCount: round.totalDonationsCount + 1,
-          },
-        },
         {
           type: "InsertDonation",
           donation,
