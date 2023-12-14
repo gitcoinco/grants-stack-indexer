@@ -38,6 +38,31 @@ const rpcUrl = z.string().url();
 
 const CHAINS: Chain[] = [
   {
+    id: 5,
+    name: "goerli",
+    rpc: rpcUrl
+      .default("https://goerli.infura.io/v3/")
+      .parse(process.env.GOERLI_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2023, 11, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "ETH",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+    ],
+    subscriptions: [
+      {
+        contractName: "AlloV2/Registry",
+        address: "0x4AAcca72145e1dF2aeC137E1f3C5E3D75DB8b5f3",
+      },
+    ],
+  },
+  {
     id: 1,
     name: "mainnet",
     rpc: rpcUrl

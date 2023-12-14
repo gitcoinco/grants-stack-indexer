@@ -7,6 +7,7 @@ import QuadraticFundingVotingStrategyImplementationV1 from "./v1/QuadraticFundin
 
 // v2
 import ProjectRegistryV2 from "./v2/ProjectRegistry.js";
+import AlloV2Registry from "./allo-v2/Registry.js";
 import RoundFactoryV2 from "./v2/RoundFactory.js";
 import RoundImplementationV2 from "./v2/RoundImplementation.js";
 import QuadraticFundingVotingStrategyFactoryV2 from "./v2/QuadraticFundingVotingStrategyFactory.js";
@@ -16,6 +17,7 @@ import DirectPayoutStrategyImplementationV2 from "./v2/DirectPayoutStrategyImple
 
 export default {
   ProjectRegistryV1: ProjectRegistryV1,
+  "AlloV2/Registry": AlloV2Registry,
   RoundFactoryV1: RoundFactoryV1,
   RoundImplementationV1: RoundImplementationV1,
   QuadraticFundingVotingStrategyFactoryV1:
