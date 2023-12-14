@@ -70,6 +70,7 @@ describe("handleEvent", () => {
         ...DEFAULT_ARGS,
         event: {
           ...DEFAULT_ARGS.event,
+          contractName: "ProjectRegistryV2",
           name: "ProjectCreated",
           params: {
             projectID: 1n,
@@ -101,6 +102,7 @@ describe("handleEvent", () => {
         ...DEFAULT_ARGS,
         event: {
           ...DEFAULT_ARGS.event,
+          contractName: "ProjectRegistryV2",
           name: "MetadataUpdated",
           params: {
             projectID: 1n,
@@ -152,6 +154,7 @@ describe("handleEvent", () => {
         ...DEFAULT_ARGS,
         event: {
           ...DEFAULT_ARGS.event,
+          contractName: "ProjectRegistryV2",
           name: "OwnerAdded",
           params: {
             projectID: 1n,
@@ -193,6 +196,7 @@ describe("handleEvent", () => {
         ...DEFAULT_ARGS,
         event: {
           ...DEFAULT_ARGS.event,
+          contractName: "ProjectRegistryV2",
           name: "OwnerRemoved",
           params: {
             projectID: 1n,

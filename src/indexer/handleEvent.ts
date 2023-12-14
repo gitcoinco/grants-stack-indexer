@@ -185,7 +185,7 @@ export async function handleEvent(
     // --- ROUND
     case "RoundCreated": {
       const contract =
-        finalEventName === "RoundCreatedV1"
+        event.contractName === "RoundFactoryV1"
           ? "RoundImplementationV1"
           : "RoundImplementationV2";
 
@@ -456,7 +456,7 @@ export async function handleEvent(
 
     // --- Voting Strategy
     case "VotingContractCreated": {
-      if (finalEventName === "VotingContractCreatedV1") {
+      if (event.contractName === "QuadraticFundingVotingStrategyFactoryV1") {
         subscribeToContract({
           contract: "QuadraticFundingVotingStrategyImplementationV1",
           address: event.params.votingContractAddress,
