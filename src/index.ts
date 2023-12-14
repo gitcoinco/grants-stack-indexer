@@ -416,21 +416,21 @@ async function catchupAndWatchChain(
         // console.time(args.event.name);
         // do not await donation inserts as they are write only
         if (args.event.name === "Voted") {
-          void handleEvent(args).then((mutations) => {
-            for (const mutation of mutations) {
-              db.applyChangeset(mutation).catch((err: unknown) => {
+          void handleEvent(args).then((changesets) => {
+            for (const changeset of changesets) {
+              db.applyChangeset(changeset).catch((err: unknown) => {
                 indexerLogger.warn({
                   msg: "error while processing vote",
                   err,
-                  mutation,
+                  changeset,
                 });
               });
             }
           });
         } else {
-          const mutations = await handleEvent(args);
-          for (const mutation of mutations) {
-            await db.applyChangeset(mutation);
+          const changesets = await handleEvent(args);
+          for (const changeset of changesets) {
+            await db.applyChangeset(changeset);
           }
         }
       } catch (err) {

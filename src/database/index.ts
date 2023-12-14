@@ -26,6 +26,8 @@ import { Logger } from "pino";
 import { LRUCache } from "lru-cache";
 import { Address } from "../address.js";
 
+export { Changeset };
+
 interface Tables {
   projects: ProjectTable;
   rounds: RoundTable;
@@ -225,7 +227,7 @@ export class Database {
       }
 
       default:
-        throw new Error(`Unknown mutation type`);
+        throw new Error(`Unknown changeset type`);
     }
   }
 
@@ -404,5 +406,3 @@ export class Database {
     }
   }
 }
-
-export type { Changeset as Mutation };

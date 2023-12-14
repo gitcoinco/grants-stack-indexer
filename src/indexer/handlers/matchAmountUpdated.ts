@@ -1,7 +1,7 @@
 import { EventHandlerArgs } from "chainsauce";
 
 import type { Indexer } from "../indexer.js";
-import { Mutation } from "../../database/index.js";
+import { Changeset } from "../../database/index.js";
 import { NewRound, Round } from "../../database/schema.js";
 
 import { PriceProvider } from "../../prices/provider.js";
@@ -12,7 +12,7 @@ export async function updateRoundMatchAmount(args: {
   priceProvider: PriceProvider;
   blockNumber: bigint;
   newMatchAmount: bigint;
-}): Promise<Mutation> {
+}): Promise<Changeset> {
   const { round, blockNumber, newMatchAmount, priceProvider } = args;
 
   const amountUSD = await priceProvider.convertToUSD(

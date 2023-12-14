@@ -21,7 +21,7 @@ import {
   NewApplication,
   NewRound,
 } from "../database/schema.js";
-import { Mutation } from "../database/index.js";
+import { Changeset } from "../database/index.js";
 import { Address, parseAddress } from "../address.js";
 
 enum ApplicationStatus {
@@ -66,7 +66,7 @@ function updateApplicationStatus(
 
 export async function handleEvent(
   args: EventHandlerArgs<Indexer>
-): Promise<Mutation[]> {
+): Promise<Changeset[]> {
   const {
     chainId,
     event,
@@ -300,13 +300,13 @@ export async function handleEvent(
         updatedAtBlock: event.blockNumber,
       };
 
-      const insertRoundMutation: Mutation = {
+      const insertRoundChangeset: Changeset = {
         type: "InsertRound",
         round: newRound,
       };
 
       return [
-        insertRoundMutation,
+        insertRoundChangeset,
         await updateRoundMatchAmount({
           round: newRound,
           newMatchAmount: matchAmount,
@@ -447,7 +447,7 @@ export async function handleEvent(
                   statusString,
                   event.blockNumber
                 ),
-              } satisfies Mutation,
+              } satisfies Changeset,
             ];
           })
         )
@@ -597,7 +597,7 @@ export async function handleEvent(
       const startIndex = event.params.index * bitmap.itemsPerRow;
 
       // XXX should be translatable to Promise.all([/* ... */].map(...)) but leaving for later as it's non-straightforward
-      const mutations: Mutation[] = [];
+      const changesets: Changeset[] = [];
 
       for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
         const newStatus = bitmap.getStatus(i);
@@ -616,7 +616,7 @@ export async function handleEvent(
           const statusString =
             ApplicationStatus[4] as ApplicationTable["status"];
 
-          mutations.push({
+          changesets.push({
             type: "UpdateApplication",
             chainId,
             roundId,
@@ -630,7 +630,7 @@ export async function handleEvent(
         }
       }
 
-      return mutations;
+      return changesets;
     }
   }
 

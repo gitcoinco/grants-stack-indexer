@@ -1,7 +1,7 @@
 import { EventHandlerArgs } from "chainsauce";
 
 import type { Indexer } from "../indexer.js";
-import { Mutation } from "../../database/index.js";
+import { Changeset } from "../../database/index.js";
 import { Round } from "../../database/schema.js";
 import { parseAddress } from "../../address.js";
 
@@ -12,7 +12,7 @@ export default async function ({
   Indexer,
   "RoundImplementationV2",
   "ApplicationMetaPtrUpdated"
->): Promise<Mutation[]> {
+>): Promise<Changeset[]> {
   const id = parseAddress(event.address);
   const metaPtr = event.params.newMetaPtr.pointer;
   const metadata = await ipfsGet<Round["applicationMetadata"]>(metaPtr);

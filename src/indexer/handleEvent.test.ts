@@ -66,7 +66,7 @@ describe("handleEvent", () => {
 
   describe("ProjectCreated", () => {
     test("should insert project", async () => {
-      const mutations = await handleEvent({
+      const changesets = await handleEvent({
         ...DEFAULT_ARGS,
         event: {
           ...DEFAULT_ARGS.event,
@@ -79,8 +79,8 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(mutations).toHaveLength(1);
-      expect(mutations[0]).toEqual({
+      expect(changesets).toHaveLength(1);
+      expect(changesets[0]).toEqual({
         type: "InsertProject",
         project: {
           chainId: 1,
@@ -98,7 +98,7 @@ describe("handleEvent", () => {
 
   describe("MetadataUpdated", () => {
     test("should fetch and update metadata", async () => {
-      const mutations = await handleEvent({
+      const changesets = await handleEvent({
         ...DEFAULT_ARGS,
         event: {
           ...DEFAULT_ARGS.event,
@@ -114,8 +114,8 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(mutations).toHaveLength(1);
-      expect(mutations[0]).toEqual({
+      expect(changesets).toHaveLength(1);
+      expect(changesets[0]).toEqual({
         type: "UpdateProject",
         projectId:
           "0xd0c4b8bf41dcf0607cd6c6d5f7c6423344ce99ddaaa72c31a7d8fb332a218878",
@@ -150,7 +150,7 @@ describe("handleEvent", () => {
 
       MOCK_DB.query = queryMock;
 
-      const mutations = await handleEvent({
+      const changesets = await handleEvent({
         ...DEFAULT_ARGS,
         event: {
           ...DEFAULT_ARGS.event,
@@ -163,8 +163,8 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(mutations).toHaveLength(1);
-      expect(mutations[0]).toEqual({
+      expect(changesets).toHaveLength(1);
+      expect(changesets[0]).toEqual({
         type: "UpdateProject",
         projectId:
           "0xd0c4b8bf41dcf0607cd6c6d5f7c6423344ce99ddaaa72c31a7d8fb332a218878",
@@ -192,7 +192,7 @@ describe("handleEvent", () => {
 
       MOCK_DB.query = queryMock;
 
-      const mutations = await handleEvent({
+      const changesets = await handleEvent({
         ...DEFAULT_ARGS,
         event: {
           ...DEFAULT_ARGS.event,
@@ -205,8 +205,8 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(mutations).toHaveLength(1);
-      expect(mutations[0]).toEqual({
+      expect(changesets).toHaveLength(1);
+      expect(changesets[0]).toEqual({
         type: "UpdateProject",
         projectId:
           "0xd0c4b8bf41dcf0607cd6c6d5f7c6423344ce99ddaaa72c31a7d8fb332a218878",
