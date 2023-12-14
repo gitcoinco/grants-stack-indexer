@@ -16,7 +16,7 @@ import {
 } from "./schema.js";
 import { migrate } from "./migrate.js";
 import { encodeJsonWithBigInts } from "../utils/index.js";
-import { Changeset } from "./changeset.js";
+import type { Changeset } from "./changeset.js";
 import {
   ExtractQuery,
   ExtractQueryResponse,
@@ -26,7 +26,7 @@ import { Logger } from "pino";
 import { LRUCache } from "lru-cache";
 import { Address } from "../address.js";
 
-export { Changeset };
+export type { Changeset };
 
 interface Tables {
   projects: ProjectTable;
