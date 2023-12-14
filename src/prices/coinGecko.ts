@@ -3,6 +3,8 @@ import { ChainId, FetchInterface } from "../types.js";
 import { Address } from "../types.js";
 import { parseAddress } from "../address.js";
 
+import retry from "async-retry";
+
 const platforms: { [key: number]: string } = {
   1: "ethereum",
   250: "fantom",
@@ -63,17 +65,30 @@ export async function fetchPricesForRange({
           "x-cg-pro-api-key": coingeckoApiKey,
         };
 
-  const res = await fetch(`${coingeckoApiUrl}${path}`, {
-    headers,
-  });
+  const responseBody = await retry(
+    async () => {
+      const res = await fetch(`${coingeckoApiUrl}${path}`, {
+        headers,
+      });
 
-  const data = (await res.json()) as
-    | { prices: Array<[TimestampInMs, Price]> }
-    | { error: string };
+      const body = (await res.json()) as
+        | { prices: Array<[TimestampInMs, Price]> }
+        | { error: string };
 
-  if ("error" in data) {
-    throw new Error(`Error from CoinGecko API: ${JSON.stringify(data)}`);
+      return body;
+    },
+    {
+      retries: 4,
+      minTimeout: 1000,
+      maxTimeout: 10000,
+    }
+  );
+
+  if ("error" in responseBody) {
+    throw new Error(
+      `Error from CoinGecko API: ${JSON.stringify(responseBody)}`
+    );
   }
 
-  return data.prices;
+  return responseBody.prices;
 }

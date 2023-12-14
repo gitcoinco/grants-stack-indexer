@@ -37,7 +37,7 @@ import { handleEvent } from "./indexer/handleEvent.js";
 import { Database } from "./database/index.js";
 import { decodeJsonWithBigInts } from "./utils/index.js";
 import { Block } from "chainsauce/dist/cache.js";
-import { Hex } from "./types.js";
+import { createPublicClient, http } from "viem";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
 
@@ -134,28 +134,28 @@ async function main(): Promise<void> {
       }
 
       const chain = getChainConfigById(chainId);
-      const rpcProvider = new ethers.providers.JsonRpcProvider(
-        chain.rpc,
-        chain.id
-      );
+      const client = createPublicClient({
+        transport: http(chain.rpc),
+      });
 
-      const block = await rpcProvider.getBlock(Number(blockNumber));
+      const block = await client.getBlock({ blockNumber });
+      const timestamp = Number(block.timestamp);
 
       const chainsauceBlock: Block = {
         chainId,
         blockNumber: BigInt(block.number),
-        timestamp: block.timestamp,
-        blockHash: block.hash as Hex,
+        timestamp: timestamp,
+        blockHash: block.hash,
       };
 
       await chainsauceCache?.insertBlock(chainsauceBlock);
 
-      return block.timestamp * 1000;
+      return timestamp * 1000;
     },
     fetch: (url, options) => {
       return fetch(url, {
         ...options,
-        retry: { retries: 3, minTimeout: 2000, maxTimeout: 60 * 10000 },
+        retry: false,
         cache: "force-cache",
         cachePath:
           config.cacheDir !== null

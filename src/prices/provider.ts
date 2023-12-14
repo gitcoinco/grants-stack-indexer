@@ -13,6 +13,7 @@ export type PriceWithDecimals = Omit<Price, "id"> & { tokenDecimals: number };
 
 const FETCH_NEW_PRICE_EVERY_NTH_BLOCK_PER_CHAIN: Record<number, bigint> = {
   10: 7200n,
+  42161: 7200n,
   424: 7200n,
 };
 
@@ -196,13 +197,14 @@ export function createPriceProvider(
       blockNumber
     );
 
-    const oneHourInMs = 60 * 60 * 1000;
+    // sometimes coingecko returns no prices for 1 hour range, 2 hours works better
+    const twoHoursInMs = 2 * 60 * 60 * 1000;
 
     const prices = await fetchPricesForRange({
       chainId: token.priceSource.chainId,
       tokenAddress: parseAddress(token.priceSource.address),
       startTimestampInMs: blockTimestampInMs,
-      endTimestampInMs: blockTimestampInMs + oneHourInMs,
+      endTimestampInMs: blockTimestampInMs + twoHoursInMs,
       coingeckoApiUrl: config.coingeckoApiUrl,
       coingeckoApiKey: config.coingeckoApiKey,
       fetch: (url, opts) => config.fetch(url, opts),
@@ -220,9 +222,9 @@ export function createPriceProvider(
 
       const timestampDiff = Math.abs(blockTimestampInMs - priceTimestamp);
 
-      if (timestampDiff > oneHourInMs) {
+      if (timestampDiff > twoHoursInMs) {
         logger.warn({
-          msg: "Timestamp diff between block and Coingecko timestamps is larger than 1 hour",
+          msg: "Timestamp diff between block and Coingecko timestamps is larger than 2 hours",
           blockTimestamp: blockTimestampInMs,
           priceTimestamp: priceTimestamp,
           timestampDiff,
