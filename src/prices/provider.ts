@@ -186,12 +186,6 @@ export function createPriceProvider(
     token: Token,
     blockNumber: bigint
   ): Promise<PriceWithDecimals | null> {
-    logger.debug({
-      msg: "Fetching price",
-      tokenAddress: token.address,
-      blockNumber,
-    });
-
     const blockTimestampInMs = await config.getBlockTimestampInMs(
       chainId,
       blockNumber
