@@ -43,19 +43,6 @@ function fullProjectId(
   );
 }
 
-const getFinalEventName = (chainId: number, originalEvent: Event): string => {
-  const chain = getChainConfigById(chainId);
-  const eventRenamesForChain = Object.fromEntries(
-    chain.subscriptions.map((sub) => [sub.address, sub.eventsRenames])
-  );
-
-  const finalName =
-    eventRenamesForChain[originalEvent.address]?.[originalEvent.name] ??
-    originalEvent.name;
-
-  return finalName;
-};
-
 function updateApplicationStatus(
   application: Application,
   newStatus: Application["status"],
@@ -87,8 +74,6 @@ export async function handleEvent(
     readContract,
     context: { db, ipfsGet, priceProvider, logger },
   } = args;
-
-  const finalEventName = getFinalEventName(chainId, event);
 
   switch (event.name) {
     // -- PROJECTS
