@@ -26,6 +26,7 @@ export type RoundTable = {
   updatedAtBlock: bigint;
   totalAmountDonatedInUsd: number;
   totalDonationsCount: number;
+  tags: string[];
 };
 
 export type Round = Selectable<RoundTable>;
@@ -41,6 +42,7 @@ export type ProjectTable = {
   metadata: unknown | null;
   ownerAddresses: Address[];
   createdAtBlock: bigint;
+  tags: string[];
 };
 
 export type Project = Selectable<ProjectTable>;

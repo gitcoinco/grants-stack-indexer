@@ -16,6 +16,8 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("id", "text")
     .addColumn("chainId", CHAIN_ID_TYPE)
 
+    .addColumn("tags", sql`text[]`)
+
     .addColumn("matchAmount", BIGINT_TYPE)
     .addColumn("matchTokenAddress", ADDRESS_TYPE)
     .addColumn("matchAmountInUSD", "real")
@@ -51,6 +53,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("metadata", "jsonb")
     .addColumn("ownerAddresses", sql`text[]`)
     .addColumn("createdAtBlock", BIGINT_TYPE)
+    .addColumn("tags", sql`text[]`)
 
     .addPrimaryKeyConstraint("projects_pkey", ["id", "chainId"])
     .execute();

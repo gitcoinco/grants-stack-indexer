@@ -88,6 +88,7 @@ export async function handleEvent(
         {
           type: "InsertProject",
           project: {
+            tags: ["allo-v1"],
             chainId,
             registryAddress: parseAddress(event.address),
             id: projectId,
@@ -275,6 +276,7 @@ export async function handleEvent(
       const newRound: NewRound = {
         chainId,
         id: roundId,
+        tags: ["allo-v1"],
         totalDonationsCount: 0,
         totalAmountDonatedInUsd: 0,
         matchTokenAddress,
