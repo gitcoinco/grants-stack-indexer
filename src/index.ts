@@ -418,7 +418,7 @@ async function catchupAndWatchChain(
         if (args.event.name === "Voted") {
           void handleEvent(args).then((mutations) => {
             for (const mutation of mutations) {
-              db.mutate(mutation).catch((err: unknown) => {
+              db.applyChangeset(mutation).catch((err: unknown) => {
                 indexerLogger.warn({
                   msg: "error while processing vote",
                   err,
@@ -430,7 +430,7 @@ async function catchupAndWatchChain(
         } else {
           const mutations = await handleEvent(args);
           for (const mutation of mutations) {
-            await db.mutate(mutation);
+            await db.applyChangeset(mutation);
           }
         }
       } catch (err) {

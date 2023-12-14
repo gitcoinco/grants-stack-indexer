@@ -16,7 +16,7 @@ import {
 } from "./schema.js";
 import { migrate } from "./migrate.js";
 import { encodeJsonWithBigInts } from "../utils/index.js";
-import { Mutation } from "./mutation.js";
+import { Changeset } from "./changeset.js";
 import {
   ExtractQuery,
   ExtractQueryResponse,
@@ -59,7 +59,7 @@ export class Database {
     this.#batchDonationInsert = tinybatch<void, NewDonation[]>(async (args) => {
       const donations = args.flat();
 
-      await this.mutate({
+      await this.applyChangeset({
         type: "InsertManyDonations",
         donations: donations,
       });
@@ -105,12 +105,12 @@ export class Database {
     });
   }
 
-  async mutate(mutation: Mutation): Promise<void> {
-    switch (mutation.type) {
+  async applyChangeset(changeset: Changeset): Promise<void> {
+    switch (changeset.type) {
       case "InsertProject": {
         await this.#db
           .insertInto("projects")
-          .values(mutation.project)
+          .values(changeset.project)
           .execute();
         break;
       }
@@ -118,29 +118,29 @@ export class Database {
       case "UpdateProject": {
         await this.#db
           .updateTable("projects")
-          .set(mutation.project)
-          .where("id", "=", mutation.projectId)
+          .set(changeset.project)
+          .where("id", "=", changeset.projectId)
           .execute();
         break;
       }
 
       case "InsertRound": {
-        await this.#db.insertInto("rounds").values(mutation.round).execute();
+        await this.#db.insertInto("rounds").values(changeset.round).execute();
         break;
       }
 
       case "UpdateRound": {
         await this.#db
           .updateTable("rounds")
-          .set(mutation.round)
-          .where("chainId", "=", mutation.chainId)
-          .where("id", "=", mutation.roundId)
+          .set(changeset.round)
+          .where("chainId", "=", changeset.chainId)
+          .where("id", "=", changeset.roundId)
           .execute();
         break;
       }
 
       case "InsertApplication": {
-        let application = mutation.application;
+        let application = changeset.application;
         if (application.statusSnapshots !== undefined) {
           application = {
             ...application,
@@ -153,7 +153,7 @@ export class Database {
       }
 
       case "UpdateApplication": {
-        let application = mutation.application;
+        let application = changeset.application;
         if (application.statusSnapshots !== undefined) {
           application = {
             ...application,
@@ -164,28 +164,28 @@ export class Database {
         await this.#db
           .updateTable("applications")
           .set(application)
-          .where("chainId", "=", mutation.chainId)
-          .where("roundId", "=", mutation.roundId)
-          .where("id", "=", mutation.applicationId)
+          .where("chainId", "=", changeset.chainId)
+          .where("roundId", "=", changeset.roundId)
+          .where("id", "=", changeset.applicationId)
           .execute();
         break;
       }
 
       case "InsertDonation": {
-        await this.#batchDonationInsert(mutation.donation);
+        await this.#batchDonationInsert(changeset.donation);
         break;
       }
 
       case "InsertManyDonations": {
         await this.#db
           .insertInto("donations")
-          .values(mutation.donations)
+          .values(changeset.donations)
           .execute();
         break;
       }
 
       case "InsertManyPrices": {
-        await this.#db.insertInto("prices").values(mutation.prices).execute();
+        await this.#db.insertInto("prices").values(changeset.prices).execute();
         break;
       }
 
@@ -196,12 +196,12 @@ export class Database {
             totalAmountDonatedInUsd: eb(
               "totalAmountDonatedInUsd",
               "+",
-              mutation.amountInUsd
+              changeset.amountInUsd
             ),
             totalDonationsCount: eb("totalDonationsCount", "+", 1),
           }))
-          .where("chainId", "=", mutation.chainId)
-          .where("id", "=", mutation.roundId)
+          .where("chainId", "=", changeset.chainId)
+          .where("id", "=", changeset.roundId)
           .execute();
         break;
       }
@@ -213,13 +213,13 @@ export class Database {
             totalAmountDonatedInUsd: eb(
               "totalAmountDonatedInUsd",
               "+",
-              mutation.amountInUsd
+              changeset.amountInUsd
             ),
             totalDonationsCount: eb("totalDonationsCount", "+", 1),
           }))
-          .where("chainId", "=", mutation.chainId)
-          .where("roundId", "=", mutation.roundId)
-          .where("id", "=", mutation.applicationId)
+          .where("chainId", "=", changeset.chainId)
+          .where("roundId", "=", changeset.roundId)
+          .where("id", "=", changeset.applicationId)
           .execute();
         break;
       }
@@ -405,4 +405,4 @@ export class Database {
   }
 }
 
-export type { Mutation };
+export type { Changeset as Mutation };

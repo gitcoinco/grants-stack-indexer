@@ -229,7 +229,7 @@ export function createPriceProvider(
         });
       }
 
-      await db.mutate({
+      await db.applyChangeset({
         type: "InsertManyPrices",
         prices: [newPrice],
       });
