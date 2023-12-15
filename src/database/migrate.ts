@@ -116,6 +116,12 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .execute();
 
   await schema
+    .createIndex("idx_donations_donor_chain")
+    .on("donations")
+    .columns(["donorAddress"])
+    .execute();
+
+  await schema
     .createTable("prices")
     .addColumn("id", "serial", (cb) => cb.primaryKey())
     .addColumn("chainId", CHAIN_ID_TYPE)
