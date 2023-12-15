@@ -88,7 +88,7 @@ export async function handleEvent(
             chainId,
             registryAddress: parseAddress(event.address),
             id: event.params.profileId,
-            projectNumber: null,
+            projectNumber: 0,
             metadataCid: metadataCid,
             metadata: metadata,
             ownerAddresses: [parseAddress(event.params.owner)],
