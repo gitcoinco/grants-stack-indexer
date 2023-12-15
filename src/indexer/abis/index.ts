@@ -17,7 +17,7 @@ import DirectPayoutStrategyImplementationV2 from "./v2/DirectPayoutStrategyImple
 
 export default {
   ProjectRegistryV1: ProjectRegistryV1,
-  "AlloV2/Registry": AlloV2Registry,
+  "AlloV2/Registry/V1": AlloV2Registry,
   RoundFactoryV1: RoundFactoryV1,
   RoundImplementationV1: RoundImplementationV1,
   QuadraticFundingVotingStrategyFactoryV1:
