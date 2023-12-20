@@ -20,9 +20,11 @@ import { Chain, getConfig, Config } from "./config.js";
 import { createPriceUpdater } from "./prices/updater.js";
 import { createPriceProvider } from "./prices/provider.js";
 import { createHttpApi } from "./http/app.js";
-import { FileSystemDataProvider } from "./calculator/index.js";
+import { FileSystemDataProvider } from "./calculator/dataProvider/fileSystemDataProvider.js";
+import { CachedDataProvider } from "./calculator/dataProvider/cachedDataProvider.js";
 import { AsyncSentinel } from "./utils/asyncSentinel.js";
 import { ethers } from "ethers";
+import TTLCache from "@isaacs/ttlcache";
 
 // If, during reindexing, a chain has these many blocks left to index, consider
 // it caught up and start serving
@@ -103,12 +105,29 @@ async function main(): Promise<void> {
         logger: baseLogger.child({ subsystem: "PriceProvider" }),
       }),
       passportProvider: passportProvider,
-      dataProvider: new FileSystemDataProvider(config.chainDataDir),
+      dataProvider: new CachedDataProvider({
+        dataProvider: new FileSystemDataProvider(config.chainDataDir),
+        cache: new TTLCache({
+          max: 10,
+          ttl: 1000 * 60 * 1, // 1 minute
+        }),
+      }),
       port: config.apiHttpPort,
       logger: baseLogger.child({ subsystem: "HttpApi" }),
       buildTag: config.buildTag,
       chains: config.chains,
       enableSentry: config.sentryDsn !== null,
+      calculator: {
+        esimatesLinearQfImplementation:
+          config.estimatesLinearQfWorkerPoolSize === null
+            ? {
+                type: "in-thread",
+              }
+            : {
+                type: "worker-pool",
+                workerPoolSize: config.estimatesLinearQfWorkerPoolSize,
+              },
+      },
     });
 
     await httpApi.start();

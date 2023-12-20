@@ -12,7 +12,7 @@ import * as Sentry from "@sentry/node";
 import { createHandler as createApiHandler } from "./api/v1/index.js";
 import { PriceProvider } from "../prices/provider.js";
 import { PassportProvider } from "../passport/index.js";
-import { DataProvider } from "../calculator/index.js";
+import { DataProvider } from "../calculator/dataProvider/index.js";
 import { Chain } from "../config.js";
 
 export interface HttpApiConfig {
@@ -25,6 +25,11 @@ export interface HttpApiConfig {
   passportProvider: PassportProvider;
   chains: Chain[];
   enableSentry: boolean;
+  calculator: {
+    esimatesLinearQfImplementation:
+      | { type: "in-thread" }
+      | { type: "worker-pool"; workerPoolSize: number };
+  };
 }
 
 interface HttpApi {

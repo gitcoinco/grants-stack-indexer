@@ -85,7 +85,7 @@ export type Application = {
   statusSnapshots: Array<{
     status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "IN_REVIEW";
     statusUpdatedAtBlock: number;
-  }>
+  }>;
 };
 
 export type Vote = {

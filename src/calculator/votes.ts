@@ -1,8 +1,17 @@
+import {
+  AggregatedContributions,
+  Contribution,
+  aggregateContributions as aggregateContributionsPluralistic,
+} from "pluralistic";
 import { Chain } from "../config.js";
 import type { Round, Application, Vote } from "../indexer/types.js";
-import type { PassportScore, PassportProvider } from "../passport/index.js";
+import type {
+  PassportScore,
+  AddressToPassportScoreMap,
+} from "../passport/index.js";
 import { ProportionalMatchOptions } from "./options.js";
 import { defaultProportionalMatchOptions } from "./options.js";
+import { CoefficientOverrides } from "./coefficientOverrides.js";
 
 export type VoteWithCoefficient = Vote & {
   coefficient: number;
@@ -14,18 +23,15 @@ interface GetVotesWithCoefficientsArgs {
   round: Round;
   applications: Array<Application>;
   votes: Array<Vote>;
-  passportProvider: PassportProvider;
-  options: {
-    minimumAmountUSD?: number;
-    enablePassport?: boolean;
-  };
+  enablePassport?: boolean;
+  minimumAmountUSD?: number;
   proportionalMatchOptions?: ProportionalMatchOptions;
+  passportScoreByAddress: AddressToPassportScoreMap;
 }
 
-/* TODO: ripe for a functional rewrite, also: https://massimilianomirra.com/notes/the-dangers-of-greedy-functions */
-export async function getVotesWithCoefficients(
+export function getVotesWithCoefficients(
   args: GetVotesWithCoefficientsArgs
-): Promise<Array<VoteWithCoefficient>> {
+): Array<VoteWithCoefficient> {
   const applicationMap = args.applications.reduce(
     (map, application) => {
       map[application.id] = application;
@@ -34,18 +40,13 @@ export async function getVotesWithCoefficients(
     {} as Record<string, Application>
   );
 
-  const enablePassport =
-    args.options.enablePassport ??
-    args.round?.metadata?.quadraticFundingConfig?.sybilDefense ??
-    false;
+  const enablePassport = args.enablePassport ?? false;
 
-  const minimumAmountUSD = Number(
-    args.options.minimumAmountUSD ??
-      args.round.metadata?.quadraticFundingConfig?.minDonationThresholdAmount ??
-      0
-  );
+  const minimumAmountUSD = Number(args.minimumAmountUSD ?? 0);
 
-  const votePromises = args.votes.map(async (originalVote) => {
+  const { passportScoreByAddress: passportScoresByAddress } = args;
+
+  return args.votes.flatMap((originalVote) => {
     const vote = applyVoteCap(args.chain, originalVote);
     const voter = vote.voter.toLowerCase();
     const application = applicationMap[vote.applicationId];
@@ -76,13 +77,13 @@ export async function getVotesWithCoefficients(
       coefficient = 0;
     }
 
-    const passportScore = await args.passportProvider.getScoreByAddress(voter);
+    const passportScore = passportScoresByAddress.get(voter);
 
     // Passport check
     if (minAmountCheckPassed && enablePassport) {
       // Set to 0 if the donor doesn't have a passport
       const rawScore = Number(passportScore?.evidence?.rawScore ?? "0");
-      coefficient = scoreToCoefficient(
+      coefficient = passportScoreToCoefficient(
         args.proportionalMatchOptions ?? defaultProportionalMatchOptions,
         rawScore
       );
@@ -93,15 +94,16 @@ export async function getVotesWithCoefficients(
         ...vote,
         voter,
         coefficient,
-        passportScore: passportScore,
+        passportScore,
       },
     ];
   });
-
-  return (await Promise.all(votePromises)).flat();
 }
 
-function scoreToCoefficient(options: ProportionalMatchOptions, score: number) {
+function passportScoreToCoefficient(
+  options: ProportionalMatchOptions,
+  score: number
+) {
   if (score < options.score.min) {
     return 0;
   }
@@ -145,4 +147,108 @@ export function applyVoteCap(chain: Chain, vote: Vote): Vote {
       amountRoundToken: newAmountRoundToken.toString(),
     };
   }
+}
+
+export function applyCoefficients(config: {
+  votes: VoteWithCoefficient[];
+  overrides: CoefficientOverrides;
+}): (Contribution & { recipientAddress: string })[] {
+  return config.votes.map((vote) => {
+    const scaleFactor = 10_000;
+    const coefficient = BigInt(
+      Math.trunc((config.overrides[vote.id] ?? vote.coefficient) * scaleFactor)
+    );
+
+    const amount = BigInt(vote.amountRoundToken);
+    const multipliedAmount = (amount * coefficient) / BigInt(scaleFactor);
+
+    return {
+      contributor: vote.voter,
+      recipient: vote.applicationId,
+      recipientAddress: vote.grantAddress,
+      amount: multipliedAmount,
+    };
+  });
+}
+
+export function mergeAggregatedContributions(
+  contributions1: AggregatedContributions,
+  contributions2: AggregatedContributions
+): AggregatedContributions {
+  const merged: AggregatedContributions = {
+    totalReceived: contributions1.totalReceived + contributions2.totalReceived,
+    list: {},
+  };
+
+  for (const recipient in contributions1.list) {
+    merged.list[recipient] = {
+      totalReceived: contributions1.list[recipient].totalReceived,
+      contributions: { ...contributions1.list[recipient].contributions },
+    };
+  }
+
+  for (const recipient in contributions2.list) {
+    if (!merged.list[recipient]) {
+      merged.list[recipient] = {
+        totalReceived: 0n,
+        contributions: {},
+      };
+    }
+
+    merged.list[recipient].totalReceived +=
+      contributions2.list[recipient].totalReceived;
+
+    for (const contributor in contributions2.list[recipient].contributions) {
+      if (!merged.list[recipient].contributions[contributor]) {
+        merged.list[recipient].contributions[contributor] = 0n;
+      }
+
+      merged.list[recipient].contributions[contributor] +=
+        contributions2.list[recipient].contributions[contributor];
+    }
+  }
+
+  return merged;
+}
+
+interface AggregatedContributionsConfig {
+  chain: Chain;
+  round: Round;
+  applications: Application[];
+  votes: Vote[];
+  passportScoreByAddress: AddressToPassportScoreMap;
+  enablePassport?: boolean;
+  minimumAmountUSD?: number;
+  coefficientOverrides: Record<string, number>;
+  proportionalMatchOptions?: ProportionalMatchOptions;
+}
+
+export function aggregateContributions({
+  chain,
+  round,
+  applications,
+  votes,
+  passportScoreByAddress,
+  enablePassport,
+  minimumAmountUSD,
+  coefficientOverrides: overrides,
+  proportionalMatchOptions,
+}: AggregatedContributionsConfig): AggregatedContributions {
+  const votesWithCoefficients = getVotesWithCoefficients({
+    chain: chain,
+    round,
+    applications,
+    votes,
+    minimumAmountUSD,
+    enablePassport,
+    passportScoreByAddress,
+    proportionalMatchOptions: proportionalMatchOptions,
+  });
+
+  const contributions = applyCoefficients({
+    votes: votesWithCoefficients,
+    overrides,
+  });
+
+  return aggregateContributionsPluralistic(contributions);
 }
