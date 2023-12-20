@@ -1,142 +1,234 @@
-import { UnreachableCaseError } from "ts-essentials";
-import { PotentialVote } from "../http/api/v1/matches.js";
+import type { LinearQf } from "./linearQf/index.js";
+import { Chain } from "../config.js";
 import { Application, Round, Vote } from "../indexer/types.js";
-import { PassportProvider } from "../passport/index.js";
-import Calculator, {
-  CalculatorOptions,
-  DataProvider,
-  MatchingEstimateResult,
-  ResourceNotFoundError,
-} from "./index.js";
-import { PriceWithDecimals } from "../prices/common.js";
+import { DataProvider } from "./dataProvider/index.js";
 import { PriceProvider } from "../prices/provider.js";
-import { Logger } from "pino";
+import { PassportProvider } from "../passport/index.js";
+import { RoundContributionsCache } from "./roundContributionsCache.js";
+import { ProportionalMatchOptions } from "./options.js";
+import { z } from "zod";
+import { AggregatedContributions, Calculation } from "pluralistic";
+import {
+  aggregateContributions,
+  mergeAggregatedContributions,
+} from "./votes.js";
+import { PriceWithDecimals } from "../prices/common.js";
+import { convertFiatToToken, convertTokenToFiat } from "../tokenMath.js";
+import {
+  CalculationConfig,
+  extractCalculationConfigFromRound,
+  overrideCalculationConfig,
+} from "./calculationConfig.js";
 
-export const calculateMatchingEstimates = async (
-  params: CalculatorOptions & {
-    potentialVotes: PotentialVote[];
-  } & (
-      | {
-          implementationType: "load-inprocess-calc-inprocess";
-          deps: {
-            logger: Logger;
-            passportProvider: PassportProvider;
-            dataProvider: DataProvider;
-            priceProvider: PriceProvider;
-          };
-        }
-      | {
-          implementationType: "load-outofprocess-calc-outofprocess";
-          deps: { logger: Logger };
-        }
-    )
-): Promise<MatchingEstimateResult[]> => {
-  switch (params.implementationType) {
-    case "load-inprocess-calc-inprocess":
-      return await loadInProcessCalculateInProcess(params);
-    case "load-outofprocess-calc-outofprocess":
-      return await __stub_loadOutOfProcessCalculateOutOfProcess(params);
-    default:
-      throw new UnreachableCaseError(params);
-  }
-};
+export const potentialVoteSchema = z.object({
+  projectId: z.string(),
+  roundId: z.string(),
+  applicationId: z.string(),
+  token: z.string(),
+  voter: z.string(),
+  grantAddress: z.string(),
+  amount: z.coerce.bigint(),
+});
 
-export const loadInProcessCalculateInProcess = async ({
+export type PotentialVote = z.infer<typeof potentialVoteSchema>;
+
+export interface EstimatedMatch {
+  original: Calculation;
+  estimated: Calculation;
+  applicationId: string;
+  recipient?: string;
+  difference: bigint;
+  differenceInUSD: number;
+}
+
+export async function calculateMatchingEstimates({
+  chain,
+  round,
+  dataProvider,
+  priceProvider,
+  passportProvider,
+  calculationConfigOverride,
+  roundContributionsCache,
   potentialVotes,
-  ...params
-}: CalculatorOptions & {
+  proportionalMatchOptions,
+  linearQfImpl,
+}: {
+  chain: Chain;
+  round: Round;
+  dataProvider: DataProvider;
+  priceProvider: PriceProvider;
+  passportProvider: PassportProvider;
+  roundContributionsCache?: RoundContributionsCache;
+  proportionalMatchOptions?: ProportionalMatchOptions;
   potentialVotes: PotentialVote[];
-} & {
-  deps: {
-    passportProvider: PassportProvider;
-    dataProvider: DataProvider;
-    priceProvider: PriceProvider;
-    logger: Logger;
-  };
-}): Promise<MatchingEstimateResult[]> => {
-  const { passportProvider, dataProvider, priceProvider } = params.deps;
+  calculationConfigOverride: Partial<CalculationConfig>;
+  linearQfImpl: LinearQf;
+}): Promise<EstimatedMatch[]> {
+  const roundCalculationConfig = extractCalculationConfigFromRound(round);
+
+  const calculationConfig: CalculationConfig = overrideCalculationConfig(
+    roundCalculationConfig,
+    calculationConfigOverride ?? {}
+  );
 
   const applications = await dataProvider.loadFile<Application>(
-    "applications",
-    `${params.chainId}/rounds/${params.roundId}/applications.json`
+    `${chain.id}/rounds/${round.id}/applications.json`,
+    `${chain.id}/rounds/${round.id}/applications.json`
   );
 
-  const rounds = await dataProvider.loadFile<Round>(
-    "rounds",
-    `${params.chainId}/rounds.json`
-  );
+  const cachedAggregatedContributions =
+    await roundContributionsCache?.getCalculationForRound({
+      roundId: round.id,
+      chainId: chain.id,
+    });
 
-  const votes = await dataProvider.loadFile<Vote>(
-    "votes",
-    `${params.chainId}/rounds/${params.roundId}/votes.json`
-  );
+  let aggregatedContributions: AggregatedContributions;
 
-  const round = rounds.find((round) => round.id === params.roundId);
+  if (cachedAggregatedContributions === undefined) {
+    const votes = await dataProvider.loadFile<Vote>(
+      `${chain.id}/rounds/${round.id}/votes.json`,
+      `${chain.id}/rounds/${round.id}/votes.json`
+    );
 
-  if (round === undefined) {
-    throw new ResourceNotFoundError("round");
+    const passportScoresByAddress = await passportProvider.getScoresByAddresses(
+      votes.map((v) => v.voter.toLowerCase())
+    );
+
+    aggregatedContributions = aggregateContributions({
+      chain,
+      round,
+      votes: votes,
+      applications: applications,
+      passportScoreByAddress: passportScoresByAddress,
+      minimumAmountUSD: calculationConfig.minimumAmountUSD,
+      enablePassport: calculationConfig.enablePassport,
+      coefficientOverrides: {},
+      proportionalMatchOptions: proportionalMatchOptions,
+    });
+
+    roundContributionsCache?.setCalculationForRound({
+      roundId: round.id,
+      chainId: chain.id,
+      contributions: aggregatedContributions,
+    });
+  } else {
+    aggregatedContributions = cachedAggregatedContributions;
   }
 
-  const passportScoresByAddress = await passportProvider.getScoresByAddresses(
-    votes.map((vote) => vote.voter)
-  );
-
-  const roundTokenPriceInUsd = await priceProvider.getUSDConversionRate(
-    params.chainId,
-    round.token
-  );
-
-  const currentMatches = await new Calculator(params)._calculate({
-    round,
-    votes,
-    applications,
-    roundTokenPriceInUsd,
-    passportScoresByAddress,
-  });
-
-  const tokenAddressToPriceInUsd: Record<string, PriceWithDecimals> = {};
+  const usdPriceByAddress: Record<string, PriceWithDecimals> = {};
 
   // fetch each token price only once
   for (const vote of potentialVotes) {
-    if (tokenAddressToPriceInUsd[vote.token] === undefined) {
-      tokenAddressToPriceInUsd[vote.token] =
-        await priceProvider.getUSDConversionRate(params.chainId, vote.token);
+    if (usdPriceByAddress[vote.token] === undefined) {
+      usdPriceByAddress[vote.token] = await priceProvider.getUSDConversionRate(
+        chain.id,
+        vote.token
+      );
     }
   }
 
-  // TODO alternative faster implementation, can be enabled after manual checking
-  //
-  // const uniqueTokenAddresses = Array.from(
-  //   new Set(potentialVotes.map(({ token }) => token))
-  // );
-  // const tokenAddressToPriceInUsdArray = await Promise.all(
-  //   uniqueTokenAddresses.map(async (tokenAddress) => [
-  //     tokenAddress,
-  //     await params.priceProvider.getUSDConversionRate(
-  //       params.chainId,
-  //       tokenAddress
-  //     ),
-  //   ])
-  // );
-  // const tokenAddressToPriceInUsd: Record<string, PriceWithDecimals> = ({} =
-  //   Object.fromEntries(tokenAddressToPriceInUsdArray));
+  const conversionRateRoundToken = await priceProvider.getUSDConversionRate(
+    chain.id,
+    round.token
+  );
 
-  const matchingEstimates = await new Calculator(params).estimateMatching({
-    round,
-    currentMatches,
-    potentialVotes,
-    votes,
-    applications,
-    passportScoresByAddress,
-    roundTokenPriceInUsd,
-    tokenAddressToPriceInUsd,
+  const potentialVotesAugmented: Vote[] = potentialVotes.map((vote) => {
+    const tokenPrice = usdPriceByAddress[vote.token];
+
+    const voteAmountInUsd = convertTokenToFiat({
+      tokenAmount: vote.amount,
+      tokenDecimals: tokenPrice.decimals,
+      tokenPrice: tokenPrice.price,
+      tokenPriceDecimals: 8,
+    });
+
+    const voteAmountInRoundToken = convertFiatToToken({
+      fiatAmount: voteAmountInUsd,
+      tokenDecimals: conversionRateRoundToken.decimals,
+      tokenPrice: conversionRateRoundToken.price,
+      tokenPriceDecimals: 8,
+    });
+
+    return {
+      ...vote,
+      amount: vote.amount.toString(),
+      amountRoundToken: voteAmountInRoundToken.toString(),
+      amountUSD: voteAmountInUsd,
+      applicationId: vote.applicationId,
+      id: "",
+    };
   });
 
-  return matchingEstimates;
-};
+  const originalResults = await linearQfImpl({
+    aggregatedContributions,
+    matchAmount: calculationConfig.matchAmount,
+    options: {
+      minimumAmount: 0n,
+      matchingCapAmount: calculationConfig.matchingCapAmount,
+      ignoreSaturation: false,
+    },
+  });
 
-const __stub_loadOutOfProcessCalculateOutOfProcess = (
-  _params: CalculatorOptions
-): Promise<MatchingEstimateResult[]> => {
-  throw new Error("Not implemented.");
-};
+  const passportScoreByAddress = await passportProvider.getScoresByAddresses(
+    potentialVotesAugmented.map((v) => v.voter.toLowerCase())
+  );
+
+  const potentialContributions = aggregateContributions({
+    chain: chain,
+    round: round,
+    votes: potentialVotesAugmented,
+    applications: applications,
+    passportScoreByAddress,
+    minimumAmountUSD: calculationConfig.minimumAmountUSD,
+    enablePassport: calculationConfig.enablePassport,
+    coefficientOverrides: {},
+    proportionalMatchOptions: proportionalMatchOptions,
+  });
+
+  const totalAggregations = mergeAggregatedContributions(
+    aggregatedContributions,
+    potentialContributions
+  );
+
+  const potentialResults = await linearQfImpl({
+    matchAmount: calculationConfig.matchAmount,
+    aggregatedContributions: totalAggregations,
+    options: {
+      minimumAmount: 0n,
+      matchingCapAmount: calculationConfig.matchingCapAmount,
+      ignoreSaturation: false,
+    },
+  });
+
+  const finalResults: EstimatedMatch[] = [];
+
+  const applicationRecipientAddresses = Object.fromEntries(
+    applications.map((a) => [a.id, a.metadata?.application.recipient])
+  );
+
+  for (const applicationId in potentialResults) {
+    const estimatedResult = potentialResults[applicationId];
+    const originalResult = originalResults[applicationId];
+
+    const difference =
+      estimatedResult.matched - (originalResult?.matched ?? 0n);
+
+    const differenceInUSD = convertTokenToFiat({
+      tokenAmount: difference,
+      tokenDecimals: conversionRateRoundToken.decimals,
+      tokenPrice: conversionRateRoundToken.price,
+      tokenPriceDecimals: 8,
+    });
+
+    finalResults.push({
+      original: originalResult,
+      estimated: estimatedResult,
+      difference: difference,
+      differenceInUSD: differenceInUSD,
+      applicationId: applicationId,
+      recipient: applicationRecipientAddresses[applicationId],
+    });
+  }
+
+  return finalResults;
+}

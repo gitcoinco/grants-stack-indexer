@@ -630,6 +630,7 @@ export type Config = {
   apiHttpPort: number;
   sentryDsn: string | null;
   deploymentEnvironment: "local" | "development" | "staging" | "production";
+  estimatesLinearQfWorkerPoolSize: number | null;
 };
 
 export function getConfig(): Config {
@@ -737,6 +738,12 @@ export function getConfig(): Config {
     .default(null)
     .parse(process.env.SENTRY_DSN);
 
+  const estimatesLinearQfWorkerPoolSize = z
+    .number()
+    .nullable()
+    .default(null)
+    .parse(process.env.ESTIMATES_LINEAR_QF_WORKER_POOL_SIZE);
+
   return {
     buildTag: buildTag,
     sentryDsn,
@@ -754,5 +761,6 @@ export function getConfig(): Config {
     passportScorerId,
     apiHttpPort,
     deploymentEnvironment,
+    estimatesLinearQfWorkerPoolSize,
   };
 }

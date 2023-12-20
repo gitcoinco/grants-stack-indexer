@@ -32,7 +32,7 @@ export class FakePassportProvider implements PassportProvider {
     addresses: string[]
   ): Promise<AddressToPassportScoreMap> {
     return Promise.resolve(
-      Object.fromEntries(
+      new Map(
         addresses
           .map((address) => this.scores[address])
           .filter(isPresent)
@@ -157,13 +157,13 @@ function generateData() {
   const votes: Vote[] = [];
   const scores: PassportScore[] = [];
 
-  const passportScoresByAddress: AddressToPassportScoreMap = {};
+  const passportScoresByAddress: AddressToPassportScoreMap = new Map();
 
   SAMPLE_VOTES_AND_SCORES.forEach(({ id, amount, rawScore }) => {
     const { vote, score } = generateVoteAndScore(id, amount, rawScore);
     votes.push(vote);
     scores.push(score);
-    passportScoresByAddress[vote.voter] = score;
+    passportScoresByAddress.set(score.address, score);
   });
 
   return { votes, scores, passportScoresByAddress };

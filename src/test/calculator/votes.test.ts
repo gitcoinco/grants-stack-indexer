@@ -106,16 +106,15 @@ const MOCK_CHAIN = {
 
 describe("getVotesWithCoefficients", () => {
   describe("should take voteAmountCap into conisderation", () => {
-    test("returns capped vote if capping is defined for token", async () => {
+    test("returns capped vote if capping is defined for token", () => {
       const testVoteIndex = 0;
 
-      const res = await getVotesWithCoefficients({
+      const res = getVotesWithCoefficients({
         chain: MOCK_CHAIN,
         round,
         applications,
         votes,
-        options: {},
-        passportScoreByAddress: {},
+        passportScoreByAddress: new Map(),
       });
 
       expect(res[testVoteIndex]).toEqual({
@@ -125,16 +124,15 @@ describe("getVotesWithCoefficients", () => {
       });
     });
 
-    test("doesn't cap votes if capping isn't defined for token", async () => {
+    test("doesn't cap votes if capping isn't defined for token", () => {
       const testVoteIndex = 1;
 
-      const res = await getVotesWithCoefficients({
+      const res = getVotesWithCoefficients({
         chain: MOCK_CHAIN,
         round,
         applications,
         votes,
-        options: {},
-        passportScoreByAddress: {},
+        passportScoreByAddress: new Map(),
       });
 
       expect(res[testVoteIndex]).toEqual({

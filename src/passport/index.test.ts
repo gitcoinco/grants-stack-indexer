@@ -207,22 +207,8 @@ describe("operation", () => {
       ]);
 
       expect(score).toMatchInlineSnapshot(`
-        {
-          "0x455f491985c2f18b2c77d181f009ee6bdc41b1f8": {
-            "address": "0x455f491985c2f18b2c77d181f009ee6bdc41b1f8",
-            "error": null,
-            "evidence": {
-              "rawScore": "0",
-              "success": false,
-              "threshold": "20.00000",
-              "type": "ThresholdScoreCheck",
-            },
-            "id": 28,
-            "last_score_timestamp": "2023-07-25T20:03:37.475Z",
-            "score": "0E-9",
-            "status": "DONE",
-          },
-          "0x7587cfbd20e5a970209526b4d1f69dbaae8bed37": {
+        Map {
+          "0x7587cfbd20e5a970209526b4d1f69dbaae8bed37" => {
             "address": "0x7587cfbd20e5a970209526b4d1f69dbaae8bed37",
             "error": null,
             "evidence": {
@@ -236,7 +222,7 @@ describe("operation", () => {
             "score": "1.000000000",
             "status": "DONE",
           },
-          "0x7bec70fa7ef926878858333b0fa581418e2ef0b5": {
+          "0x7bec70fa7ef926878858333b0fa581418e2ef0b5" => {
             "address": "0x7bec70fa7ef926878858333b0fa581418e2ef0b5",
             "error": null,
             "evidence": {
@@ -250,7 +236,21 @@ describe("operation", () => {
             "score": "1.000000000",
             "status": "DONE",
           },
-          "0xbdf05e45143d65139978c46ad5c3e2a7c3dd1aea": {
+          "0x455f491985c2f18b2c77d181f009ee6bdc41b1f8" => {
+            "address": "0x455f491985c2f18b2c77d181f009ee6bdc41b1f8",
+            "error": null,
+            "evidence": {
+              "rawScore": "0",
+              "success": false,
+              "threshold": "20.00000",
+              "type": "ThresholdScoreCheck",
+            },
+            "id": 28,
+            "last_score_timestamp": "2023-07-25T20:03:37.475Z",
+            "score": "0E-9",
+            "status": "DONE",
+          },
+          "0xbdf05e45143d65139978c46ad5c3e2a7c3dd1aea" => {
             "address": "0xbdf05e45143d65139978c46ad5c3e2a7c3dd1aea",
             "error": null,
             "evidence": {
@@ -295,22 +295,8 @@ describe("operation", () => {
       ]);
 
       expect(score).toMatchInlineSnapshot(`
-        {
-          "0x7bec70fa7ef926878858333b0fa581418e2ef0b5": {
-            "address": "0x7bec70fa7ef926878858333b0fa581418e2ef0b5",
-            "error": null,
-            "evidence": {
-              "rawScore": "22.748",
-              "success": true,
-              "threshold": "20.00000",
-              "type": "ThresholdScoreCheck",
-            },
-            "id": 37,
-            "last_score_timestamp": "2023-07-25T20:03:38.747Z",
-            "score": "1.000000000",
-            "status": "DONE",
-          },
-          "0xbdf05e45143d65139978c46ad5c3e2a7c3dd1aea": {
+        Map {
+          "0xbdf05e45143d65139978c46ad5c3e2a7c3dd1aea" => {
             "address": "0xbdf05e45143d65139978c46ad5c3e2a7c3dd1aea",
             "error": null,
             "evidence": {
@@ -321,6 +307,20 @@ describe("operation", () => {
             },
             "id": 29,
             "last_score_timestamp": "2023-07-25T20:03:39.170Z",
+            "score": "1.000000000",
+            "status": "DONE",
+          },
+          "0x7bec70fa7ef926878858333b0fa581418e2ef0b5" => {
+            "address": "0x7bec70fa7ef926878858333b0fa581418e2ef0b5",
+            "error": null,
+            "evidence": {
+              "rawScore": "22.748",
+              "success": true,
+              "threshold": "20.00000",
+              "type": "ThresholdScoreCheck",
+            },
+            "id": 37,
+            "last_score_timestamp": "2023-07-25T20:03:38.747Z",
             "score": "1.000000000",
             "status": "DONE",
           },

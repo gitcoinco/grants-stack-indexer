@@ -24,10 +24,7 @@ export type PassportScore = {
   detail?: string;
 };
 
-export type AddressToPassportScoreMap = Record<
-  string,
-  PassportScore | undefined
->;
+export type AddressToPassportScoreMap = Map<string, PassportScore | undefined>;
 
 export interface PassportProviderConfig {
   scorerId: number;
@@ -184,7 +181,7 @@ export const createPassportProvider = (
     const { db } = state;
     const uniqueAddresses = Array.from(new Set(addresses));
     const records = await db.getMany(uniqueAddresses);
-    return Object.fromEntries(
+    return new Map(
       records.filter(Boolean).map((record) => [record.address, record])
     );
   };

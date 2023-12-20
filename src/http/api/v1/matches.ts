@@ -1,17 +1,66 @@
 import express, { Response, Request } from "express";
 import { z } from "zod";
+import { StaticPool } from "node-worker-threads-pool";
 
 const upload = multer();
 import multer from "multer";
 import ClientError from "../clientError.js";
 
-import { Overrides, parseOverrides } from "../../../calculator/index.js";
 import { HttpApiConfig } from "../../app.js";
+import { Round } from "../../../indexer/types.js";
+import {
+  LinearQfCalculatorResult,
+  LinearQfCalculatorArgs,
+  LinearQf,
+} from "../../../calculator/linearQf/index.js";
+import { RoundContributionsCache } from "../../../calculator/roundContributionsCache.js";
+import {
+  CoefficientOverrides,
+  parseCoefficientOverridesCsv,
+} from "../../../calculator/coefficientOverrides.js";
 import { calculateMatches } from "../../../calculator/calculateMatches.js";
-import { calculateMatchingEstimates } from "../../../calculator/calculateMatchingEstimates.js";
+import {
+  potentialVoteSchema,
+  calculateMatchingEstimates,
+} from "../../../calculator/calculateMatchingEstimates.js";
+import { linearQFWithAggregates } from "pluralistic";
+
+function createLinearQf(
+  config: HttpApiConfig["calculator"]["esimatesLinearQfImplementation"]
+): LinearQf {
+  if (config.type === "in-thread") {
+    return (args: LinearQfCalculatorArgs) => {
+      return Promise.resolve(
+        linearQFWithAggregates(
+          args.aggregatedContributions,
+          args.matchAmount,
+          0n,
+          args.options
+        )
+      );
+    };
+  } else if (config.type === "worker-pool") {
+    const calculatorWorkerPool = new StaticPool<
+      (msg: LinearQfCalculatorArgs) => LinearQfCalculatorResult
+    >({
+      size: config.workerPoolSize,
+      task: "./dist/src/calculator/linearQf/worker.js",
+    });
+
+    return (args: LinearQfCalculatorArgs) => calculatorWorkerPool.exec(args);
+  }
+
+  throw new Error("Unimplemented linearQfImplementation type");
+}
 
 export const createHandler = (config: HttpApiConfig): express.Router => {
   const router = express.Router();
+
+  const linearQfImpl = createLinearQf(
+    config.calculator.esimatesLinearQfImplementation
+  );
+
+  const roundContributionsCache = new RoundContributionsCache();
 
   function boolParam<T extends Record<string, unknown>>(
     object: T,
@@ -62,7 +111,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     const enablePassport = boolParam(req.query, "enablePassport");
     const ignoreSaturation = boolParam(req.query, "ignoreSaturation");
 
-    let overrides: Overrides = {};
+    let overrides: CoefficientOverrides = {};
 
     if (useOverrides) {
       const file = req.file;
@@ -73,7 +122,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       }
 
       const buf = file.buffer;
-      overrides = await parseOverrides(buf);
+      overrides = await parseCoefficientOverridesCsv(buf);
     }
 
     const chainConfig = config.chains.find((c) => c.id === chainId);
@@ -82,17 +131,19 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     }
 
     const matches = await calculateMatches({
-      chainId: chainId,
       roundId: roundId,
-      minimumAmountUSD: minimumAmountUSD ? Number(minimumAmountUSD) : undefined,
-      matchingCapAmount: matchingCapAmount
-        ? BigInt(matchingCapAmount)
-        : undefined,
-      enablePassport: enablePassport,
-      ignoreSaturation: ignoreSaturation,
-      overrides,
+      coefficientOverrides: overrides,
       chain: chainConfig,
-      implementationType: "load-inprocess-calc-inprocess",
+      calculationConfigOverride: {
+        minimumAmountUSD: minimumAmountUSD
+          ? Number(minimumAmountUSD)
+          : undefined,
+        matchingCapAmount: matchingCapAmount
+          ? BigInt(matchingCapAmount)
+          : undefined,
+        enablePassport: enablePassport,
+        ignoreSaturation: ignoreSaturation,
+      },
       deps: {
         logger: config.logger.child({ subsystem: "Calculator" }),
         dataProvider: config.dataProvider,
@@ -113,6 +164,10 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     await estimateMatchesHandler(req, res, 200);
   });
 
+  const estimateRequestBody = z.object({
+    potentialVotes: z.array(potentialVoteSchema),
+  });
+
   async function estimateMatchesHandler(
     req: Request,
     res: Response,
@@ -128,30 +183,38 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       }));
 
     const chainConfig = config.chains.find((c) => c.id === chainId);
+
     if (chainConfig === undefined) {
       throw new ClientError(`Chain ${chainId} not configured`, 400);
     }
 
+    const rounds = await config.dataProvider.loadFile<Round>(
+      "rounds",
+      `${chainId}/rounds.json`
+    );
+
+    const round = rounds.find((r: Round) => r.id === roundId);
+
+    if (round === undefined) {
+      throw new ClientError(`Round ${roundId} not found`, 400);
+    }
+
     const matches = await calculateMatchingEstimates({
-      chainId: chainId,
-      roundId: roundId,
-      minimumAmountUSD: undefined,
-      matchingCapAmount: undefined,
-      overrides: {},
+      round,
       chain: chainConfig,
       potentialVotes,
-      implementationType: "load-inprocess-calc-inprocess",
-      deps: {
-        dataProvider: config.dataProvider,
-        passportProvider: config.passportProvider,
-        priceProvider: config.priceProvider,
-        logger: config.logger.child({ subsystem: "Calculator" }),
-      },
+      dataProvider: config.dataProvider,
+      priceProvider: config.priceProvider,
+      passportProvider: config.passportProvider,
+      calculationConfigOverride: {},
+      roundContributionsCache,
+      linearQfImpl,
     });
 
     const responseBody = JSON.stringify(matches, (_key, value) =>
       typeof value === "bigint" ? value.toString() : (value as unknown)
     );
+
     res.setHeader("content-type", "application/json");
     res.status(okStatusCode);
     res.send(responseBody);
@@ -159,21 +222,3 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
 
   return router;
 };
-
-const potentialVoteSchema = z.object({
-  projectId: z.string(),
-  roundId: z.string(),
-  applicationId: z.string(),
-  token: z.string(),
-  voter: z.string(),
-  grantAddress: z.string(),
-  amount: z.coerce.bigint(),
-});
-
-const potentialVotesSchema = z.array(potentialVoteSchema);
-const estimateRequestBody = z.object({
-  potentialVotes: potentialVotesSchema,
-});
-
-export type PotentialVotes = z.infer<typeof potentialVotesSchema>;
-export type PotentialVote = z.infer<typeof potentialVoteSchema>;

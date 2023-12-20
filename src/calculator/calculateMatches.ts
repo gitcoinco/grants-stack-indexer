@@ -1,64 +1,58 @@
 import { Logger } from "pino";
-import { fork } from "node:child_process";
-import { UnreachableCaseError } from "ts-essentials";
 import { Application, Round, Vote } from "../indexer/types.js";
 import { PassportProvider } from "../passport/index.js";
-import Calculator, {
-  AugmentedResult,
-  CalculatorOptions,
-  DataProvider,
-  ResourceNotFoundError,
-} from "./index.js";
+import { DataProvider } from "./dataProvider/index.js";
+import { ResourceNotFoundError } from "./errors.js";
 import { PriceProvider } from "../prices/provider.js";
+import { aggregateContributions } from "./votes.js";
+import { Calculation, linearQFWithAggregates } from "pluralistic";
+import { ProportionalMatchOptions } from "./options.js";
+import { CoefficientOverrides } from "./coefficientOverrides.js";
+import { Chain } from "../config.js";
+import {
+  CalculationConfig,
+  extractCalculationConfigFromRound,
+  overrideCalculationConfig,
+} from "./calculationConfig.js";
+import { convertTokenToFiat } from "../tokenMath.js";
 
-export const calculateMatches = async (
-  params: CalculatorOptions &
-    (
-      | {
-          implementationType:
-            | "load-inprocess-calc-inprocess"
-            | "load-inprocess-calc-outofprocess";
-          deps: {
-            passportProvider: PassportProvider;
-            dataProvider: DataProvider;
-            priceProvider: PriceProvider;
-            logger: Logger;
-          };
-        }
-      | {
-          implementationType: "load-outofprocess-calc-outofprocess";
-        }
-    )
-): Promise<AugmentedResult[]> => {
-  switch (params.implementationType) {
-    case "load-inprocess-calc-inprocess":
-      return await loadInProcessCalculateInProcess(params);
-    case "load-inprocess-calc-outofprocess":
-      return await __nonFunctional_loadInProcessCalculateMatchesOutOfProcess(
-        params
-      );
-    case "load-outofprocess-calc-outofprocess":
-      return await __stub_loadOutOfProcessCalculateOutOfProcess(params);
-    default:
-      throw new UnreachableCaseError(params);
-  }
+export type CalculateMatchesConfig = {
+  roundId: string;
+  calculationConfigOverride?: Partial<CalculationConfig>;
+  coefficientOverrides: CoefficientOverrides;
+  chain: Chain;
+  proportionalMatch?: ProportionalMatchOptions;
+  deps: {
+    passportProvider: PassportProvider;
+    dataProvider: DataProvider;
+    priceProvider: PriceProvider;
+    logger: Logger;
+  };
 };
 
-const loadInProcessCalculateInProcess = async (
-  params: CalculatorOptions & {
-    deps: {
-      passportProvider: PassportProvider;
-      dataProvider: DataProvider;
-      priceProvider: PriceProvider;
-      logger: Logger;
-    };
-  }
+export type AugmentedResult = Calculation & {
+  projectId: string;
+  applicationId: string;
+  matchedUSD: number;
+  projectName?: string;
+  payoutAddress?: string;
+};
+
+export const calculateMatches = async (
+  params: CalculateMatchesConfig
 ): Promise<AugmentedResult[]> => {
-  const { passportProvider, dataProvider, priceProvider, logger } = params.deps;
+  const {
+    calculationConfigOverride,
+    coefficientOverrides,
+    chain,
+    roundId,
+    proportionalMatch,
+    deps: { passportProvider, dataProvider, priceProvider },
+  } = params;
 
   const applications = await dataProvider.loadFile<Application>(
     "applications",
-    `${params.chainId}/rounds/${params.roundId}/applications.json`
+    `${chain.id}/rounds/${roundId}/applications.json`
   );
 
   // TODO to lower memory usage here at the expense of speed, use
@@ -66,12 +60,12 @@ const loadInProcessCalculateInProcess = async (
   // https://www.npmjs.com/package/@streamparser/json
   const votes = await dataProvider.loadFile<Vote>(
     "votes",
-    `${params.chainId}/rounds/${params.roundId}/votes.json`
+    `${chain.id}/rounds/${roundId}/votes.json`
   );
 
   const rounds = await dataProvider.loadFile<Round>(
     "rounds",
-    `${params.chainId}/rounds.json`
+    `${chain.id}/rounds.json`
   );
 
   const round = rounds.find((round) => round.id === params.roundId);
@@ -80,194 +74,78 @@ const loadInProcessCalculateInProcess = async (
     throw new ResourceNotFoundError("round");
   }
 
-  const passportScoresByAddress = await passportProvider.getScoresByAddresses(
+  const roundCalculationConfig = extractCalculationConfigFromRound(round);
+
+  const calculationConfig: CalculationConfig = overrideCalculationConfig(
+    roundCalculationConfig,
+    calculationConfigOverride ?? {}
+  );
+
+  const passportScoreByAddress = await passportProvider.getScoresByAddresses(
     votes.map((vote) => vote.voter)
   );
 
   const roundTokenPriceInUsd = await priceProvider.getUSDConversionRate(
-    params.chainId,
+    chain.id,
     round.token
   );
 
-  const matches = await new Calculator(params)._calculate({
+  const aggregatedContributions = aggregateContributions({
+    chain,
+    round,
     votes,
     applications,
-    round,
-    roundTokenPriceInUsd,
-    passportScoresByAddress,
+    passportScoreByAddress,
+    enablePassport: calculationConfig.enablePassport,
+    minimumAmountUSD: calculationConfig.minimumAmountUSD,
+    coefficientOverrides,
+    proportionalMatchOptions: proportionalMatch,
   });
 
-  return matches;
-};
+  const results = linearQFWithAggregates(
+    aggregatedContributions,
+    calculationConfig.matchAmount,
+    0n, // not used, should be deleted in Pluralistic
+    {
+      minimumAmount: 0n, // we're filtering by minimum amount in aggregateContributions
+      matchingCapAmount: calculationConfig.matchingCapAmount,
+      ignoreSaturation: calculationConfig.ignoreSaturation ?? false,
+    }
+  );
 
-const __nonFunctional_loadInProcessCalculateMatchesOutOfProcess = async (
-  params: CalculatorOptions & {
-    deps: {
-      passportProvider: PassportProvider;
-      dataProvider: DataProvider;
-      priceProvider: PriceProvider;
-      logger: Logger;
+  const augmented: Array<AugmentedResult> = [];
+
+  const applicationsMap = applications.reduce(
+    (all, current) => {
+      all[current.id] = current;
+      return all;
+    },
+    {} as Record<string, Application>
+  );
+
+  for (const id in results) {
+    const calc = results[id];
+    const application = applicationsMap[id];
+
+    const conversionUSD = {
+      amount: convertTokenToFiat({
+        tokenAmount: calc.matched,
+        tokenDecimals: roundTokenPriceInUsd.decimals,
+        tokenPrice: roundTokenPriceInUsd.price,
+        tokenPriceDecimals: 8,
+      }),
+      price: roundTokenPriceInUsd.price,
     };
-  }
-): Promise<AugmentedResult[]> => {
-  const { deps, ...calculatorConfig } = params;
-  const { passportProvider, dataProvider, priceProvider, logger } = deps;
 
-  logger.warn(
-    `called non-functional loadDatInProcessAndCalculateMatchesOutOfProcess`
-  );
-
-  const applications = await dataProvider.loadFile<Application>(
-    "applications",
-    `${params.chainId}/rounds/${params.roundId}/applications.json`
-  );
-
-  const votes = await dataProvider.loadFile<Vote>(
-    "votes",
-    `${params.chainId}/rounds/${params.roundId}/votes.json`
-  );
-
-  const rounds = await dataProvider.loadFile<Round>(
-    "rounds",
-    `${params.chainId}/rounds.json`
-  );
-
-  const round = rounds.find((round) => round.id === params.roundId);
-
-  if (round === undefined) {
-    throw new ResourceNotFoundError("round");
+    augmented.push({
+      ...calc,
+      matchedUSD: conversionUSD.amount,
+      projectId: application.projectId,
+      applicationId: application.id,
+      projectName: application.metadata?.application?.project?.title,
+      payoutAddress: application.metadata?.application?.recipient,
+    });
   }
 
-  const passportScoresByAddress = await passportProvider.getScoresByAddresses(
-    votes.map((vote) => vote.voter)
-  );
-
-  const roundTokenPriceInUsd = await priceProvider.getUSDConversionRate(
-    params.chainId,
-    round.token
-  );
-
-  return await new Promise<AugmentedResult[]>((resolve, reject) => {
-    const child = fork("dist/src/calculator/calculateMatches.subprocess.js", {
-      serialization: "advanced", // to support BigInt
-    });
-
-    logger.debug(`started calculator subprocess (pid: ${child.pid})`);
-
-    child.on("error", (err) => {
-      logger.error({ msg: "calculator subprocess ran into an error", err });
-      reject(err);
-    });
-
-    child.on("exit", (code) => {
-      logger.debug(`calculator subprocess exited with code ${code}`);
-    });
-
-    child.send({
-      calculatorConfig,
-      calculatorValues: {
-        votes,
-        applications,
-        round,
-        roundTokenPriceInUsd,
-        passportScoresByAddress,
-      },
-    });
-
-    // TODO reject if a message isn't received within a certain time
-    child.on("message", (message) => {
-      // TODO remove cast
-      const { matches } = message as { matches: AugmentedResult[] };
-
-      if (matches === undefined) {
-        logger.warn("anomaly detected: subprocess sent empty message");
-      } else {
-        logger.debug("received result from subprocess");
-        resolve(matches);
-      }
-    });
-  });
-};
-
-const __stub_loadOutOfProcessCalculateOutOfProcess = async (
-  _params: CalculatorOptions
-): Promise<AugmentedResult[]> => {
-  throw new Error("Not implemented.");
-
-  // Example of what a stand-alone script might contain:
-
-  // const config = getConfig();
-
-  // const baseLogger = pino({
-  //   level: config.logLevel,
-  //   formatters: {
-  //     level(level) {
-  //       // represent severity as strings so that DataDog can recognize it
-  //       return { level };
-  //     },
-  //   },
-  // }).child({
-  //   service: `indexer-${config.deploymentEnvironment}`,
-  //   subsystem: "Calculator",
-  // });
-
-  // const passportProvider = createPassportProvider({
-  //   // TODO further qualify as 'Calculator/PassportProvider'?
-  //   logger: baseLogger.child({ subsystem: "PassportProvider" }),
-  //   scorerId: config.passportScorerId,
-  //   dbPath: path.join(config.storageDir, "passport_scores.leveldb"),
-  //   deprecatedJSONPassportDumpPath: path.join(
-  //     config.chainDataDir,
-  //     "passport_scores.json"
-  //   ),
-  // });
-
-  // const dataProvider = new FileSystemDataProvider(config.chainDataDir);
-
-  // const priceProvider = createPriceProvider({
-  //   chainDataDir: config.chainDataDir,
-  //   // TODO further qualify as 'Calculator/PriceProvider'?
-  //   logger: baseLogger.child({ subsystem: "PriceProvider" }),
-  // });
-
-  // // invoke process instead
-  // // await passportProvider.start({ watch: !config.runOnce });
-
-  // const applications = await dataProvider.loadFile<Application>(
-  //   "applications",
-  //   `${params.chainId}/rounds/${params.roundId}/applications.json`
-  // );
-
-  // const votes = await dataProvider.loadFile<Vote>(
-  //   "votes",
-  //   `${params.chainId}/rounds/${params.roundId}/votes.json`
-  // );
-
-  // const rounds = await dataProvider.loadFile<Round>(
-  //   "rounds",
-  //   `${params.chainId}/rounds.json`
-  // );
-
-  // const round = rounds.find((round) => round.id === params.roundId);
-
-  // if (round === undefined) {
-  //   throw new ResourceNotFoundError("round");
-  // }
-
-  // const passportScoresByAddress = await passportProvider.getScoresByAddresses(
-  //   votes.map((vote) => vote.voter)
-  // );
-
-  // const roundTokenPriceInUsd = await priceProvider.getUSDConversionRate(
-  //   params.chainId,
-  //   round.token
-  // );
-
-  // const matches = await new Calculator(params)._calculate({
-  //   votes,
-  //   applications,
-  //   round,
-  //   roundTokenPriceInUsd,
-  //   passportScoresByAddress,
-  // });
+  return augmented;
 };

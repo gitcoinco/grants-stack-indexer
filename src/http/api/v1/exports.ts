@@ -12,6 +12,7 @@ import { Round, Application, Vote } from "../../../indexer/types.js";
 import { getVotesWithCoefficients } from "../../../calculator/votes.js";
 import ClientError from "../clientError.js";
 import { HttpApiConfig } from "../../app.js";
+import { extractCalculationConfigFromRound } from "../../../calculator/calculationConfig.js";
 
 export const createHandler = (config: HttpApiConfig): express.Router => {
   const router = express.Router();
@@ -89,12 +90,15 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
         votes.map((vote) => vote.voter.toLowerCase())
       );
 
-    const votesWithCoefficients = await getVotesWithCoefficients({
+    const calculationConfig = extractCalculationConfigFromRound(round);
+
+    const votesWithCoefficients = getVotesWithCoefficients({
       chain: chainConfig,
       round,
       applications,
       votes,
-      options: {},
+      minimumAmountUSD: calculationConfig.minimumAmountUSD,
+      enablePassport: calculationConfig.enablePassport,
       passportScoreByAddress,
     });
 

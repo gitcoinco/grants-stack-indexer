@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
-import { DataProvider, FileNotFoundError } from "../calculator/index.js";
+import { DataProvider } from "../calculator/dataProvider/index.js";
+import { FileNotFoundError } from "../calculator/errors.js";
 import {
   AddressToPassportScoreMap,
   PassportProvider,
@@ -8,6 +9,8 @@ import {
 } from "../passport/index.js";
 import { Price } from "../prices/common.js";
 import { isPresent } from "ts-is-present";
+import { PriceProvider } from "../prices/provider.js";
+import { zeroAddress } from "viem";
 
 type Fixtures = { [path: string]: string | undefined | unknown[] };
 
@@ -45,7 +48,7 @@ export class TestPassportProvider implements PassportProvider {
       ) as PassportScore[];
     }
     const fixture = this._fixture;
-    return Object.fromEntries(
+    return new Map(
       addresses
         .map((address) => fixture.find((score) => score.address === address))
         .filter(isPresent)
@@ -75,27 +78,32 @@ export class TestDataProvider implements DataProvider {
   }
 }
 
-export class TestPriceProvider {
-  async convertToUSD() {
-    return Promise.resolve({ amount: 0 });
-  }
-
-  async convertFromUSD() {
-    return Promise.resolve({ amount: 0 });
-  }
-
+export class TestPriceProvider implements PriceProvider {
   async getUSDConversionRate(
-    chainId: number,
+    _chainId: number,
     tokenAddress: string,
     _blockNumber?: number
   ): Promise<Price & { decimals: number }> {
     return Promise.resolve({
-      price: 1_000_000_000,
+      price: 1,
       token: tokenAddress,
       block: 0,
       code: "",
       decimals: 18,
       timestamp: 0,
     });
+  }
+
+  async getAllPricesForChain(_chainId: number): Promise<Price[]> {
+    return Promise.resolve([
+      {
+        price: 1,
+        token: zeroAddress,
+        block: 0,
+        code: "",
+        decimals: 18,
+        timestamp: 0,
+      },
+    ]);
   }
 }

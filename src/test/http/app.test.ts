@@ -4,10 +4,11 @@ import express from "express";
 import os from "os";
 import request, { Response as SupertestResponse } from "supertest";
 import { createHttpApi } from "../../http/app.js";
-import { AugmentedResult, DataProvider } from "../../calculator/index.js";
+import { DataProvider } from "../../calculator/dataProvider/index.js";
+import { AugmentedResult } from "../../calculator/calculateMatches.js";
 import { PriceProvider } from "../../prices/provider.js";
-import { Logger } from "pino";
-import { PotentialVotes } from "../../http/api/v1/matches.js";
+import { pino } from "pino";
+import { PotentialVote } from "../../calculator/calculateMatchingEstimates.js";
 import { Chain } from "../../config.js";
 import { constants } from "ethers";
 import {
@@ -34,13 +35,7 @@ const MOCK_CHAINS = [
   },
 ] as Chain[];
 
-const DUMMY_LOGGER = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-  child: () => {},
-} as unknown as Logger;
+const DUMMY_LOGGER = pino({ level: "silent" });
 
 describe("server", () => {
   describe("/status", () => {
@@ -61,6 +56,9 @@ describe("server", () => {
         }) as DataProvider,
         chains: MOCK_CHAINS,
         enableSentry: false,
+        calculator: {
+          esimatesLinearQfImplementation: { type: "in-thread" },
+        },
       }).app;
     });
 
@@ -106,6 +104,9 @@ describe("server", () => {
           buildTag: "123abc",
           chains: MOCK_CHAINS,
           enableSentry: false,
+          calculator: {
+            esimatesLinearQfImplementation: { type: "in-thread" },
+          },
         });
 
         const resp = await request(app).get(
@@ -129,6 +130,9 @@ describe("server", () => {
           buildTag: "123abc",
           chains: MOCK_CHAINS,
           enableSentry: false,
+          calculator: {
+            esimatesLinearQfImplementation: { type: "in-thread" },
+          },
         });
 
         const resp = await request(app).get(
@@ -152,6 +156,9 @@ describe("server", () => {
           buildTag: "123abc",
           chains: MOCK_CHAINS,
           enableSentry: false,
+          calculator: {
+            esimatesLinearQfImplementation: { type: "in-thread" },
+          },
         });
 
         const resp = await request(app).get(
@@ -175,6 +182,9 @@ describe("server", () => {
           buildTag: "123abc",
           chains: MOCK_CHAINS,
           enableSentry: false,
+          calculator: {
+            esimatesLinearQfImplementation: { type: "in-thread" },
+          },
         });
 
         const resp = await request(app).get(
@@ -198,12 +208,161 @@ describe("server", () => {
           buildTag: "123abc",
           chains: MOCK_CHAINS,
           enableSentry: false,
+          calculator: {
+            esimatesLinearQfImplementation: { type: "in-thread" },
+          },
         });
 
         const resp = await request(app).get(
           "/api/v1/chains/1/rounds/0x1234/matches"
         );
         expect(resp.status).toEqual(404);
+      });
+    });
+
+    describe("calculations with worker pool for matching estimates", () => {
+      let app: express.Application;
+      beforeEach(() => {
+        app = createHttpApi({
+          logger: DUMMY_LOGGER,
+          port: 0,
+          chainDataDir: "/dev/null",
+          priceProvider: new TestPriceProvider() as unknown as PriceProvider,
+          passportProvider: new TestPassportProvider(),
+          dataProvider: new TestDataProvider({
+            "1/rounds/0x1234/votes.json": "votes",
+            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds.json": "rounds",
+          }) as DataProvider,
+          buildTag: "123abc",
+          chains: MOCK_CHAINS,
+          enableSentry: false,
+          calculator: {
+            esimatesLinearQfImplementation: {
+              type: "worker-pool",
+              workerPoolSize: 10,
+            },
+          },
+        }).app;
+      });
+
+      test("should estimate matching with new votes for projects", async () => {
+        const expectedResults = [
+          {
+            original: {
+              totalReceived: "1500",
+              contributionsCount: "4",
+              sumOfSqrt: "70",
+              sumOfSqrtRemainder: "0",
+              capOverflow: "0",
+              matchedWithoutCap: "1360",
+              matched: "1360",
+            },
+            estimated: {
+              totalReceived: "1500",
+              contributionsCount: "4",
+              sumOfSqrt: "70",
+              sumOfSqrtRemainder: "0",
+              capOverflow: "0",
+              matchedWithoutCap: "1",
+              matched: "1",
+            },
+            difference: "-1359",
+            differenceInUSD: 0,
+            applicationId: "application-id-1",
+            recipient: "grant-address-1",
+          },
+          {
+            original: {
+              totalReceived: "1000",
+              contributionsCount: "7",
+              sumOfSqrt: "80",
+              sumOfSqrtRemainder: "0",
+              capOverflow: "0",
+              matchedWithoutCap: "2160",
+              matched: "2160",
+            },
+            estimated: {
+              totalReceived: "1000",
+              contributionsCount: "8",
+              sumOfSqrt: "80",
+              sumOfSqrtRemainder: "0",
+              capOverflow: "0",
+              matchedWithoutCap: "1",
+              matched: "1",
+            },
+            difference: "-2159",
+            differenceInUSD: 0,
+            applicationId: "application-id-2",
+            recipient: "grant-address-2",
+          },
+          {
+            original: {
+              totalReceived: "3400",
+              contributionsCount: "7",
+              sumOfSqrt: "140",
+              sumOfSqrtRemainder: "0",
+              capOverflow: "0",
+              matchedWithoutCap: "6480",
+              matched: "6480",
+            },
+            estimated: {
+              totalReceived: "10000003400",
+              contributionsCount: "8",
+              sumOfSqrt: "100140",
+              sumOfSqrtRemainder: "0",
+              capOverflow: "0",
+              matchedWithoutCap: "9996",
+              matched: "9996",
+            },
+            difference: "3516",
+            differenceInUSD: 0,
+            applicationId: "application-id-3",
+            recipient: "grant-address-3",
+          },
+        ];
+
+        const potentialVotes: PotentialVote[] = [
+          {
+            roundId: "round-id-1",
+            applicationId: "application-id-3",
+            voter: "voter-1",
+            amount: 10000000000n,
+            grantAddress: "grant-address-3",
+            token: constants.AddressZero,
+            projectId: "project-id-3",
+          },
+          {
+            roundId: "round-id-1",
+            applicationId: "application-id-2",
+            voter: "voter-1",
+            amount: 5000000000n,
+            grantAddress: "grant-address-2",
+            token: constants.AddressZero,
+            projectId: "project-id-2",
+          },
+        ];
+
+        const replacer = (
+          _key: string,
+          value: bigint | string | number | object
+        ) => (typeof value === "bigint" ? value.toString() : value);
+
+        const resp = await request(app)
+          .post("/api/v1/chains/1/rounds/0x1234/estimate")
+          .set("Content-Type", "application/json")
+          .set("Accept", "application/json")
+          .send(
+            JSON.stringify(
+              {
+                potentialVotes,
+              },
+              replacer
+            )
+          );
+
+        expect(resp.statusCode).toBe(200);
+        expect(resp.body).toEqual(expectedResults);
       });
     });
 
@@ -224,6 +383,9 @@ describe("server", () => {
           buildTag: "123abc",
           chains: MOCK_CHAINS,
           enableSentry: false,
+          calculator: {
+            esimatesLinearQfImplementation: { type: "in-thread" },
+          },
         }).app;
       });
 
@@ -280,62 +442,80 @@ describe("server", () => {
       test("should estimate matching with new votes for projects", async () => {
         const expectedResults = [
           {
-            applicationId: "application-id-1",
-            capOverflow: "0",
-            chainId: 1,
-            contributionsCount: "4",
+            original: {
+              totalReceived: "1500",
+              contributionsCount: "4",
+              sumOfSqrt: "70",
+              sumOfSqrtRemainder: "0",
+              capOverflow: "0",
+              matchedWithoutCap: "1360",
+              matched: "1360",
+            },
+            estimated: {
+              totalReceived: "1500",
+              contributionsCount: "4",
+              sumOfSqrt: "70",
+              sumOfSqrtRemainder: "0",
+              capOverflow: "0",
+              matchedWithoutCap: "1",
+              matched: "1",
+            },
             difference: "-1359",
             differenceInUSD: 0,
-            matched: "1",
-            matchedUSD: 0,
-            matchedWithoutCap: "1",
-            payoutAddress: "grant-address-1",
-            projectId: "project-id-1",
+            applicationId: "application-id-1",
             recipient: "grant-address-1",
-            roundId: "0x1234",
-            sumOfSqrt: "70",
-            sumOfSqrtRemainder: "0",
-            totalReceived: "1500",
           },
           {
-            applicationId: "application-id-2",
-            capOverflow: "0",
-            chainId: 1,
-            contributionsCount: "8",
+            original: {
+              totalReceived: "1000",
+              contributionsCount: "7",
+              sumOfSqrt: "80",
+              sumOfSqrtRemainder: "0",
+              capOverflow: "0",
+              matchedWithoutCap: "2160",
+              matched: "2160",
+            },
+            estimated: {
+              totalReceived: "1000",
+              contributionsCount: "8",
+              sumOfSqrt: "80",
+              sumOfSqrtRemainder: "0",
+              capOverflow: "0",
+              matchedWithoutCap: "1",
+              matched: "1",
+            },
             difference: "-2159",
             differenceInUSD: 0,
-            matched: "1",
-            matchedUSD: 0,
-            matchedWithoutCap: "1",
-            payoutAddress: "grant-address-2",
-            projectId: "project-id-2",
+            applicationId: "application-id-2",
             recipient: "grant-address-2",
-            roundId: "0x1234",
-            sumOfSqrt: "80",
-            sumOfSqrtRemainder: "0",
-            totalReceived: "1000",
           },
           {
-            applicationId: "application-id-3",
-            capOverflow: "0",
-            chainId: 1,
-            contributionsCount: "8",
+            original: {
+              totalReceived: "3400",
+              contributionsCount: "7",
+              sumOfSqrt: "140",
+              sumOfSqrtRemainder: "0",
+              capOverflow: "0",
+              matchedWithoutCap: "6480",
+              matched: "6480",
+            },
+            estimated: {
+              totalReceived: "10000003400",
+              contributionsCount: "8",
+              sumOfSqrt: "100140",
+              sumOfSqrtRemainder: "0",
+              capOverflow: "0",
+              matchedWithoutCap: "9996",
+              matched: "9996",
+            },
             difference: "3516",
             differenceInUSD: 0,
-            matched: "9996",
-            matchedUSD: 0,
-            matchedWithoutCap: "9996",
-            payoutAddress: "grant-address-3",
-            projectId: "project-id-3",
+            applicationId: "application-id-3",
             recipient: "grant-address-3",
-            roundId: "0x1234",
-            sumOfSqrt: "100140",
-            sumOfSqrtRemainder: "0",
-            totalReceived: "10000003400",
           },
         ];
 
-        const potentialVotes: PotentialVotes = [
+        const potentialVotes: PotentialVote[] = [
           {
             roundId: "round-id-1",
             applicationId: "application-id-3",
@@ -406,6 +586,9 @@ describe("server", () => {
           buildTag: "123abc",
           chains: MOCK_CHAINS,
           enableSentry: false,
+          calculator: {
+            esimatesLinearQfImplementation: { type: "in-thread" },
+          },
         }).app;
       });
 
@@ -478,6 +661,9 @@ describe("server", () => {
           buildTag: "123abc",
           chains: MOCK_CHAINS,
           enableSentry: false,
+          calculator: {
+            esimatesLinearQfImplementation: { type: "in-thread" },
+          },
         }).app;
       });
 
@@ -549,6 +735,9 @@ describe("server", () => {
           buildTag: "123abc",
           chains: MOCK_CHAINS,
           enableSentry: false,
+          calculator: {
+            esimatesLinearQfImplementation: { type: "in-thread" },
+          },
         }).app;
       });
 
@@ -679,6 +868,9 @@ describe("server", () => {
           buildTag: "123abc",
           chains: MOCK_CHAINS,
           enableSentry: false,
+          calculator: {
+            esimatesLinearQfImplementation: { type: "in-thread" },
+          },
         }).app;
       });
 
@@ -904,6 +1096,9 @@ describe("server", () => {
           buildTag: "123abc",
           chains: MOCK_CHAINS,
           enableSentry: false,
+          calculator: {
+            esimatesLinearQfImplementation: { type: "in-thread" },
+          },
         }).app;
       });
 
@@ -1077,6 +1272,9 @@ describe("server", () => {
           buildTag: "123abc",
           chains: MOCK_CHAINS,
           enableSentry: false,
+          calculator: {
+            esimatesLinearQfImplementation: { type: "in-thread" },
+          },
         }).app;
       });
 
