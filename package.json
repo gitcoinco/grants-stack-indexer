@@ -7,6 +7,7 @@
   "types": "dist/src/indexer/index.d.ts",
   "scripts": {
     "start": "node dist/src/index.js",
+    "start:run-once": "node dist/src/index.js --run-once | pino-pretty",
     "dev": "tsx watch src/index.ts | pino-pretty",
     "build": "tsc",
     "lint": "eslint src",
@@ -48,6 +49,7 @@
     "multer": "^1.4.5-lts.1",
     "pg": "^8.11.3",
     "pino": "^8.14.1",
+    "pino-http": "^8.5.1",
     "pino-pretty": "^10.0.1",
     "pluralistic": "github:gitcoinco/pluralistic.js#d3edbd1bc3c2e7593da3d43513302a09c0edc4e7",
     "postgraphile": "^4.13.0",
