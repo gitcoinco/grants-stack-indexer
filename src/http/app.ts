@@ -4,6 +4,7 @@ import "express-async-errors";
 import os from "os";
 import express from "express";
 import { Logger } from "pino";
+import createHttpLogger from "pino-http";
 import cors from "cors";
 import serveIndex from "serve-index";
 import * as Sentry from "@sentry/node";
@@ -39,7 +40,10 @@ interface HttpApi {
 export const createHttpApi = (config: HttpApiConfig): HttpApi => {
   const app = express();
 
+  app.set("trust proxy", true);
   app.use(cors());
+  // @ts-expect-error Something wrong with pino-http typings
+  app.use(createHttpLogger({ logger: config.logger }));
   app.use(express.json());
 
   const api = createApiHandler(config);

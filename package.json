@@ -7,6 +7,7 @@
   "types": "dist/src/indexer/index.d.ts",
   "scripts": {
     "start": "node dist/src/index.js",
+    "start:run-once": "node dist/src/index.js --run-once | pino-pretty",
     "dev": "tsx watch src/index.ts | pino-pretty",
     "test:snapshot:generate-before": "NODE_ENV=snapshot-testing INDEXED_CHAINS=mainnet STORAGE_DIR=test/snapshot.BEFORE/data CACHE_DIR=test/snapshot.BEFORE/cache tsx src/index.ts --to-block 17199975 --run-once | pino-pretty",
     "test:snapshot:generate-after": "NODE_ENV=snapshot-testing INDEXED_CHAINS=mainnet STORAGE_DIR=test/snapshot.AFTER/data CACHE_DIR=test/snapshot.AFTER/cache tsx src/index.ts --to-block 17199975 --run-once | pino-pretty",
@@ -47,6 +48,7 @@
     "multer": "^1.4.5-lts.1",
     "node-worker-threads-pool": "^1.5.1",
     "pino": "^8.14.1",
+    "pino-http": "^8.5.1",
     "pino-pretty": "^10.0.1",
     "pluralistic": "github:gitcoinco/pluralistic.js#322323c7440db955966f3cf523bbb84ca60894f9",
     "serve-index": "^1.9.1",
