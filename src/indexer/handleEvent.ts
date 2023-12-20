@@ -1,8 +1,6 @@
-import { Event, EventHandlerArgs } from "chainsauce";
+import { EventHandlerArgs } from "chainsauce";
 import { ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
-
-import { getChainConfigById } from "../config.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
