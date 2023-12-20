@@ -637,7 +637,7 @@ export type Config = {
   dropDb: boolean;
 };
 
-const CHAIN_DATA_VERSION = "6";
+const CHAIN_DATA_VERSION = "7";
 
 export function getConfig(): Config {
   const buildTag = z
