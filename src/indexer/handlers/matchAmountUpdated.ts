@@ -41,7 +41,7 @@ export default async function ({
   const id = parseAddress(event.address);
   const matchAmount = event.params.newAmount;
 
-  const round = await db.query({ type: "RoundById", roundId: id, chainId });
+  const round = await db.getRoundById(chainId, id);
 
   if (round === null) {
     throw new Error(`Round ${id} not found`);

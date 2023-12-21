@@ -9,7 +9,6 @@ import { Indexer } from "./indexer.js";
 import { Address as ChecksumAddress, Hex } from "viem";
 import { Project } from "../database/schema.js";
 import { parseAddress } from "../address.js";
-import { QueryInteraction } from "../database/query.js";
 
 const zeroAddress =
   "0x0000000000000000000000000000000000000000" as ChecksumAddress;
@@ -141,17 +140,9 @@ describe("handleEvent", () => {
         createdAtBlock: 1n,
       };
 
-      const queryMock = vi
-        .fn()
-        .mockImplementationOnce((q: QueryInteraction["query"]) => {
-          if (q.type === "ProjectById") {
-            return Promise.resolve(project);
-          }
-        });
+      MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
 
-      MOCK_DB.query = queryMock;
-
-      const changesets = await handleEvent({
+      const changes = await handleEvent({
         ...DEFAULT_ARGS,
         event: {
           ...DEFAULT_ARGS.event,
@@ -164,8 +155,8 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(changesets).toHaveLength(1);
-      expect(changesets[0]).toEqual({
+      expect(changes).toHaveLength(1);
+      expect(changes[0]).toEqual({
         type: "UpdateProject",
         projectId:
           "0xd0c4b8bf41dcf0607cd6c6d5f7c6423344ce99ddaaa72c31a7d8fb332a218878",
@@ -190,11 +181,9 @@ describe("handleEvent", () => {
         createdAtBlock: 1n,
       };
 
-      const queryMock = vi.fn().mockResolvedValueOnce(project);
+      MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
 
-      MOCK_DB.query = queryMock;
-
-      const changesets = await handleEvent({
+      const changes = await handleEvent({
         ...DEFAULT_ARGS,
         event: {
           ...DEFAULT_ARGS.event,
@@ -207,8 +196,8 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(changesets).toHaveLength(1);
-      expect(changesets[0]).toEqual({
+      expect(changes).toHaveLength(1);
+      expect(changes[0]).toEqual({
         type: "UpdateProject",
         projectId:
           "0xd0c4b8bf41dcf0607cd6c6d5f7c6423344ce99ddaaa72c31a7d8fb332a218878",

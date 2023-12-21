@@ -127,12 +127,11 @@ export function createPriceProvider(
     }
 
     if (blockNumber === "latest") {
-      const priceWithoutDecimals = await db.query({
-        type: "TokenPriceByBlockNumber",
+      const priceWithoutDecimals = await db.getTokenPriceByBlockNumber(
         chainId,
         tokenAddress,
-        blockNumber,
-      });
+        blockNumber
+      );
 
       if (priceWithoutDecimals !== null) {
         return {
@@ -225,7 +224,7 @@ export function createPriceProvider(
         });
       }
 
-      await db.applyChangeset({
+      await db.applyChange({
         type: "InsertManyPrices",
         prices: [newPrice],
       });

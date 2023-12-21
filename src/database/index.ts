@@ -16,17 +16,13 @@ import {
 } from "./schema.js";
 import { migrate } from "./migrate.js";
 import { encodeJsonWithBigInts } from "../utils/index.js";
-import type { Changeset } from "./changeset.js";
-import {
-  ExtractQuery,
-  ExtractQueryResponse,
-  QueryInteraction,
-} from "./query.js";
+import type { DataChange } from "./changeset.js";
 import { Logger } from "pino";
 import { LRUCache } from "lru-cache";
 import { Address } from "../address.js";
+import { ChainId } from "../types.js";
 
-export type { Changeset };
+export type { DataChange as Changeset };
 
 interface Tables {
   projects: ProjectTable;
@@ -61,7 +57,7 @@ export class Database {
     this.#batchDonationInsert = tinybatch<void, NewDonation[]>(async (args) => {
       const donations = args.flat();
 
-      await this.applyChangeset({
+      await this.applyChange({
         type: "InsertManyDonations",
         donations: donations,
       });
@@ -107,42 +103,39 @@ export class Database {
     });
   }
 
-  async applyChangeset(changeset: Changeset): Promise<void> {
-    switch (changeset.type) {
+  async applyChange(change: DataChange): Promise<void> {
+    switch (change.type) {
       case "InsertProject": {
-        await this.#db
-          .insertInto("projects")
-          .values(changeset.project)
-          .execute();
+        await this.#db.insertInto("projects").values(change.project).execute();
         break;
       }
 
       case "UpdateProject": {
         await this.#db
           .updateTable("projects")
-          .set(changeset.project)
-          .where("id", "=", changeset.projectId)
+          .set(change.project)
+          .where("id", "=", change.projectId)
           .execute();
         break;
       }
 
       case "InsertRound": {
-        await this.#db.insertInto("rounds").values(changeset.round).execute();
+        await this.#db.insertInto("rounds").values(change.round).execute();
         break;
       }
 
       case "UpdateRound": {
         await this.#db
           .updateTable("rounds")
-          .set(changeset.round)
-          .where("chainId", "=", changeset.chainId)
-          .where("id", "=", changeset.roundId)
+          .set(change.round)
+          .where("chainId", "=", change.chainId)
+          .where("id", "=", change.roundId)
           .execute();
         break;
       }
 
       case "InsertApplication": {
-        let application = changeset.application;
+        let application = change.application;
         if (application.statusSnapshots !== undefined) {
           application = {
             ...application,
@@ -155,7 +148,7 @@ export class Database {
       }
 
       case "UpdateApplication": {
-        let application = changeset.application;
+        let application = change.application;
         if (application.statusSnapshots !== undefined) {
           application = {
             ...application,
@@ -166,28 +159,28 @@ export class Database {
         await this.#db
           .updateTable("applications")
           .set(application)
-          .where("chainId", "=", changeset.chainId)
-          .where("roundId", "=", changeset.roundId)
-          .where("id", "=", changeset.applicationId)
+          .where("chainId", "=", change.chainId)
+          .where("roundId", "=", change.roundId)
+          .where("id", "=", change.applicationId)
           .execute();
         break;
       }
 
       case "InsertDonation": {
-        await this.#batchDonationInsert(changeset.donation);
+        await this.#batchDonationInsert(change.donation);
         break;
       }
 
       case "InsertManyDonations": {
         await this.#db
           .insertInto("donations")
-          .values(changeset.donations)
+          .values(change.donations)
           .execute();
         break;
       }
 
       case "InsertManyPrices": {
-        await this.#db.insertInto("prices").values(changeset.prices).execute();
+        await this.#db.insertInto("prices").values(change.prices).execute();
         break;
       }
 
@@ -198,12 +191,12 @@ export class Database {
             totalAmountDonatedInUsd: eb(
               "totalAmountDonatedInUsd",
               "+",
-              changeset.amountInUsd
+              change.amountInUsd
             ),
             totalDonationsCount: eb("totalDonationsCount", "+", 1),
           }))
-          .where("chainId", "=", changeset.chainId)
-          .where("id", "=", changeset.roundId)
+          .where("chainId", "=", change.chainId)
+          .where("id", "=", change.roundId)
           .execute();
         break;
       }
@@ -215,13 +208,13 @@ export class Database {
             totalAmountDonatedInUsd: eb(
               "totalAmountDonatedInUsd",
               "+",
-              changeset.amountInUsd
+              change.amountInUsd
             ),
             totalDonationsCount: eb("totalDonationsCount", "+", 1),
           }))
-          .where("chainId", "=", changeset.chainId)
-          .where("roundId", "=", changeset.roundId)
-          .where("id", "=", changeset.applicationId)
+          .where("chainId", "=", change.chainId)
+          .where("roundId", "=", change.roundId)
+          .where("id", "=", change.applicationId)
           .execute();
         break;
       }
@@ -231,178 +224,143 @@ export class Database {
     }
   }
 
-  query(
-    query: ExtractQuery<QueryInteraction, "ProjectById">
-  ): Promise<ExtractQueryResponse<QueryInteraction, "ProjectById">>;
-  query(
-    query: ExtractQuery<QueryInteraction, "RoundById">
-  ): Promise<ExtractQueryResponse<QueryInteraction, "RoundById">>;
-  query(
-    query: ExtractQuery<QueryInteraction, "RoundMatchTokenAddressById">
-  ): Promise<
-    ExtractQueryResponse<QueryInteraction, "RoundMatchTokenAddressById">
-  >;
-  query(
-    query: ExtractQuery<QueryInteraction, "AllChainRounds">
-  ): Promise<ExtractQueryResponse<QueryInteraction, "AllChainRounds">>;
-  query(
-    query: ExtractQuery<QueryInteraction, "AllRoundApplications">
-  ): Promise<ExtractQueryResponse<QueryInteraction, "AllRoundApplications">>;
-  query(
-    query: ExtractQuery<QueryInteraction, "ApplicationById">
-  ): Promise<ExtractQueryResponse<QueryInteraction, "ApplicationById">>;
-  query(
-    query: ExtractQuery<QueryInteraction, "AllRoundDonations">
-  ): Promise<ExtractQueryResponse<QueryInteraction, "AllRoundDonations">>;
-  query(
-    query: ExtractQuery<QueryInteraction, "LatestPriceTimestampForChain">
-  ): Promise<
-    ExtractQueryResponse<QueryInteraction, "LatestPriceTimestampForChain">
-  >;
-  query(
-    query: ExtractQuery<QueryInteraction, "AllChainPrices">
-  ): Promise<ExtractQueryResponse<QueryInteraction, "AllChainPrices">>;
-  query(
-    query: ExtractQuery<QueryInteraction, "TokenPriceByBlockNumber">
-  ): Promise<ExtractQueryResponse<QueryInteraction, "TokenPriceByBlockNumber">>;
-  query(
-    query: ExtractQuery<QueryInteraction, "AllChainProjects">
-  ): Promise<ExtractQueryResponse<QueryInteraction, "AllChainProjects">>;
-  async query(
-    query: QueryInteraction["query"]
-  ): Promise<QueryInteraction["response"]> {
-    switch (query.type) {
-      case "ProjectById": {
-        const project = await this.#db
-          .selectFrom("projects")
-          .where("id", "=", query.projectId)
-          .selectAll()
-          .executeTakeFirst();
+  async getProjectById(projectId: string) {
+    const project = await this.#db
+      .selectFrom("projects")
+      .where("id", "=", projectId)
+      .selectAll()
+      .executeTakeFirst();
 
-        return project ?? null;
-      }
+    return project ?? null;
+  }
 
-      case "RoundById": {
-        const round = await this.#db
-          .selectFrom("rounds")
-          .where("chainId", "=", query.chainId)
-          .where("id", "=", query.roundId)
-          .selectAll()
-          .executeTakeFirst();
+  async getRoundById(chainId: ChainId, roundId: Address) {
+    const round = await this.#db
+      .selectFrom("rounds")
+      .where("chainId", "=", chainId)
+      .where("id", "=", roundId)
+      .selectAll()
+      .executeTakeFirst();
 
-        return round ?? null;
-      }
+    return round ?? null;
+  }
 
-      case "RoundMatchTokenAddressById": {
-        const cacheKey = `${query.chainId}-${query.roundId}`;
-        const cachedRoundMatchTokenAddress =
-          this.#roundMatchTokenCache.get(cacheKey);
+  async getRoundMatchTokenAddressById(chainId: ChainId, roundId: Address) {
+    const cacheKey = `${chainId}-${roundId}`;
+    const cachedRoundMatchTokenAddress =
+      this.#roundMatchTokenCache.get(cacheKey);
 
-        if (cachedRoundMatchTokenAddress) {
-          return cachedRoundMatchTokenAddress;
-        }
-
-        const round = await this.#db
-          .selectFrom("rounds")
-          .where("chainId", "=", query.chainId)
-          .where("id", "=", query.roundId)
-          .select("matchTokenAddress")
-          .executeTakeFirst();
-
-        if (round === undefined) {
-          return null;
-        }
-
-        this.#roundMatchTokenCache.set(cacheKey, round.matchTokenAddress);
-        return round.matchTokenAddress;
-      }
-
-      case "AllChainRounds": {
-        const rounds = await this.#db
-          .selectFrom("rounds")
-          .where("chainId", "=", query.chainId)
-          .selectAll()
-          .execute();
-
-        return rounds;
-      }
-
-      case "AllRoundApplications": {
-        return await this.#db
-          .selectFrom("applications")
-          .where("chainId", "=", query.chainId)
-          .where("roundId", "=", query.roundId)
-          .selectAll()
-          .execute();
-      }
-
-      case "AllRoundDonations": {
-        return await this.#db
-          .selectFrom("donations")
-          .where("chainId", "=", query.chainId)
-          .where("roundId", "=", query.roundId)
-          .selectAll()
-          .execute();
-      }
-
-      case "ApplicationById": {
-        const application = await this.#db
-          .selectFrom("applications")
-          .where("chainId", "=", query.chainId)
-          .where("roundId", "=", query.roundId)
-          .where("id", "=", query.applicationId)
-          .selectAll()
-          .executeTakeFirst();
-
-        return application ?? null;
-      }
-
-      case "LatestPriceTimestampForChain": {
-        const latestPriceTimestamp = await this.#db
-          .selectFrom("prices")
-          .where("chainId", "=", query.chainId)
-          .orderBy("timestamp", "desc")
-          .select("timestamp")
-          .limit(1)
-          .executeTakeFirst();
-
-        return latestPriceTimestamp?.timestamp ?? null;
-      }
-
-      case "TokenPriceByBlockNumber": {
-        let priceQuery = this.#db
-          .selectFrom("prices")
-          .where("chainId", "=", query.chainId)
-          .where("tokenAddress", "=", query.tokenAddress)
-          .orderBy("blockNumber", "desc")
-          .selectAll()
-          .limit(1);
-
-        if (query.blockNumber !== "latest") {
-          priceQuery = priceQuery.where("blockNumber", "<=", query.blockNumber);
-        }
-
-        const price = await priceQuery.executeTakeFirst();
-
-        return price ?? null;
-      }
-
-      case "AllChainPrices": {
-        return await this.#db
-          .selectFrom("prices")
-          .where("chainId", "=", query.chainId)
-          .orderBy("blockNumber", "asc")
-          .selectAll()
-          .execute();
-      }
-
-      case "AllChainProjects": {
-        return await this.#db
-          .selectFrom("projects")
-          .where("chainId", "=", query.chainId)
-          .selectAll()
-          .execute();
-      }
+    if (cachedRoundMatchTokenAddress) {
+      return cachedRoundMatchTokenAddress;
     }
+
+    const round = await this.#db
+      .selectFrom("rounds")
+      .where("chainId", "=", chainId)
+      .where("id", "=", roundId)
+      .select("matchTokenAddress")
+      .executeTakeFirst();
+
+    if (round === undefined) {
+      return null;
+    }
+
+    this.#roundMatchTokenCache.set(cacheKey, round.matchTokenAddress);
+    return round.matchTokenAddress;
+  }
+
+  async getAllChainRounds(chainId: ChainId) {
+    const rounds = await this.#db
+      .selectFrom("rounds")
+      .where("chainId", "=", chainId)
+      .selectAll()
+      .execute();
+
+    return rounds;
+  }
+
+  async getAllRoundApplications(chainId: ChainId, roundId: Address) {
+    return await this.#db
+      .selectFrom("applications")
+      .where("chainId", "=", chainId)
+      .where("roundId", "=", roundId)
+      .selectAll()
+      .execute();
+  }
+
+  async getAllRoundDonations(chainId: ChainId, roundId: Address) {
+    return await this.#db
+      .selectFrom("donations")
+      .where("chainId", "=", chainId)
+      .where("roundId", "=", roundId)
+      .selectAll()
+      .execute();
+  }
+
+  async getApplicationById(
+    chainId: ChainId,
+    roundId: Address,
+    applicationId: string
+  ) {
+    const application = await this.#db
+      .selectFrom("applications")
+      .where("chainId", "=", chainId)
+      .where("roundId", "=", roundId)
+      .where("id", "=", applicationId)
+      .selectAll()
+      .executeTakeFirst();
+
+    return application ?? null;
+  }
+
+  async getLatestPriceTimestampForChain(chainId: ChainId) {
+    const latestPriceTimestamp = await this.#db
+      .selectFrom("prices")
+      .where("chainId", "=", chainId)
+      .orderBy("timestamp", "desc")
+      .select("timestamp")
+      .limit(1)
+      .executeTakeFirst();
+
+    return latestPriceTimestamp?.timestamp ?? null;
+  }
+
+  async getTokenPriceByBlockNumber(
+    chainId: ChainId,
+    tokenAddress: Address,
+    blockNumber: bigint | "latest"
+  ) {
+    let priceQuery = this.#db
+      .selectFrom("prices")
+      .where("chainId", "=", chainId)
+      .where("tokenAddress", "=", tokenAddress)
+      .orderBy("blockNumber", "desc")
+      .selectAll()
+      .limit(1);
+
+    if (blockNumber !== "latest") {
+      priceQuery = priceQuery.where("blockNumber", "<=", blockNumber);
+    }
+
+    const price = await priceQuery.executeTakeFirst();
+
+    return price ?? null;
+  }
+
+  async getAllChainPrices(chainId: ChainId) {
+    return await this.#db
+      .selectFrom("prices")
+      .where("chainId", "=", chainId)
+      .orderBy("blockNumber", "asc")
+      .selectAll()
+      .execute();
+  }
+
+  async getAllChainProjects(chainId: ChainId) {
+    return await this.#db
+      .selectFrom("projects")
+      .where("chainId", "=", chainId)
+      .selectAll()
+      .execute();
   }
 }
