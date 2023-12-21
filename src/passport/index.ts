@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 import fastq, { queueAsPromised } from "fastq";
 import split2 from "split2";
+import { dirname } from "path";
 import { Level } from "level";
 import enhancedFetch from "make-fetch-happen";
-import { access } from "node:fs/promises";
+import { access, mkdir } from "node:fs/promises";
 import { createWriteStream } from "node:fs";
 import { Logger } from "pino";
 
@@ -23,6 +24,8 @@ export type PassportScore = {
   error?: string | null;
   detail?: string;
 };
+
+export type AddressToPassportScoreMap = Map<string, PassportScore | undefined>;
 
 export interface PassportProviderConfig {
   scorerId: number;
@@ -54,6 +57,9 @@ export interface PassportProvider {
   start: (opts?: { watch: boolean }) => Promise<void>;
   stop: () => void;
   getScoreByAddress: (address: string) => Promise<PassportScore | undefined>;
+  getScoresByAddresses: (
+    addresses: string[]
+  ) => Promise<AddressToPassportScoreMap>;
 }
 
 export const createPassportProvider = (
@@ -167,6 +173,20 @@ export const createPassportProvider = (
     }
   };
 
+  const getScoresByAddresses: PassportProvider["getScoresByAddresses"] = async (
+    addresses: string[]
+  ): Promise<AddressToPassportScoreMap> => {
+    if (state.type !== "ready") {
+      throw new Error("Service not started");
+    }
+    const { db } = state;
+    const uniqueAddresses = Array.from(new Set(addresses));
+    const records = await db.getMany(uniqueAddresses);
+    return new Map(
+      records.filter(Boolean).map((record) => [record.address, record])
+    );
+  };
+
   // INTERNALS
 
   const poll = async (): Promise<void> => {
@@ -266,6 +286,8 @@ export const createPassportProvider = (
   ): Promise<void> => {
     logger.info("writing passport JSON dump for backward compatibility");
 
+    await mkdir(dirname(path), { recursive: true });
+
     const deprecatedCompatibilityDumpStream = createWriteStream(path);
     deprecatedCompatibilityDumpStream.write("[\n");
     let isFirst = true;
@@ -286,5 +308,10 @@ export const createPassportProvider = (
 
   // EXPORTS
 
-  return { start, stop, getScoreByAddress };
+  return {
+    start,
+    stop,
+    getScoreByAddress,
+    getScoresByAddresses,
+  };
 };

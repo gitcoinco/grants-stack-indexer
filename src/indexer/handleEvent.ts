@@ -14,7 +14,11 @@ import {
 } from "./types.js";
 import { Event } from "./events.js";
 import { RoundContract, DirectPayoutContract } from "./contracts.js";
-import { PriceProvider } from "../prices/provider.js";
+import {
+  PriceProvider,
+  convertFromUSD,
+  convertToUSD,
+} from "../prices/provider.js";
 import * as abis from "./abis/index.js";
 
 // Event handlers
@@ -508,7 +512,8 @@ async function handleEvent(
 
       const token = event.args.token.toLowerCase();
 
-      const conversionToUSD = await priceProvider.convertToUSD(
+      const conversionToUSD = await convertToUSD(
+        priceProvider,
         chainId,
         token,
         event.args.amount.toBigInt(),
@@ -523,7 +528,8 @@ async function handleEvent(
           round.token === token
             ? event.args.amount.toString()
             : (
-                await priceProvider.convertFromUSD(
+                await convertFromUSD(
+                  priceProvider,
                   chainId,
                   round.token,
                   conversionToUSD.amount,

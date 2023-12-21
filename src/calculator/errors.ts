@@ -17,15 +17,3 @@ export class ResourceNotFoundError extends CalculatorError {
     super(`${resource} not found`, 404);
   }
 }
-
-export class OverridesColumnNotFoundError extends CalculatorError {
-  constructor(column: string) {
-    super(`cannot find column ${column} in the overrides file`);
-  }
-}
-
-export class OverridesInvalidRowError extends CalculatorError {
-  constructor(row: number, message: string) {
-    super(`Row ${row} in the overrides file is invalid: ${message}`);
-  }
-}

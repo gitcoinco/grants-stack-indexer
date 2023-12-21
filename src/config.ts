@@ -499,6 +499,50 @@ const CHAINS: Chain[] = [
     ],
   },
   {
+    id: 8453,
+    name: "base",
+    rpc: rpcUrl
+      .default("https://mainnet.base.org/")
+      .parse(process.env.BASE_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2023, 12, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "USDC",
+        address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        decimals: 6,
+        priceSource: {
+          chainId: 1,
+          address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        },
+      },
+      {
+        code: "ETH",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+    ],
+    subscriptions: [
+      {
+        address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
+        abi: abis.v2.ProjectRegistry,
+      },
+      {
+        address: "0xc7722909fEBf7880E15e67d563E2736D9Bb9c1Ab",
+        abi: abis.v2.RoundFactory,
+        fromBlock: 7151900,
+      },
+      {
+        address: "0xC3A195EEa198e74D67671732E1B8F8A23781D735",
+        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
+        fromBlock: 7151900,
+      },
+    ],
+  },
+  {
     id: 324,
     name: "zksync-era-mainnet",
     rpc: rpcUrl
@@ -754,6 +798,7 @@ export type Config = {
   apiHttpPort: number;
   sentryDsn: string | null;
   deploymentEnvironment: "local" | "development" | "staging" | "production";
+  estimatesLinearQfWorkerPoolSize: number | null;
 };
 
 export function getConfig(): Config {
@@ -861,6 +906,12 @@ export function getConfig(): Config {
     .default(null)
     .parse(process.env.SENTRY_DSN);
 
+  const estimatesLinearQfWorkerPoolSize = z
+    .number()
+    .nullable()
+    .default(null)
+    .parse(process.env.ESTIMATES_LINEAR_QF_WORKER_POOL_SIZE);
+
   return {
     buildTag: buildTag,
     sentryDsn,
@@ -878,5 +929,6 @@ export function getConfig(): Config {
     passportScorerId,
     apiHttpPort,
     deploymentEnvironment,
+    estimatesLinearQfWorkerPoolSize,
   };
 }

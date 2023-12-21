@@ -4,6 +4,7 @@ import "express-async-errors";
 import os from "os";
 import express from "express";
 import { Logger } from "pino";
+import createHttpLogger from "pino-http";
 import cors from "cors";
 import serveIndex from "serve-index";
 import * as Sentry from "@sentry/node";
@@ -11,7 +12,7 @@ import * as Sentry from "@sentry/node";
 import { createHandler as createApiHandler } from "./api/v1/index.js";
 import { PriceProvider } from "../prices/provider.js";
 import { PassportProvider } from "../passport/index.js";
-import { DataProvider } from "../calculator/index.js";
+import { DataProvider } from "../calculator/dataProvider/index.js";
 import { Chain } from "../config.js";
 
 export interface HttpApiConfig {
@@ -24,6 +25,11 @@ export interface HttpApiConfig {
   passportProvider: PassportProvider;
   chains: Chain[];
   enableSentry: boolean;
+  calculator: {
+    esimatesLinearQfImplementation:
+      | { type: "in-thread" }
+      | { type: "worker-pool"; workerPoolSize: number };
+  };
 }
 
 interface HttpApi {
@@ -34,7 +40,10 @@ interface HttpApi {
 export const createHttpApi = (config: HttpApiConfig): HttpApi => {
   const app = express();
 
+  app.set("trust proxy", true);
   app.use(cors());
+  // @ts-expect-error Something wrong with pino-http typings
+  app.use(createHttpLogger({ logger: config.logger }));
   app.use(express.json());
 
   const api = createApiHandler(config);
