@@ -563,18 +563,18 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
-        address: "0x1593FAA41134544354a1509566DDf8D6596e7348",
+        address: "0xe6CCEe93c97E20644431647B306F48e278aFFdb9",
         abi: abis.v2.ProjectRegistry,
       },
       {
-        address: "0xF631C72e0C5837b794911DDaf167861d1A3eDBf5",
+        address: "0xF3B5a0d59C6292BD0e4f8Cf735EEF52b98f428E6",
         abi: abis.v2.RoundFactory,
-        fromBlock: 87169287,
+        fromBlock: 20900000,
       },
       {
-        address: "0xa1F116d1Cb73b6f8dDFD6DDD6E06386553B3af7b",
+        address: "0x94cB638556d3991363102431d8cE9e839C734677",
         abi: abis.v2.QuadraticFundingVotingStrategyFactory,
-        fromBlock: 87168143,
+        fromBlock: 20900000,
       },
     ],
   },
@@ -607,18 +607,18 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
-        address: "0x2C17D0FAb47bD87333714dC35f84BB669951cea6",
+        address: "0xb0F4882184EB6e3ed120c5181651D50719329788",
         abi: abis.v2.ProjectRegistry,
       },
       {
-        address: "0x35E5f2abfaCdbe1bc7C2E09Fbe2e051Ea574Dd3b",
+        address: "0x0Bb6e2dfEaef0Db5809B3979717E99e053Cbae72",
         abi: abis.v2.RoundFactory,
-        fromBlock: 87169287,
+        fromBlock: 14410000,
       },
       {
-        address: "0x7DA751bb567D37fbd5311f8e37629c3355675bEe",
+        address: "0x8c28F21D2d8C53eedC58bF9cdCfb7DCF7d809d97",
         abi: abis.v2.QuadraticFundingVotingStrategyFactory,
-        fromBlock: 87168143,
+        fromBlock: 14410000,
       },
     ],
   },
