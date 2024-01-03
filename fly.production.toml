@@ -11,7 +11,7 @@ kill_timeout = 5
   DEPLOYMENT_ENVIRONMENT = "production"
   LOG_LEVEL = "debug"
   STORAGE_DIR = "/mnt/indexer"
-  INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-mainnet,arbitrum,arbitrum-goerli,polygon-mumbai,polygon"
+  INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-mainnet,arbitrum,arbitrum-goerli,polygon-mumbai,polygon,zksync-era-mainnet,zksync-era-testnet,base"
   NODE_OPTIONS="--max-old-space-size=7168"
   # BUILD_TAG = # set in deploy github action
 
