@@ -1,8 +1,6 @@
-import { Event, EventHandlerArgs } from "chainsauce";
+import { EventHandlerArgs } from "chainsauce";
 import { ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
-
-import { getChainConfigById } from "../config.js";
 
 // Event handlers
 import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
@@ -151,10 +149,7 @@ export async function handleEvent(
         event.address
       );
 
-      const project = await db.query({
-        type: "ProjectById",
-        projectId,
-      });
+      const project = await db.getProjectById(projectId);
 
       if (project === null) {
         logger.error({ msg: `Project ${projectId} not found`, event });
@@ -182,10 +177,7 @@ export async function handleEvent(
         event.address
       );
 
-      const project = await db.query({
-        type: "ProjectById",
-        projectId,
-      });
+      const project = await db.getProjectById(projectId);
 
       if (project === null) {
         logger.error({ msg: `Project ${projectId} not found`, event });
@@ -449,12 +441,11 @@ export async function handleEvent(
             ] as ApplicationTable["status"];
             const applicationId = i.toString();
 
-            const application = await db.query({
-              type: "ApplicationById",
+            const application = await db.getApplicationById(
               chainId,
               roundId,
-              applicationId,
-            });
+              applicationId
+            );
 
             if (application === null) {
               return [];
@@ -514,11 +505,10 @@ export async function handleEvent(
 
       const roundId = parseAddress(event.params.roundAddress);
 
-      const roundMatchTokenAddress = await db.query({
-        type: "RoundMatchTokenAddressById",
+      const roundMatchTokenAddress = await db.getRoundMatchTokenAddressById(
         chainId,
-        roundId,
-      });
+        roundId
+      );
 
       if (roundMatchTokenAddress === null) {
         return [];
@@ -627,12 +617,11 @@ export async function handleEvent(
         const newStatus = bitmap.getStatus(i);
         const applicationId = i.toString();
 
-        const application = await db.query({
-          type: "ApplicationById",
+        const application = await db.getApplicationById(
           chainId,
           roundId,
-          applicationId,
-        });
+          applicationId
+        );
 
         // DirectPayoutStrategy uses status 1 for signaling IN REVIEW. In order to be considered as IN REVIEW the
         // application must be on PENDING status on the round

@@ -10,7 +10,7 @@ import {
   NewPrice,
 } from "./schema.js";
 
-export type Changeset =
+export type DataChange =
   | {
       type: "InsertProject";
       project: NewProject;

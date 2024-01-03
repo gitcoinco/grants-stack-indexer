@@ -250,7 +250,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
         throw new ClientError("Invalid round id", 400);
       }
 
-      const round = await db.query({ type: "RoundById", chainId, roundId });
+      const round = await db.getRoundById(chainId, roundId);
 
       if (!round) {
         throw new ClientError("Round not found", 404);
