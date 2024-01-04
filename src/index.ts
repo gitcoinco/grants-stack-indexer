@@ -385,12 +385,6 @@ async function catchupAndWatchChain(
           maxConcurrentRequests: 10,
           maxRetries: 3,
           url: config.chain.rpc,
-          onRequest({ method }) {
-            indexerLogger.trace({
-              msg: "JSON-RPC request",
-              method,
-            });
-          },
         }),
       },
       context: eventHandlerContext,
