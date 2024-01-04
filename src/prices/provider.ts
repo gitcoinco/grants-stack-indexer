@@ -63,7 +63,7 @@ export function createPriceProvider(
   // PUBLIC
 
   async function getAllPricesForChain(chainId: ChainId): Promise<Price[]> {
-    return await db.query({ type: "AllChainPrices", chainId });
+    return await db.getAllChainPrices(chainId);
   }
 
   async function convertToUSD(

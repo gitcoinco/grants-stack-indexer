@@ -100,16 +100,16 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
-        contractName: "ProjectRegistryV2",
+        contractName: "AlloV1/ProjectRegistry/V2",
         address: "0x03506eD3f57892C85DB20C36846e9c808aFe9ef4",
       },
       {
-        contractName: "RoundFactoryV2",
+        contractName: "AlloV1/RoundFactory/V2",
         address: "0x9Cb7f434aD3250d1656854A9eC7A71EceC6eE1EF",
         fromBlock: 16994474,
       },
       {
-        contractName: "QuadraticFundingVotingStrategyFactoryV2",
+        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0x4a850F463D1C4842937c5Bc9540dBc803D744c9F",
         fromBlock: 16994526,
       },
@@ -163,16 +163,16 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
-        contractName: "ProjectRegistryV2",
+        contractName: "AlloV1/ProjectRegistry/V2",
         address: "0x8e1bD5Da87C14dd8e08F7ecc2aBf9D1d558ea174",
       },
       {
-        contractName: "RoundFactoryV2",
+        contractName: "AlloV1/RoundFactory/V2",
         address: "0x04E753cFB8c8D1D7f776f7d7A033740961b6AEC2",
         fromBlock: 87169287,
       },
       {
-        contractName: "QuadraticFundingVotingStrategyFactoryV2",
+        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0x838C5e10dcc1e54d62761d994722367BA167AC22",
         fromBlock: 87168143,
       },
@@ -226,16 +226,16 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
-        contractName: "ProjectRegistryV2",
+        contractName: "AlloV1/ProjectRegistry/V2",
         address: "0x8e1bD5Da87C14dd8e08F7ecc2aBf9D1d558ea174",
       },
       {
-        contractName: "RoundFactoryV2",
+        contractName: "AlloV1/RoundFactory/V2",
         address: "0xfb08d1fD3a7c693677eB096E722ABf4Ae63B0B95",
         fromBlock: 66509340,
       },
       {
-        contractName: "QuadraticFundingVotingStrategyFactoryV2",
+        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0x534d2AAc03dCd0Cb3905B591BAf04C14A95426AB",
         fromBlock: 66509340,
       },
@@ -270,16 +270,16 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
-        contractName: "ProjectRegistryV2",
+        contractName: "AlloV1/ProjectRegistry/V2",
         address: "0x6294bed5B884Ae18bf737793Ef9415069Bf4bc11",
       },
       {
-        contractName: "RoundFactoryV2",
+        contractName: "AlloV1/RoundFactory/V2",
         address: "0x0479b9DA9f287539FEBd597350B1eBaEBF7479ac",
         fromBlock: 0,
       },
       {
-        contractName: "QuadraticFundingVotingStrategyFactoryV2",
+        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0xE8027a807Bb85e57da4B7A5ecE65b0aBDf231ce8",
         fromBlock: 0,
       },
@@ -323,16 +323,16 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
-        contractName: "ProjectRegistryV2",
+        contractName: "AlloV1/ProjectRegistry/V2",
         address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
       },
       {
-        contractName: "RoundFactoryV2",
+        contractName: "AlloV1/RoundFactory/V2",
         address: "0x8AdFcF226dfb2fA73788Ad711C958Ba251369cb3",
         fromBlock: 0,
       },
       {
-        contractName: "QuadraticFundingVotingStrategyFactoryV2",
+        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0x2AFA4bE0f2468347A2F086c2167630fb1E58b725",
         fromBlock: 0,
       },
@@ -376,15 +376,15 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
-        contractName: "ProjectRegistryV2",
+        contractName: "AlloV1/ProjectRegistry/V2",
         address: "0x73AB205af1476Dc22104A6B8b3d4c273B58C6E27",
       },
       {
-        contractName: "RoundFactoryV2",
+        contractName: "AlloV1/RoundFactory/V2",
         address: "0xF2a07728107B04266015E67b1468cA0a536956C8",
       },
       {
-        contractName: "QuadraticFundingVotingStrategyFactoryV2",
+        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0xC3A195EEa198e74D67671732E1B8F8A23781D735",
       },
     ],
@@ -427,15 +427,15 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
-        contractName: "ProjectRegistryV2",
+        contractName: "AlloV1/ProjectRegistry/V2",
         address: "0x0CD135777dEaB6D0Bb150bDB0592aC9Baa4d0871",
       },
       {
-        contractName: "RoundFactoryV2",
+        contractName: "AlloV1/RoundFactory/V2",
         address: "0xdf25423c9ec15347197Aa5D3a41c2ebE27587D59",
       },
       {
-        contractName: "QuadraticFundingVotingStrategyFactoryV2",
+        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0x0BFA0AAF5f2D81f859e85C8E82A3fc5b624fc6E8",
       },
     ],
@@ -469,15 +469,15 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
-        contractName: "ProjectRegistryV2",
+        contractName: "AlloV1/ProjectRegistry/V2",
         address: "0x545B282A50EaeA01A619914d44105437036CbB36",
       },
       {
-        contractName: "RoundFactoryV2",
+        contractName: "AlloV1/RoundFactory/V2",
         address: "0xE1c5812e9831bc1d5BDcF50AAEc1a47C4508F3fA",
       },
       {
-        contractName: "QuadraticFundingVotingStrategyFactoryV2",
+        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0xF7c101A95Ea4cBD5DA0Ab9827D7B2C9857440143",
       },
     ],
@@ -511,15 +511,15 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
-        contractName: "ProjectRegistryV2",
+        contractName: "AlloV1/ProjectRegistry/V2",
         address: "0x5C5E2D94b107C7691B08E43169fDe76EAAB6D48b",
       },
       {
-        contractName: "RoundFactoryV2",
+        contractName: "AlloV1/RoundFactory/V2",
         address: "0x5ab68dCdcA37A1C2b09c5218e28eB0d9cc3FEb03",
       },
       {
-        contractName: "QuadraticFundingVotingStrategyFactoryV2",
+        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0xc1a26b0789C3E93b07713e90596Cad8d0442C826",
       },
     ],
@@ -553,15 +553,15 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
-        contractName: "ProjectRegistryV2",
+        contractName: "AlloV1/ProjectRegistry/V2",
         address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
       },
       {
-        contractName: "RoundFactoryV2",
+        contractName: "AlloV1/RoundFactory/V2",
         address: "0x8eC471f30cA797FD52F9D37A47Be2517a7BD6912",
       },
       {
-        contractName: "QuadraticFundingVotingStrategyFactoryV2",
+        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0x2AFA4bE0f2468347A2F086c2167630fb1E58b725",
       },
     ],
@@ -595,15 +595,15 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
-        contractName: "ProjectRegistryV2",
+        contractName: "AlloV1/ProjectRegistry/V2",
         address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
       },
       {
-        contractName: "RoundFactoryV2",
+        contractName: "AlloV1/RoundFactory/V2",
         address: "0x8eC471f30cA797FD52F9D37A47Be2517a7BD6912",
       },
       {
-        contractName: "QuadraticFundingVotingStrategyFactoryV2",
+        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0x2AFA4bE0f2468347A2F086c2167630fb1E58b725",
       },
     ],

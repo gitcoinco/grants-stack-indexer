@@ -56,10 +56,7 @@ export class DatabaseDataProvider implements DataProvider {
     if (segments.length === 2 && segments[1] === "rounds.json") {
       const chainId = Number(segments[0]);
 
-      const rounds = await this.#db.query({
-        type: "AllChainRounds",
-        chainId,
-      });
+      const rounds = await this.#db.getAllChainRounds(chainId);
 
       const deprecatedRounds = rounds.map(createDeprecatedRound);
 
@@ -70,11 +67,7 @@ export class DatabaseDataProvider implements DataProvider {
     if (segments.length === 2 && segments[1] === "projects.json") {
       const chainId = Number(segments[0]);
 
-      const projects = await this.#db.query({
-        type: "AllChainProjects",
-        chainId,
-      });
-
+      const projects = await this.#db.getAllChainProjects(chainId);
       const deprecatedProjects = projects.map(createDeprecatedProject);
 
       return deprecatedProjects as unknown as Array<T>;
@@ -89,11 +82,10 @@ export class DatabaseDataProvider implements DataProvider {
       const chainId = Number(segments[0]);
       const roundId = parseAddress(segments[2]);
 
-      const applications = await this.#db.query({
-        type: "AllRoundApplications",
+      const applications = await this.#db.getAllRoundApplications(
         chainId,
-        roundId,
-      });
+        roundId
+      );
 
       const deprecatedApplications = applications.map(
         createDeprecatedApplication
@@ -111,11 +103,7 @@ export class DatabaseDataProvider implements DataProvider {
       const chainId = Number(segments[0]);
       const roundId = parseAddress(segments[2]);
 
-      const donations = await this.#db.query({
-        type: "AllRoundDonations",
-        chainId,
-        roundId,
-      });
+      const donations = await this.#db.getAllRoundDonations(chainId, roundId);
 
       const votes: DeprecatedVote[] = donations.map(createDeprecatedVote);
 

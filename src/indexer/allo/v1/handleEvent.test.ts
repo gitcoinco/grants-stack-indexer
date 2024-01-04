@@ -1,14 +1,14 @@
 import { vi, describe, test, expect, beforeEach } from "vitest";
 import { handleEvent } from "./handleEvent.js";
-import { TestPriceProvider } from "../test/utils.js";
-import { PriceProvider } from "../prices/provider.js";
+import { TestPriceProvider } from "../../../test/utils.js";
+import { PriceProvider } from "../../../prices/provider.js";
 import { Logger } from "pino";
-import { Database } from "../database/index.js";
+import { Database } from "../../../database/index.js";
 import { EventHandlerArgs } from "chainsauce";
-import { Indexer } from "./indexer.js";
+import { Indexer } from "../.././indexer.js";
 import { Address as ChecksumAddress, Hex } from "viem";
-import { Project } from "../database/schema.js";
-import { parseAddress } from "../address.js";
+import { Project } from "../../../database/schema.js";
+import { parseAddress } from "../../../address.js";
 
 const zeroAddress =
   "0x0000000000000000000000000000000000000000" as ChecksumAddress;
@@ -69,7 +69,7 @@ describe("handleEvent", () => {
         ...DEFAULT_ARGS,
         event: {
           ...DEFAULT_ARGS.event,
-          contractName: "ProjectRegistryV2",
+          contractName: "AlloV1/ProjectRegistry/V2",
           name: "ProjectCreated",
           params: {
             projectID: 1n,
@@ -101,7 +101,7 @@ describe("handleEvent", () => {
         ...DEFAULT_ARGS,
         event: {
           ...DEFAULT_ARGS.event,
-          contractName: "ProjectRegistryV2",
+          contractName: "AlloV1/ProjectRegistry/V2",
           name: "MetadataUpdated",
           params: {
             projectID: 1n,
@@ -146,7 +146,7 @@ describe("handleEvent", () => {
         ...DEFAULT_ARGS,
         event: {
           ...DEFAULT_ARGS.event,
-          contractName: "ProjectRegistryV2",
+          contractName: "AlloV1/ProjectRegistry/V2",
           name: "OwnerAdded",
           params: {
             projectID: 1n,
@@ -187,7 +187,7 @@ describe("handleEvent", () => {
         ...DEFAULT_ARGS,
         event: {
           ...DEFAULT_ARGS.event,
-          contractName: "ProjectRegistryV2",
+          contractName: "AlloV1/ProjectRegistry/V2",
           name: "OwnerRemoved",
           params: {
             projectID: 1n,
