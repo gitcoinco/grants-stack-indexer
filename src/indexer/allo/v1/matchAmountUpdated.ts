@@ -1,11 +1,11 @@
 import { EventHandlerArgs } from "chainsauce";
 
-import type { Indexer } from "../indexer.js";
-import { Changeset } from "../../database/index.js";
-import { NewRound, Round } from "../../database/schema.js";
+import type { Indexer } from "../../indexer.js";
+import { Changeset } from "../../../database/index.js";
+import { NewRound, Round } from "../../../database/schema.js";
 
-import { PriceProvider } from "../../prices/provider.js";
-import { parseAddress } from "../../address.js";
+import { PriceProvider } from "../../../prices/provider.js";
+import { parseAddress } from "../../../address.js";
 
 export async function updateRoundMatchAmount(args: {
   round: Round | NewRound;
@@ -37,7 +37,11 @@ export async function updateRoundMatchAmount(args: {
 export default async function ({
   event,
   context: { chainId, priceProvider, db },
-}: EventHandlerArgs<Indexer, "RoundImplementationV2", "MatchAmountUpdated">) {
+}: EventHandlerArgs<
+  Indexer,
+  "AlloV1/RoundImplementation/V2",
+  "MatchAmountUpdated"
+>) {
   const id = parseAddress(event.address);
   const matchAmount = event.params.newAmount;
 

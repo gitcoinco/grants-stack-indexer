@@ -33,7 +33,8 @@ import { ethers } from "ethers";
 
 import abis from "./indexer/abis/index.js";
 import type { EventHandlerContext } from "./indexer/indexer.js";
-import { handleEvent } from "./indexer/handleEvent.js";
+import { handleEvent as handleAlloV1Event } from "./indexer/allo/v1/handleEvent.js";
+import { handleEvent as handleAlloV2Event } from "./indexer/allo/v2/handleEvent.js";
 import { Database } from "./database/index.js";
 import { decodeJsonWithBigInts } from "./utils/index.js";
 import { Block } from "chainsauce/dist/cache.js";
@@ -416,7 +417,7 @@ async function catchupAndWatchChain(
         // console.time(args.event.name);
         // do not await donation inserts as they are write only
         if (args.event.name === "Voted") {
-          void handleEvent(args).then((changesets) => {
+          void handleAlloV1Event(args).then((changesets) => {
             for (const changeset of changesets) {
               db.applyChange(changeset).catch((err: unknown) => {
                 indexerLogger.warn({
@@ -428,7 +429,12 @@ async function catchupAndWatchChain(
             }
           });
         } else {
-          const changesets = await handleEvent(args);
+          const handler = args.event.contractName.startsWith("AlloV1")
+            ? handleAlloV1Event
+            : handleAlloV2Event;
+
+          const changesets = await handler(args);
+
           for (const changeset of changesets) {
             await db.applyChange(changeset);
           }

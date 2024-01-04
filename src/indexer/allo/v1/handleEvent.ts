@@ -3,13 +3,8 @@ import { ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
 
 // Event handlers
-import roundMetaPtrUpdated from "./handlers/roundMetaPtrUpdated.js";
-import applicationMetaPtrUpdated from "./handlers/applicationMetaPtrUpdated.js";
-import matchAmountUpdated, {
-  updateRoundMatchAmount,
-} from "./handlers/matchAmountUpdated.js";
-import { UnknownTokenError } from "../prices/common.js";
-import type { Indexer } from "./indexer.js";
+import { UnknownTokenError } from "../../../prices/common.js";
+import type { Indexer } from "../../indexer.js";
 import {
   ApplicationTable,
   Application,
@@ -18,9 +13,14 @@ import {
   Round,
   NewApplication,
   NewRound,
-} from "../database/schema.js";
-import { Changeset } from "../database/index.js";
-import { Address, parseAddress } from "../address.js";
+} from "../../../database/schema.js";
+import { Changeset } from "../../../database/index.js";
+import { Address, parseAddress } from "../../../address.js";
+import matchAmountUpdated, {
+  updateRoundMatchAmount,
+} from "./matchAmountUpdated.js";
+import roundMetaPtrUpdated from "./roundMetaPtrUpdated.js";
+import applicationMetaPtrUpdated from "./applicationMetaPtrUpdated.js";
 
 enum ApplicationStatus {
   PENDING = 0,
@@ -74,28 +74,6 @@ export async function handleEvent(
   } = args;
 
   switch (event.name) {
-    // -- Allo V2 Profiles
-    case "ProfileCreated": {
-      const metadataCid = event.params.metadata.pointer;
-      const metadata = await ipfsGet<ProjectTable["metadata"]>(metadataCid);
-      return [
-        {
-          type: "InsertProject",
-          project: {
-            tags: ["allo-v2"],
-            chainId,
-            registryAddress: parseAddress(event.address),
-            id: event.params.profileId,
-            projectNumber: 0,
-            metadataCid: metadataCid,
-            metadata: metadata,
-            ownerAddresses: [parseAddress(event.params.owner)],
-            createdAtBlock: event.blockNumber,
-          },
-        },
-      ];
-    }
-
     // -- PROJECTS
     case "ProjectCreated": {
       const projectId = fullProjectId(
@@ -200,9 +178,9 @@ export async function handleEvent(
     // --- ROUND
     case "RoundCreated": {
       const contract =
-        event.contractName === "RoundFactoryV1"
-          ? "RoundImplementationV1"
-          : "RoundImplementationV2";
+        event.contractName === "AlloV1/RoundFactory/V1"
+          ? "AlloV1/RoundImplementation/V1"
+          : "AlloV1/RoundImplementation/V2";
 
       const roundId = parseAddress(event.params.roundAddress);
 
@@ -471,14 +449,16 @@ export async function handleEvent(
 
     // --- Voting Strategy
     case "VotingContractCreated": {
-      if (event.contractName === "QuadraticFundingVotingStrategyFactoryV1") {
+      if (
+        event.contractName === "AlloV1/QuadraticFundingVotingStrategyFactory/V1"
+      ) {
         subscribeToContract({
-          contract: "QuadraticFundingVotingStrategyImplementationV1",
+          contract: "AlloV1/QuadraticFundingVotingStrategyImplementation/V1",
           address: event.params.votingContractAddress,
         });
       } else {
         subscribeToContract({
-          contract: "QuadraticFundingVotingStrategyImplementationV2",
+          contract: "AlloV1/QuadraticFundingVotingStrategyImplementation/V2",
           address: event.params.votingContractAddress,
         });
       }
@@ -591,7 +571,7 @@ export async function handleEvent(
     // --- Direct Payout Strategy
     case "PayoutContractCreated": {
       subscribeToContract({
-        contract: "DirectPayoutStrategyImplementationV2",
+        contract: "AlloV1/DirectPayoutStrategyImplementation/V2",
         address: event.params.payoutContractAddress,
       });
       break;
@@ -600,7 +580,7 @@ export async function handleEvent(
     case "ApplicationInReviewUpdated": {
       const roundId = parseAddress(
         await readContract({
-          contract: "DirectPayoutStrategyImplementationV2",
+          contract: "AlloV1/DirectPayoutStrategyImplementation/V2",
           address: event.address,
           functionName: "roundAddress",
         })
