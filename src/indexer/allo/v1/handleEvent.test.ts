@@ -90,6 +90,7 @@ describe("handleEvent", () => {
           ownerAddresses: ["0x0000000000000000000000000000000000000000"],
           projectNumber: 1,
           registryAddress: "0x0000000000000000000000000000000000000000",
+          tags: ["allo-v1"],
         },
       });
     });
