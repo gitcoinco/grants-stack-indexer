@@ -105,7 +105,7 @@ const MOCK_CHAIN = {
 } as unknown as Chain;
 
 describe("getVotesWithCoefficients", () => {
-  describe("should take voteAmountCap into conisderation", () => {
+  describe("should take voteAmountCap into consideration", () => {
     test("returns capped vote if capping is defined for token", () => {
       const testVoteIndex = 0;
 

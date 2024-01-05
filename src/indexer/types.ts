@@ -49,7 +49,7 @@ export type Project = {
     bannerImg: string;
     logoImgData: string;
     bannerImgData: string;
-    cretedAt: number;
+    createdAt: number;
   } | null;
 };
 
