@@ -37,6 +37,10 @@ export function convertFiatToToken(args: {
   tokenPrice: number;
   tokenPriceDecimals: number;
 }): bigint {
+  if (args.fiatAmount === 0) {
+    return 0n;
+  }
+
   const priceDecimalFactor = Math.pow(10, args.tokenPriceDecimals);
 
   const fiatAmountBigInt = BigInt(

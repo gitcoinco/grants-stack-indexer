@@ -28,8 +28,10 @@ import diskstats from "diskstats";
 import { Chain, getConfig, Config, getChainConfigById } from "./config.js";
 import { createPriceProvider, PriceProvider } from "./prices/provider.js";
 import { createHttpApi } from "./http/app.js";
-import { DatabaseDataProvider } from "./calculator/index.js";
+import { DatabaseDataProvider } from "./calculator/dataProvider/databaseDataProvider.js";
+import { CachedDataProvider } from "./calculator/dataProvider/cachedDataProvider.js";
 import { ethers } from "ethers";
+import TTLCache from "@isaacs/ttlcache";
 
 import abis from "./indexer/abis/index.js";
 import type { EventHandlerContext } from "./indexer/indexer.js";
@@ -251,7 +253,13 @@ async function main(): Promise<void> {
       db,
       priceProvider,
       passportProvider: passportProvider,
-      dataProvider: new DatabaseDataProvider(db),
+      dataProvider: new CachedDataProvider({
+        dataProvider: new DatabaseDataProvider(db),
+        cache: new TTLCache({
+          max: 10,
+          ttl: 1000 * 60 * 1, // 1 minute
+        }),
+      }),
       port: config.apiHttpPort,
       logger: baseLogger.child({ subsystem: "HttpApi" }),
       buildTag: config.buildTag,
@@ -259,6 +267,17 @@ async function main(): Promise<void> {
       hostname: config.hostname,
       graphqlHandler: graphqlHandler,
       enableSentry: config.sentryDsn !== null,
+      calculator: {
+        esimatesLinearQfImplementation:
+          config.estimatesLinearQfWorkerPoolSize === null
+            ? {
+                type: "in-thread",
+              }
+            : {
+                type: "worker-pool",
+                workerPoolSize: config.estimatesLinearQfWorkerPoolSize,
+              },
+      },
     });
 
     await httpApi.start();

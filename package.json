@@ -27,6 +27,7 @@
   "license": "ISC",
   "dependencies": {
     "@graphile-contrib/pg-simplify-inflector": "^6.1.0",
+    "@isaacs/ttlcache": "^1.4.1",
     "@sentry/node": "^7.51.0",
     "@teamawesome/tiny-batch": "^1.0.7",
     "async-retry": "^1.3.3",
@@ -56,6 +57,11 @@
     "postgraphile": "^4.13.0",
     "postgraphile-plugin-connection-filter": "^2.3.0",
     "postgres": "^3.4.3",
+    "node-worker-threads-pool": "^1.5.1",
+    "pino": "^8.14.1",
+    "pino-http": "^8.5.1",
+    "pino-pretty": "^10.0.1",
+    "pluralistic": "github:gitcoinco/pluralistic.js#322323c7440db955966f3cf523bbb84ca60894f9",
     "serve-index": "^1.9.1",
     "sleep-promise": "^9.1.0",
     "split2": "^4.2.0",
@@ -63,6 +69,8 @@
     "stream-to-string": "^1.2.1",
     "throttle-debounce": "^5.0.0",
     "tmp": "^0.2.1",
+    "ts-essentials": "^9.4.1",
+    "ts-is-present": "^1.2.2",
     "viem": "^1.16.4",
     "write-file-atomic": "^5.0.1",
     "zod": "^3.21.4"

@@ -14,6 +14,7 @@ import { getVotesWithCoefficients } from "../../../calculator/votes.js";
 import ClientError from "../clientError.js";
 import { HttpApiConfig } from "../../app.js";
 import { safeParseAddress } from "../../../address.js";
+import { extractCalculationConfigFromRound } from "../../../calculator/calculationConfig.js";
 
 export const createHandler = (config: HttpApiConfig): express.Router => {
   const router = express.Router();
@@ -46,9 +47,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
   }
 
   async function exportPricesCSV(chainId: number, round: Round) {
-    const { priceProvider } = config;
-
-    const prices = await priceProvider.getAllPricesForChain(chainId);
+    const prices = await db.getAllChainPrices(chainId);
 
     const pricesDuringRound = prices.filter(
       (price) =>
@@ -84,13 +83,23 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       throw new Error(`Chain ${chainId} not configured`);
     }
 
-    const votesWithCoefficients = await getVotesWithCoefficients({
+    const passportScoreByAddress =
+      await config.passportProvider.getScoresByAddresses(
+        votes.map((vote) => vote.voter.toLowerCase())
+      );
+
+    const calculationConfig = extractCalculationConfigFromRound(
+      createDeprecatedRound(round)
+    );
+
+    const votesWithCoefficients = getVotesWithCoefficients({
       chain: chainConfig,
       round: createDeprecatedRound(round),
       applications,
       votes,
-      passportProvider: config.passportProvider,
-      options: {},
+      minimumAmountUSD: calculationConfig.minimumAmountUSD,
+      enablePassport: calculationConfig.enablePassport,
+      passportScoreByAddress,
     });
 
     const records = votesWithCoefficients.flatMap((vote) => {

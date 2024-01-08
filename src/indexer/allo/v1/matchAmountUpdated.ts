@@ -4,7 +4,7 @@ import type { Indexer } from "../../indexer.js";
 import { Changeset } from "../../../database/index.js";
 import { NewRound, Round } from "../../../database/schema.js";
 
-import { PriceProvider } from "../../../prices/provider.js";
+import { PriceProvider, convertToUSD } from "../../../prices/provider.js";
 import { parseAddress } from "../../../address.js";
 
 export async function updateRoundMatchAmount(args: {
@@ -15,7 +15,8 @@ export async function updateRoundMatchAmount(args: {
 }): Promise<Changeset> {
   const { round, blockNumber, newMatchAmount, priceProvider } = args;
 
-  const amountUSD = await priceProvider.convertToUSD(
+  const amountUSD = await convertToUSD(
+    priceProvider,
     round.chainId,
     round.matchTokenAddress,
     newMatchAmount,

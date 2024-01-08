@@ -23,6 +23,8 @@ export type PassportScore = {
   detail?: string;
 };
 
+export type AddressToPassportScoreMap = Map<string, PassportScore | undefined>;
+
 export interface PassportProviderConfig {
   scorerId: number;
   logger: Logger;
@@ -52,6 +54,9 @@ export interface PassportProvider {
   start: (opts?: { watch: boolean }) => Promise<void>;
   stop: () => void;
   getScoreByAddress: (address: string) => Promise<PassportScore | undefined>;
+  getScoresByAddresses: (
+    addresses: string[]
+  ) => Promise<AddressToPassportScoreMap>;
 }
 
 export const createPassportProvider = (
@@ -158,6 +163,20 @@ export const createPassportProvider = (
     }
   };
 
+  const getScoresByAddresses: PassportProvider["getScoresByAddresses"] = async (
+    addresses: string[]
+  ): Promise<AddressToPassportScoreMap> => {
+    if (state.type !== "ready") {
+      throw new Error("Service not started");
+    }
+    const { db } = state;
+    const uniqueAddresses = Array.from(new Set(addresses));
+    const records = await db.getMany(uniqueAddresses);
+    return new Map(
+      records.filter(Boolean).map((record) => [record.address, record])
+    );
+  };
+
   // INTERNALS
 
   const poll = async (): Promise<void> => {
@@ -246,5 +265,10 @@ export const createPassportProvider = (
 
   // EXPORTS
 
-  return { start, stop, getScoreByAddress };
+  return {
+    start,
+    stop,
+    getScoreByAddress,
+    getScoresByAddresses,
+  };
 };

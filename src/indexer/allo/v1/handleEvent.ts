@@ -21,6 +21,7 @@ import matchAmountUpdated, {
 } from "./matchAmountUpdated.js";
 import roundMetaPtrUpdated from "./roundMetaPtrUpdated.js";
 import applicationMetaPtrUpdated from "./applicationMetaPtrUpdated.js";
+import { convertFromUSD, convertToUSD } from "../../../prices/provider.js";
 
 enum ApplicationStatus {
   PENDING = 0,
@@ -271,6 +272,7 @@ export async function handleEvent(
         tags: ["allo-v1"],
         totalDonationsCount: 0,
         totalAmountDonatedInUsd: 0,
+        uniqueDonorsCount: 0,
         matchTokenAddress,
         matchAmount: 0n,
         matchAmountInUsd: 0,
@@ -496,7 +498,8 @@ export async function handleEvent(
 
       const token = parseAddress(event.params.token);
 
-      const conversionToUSD = await priceProvider.convertToUSD(
+      const conversionToUSD = await convertToUSD(
+        priceProvider,
         chainId,
         token,
         event.params.amount,
@@ -511,7 +514,8 @@ export async function handleEvent(
           roundMatchTokenAddress === token
             ? event.params.amount
             : (
-                await priceProvider.convertFromUSD(
+                await convertFromUSD(
+                  priceProvider,
                   chainId,
                   roundMatchTokenAddress,
                   conversionToUSD.amount,
@@ -548,19 +552,6 @@ export async function handleEvent(
       };
 
       return [
-        {
-          type: "IncrementApplicationDonationStats",
-          chainId,
-          roundId,
-          applicationId,
-          amountInUsd,
-        },
-        {
-          type: "IncrementRoundDonationStats",
-          chainId,
-          roundId,
-          amountInUsd,
-        },
         {
           type: "InsertDonation",
           donation,

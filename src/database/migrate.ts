@@ -39,6 +39,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
 
     .addColumn("totalAmountDonatedInUSD", "real")
     .addColumn("totalDonationsCount", "integer")
+    .addColumn("uniqueDonorsCount", "integer")
 
     .addPrimaryKeyConstraint("rounds_pkey", ["id", "chainId"])
     .execute();
@@ -81,6 +82,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     // aggregates
     .addColumn("totalDonationsCount", "integer")
     .addColumn("totalAmountDonatedInUSD", "real")
+    .addColumn("uniqueDonorsCount", "integer")
 
     .addPrimaryKeyConstraint("applications_pkey", ["chainId", "roundId", "id"])
     .addForeignKeyConstraint(
@@ -157,22 +159,5 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   E'@foreignKey ("round_id", "chain_id") references ${ref(
     "rounds"
   )}(id, chain_id)|@fieldName round|@foreignFieldName donations';
-
-  -- this adds a computed column to the rounds table, could be slow
-  CREATE FUNCTION ${ref("rounds_unique_donors_count")}(round ${ref(
-    "rounds"
-  )}) RETURNS integer AS $$
-    SELECT COUNT(DISTINCT "donations"."donor_address")
-    FROM ${ref("donations")} AS donations
-    WHERE donations."round_id" = round.id AND donations."chain_id" = round."chain_id";
-  $$ LANGUAGE sql STABLE;
-
-  CREATE FUNCTION ${ref("applications_unique_donors_count")}(application ${ref(
-    "applications"
-  )}) RETURNS integer AS $$
-    SELECT COUNT(DISTINCT "donations"."donor_address")
-    FROM ${ref("donations")} AS donations
-    WHERE donations."application_id" = application.id AND donations."round_id" = application."round_id" AND donations."chain_id" = application."chain_id";
-  $$ LANGUAGE sql STABLE;
   `.execute(db);
 }

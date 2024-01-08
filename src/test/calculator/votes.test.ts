@@ -1,14 +1,7 @@
 import type { DeprecatedVote, DeprecatedRound, DeprecatedApplication } from "../../deprecatedJsonDatabase.js";
-import type { PassportProvider } from "../../passport/index.js";
 import { describe, test, expect } from "vitest";
 import { getVotesWithCoefficients } from "../../calculator/votes.js";
 import { Chain } from "../../config.js";
-
-const noOpPassportProvider: PassportProvider = {
-  start: (_opts?: { watch: boolean } | undefined) => Promise.resolve(undefined),
-  stop: () => {},
-  getScoreByAddress: (_address: string) => Promise.resolve(undefined),
-};
 
 const round: DeprecatedRound = {
   id: "0x1234",
@@ -117,16 +110,15 @@ const MOCK_CHAIN = {
 
 describe("getVotesWithCoefficients", () => {
   describe("should take voteAmountCap into conisderation", () => {
-    test("returns capped vote if capping is defined for token", async () => {
+    test("returns capped vote if capping is defined for token", () => {
       const testVoteIndex = 0;
 
-      const res = await getVotesWithCoefficients({
+      const res = getVotesWithCoefficients({
         chain: MOCK_CHAIN,
         round,
         applications,
         votes,
-        passportProvider: noOpPassportProvider,
-        options: {},
+        passportScoreByAddress: new Map(),
       });
 
       expect(res[testVoteIndex]).toEqual({
@@ -136,16 +128,15 @@ describe("getVotesWithCoefficients", () => {
       });
     });
 
-    test("doesn't cap votes if capping isn't defined for token", async () => {
+    test("doesn't cap votes if capping isn't defined for token", () => {
       const testVoteIndex = 1;
 
-      const res = await getVotesWithCoefficients({
+      const res = getVotesWithCoefficients({
         chain: MOCK_CHAIN,
         round,
         applications,
         votes,
-        passportProvider: noOpPassportProvider,
-        options: {},
+        passportScoreByAddress: new Map(),
       });
 
       expect(res[testVoteIndex]).toEqual({

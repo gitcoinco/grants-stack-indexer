@@ -2,7 +2,7 @@ name: Deploy Branch
 
 on:
   push:
-    branches: [main, release]
+    branches: [release]
 
 jobs:
   build-and-deploy:

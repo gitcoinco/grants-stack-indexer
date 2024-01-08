@@ -1,8 +1,14 @@
-import type { DeprecatedVote, DeprecatedRound, DeprecatedApplication } from "../../deprecatedJsonDatabase.js";
+import type {
+  DeprecatedVote,
+  DeprecatedRound,
+  DeprecatedApplication,
+} from "../../deprecatedJsonDatabase.js";
 import { test as baseTest } from "vitest";
 import { Chain } from "../../config.js";
 import type { PassportScore } from "../../passport/index.js";
 import type { PassportProvider } from "../../passport/index.js";
+import { AddressToPassportScoreMap } from "../../passport/index.js";
+import { isPresent } from "ts-is-present";
 
 export class FakePassportProvider implements PassportProvider {
   scores: {
@@ -24,6 +30,19 @@ export class FakePassportProvider implements PassportProvider {
 
   getScoreByAddress(address: string) {
     return Promise.resolve(this.scores[address]);
+  }
+
+  getScoresByAddresses(
+    addresses: string[]
+  ): Promise<AddressToPassportScoreMap> {
+    return Promise.resolve(
+      new Map(
+        addresses
+          .map((address) => this.scores[address])
+          .filter(isPresent)
+          .map((score) => [score.address, score])
+      )
+    );
   }
 }
 
@@ -144,20 +163,27 @@ function generateData() {
   const votes: DeprecatedVote[] = [];
   const scores: PassportScore[] = [];
 
+  const passportScoresByAddress: AddressToPassportScoreMap = new Map();
+
   SAMPLE_VOTES_AND_SCORES.forEach(({ id, amount, rawScore }) => {
     const { vote, score } = generateVoteAndScore(id, amount, rawScore);
     votes.push(vote);
     scores.push(score);
+    passportScoresByAddress.set(score.address, score);
   });
 
-  return { votes, scores };
+  return { votes, scores, passportScoresByAddress };
 }
 
 export const test = baseTest.extend<{
   round: DeprecatedRound;
   applications: DeprecatedApplication[];
   chain: Chain;
-  data: { votes: DeprecatedVote[]; scores: PassportScore[] };
+  data: {
+    votes: DeprecatedVote[];
+    scores: PassportScore[];
+    passportScoresByAddress: AddressToPassportScoreMap;
+  };
 }>({
   round,
   applications,

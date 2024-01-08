@@ -26,6 +26,7 @@ export type RoundTable = {
   updatedAtBlock: bigint;
   totalAmountDonatedInUsd: number;
   totalDonationsCount: number;
+  uniqueDonorsCount: number;
   tags: string[];
 };
 
@@ -73,6 +74,7 @@ export type ApplicationTable = {
   statusUpdatedAtBlock: bigint;
   totalDonationsCount: number;
   totalAmountDonatedInUsd: number;
+  uniqueDonorsCount: number;
 };
 
 export type Application = Selectable<ApplicationTable>;
