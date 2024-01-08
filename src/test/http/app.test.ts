@@ -50,8 +50,10 @@ describe("server", () => {
         priceProvider: new TestPriceProvider() as unknown as PriceProvider,
         passportProvider: new TestPassportProvider(),
         dataProvider: new TestDataProvider({
-          "1/rounds/0x1234/votes.json": "votes",
-          "1/rounds/0x1234/applications.json": "applications",
+          "1/rounds/0x0000000000000000000000000000000000000001/votes.json":
+            "votes",
+          "1/rounds/0x0000000000000000000000000000000000000001/applications.json":
+            "applications",
           "1/rounds.json": "rounds",
           "passport_scores.json": "passport_scores",
         }) as DataProvider,
@@ -98,8 +100,10 @@ describe("server", () => {
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
-            "1/rounds/0x1234/votes.json": "votes",
-            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds/0x0000000000000000000000000000000000000001/votes.json":
+              "votes",
+            "1/rounds/0x0000000000000000000000000000000000000001/applications.json":
+              "applications",
             "1/rounds.json": [], // empty file so the round won't be found
           }) as DataProvider,
           hostname: "dummy-hostname",
@@ -112,7 +116,7 @@ describe("server", () => {
         });
 
         const resp = await request(app).get(
-          "/api/v1/chains/1/rounds/0x1234/matches"
+          "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches"
         );
         expect(resp.status).toEqual(404);
       });
@@ -126,8 +130,10 @@ describe("server", () => {
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
-            "1/rounds/0x1234/votes.json": "votes",
-            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds/0x0000000000000000000000000000000000000001/votes.json":
+              "votes",
+            "1/rounds/0x0000000000000000000000000000000000000001/applications.json":
+              "applications",
             "1/rounds.json": [], // empty file so the round won't be found
           }) as DataProvider,
           buildTag: "123abc",
@@ -139,7 +145,7 @@ describe("server", () => {
         });
 
         const resp = await request(app).get(
-          "/api/v1/chains/1/rounds/0x1234/matches"
+          "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches"
         );
         expect(resp.status).toEqual(404);
       });
@@ -153,8 +159,10 @@ describe("server", () => {
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
-            "1/rounds/0x1234/votes.json": "votes",
-            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds/0x0000000000000000000000000000000000000001/votes.json":
+              "votes",
+            "1/rounds/0x0000000000000000000000000000000000000001/applications.json":
+              "applications",
             "1/rounds.json": [], // empty file so the round won't be found
           }) as DataProvider,
           buildTag: "123abc",
@@ -166,7 +174,7 @@ describe("server", () => {
         });
 
         const resp = await request(app).get(
-          "/api/v1/chains/1/rounds/0x1234/matches"
+          "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches"
         );
         expect(resp.status).toEqual(404);
       });
@@ -180,8 +188,10 @@ describe("server", () => {
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
-            "1/rounds/0x1234/votes.json": "votes",
-            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds/0x0000000000000000000000000000000000000001/votes.json":
+              "votes",
+            "1/rounds/0x0000000000000000000000000000000000000001/applications.json":
+              "applications",
             "1/rounds.json": [], // empty file so the round won't be found
           }) as DataProvider,
           buildTag: "123abc",
@@ -193,7 +203,7 @@ describe("server", () => {
         });
 
         const resp = await request(app).get(
-          "/api/v1/chains/1/rounds/0x1234/matches"
+          "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches"
         );
         expect(resp.status).toEqual(404);
       });
@@ -207,8 +217,10 @@ describe("server", () => {
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
-            "1/rounds/0x1234/votes.json": "votes",
-            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds/0x0000000000000000000000000000000000000001/votes.json":
+              "votes",
+            "1/rounds/0x0000000000000000000000000000000000000001/applications.json":
+              "applications",
             "1/rounds.json": [], // empty file so the round won't be found
           }) as DataProvider,
           buildTag: "123abc",
@@ -220,7 +232,7 @@ describe("server", () => {
         });
 
         const resp = await request(app).get(
-          "/api/v1/chains/1/rounds/0x1234/matches"
+          "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches"
         );
         expect(resp.status).toEqual(404);
       });
@@ -237,8 +249,10 @@ describe("server", () => {
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
-            "1/rounds/0x1234/votes.json": "votes",
-            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds/0x0000000000000000000000000000000000000001/votes.json":
+              "votes",
+            "1/rounds/0x0000000000000000000000000000000000000001/applications.json":
+              "applications",
             "1/rounds.json": "rounds",
           }) as DataProvider,
           buildTag: "123abc",
@@ -356,7 +370,9 @@ describe("server", () => {
         ) => (typeof value === "bigint" ? value.toString() : value);
 
         const resp = await request(app)
-          .post("/api/v1/chains/1/rounds/0x1234/estimate")
+          .post(
+            "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/estimate"
+          )
           .set("Content-Type", "application/json")
           .set("Accept", "application/json")
           .send(
@@ -384,8 +400,10 @@ describe("server", () => {
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
-            "1/rounds/0x1234/votes.json": "votes",
-            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds/0x0000000000000000000000000000000000000001/votes.json":
+              "votes",
+            "1/rounds/0x0000000000000000000000000000000000000001/applications.json":
+              "applications",
             "1/rounds.json": "rounds",
           }) as DataProvider,
           buildTag: "123abc",
@@ -441,7 +459,7 @@ describe("server", () => {
         ];
 
         const resp = await request(app).get(
-          "/api/v1/chains/1/rounds/0x1234/matches?ignoreSaturation=true"
+          "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches?ignoreSaturation=true"
         );
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
@@ -550,7 +568,9 @@ describe("server", () => {
         ) => (typeof value === "bigint" ? value.toString() : value);
 
         const resp = await request(app)
-          .post("/api/v1/chains/1/rounds/0x1234/estimate")
+          .post(
+            "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/estimate"
+          )
           .set("Content-Type", "application/json")
           .set("Accept", "application/json")
           .send(
@@ -578,11 +598,13 @@ describe("server", () => {
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
-            "1/rounds/0x1234/votes.json": "votes",
-            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds/0x0000000000000000000000000000000000000001/votes.json":
+              "votes",
+            "1/rounds/0x0000000000000000000000000000000000000001/applications.json":
+              "applications",
             "1/rounds.json": [
               {
-                id: "0x1234",
+                id: "0x0000000000000000000000000000000000000001",
                 token: "0x0000000000000000000000000000000000000000",
                 // instead of 100 like in the previous test
                 // this round has a pot of 1000,
@@ -645,7 +667,7 @@ describe("server", () => {
         ];
 
         const resp = await request(app).get(
-          "/api/v1/chains/1/rounds/0x1234/matches?ignoreSaturation=false"
+          "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches?ignoreSaturation=false"
         );
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
@@ -664,8 +686,10 @@ describe("server", () => {
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
-            "1/rounds/0x1234/votes.json": "votes-with-bad-recipient",
-            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds/0x0000000000000000000000000000000000000001/votes.json":
+              "votes-with-bad-recipient",
+            "1/rounds/0x0000000000000000000000000000000000000001/applications.json":
+              "applications",
             "1/rounds.json": "rounds",
           }) as DataProvider,
           buildTag: "123abc",
@@ -721,7 +745,7 @@ describe("server", () => {
         ];
 
         const resp = await request(app).get(
-          "/chains/1/rounds/0x1234/matches?ignoreSaturation=true"
+          "/chains/1/rounds/0x0000000000000000000000000000000000000001/matches?ignoreSaturation=true"
         );
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
@@ -739,8 +763,10 @@ describe("server", () => {
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
-            "1/rounds/0x1234/votes.json": "votes",
-            "1/rounds/0x1234/applications.json": "applications",
+            "1/rounds/0x0000000000000000000000000000000000000001/votes.json":
+              "votes",
+            "1/rounds/0x0000000000000000000000000000000000000001/applications.json":
+              "applications",
             "1/rounds.json": "rounds",
           }) as DataProvider,
           buildTag: "123abc",
@@ -756,7 +782,9 @@ describe("server", () => {
         const overridesContent = await loadFixture("overrides", "csv");
 
         const resp: Response<AugmentedResult[]> = await request(app)
-          .post("/api/v1/chains/1/rounds/0x1234/matches")
+          .post(
+            "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches"
+          )
           .attach("overrides", Buffer.from(overridesContent), "overrides.csv");
 
         expect(resp.statusCode).toBe(201);
@@ -783,7 +811,9 @@ describe("server", () => {
         );
 
         const resp: Response<AugmentedResult[]> = await request(app)
-          .post("/api/v1/chains/1/rounds/0x1234/matches")
+          .post(
+            "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches"
+          )
           .attach("overrides", Buffer.from(overridesContent), "overrides.csv");
 
         expect(resp.statusCode).toBe(201);
@@ -810,7 +840,7 @@ describe("server", () => {
 
       test("should render 400 if no overrides file has been uploaded", async () => {
         const resp = await request(app).post(
-          "/api/v1/chains/1/rounds/0x1234/matches"
+          "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches"
         );
         expect(resp.statusCode).toBe(400);
         expect(resp.body).toEqual({ error: "overrides param required" });
@@ -822,7 +852,9 @@ describe("server", () => {
           "csv"
         );
         const resp = await request(app)
-          .post("/api/v1/chains/1/rounds/0x1234/matches")
+          .post(
+            "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches"
+          )
           .attach("overrides", Buffer.from(overridesContent), "overrides.csv");
         expect(resp.statusCode).toBe(400);
         expect(resp.body).toEqual({
@@ -836,7 +868,9 @@ describe("server", () => {
           "csv"
         );
         const resp = await request(app)
-          .post("/api/v1/chains/1/rounds/0x1234/matches")
+          .post(
+            "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches"
+          )
           .attach("overrides", Buffer.from(overridesContent), "overrides.csv");
         expect(resp.statusCode).toBe(400);
         expect(resp.body).toEqual({
@@ -850,7 +884,9 @@ describe("server", () => {
           "csv"
         );
         const resp = await request(app)
-          .post("/api/v1/chains/1/rounds/0x1234/matches")
+          .post(
+            "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches"
+          )
           .attach("overrides", Buffer.from(overridesContent), "overrides.csv");
         expect(resp.statusCode).toBe(400);
         expect(resp.body).toEqual({
@@ -871,10 +907,14 @@ describe("server", () => {
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
-            "1/rounds/0x1234/votes.json": "votes",
-            "1/rounds/0x1234/applications.json": "applications",
-            "1/rounds/0x2/votes.json": "votes",
-            "1/rounds/0x2/applications.json": "applications",
+            "1/rounds/0x0000000000000000000000000000000000000001/votes.json":
+              "votes",
+            "1/rounds/0x0000000000000000000000000000000000000001/applications.json":
+              "applications",
+            "1/rounds/0x0000000000000000000000000000000000000002/votes.json":
+              "votes",
+            "1/rounds/0x0000000000000000000000000000000000000002/applications.json":
+              "applications",
             "1/rounds.json": "rounds",
           }) as DataProvider,
           buildTag: "123abc",
@@ -931,7 +971,7 @@ describe("server", () => {
           ];
 
           const resp = await request(app).get(
-            "/api/v1/chains/1/rounds/0x1234/matches?enablePassport=true"
+            "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches?enablePassport=true"
           );
           expect(resp.statusCode).toBe(200);
           expect(resp.body).toEqual(expectedResults);
@@ -981,7 +1021,7 @@ describe("server", () => {
           ];
 
           const resp = await request(app).get(
-            "/api/v1/chains/1/rounds/0x1234/matches?enablePassport=true&passportThreshold=15"
+            "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches?enablePassport=true&passportThreshold=15"
           );
           expect(resp.statusCode).toBe(200);
           expect(resp.body).toEqual(expectedResults);
@@ -1031,7 +1071,7 @@ describe("server", () => {
           ];
 
           const resp = await request(app).get(
-            "/api/v1/chains/1/rounds/0x2/matches"
+            "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000002/matches"
           );
           expect(resp.statusCode).toBe(200);
           expect(resp.body).toEqual(expectedResults);
@@ -1081,7 +1121,7 @@ describe("server", () => {
           ];
 
           const resp = await request(app).get(
-            "/api/v1/chains/1/rounds/0x2/matches?passportThreshold=15"
+            "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000002/matches?passportThreshold=15"
           );
           expect(resp.statusCode).toBe(200);
           expect(resp.body).toEqual(expectedResults);
@@ -1100,10 +1140,14 @@ describe("server", () => {
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
-            "1/rounds/0x1234/votes.json": "votes",
-            "1/rounds/0x1234/applications.json": "applications",
-            "1/rounds/0x3/votes.json": "votes",
-            "1/rounds/0x3/applications.json": "applications",
+            "1/rounds/0x0000000000000000000000000000000000000001/votes.json":
+              "votes",
+            "1/rounds/0x0000000000000000000000000000000000000001/applications.json":
+              "applications",
+            "1/rounds/0x0000000000000000000000000000000000000003/votes.json":
+              "votes",
+            "1/rounds/0x0000000000000000000000000000000000000003/applications.json":
+              "applications",
             "1/rounds.json": "rounds",
           }) as DataProvider,
           buildTag: "123abc",
@@ -1159,7 +1203,7 @@ describe("server", () => {
         ];
 
         const resp = await request(app).get(
-          "/api/v1/chains/1/rounds/0x1234/matches?matchingCapAmount=1000"
+          "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches?matchingCapAmount=1000"
         );
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
@@ -1209,7 +1253,7 @@ describe("server", () => {
         ];
 
         const resp = await request(app).get(
-          "/api/v1/chains/1/rounds/0x3/matches"
+          "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000003/matches"
         );
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
@@ -1259,7 +1303,7 @@ describe("server", () => {
         ];
 
         const resp = await request(app).get(
-          "/api/v1/chains/1/rounds/0x1234/matches"
+          "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches"
         );
         expect(resp.statusCode).toBe(200);
         expect(resp.body).toEqual(expectedResults);
@@ -1277,10 +1321,14 @@ describe("server", () => {
           priceProvider: new TestPriceProvider() as unknown as PriceProvider,
           passportProvider: new TestPassportProvider(),
           dataProvider: new TestDataProvider({
-            "1/rounds/0x1234/votes.json": "votes",
-            "1/rounds/0x1234/applications.json": "applications",
-            "1/rounds/0x4/votes.json": "votes",
-            "1/rounds/0x4/applications.json": "applications",
+            "1/rounds/0x0000000000000000000000000000000000000001/votes.json":
+              "votes",
+            "1/rounds/0x0000000000000000000000000000000000000001/applications.json":
+              "applications",
+            "1/rounds/0x0000000000000000000000000000000000000004/votes.json":
+              "votes",
+            "1/rounds/0x0000000000000000000000000000000000000004/applications.json":
+              "applications",
             "1/rounds.json": "rounds",
           }) as DataProvider,
           buildTag: "123abc",
@@ -1337,7 +1385,7 @@ describe("server", () => {
           ];
 
           const resp = await request(app).get(
-            "/api/v1/chains/1/rounds/0x1234/matches?minimumAmountUSD=5"
+            "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000001/matches?minimumAmountUSD=5"
           );
           expect(resp.statusCode).toBe(200);
           expect(resp.body).toEqual(expectedResults);
@@ -1389,7 +1437,7 @@ describe("server", () => {
           ];
 
           const resp = await request(app).get(
-            "/api/v1/chains/1/rounds/0x4/matches"
+            "/api/v1/chains/1/rounds/0x0000000000000000000000000000000000000004/matches"
           );
           expect(resp.statusCode).toBe(200);
           expect(resp.body).toEqual(expectedResults);

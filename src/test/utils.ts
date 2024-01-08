@@ -87,7 +87,7 @@ export class TestPriceProvider implements PriceProvider {
       id: 0,
       tokenDecimals: 18,
       chainId: chainId,
-      priceInUsd: 1_000_000_000,
+      priceInUsd: 1,
       tokenAddress: tokenAddress,
       blockNumber: blockNumber === "latest" ? 0n : blockNumber,
       timestamp: new Date(),
