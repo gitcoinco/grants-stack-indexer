@@ -8,7 +8,6 @@ import ClientError from "../clientError.js";
 
 import { HttpApiConfig } from "../../app.js";
 import { safeParseAddress } from "../../../address.js";
-import { Round } from "../../../indexer/types.js";
 import {
   LinearQfCalculatorResult,
   LinearQfCalculatorArgs,

@@ -1,6 +1,6 @@
 import type { LinearQf } from "./linearQf/index.js";
 import { Chain } from "../config.js";
-import { Application, Round, Vote } from "../indexer/types.js";
+import { Application } from "../indexer/types.js";
 import { DataProvider } from "./dataProvider/index.js";
 import { PriceProvider, PriceWithDecimals } from "../prices/provider.js";
 import { PassportProvider } from "../passport/index.js";
