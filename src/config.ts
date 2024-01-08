@@ -702,7 +702,7 @@ export function getConfig(): Config {
 
   const storageDir = z
     .string()
-    .default("./.var/storage")
+    .default("./.var")
     .parse(process.env.STORAGE_DIR);
 
   const cacheDir = z
