@@ -52,7 +52,6 @@
     "pg": "^8.11.3",
     "pino": "^8.14.1",
     "pino-http": "^8.5.1",
-    "pino-pretty": "^10.0.1",
     "pluralistic": "github:gitcoinco/pluralistic.js#d3edbd1bc3c2e7593da3d43513302a09c0edc4e7",
     "postgraphile": "^4.13.0",
     "postgraphile-plugin-connection-filter": "^2.3.0",

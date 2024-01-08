@@ -357,6 +357,7 @@ export async function handleEvent(
         ],
         totalAmountDonatedInUsd: 0,
         totalDonationsCount: 0,
+        uniqueDonorsCount: 0,
       };
 
       return [
