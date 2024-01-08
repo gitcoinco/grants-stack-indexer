@@ -620,7 +620,7 @@ export const getDecimalsForToken = (
   }
 
   const token = chain.tokens.find(
-    (t) => t.address.toLowerCase() === tokenAddress
+    (t) => t.address.toLowerCase() === tokenAddress.toLowerCase()
   );
   if (token === undefined) {
     throw new Error(

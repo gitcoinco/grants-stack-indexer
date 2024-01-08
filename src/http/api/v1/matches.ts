@@ -11,6 +11,7 @@ import Calculator, {
   parseOverrides,
 } from "../../../calculator/index.js";
 import { HttpApiConfig } from "../../app.js";
+import { safeParseAddress } from "../../../address.js";
 
 export const createHandler = (config: HttpApiConfig): express.Router => {
   const router = express.Router();
@@ -56,7 +57,11 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     useOverrides: boolean
   ) {
     const chainId = Number(req.params.chainId);
-    const roundId = req.params.roundId;
+    const roundId = safeParseAddress(req.params.roundId);
+
+    if (roundId === null) {
+      throw new ClientError("Invalid round id", 400);
+    }
 
     const minimumAmountUSD = req.query.minimumAmountUSD?.toString();
     const matchingCapAmount = req.query.matchingCapAmount?.toString();
