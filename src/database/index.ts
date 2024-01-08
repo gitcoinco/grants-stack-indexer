@@ -64,80 +64,86 @@ export class Database {
 
       // update round and application stats, sort of like materialized column
       // that automatically updates when donations are inserted
-      const donationsTableRef = sql.id(this.databaseSchemaName, "donations");
+      const donationsTableRef = `"${this.databaseSchemaName}"."donations"`;
 
-      const uniqueRounds = new Set<string>();
-
-      for (const donation of donations) {
-        uniqueRounds.add(`${donation.chainId}:${donation.roundId}`);
-      }
-
-      for (const round of uniqueRounds) {
+      const updateRoundStatsStatements = Array.from(
+        donations.reduce((acc, donation) => {
+          const key = `${donation.chainId}:${donation.roundId}`;
+          acc.add(key);
+          return acc;
+        }, new Set<string>())
+      ).map((round) => {
         const [chainId, roundId] = round.split(":");
 
-        await sql`
-        UPDATE ${sql.id(this.databaseSchemaName, "rounds")}
+        return sql.raw(`
+        UPDATE "${this.databaseSchemaName}"."rounds"
         SET total_amount_donated_in_usd = total_amount_donated_in_usd + (
           SELECT SUM(amount_in_usd)
           FROM ${donationsTableRef}
           WHERE chain_id = ${chainId}
-          AND round_id = ${roundId}
+          AND round_id = '${roundId}'
         ),
         total_donations_count = total_donations_count + (
           SELECT COUNT(*)
           FROM ${donationsTableRef}
           WHERE chain_id = ${chainId}
-          AND round_id = ${roundId}
+          AND round_id = '${roundId}'
         ),
         unique_donors_count = unique_donors_count + (
           SELECT COUNT(DISTINCT donor_address)
           FROM ${donationsTableRef}
           WHERE chain_id = ${chainId}
-          AND round_id = ${roundId}
+          AND round_id = '${roundId}'
         )
         WHERE chain_id = ${chainId}
-        AND id = ${roundId}
-      `.execute(this.#db);
-      }
+        AND id = '${roundId}'
+      `);
+      });
 
-      const uniqueApplications = new Set<string>();
-
-      for (const donation of donations) {
-        uniqueApplications.add(
-          `${donation.chainId}:${donation.roundId}:${donation.applicationId}`
-        );
-      }
-
-      for (const application of uniqueApplications) {
+      const updateApplicationStatsStatements = Array.from(
+        donations.reduce((acc, donation) => {
+          const key = `${donation.chainId}:${donation.roundId}:${donation.applicationId}`;
+          acc.add(key);
+          return acc;
+        }, new Set<string>())
+      ).map((application) => {
         const [chainId, roundId, applicationId] = application.split(":");
-        await sql`
-        UPDATE ${sql.id(this.databaseSchemaName, "applications")}
+
+        return sql.raw(`
+        UPDATE "${this.databaseSchemaName}"."applications"
         SET total_amount_donated_in_usd = total_amount_donated_in_usd + (
           SELECT SUM(amount_in_usd)
           FROM ${donationsTableRef}
           WHERE chain_id = ${chainId}
-          AND round_id = ${roundId}
-          AND application_id = ${applicationId}
+          AND round_id = '${roundId}'
+          AND application_id = '${applicationId}'
         ),
         total_donations_count = total_donations_count + (
           SELECT COUNT(*)
           FROM ${donationsTableRef}
           WHERE chain_id = ${chainId}
-          AND round_id = ${roundId}
-          AND application_id = ${applicationId}
+          AND round_id = '${roundId}'
+          AND application_id = '${applicationId}'
         ),
         unique_donors_count = unique_donors_count + (
           SELECT COUNT(DISTINCT donor_address)
           FROM ${donationsTableRef}
           WHERE chain_id = ${chainId}
-          AND round_id = ${roundId}
-          AND application_id = ${applicationId}
+          AND round_id = '${roundId}'
+          AND application_id = '${applicationId}'
         )
         WHERE chain_id = ${chainId}
-        AND round_id = ${roundId}
-        AND id = ${applicationId}
-      `.execute(this.#db);
-      }
+        AND round_id = '${roundId}'
+        AND id = '${applicationId}'
+      `);
+      });
+
+      await sql
+        .join(
+          updateRoundStatsStatements.concat(updateApplicationStatsStatements),
+          sql`;`
+        )
+        .execute(this.#db);
 
       return [];
     }, timeoutScheduler(1000));
