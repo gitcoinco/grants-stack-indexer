@@ -1,6 +1,9 @@
 import { ethers } from "ethers";
-import fetchRetry from "../utils/fetchRetry.js";
-import { Token } from "../config.js";
+import { ChainId, FetchInterface } from "../types.js";
+import { Address } from "../types.js";
+import { parseAddress } from "../address.js";
+
+import retry from "async-retry";
 
 const platforms: { [key: number]: string } = {
   1: "ethereum",
@@ -18,43 +21,26 @@ const nativeTokens: { [key: number]: string } = {
   43114: "avalanche-2",
 };
 
-type Timestamp = number;
-type UnixTimestamp = number;
+type TimestampInMs = number;
 type Price = number;
 
-export async function getPricesByHour(
-  token: Token,
-  startTime: UnixTimestamp,
-  endTime: UnixTimestamp,
-  config: { coingeckoApiKey: string | null; coingeckoApiUrl: string }
-): Promise<[Timestamp, Price][]> {
-  const prices = await fetchPrices(token, startTime, endTime, config);
-  const groupedByHour: Record<number, Price[]> = {};
-  const hour = 60 * 60 * 1000;
-  const result: [Timestamp, Price][] = [];
-
-  // group the prices by hour
-  for (const price of prices) {
-    const key = Math.floor(price[0] / hour) * hour;
-    groupedByHour[key] = groupedByHour[key] ?? [];
-    groupedByHour[key].push(price[1]);
-  }
-
-  // reduce groups into a single price by calculating their average
-  for (const key in groupedByHour) {
-    const total = groupedByHour[key].reduce((total, price) => total + price, 0);
-    result.push([Number(key), total / groupedByHour[key].length]);
-  }
-
-  return result;
-}
-
-async function fetchPrices(
-  { priceSource: { chainId, address } }: Token,
-  startTime: UnixTimestamp,
-  endTime: UnixTimestamp,
-  config: { coingeckoApiKey: string | null; coingeckoApiUrl: string }
-): Promise<[Timestamp, Price][]> {
+export async function fetchPricesForRange({
+  chainId,
+  tokenAddress,
+  startTimestampInMs,
+  endTimestampInMs,
+  coingeckoApiKey,
+  coingeckoApiUrl,
+  fetch,
+}: {
+  chainId: ChainId;
+  tokenAddress: Address;
+  startTimestampInMs: number;
+  endTimestampInMs: number;
+  coingeckoApiKey: string | null;
+  coingeckoApiUrl: string;
+  fetch: FetchInterface;
+}): Promise<[TimestampInMs, Price][]> {
   const platform = platforms[chainId];
   const nativeToken = nativeTokens[chainId];
 
@@ -62,26 +48,47 @@ async function fetchPrices(
     throw new Error(`Prices for chain ID ${chainId} are not supported.`);
   }
 
-  const isNativeToken = address === ethers.constants.AddressZero;
+  const isNativeToken =
+    tokenAddress === parseAddress(ethers.constants.AddressZero);
+
+  const startTimestampInSecs = Math.floor(startTimestampInMs / 1000);
+  const endTimestampInSecs = Math.floor(endTimestampInMs / 1000);
 
   const path = isNativeToken
-    ? `/coins/${nativeToken}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`
-    : `/coins/${platform}/contract/${address.toLowerCase()}/market_chart/range?vs_currency=usd&from=${startTime}&to=${endTime}`;
+    ? `/coins/${nativeToken}/market_chart/range?vs_currency=usd&from=${startTimestampInSecs}&to=${endTimestampInSecs}`
+    : `/coins/${platform}/contract/${tokenAddress.toLowerCase()}/market_chart/range?vs_currency=usd&from=${startTimestampInSecs}&to=${endTimestampInSecs}`;
 
   const headers: HeadersInit =
-    config.coingeckoApiKey === null
+    coingeckoApiKey === null
       ? {}
       : {
-          "x-cg-pro-api-key": config.coingeckoApiKey,
+          "x-cg-pro-api-key": coingeckoApiKey,
         };
 
-  const res = await fetchRetry(`${config.coingeckoApiUrl}${path}`, {
-    headers,
-    retries: 5,
-    backoff: 10000,
-  });
+  const responseBody = await retry(
+    async () => {
+      const res = await fetch(`${coingeckoApiUrl}${path}`, {
+        headers,
+      });
 
-  const data = (await res.json()) as { prices: Array<[Timestamp, Price]> };
+      const body = (await res.json()) as
+        | { prices: Array<[TimestampInMs, Price]> }
+        | { error: string };
 
-  return data.prices;
+      return body;
+    },
+    {
+      retries: 4,
+      minTimeout: 1000,
+      maxTimeout: 10000,
+    }
+  );
+
+  if ("error" in responseBody) {
+    throw new Error(
+      `Error from CoinGecko API: ${JSON.stringify(responseBody)}`
+    );
+  }
+
+  return responseBody.prices;
 }

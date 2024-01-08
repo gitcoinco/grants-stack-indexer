@@ -7,7 +7,7 @@ import multer from "multer";
 import ClientError from "../clientError.js";
 
 import { HttpApiConfig } from "../../app.js";
-import { Round } from "../../../indexer/types.js";
+import { safeParseAddress } from "../../../address.js";
 import {
   LinearQfCalculatorResult,
   LinearQfCalculatorArgs,
@@ -24,6 +24,7 @@ import {
   calculateMatchingEstimates,
 } from "../../../calculator/calculateMatchingEstimates.js";
 import { linearQFWithAggregates } from "pluralistic";
+import { DeprecatedRound } from "../../../deprecatedJsonDatabase.js";
 
 function createLinearQf(
   config: HttpApiConfig["calculator"]["esimatesLinearQfImplementation"]
@@ -103,7 +104,11 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     useOverrides: boolean
   ) {
     const chainId = Number(req.params.chainId);
-    const roundId = req.params.roundId;
+    const roundId = safeParseAddress(req.params.roundId);
+
+    if (roundId === null) {
+      throw new ClientError("Invalid round id", 400);
+    }
 
     const minimumAmountUSD = req.query.minimumAmountUSD?.toString();
     const matchingCapAmount = req.query.matchingCapAmount?.toString();
@@ -188,12 +193,12 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       throw new ClientError(`Chain ${chainId} not configured`, 400);
     }
 
-    const rounds = await config.dataProvider.loadFile<Round>(
+    const rounds = await config.dataProvider.loadFile<DeprecatedRound>(
       "rounds",
       `${chainId}/rounds.json`
     );
 
-    const round = rounds.find((r: Round) => r.id === roundId);
+    const round = rounds.find((r) => r.id === roundId);
 
     if (round === undefined) {
       throw new ClientError(`Round ${roundId} not found`, 400);
