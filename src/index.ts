@@ -80,6 +80,10 @@ async function main(): Promise<void> {
     return decodeJsonWithBigInts(val);
   });
 
+  if (config.cacheDir) {
+    await fs.mkdir(config.cacheDir, { recursive: true });
+  }
+
   const databaseConnectionPool = new Pool({
     connectionString: config.databaseUrl,
   });
