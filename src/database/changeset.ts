@@ -2,6 +2,9 @@ import { ChainId, Address } from "../types.js";
 import {
   NewProject,
   PartialProject,
+  NewProjectRole,
+  PartialProjectRole,
+  ProjectRoleNames,
   NewRound,
   PartialRound,
   NewApplication,
@@ -19,6 +22,22 @@ export type DataChange =
       type: "UpdateProject";
       projectId: string;
       project: PartialProject;
+    }
+  | {
+      type: "InsertProjectRole";
+      project: NewProjectRole;
+    }
+  | {
+      type: "UpdateProjectRole";
+      projectRoleId: string;
+      project: PartialProjectRole;
+    }
+  | {
+      type: "DeleteProjectRole";
+      chainId: ChainId;
+      projectId: string;
+      address: Address;
+      role: ProjectRoleNames;
     }
   | {
       type: "InsertRound";

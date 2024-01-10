@@ -5,6 +5,7 @@ const BIGINT_TYPE = sql`decimal(78,0)`;
 
 const ADDRESS_TYPE = "text";
 const CHAIN_ID_TYPE = "integer";
+const ROLE_TYPE = "integer";
 
 export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   const ref = (name: string) => sql.table(`${schemaName}.${name}`);
@@ -58,6 +59,27 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("tags", sql`text[]`)
 
     .addPrimaryKeyConstraint("projects_pkey", ["id", "chainId"])
+    .execute();
+
+  await schema
+    .createType("project_role_name")
+    .asEnum(["owner", "member"])
+    .execute();
+
+  await schema
+    .createTable("project_roles")
+    .addColumn("chainId", CHAIN_ID_TYPE)
+    .addColumn("project_id", "text")
+    .addColumn("address", ADDRESS_TYPE)
+    .addColumn("role", ref("project_role_name"))
+    .addColumn("createdAtBlock", BIGINT_TYPE)
+
+    .execute();
+
+  await schema
+    .createIndex("project_roles_unique_index")
+    .on("project_roles")
+    .columns(["chain_id", "project_id", "address", "role"])
     .execute();
 
   await schema

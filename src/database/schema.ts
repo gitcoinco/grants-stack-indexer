@@ -51,6 +51,20 @@ export type Project = Selectable<ProjectTable>;
 export type NewProject = Insertable<ProjectTable>;
 export type PartialProject = Updateable<ProjectTable>;
 
+export type ProjectRoleNames = "OWNER" | "MEMBER";
+
+export type ProjectRoleTable = {
+  chainId: ChainId;
+  projectId: string;
+  address: Address;
+  role: ProjectRoleNames;
+  createdAtBlock: bigint;
+};
+
+export type ProjectRole = Selectable<ProjectRoleTable>;
+export type NewProjectRole = Insertable<ProjectRoleTable>;
+export type PartialProjectRole = Updateable<ProjectRoleTable>;
+
 export type ApplicationStatus = "PENDING" | "REJECTED" | "APPROVED";
 
 export type StatusSnapshot = {
