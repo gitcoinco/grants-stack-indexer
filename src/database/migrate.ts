@@ -47,6 +47,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   await schema
     .createTable("projects")
     .addColumn("id", "text")
+    .addColumn("name", "text")
     .addColumn("chainId", CHAIN_ID_TYPE)
     .addColumn("projectNumber", "integer")
     .addColumn("registryAddress", ADDRESS_TYPE)

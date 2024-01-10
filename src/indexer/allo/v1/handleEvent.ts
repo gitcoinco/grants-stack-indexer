@@ -91,6 +91,7 @@ export async function handleEvent(
             chainId,
             registryAddress: parseAddress(event.address),
             id: projectId,
+            name: "",
             projectNumber: Number(event.params.projectID),
             metadataCid: null,
             metadata: null,

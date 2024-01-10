@@ -36,6 +36,7 @@ export type PartialRound = Updateable<RoundTable>;
 
 export type ProjectTable = {
   id: string;
+  name: string;
   chainId: ChainId;
   projectNumber: number;
   registryAddress: Address;
