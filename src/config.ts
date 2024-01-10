@@ -780,7 +780,7 @@ const CHAINS: Chain[] = [
     id: 534351,
     name: "scroll-sepolia",
     rpc: rpcUrl
-      .default("https://sepolia-rpc.scroll.io\t")
+      .default("https://sepolia-rpc.scroll.io")
       .parse(process.env.SCROLL_SEPOLIA_RPC_URL),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
     tokens: [
