@@ -41,7 +41,7 @@ const CHAINS: Chain[] = [
     id: 5,
     name: "goerli",
     rpc: rpcUrl
-      .default("https://goerli.infura.io/v3/")
+      .default("https://rpc.ankr.com/eth_goerli")
       .parse(process.env.GOERLI_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 11, 1, 0, 0, 0),
     tokens: [
@@ -59,6 +59,7 @@ const CHAINS: Chain[] = [
       {
         contractName: "AlloV2/Registry/V1",
         address: "0x4AAcca72145e1dF2aeC137E1f3C5E3D75DB8b5f3",
+        fromBlock: 9975287,
       },
     ],
   },
@@ -979,7 +980,7 @@ export function getConfig(): Config {
 
   const ipfsGateway = z
     .string()
-    .default("https://cloudflare-ipfs.com")
+    .default("https://ipfs.io")
     .parse(process.env.IPFS_GATEWAY);
 
   const sentryDsn = z
@@ -996,11 +997,11 @@ export function getConfig(): Config {
 
   const dropDb = z.boolean().default(false).parse(args["drop-db"]);
 
-  const estimatesLinearQfWorkerPoolSize = z
+  const estimatesLinearQfWorkerPoolSize = z.coerce
     .number()
     .nullable()
     .default(null)
-    .parse(process.env.ESTIMATES_LINEAR_QF_WORKER_POOL_SIZE);
+    .parse(process.env.ESTIMATES_LINEARQF_WORKER_POOL_SIZE);
 
   return {
     buildTag: buildTag,
