@@ -85,7 +85,7 @@ describe("handleEvent", () => {
           chainId: 1,
           createdAtBlock: 1n,
           id: "0xd0c4b8bf41dcf0607cd6c6d5f7c6423344ce99ddaaa72c31a7d8fb332a218878",
-          name: "Project 1",
+          name: "",
           metadata: null,
           metadataCid: null,
           ownerAddresses: ["0x0000000000000000000000000000000000000000"],

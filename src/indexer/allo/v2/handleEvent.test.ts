@@ -189,7 +189,7 @@ describe("handleEvent", () => {
         type: "UpdateProject",
         projectId: "0x0001",
         project: {
-          owner: addressFour,
+          ownerAddresses: [addressFour],
         },
       });
     });
