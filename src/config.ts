@@ -776,6 +776,48 @@ const CHAINS: Chain[] = [
       },
     ],
   },
+  {
+    id: 534351,
+    name: "scroll-sepolia",
+    rpc: rpcUrl
+      .default("https://sepolia-rpc.scroll.io\t")
+      .parse(process.env.SCROLL_SEPOLIA_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "ETH",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "MTK",
+        address: "0xc2332031de487f430fae3290c05465d907785eda",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        },
+      },
+    ],
+    subscriptions: [
+      {
+        contractName: "AlloV1/ProjectRegistry/V2",
+        address: "0xA78Daa89fE9C1eC66c5cB1c5833bC8C6Cb307918",
+      },
+      {
+        contractName: "AlloV1/RoundFactory/V2",
+        address: "0xF2a07728107B04266015E67b1468cA0a536956C8",
+      },
+      {
+        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
+        address: "0x545B282A50EaeA01A619914d44105437036CbB36",
+      },
+    ],
+  },
 ];
 
 export const getDecimalsForToken = (
