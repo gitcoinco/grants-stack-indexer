@@ -21,8 +21,11 @@ To pick chains to index, set `INDEXED_CHAINS` to a comma-separated list of chain
 ## Running in development
 
 ```bash
+cp .env.example .env
 docker-compose up -d
 npm install
+npm run build
+
 npm run dev
 ```
 
