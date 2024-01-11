@@ -7,8 +7,6 @@ import { Database } from "../../../database/index.js";
 import { EventHandlerArgs } from "chainsauce";
 import { Indexer } from "../.././indexer.js";
 import { Address as ChecksumAddress, Hex } from "viem";
-import { Project } from "../../../database/schema.js";
-import { parseAddress } from "../../../address.js";
 
 const addressZero =
   "0x0000000000000000000000000000000000000000" as ChecksumAddress;

@@ -17,8 +17,6 @@ const addressOne =
 const addressTwo =
   "0x0000000000000000000000000000000000000002" as ChecksumAddress;
 const addressThree =
-  "0x0000000000000000000000000000000000000003" as ChecksumAddress;
-const addressFour =
   "0x0000000000000000000000000000000000000004" as ChecksumAddress;
 
 const MOCK_PRICE_PROVIDER = new TestPriceProvider() as unknown as PriceProvider;
@@ -173,7 +171,7 @@ describe("handleEvent", () => {
           name: "OwnerAdded",
           params: {
             projectID: 1n,
-            owner: addressFour,
+            owner: addressThree,
           },
         },
       });
@@ -186,7 +184,10 @@ describe("handleEvent", () => {
         projectId:
           "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
         project: {
-          ownerAddresses: [parseAddress(addressTwo), parseAddress(addressFour)],
+          ownerAddresses: [
+            parseAddress(addressTwo),
+            parseAddress(addressThree),
+          ],
         },
       });
 
@@ -196,7 +197,7 @@ describe("handleEvent", () => {
           chainId: 1,
           projectId:
             "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
-          address: addressFour,
+          address: addressThree,
           role: "owner",
           createdAtBlock: 1n,
         },
@@ -213,7 +214,7 @@ describe("handleEvent", () => {
         chainId: 1,
         metadata: null,
         metadataCid: null,
-        ownerAddresses: [parseAddress(addressTwo), parseAddress(addressFour)],
+        ownerAddresses: [parseAddress(addressTwo), parseAddress(addressThree)],
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
         createdAtBlock: 1n,
@@ -242,7 +243,7 @@ describe("handleEvent", () => {
         projectId:
           "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
         project: {
-          ownerAddresses: [parseAddress(addressFour)],
+          ownerAddresses: [parseAddress(addressThree)],
         },
       });
 

@@ -5,7 +5,6 @@ const BIGINT_TYPE = sql`decimal(78,0)`;
 
 const ADDRESS_TYPE = "text";
 const CHAIN_ID_TYPE = "integer";
-const ROLE_TYPE = "integer";
 
 export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   const ref = (name: string) => sql.table(`${schemaName}.${name}`);
