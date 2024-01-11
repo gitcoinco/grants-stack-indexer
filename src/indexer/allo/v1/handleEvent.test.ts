@@ -10,10 +10,14 @@ import { Address as ChecksumAddress, Hex } from "viem";
 import { Project } from "../../../database/schema.js";
 import { parseAddress } from "../../../address.js";
 
-const zeroAddress =
+const addressZero =
   "0x0000000000000000000000000000000000000000" as ChecksumAddress;
-const oneAddress =
+const addressOne =
   "0x0000000000000000000000000000000000000001" as ChecksumAddress;
+const addressTwo =
+  "0x0000000000000000000000000000000000000002" as ChecksumAddress;
+const addressThree =
+  "0x0000000000000000000000000000000000000004" as ChecksumAddress;
 
 const MOCK_PRICE_PROVIDER = new TestPriceProvider() as unknown as PriceProvider;
 
@@ -43,7 +47,7 @@ const DEFAULT_ARGS = {
     blockNumber: 1n,
     logIndex: 0,
     transactionHash: "0x" as Hex,
-    address: zeroAddress,
+    address: addressOne,
     topic: "0x" as Hex,
     params: {},
   },
@@ -73,24 +77,38 @@ describe("handleEvent", () => {
           name: "ProjectCreated",
           params: {
             projectID: 1n,
-            owner: zeroAddress,
+            owner: addressTwo,
           },
         },
       });
 
-      expect(changesets).toHaveLength(1);
+      expect(changesets).toHaveLength(2);
+
       expect(changesets[0]).toEqual({
         type: "InsertProject",
         project: {
           chainId: 1,
           createdAtBlock: 1n,
-          id: "0xd0c4b8bf41dcf0607cd6c6d5f7c6423344ce99ddaaa72c31a7d8fb332a218878",
+          id: "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
+          name: "",
           metadata: null,
           metadataCid: null,
-          ownerAddresses: ["0x0000000000000000000000000000000000000000"],
+          ownerAddresses: [addressTwo],
           projectNumber: 1,
-          registryAddress: "0x0000000000000000000000000000000000000000",
+          registryAddress: addressOne,
           tags: ["allo-v1"],
+        },
+      });
+
+      expect(changesets[1]).toEqual({
+        type: "InsertProjectRole",
+        projectRole: {
+          chainId: 1,
+          projectId:
+            "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
+          address: addressTwo,
+          role: "owner",
+          createdAtBlock: 1n,
         },
       });
     });
@@ -117,8 +135,9 @@ describe("handleEvent", () => {
       expect(changesets).toHaveLength(1);
       expect(changesets[0]).toEqual({
         type: "UpdateProject",
+        chainId: 1,
         projectId:
-          "0xd0c4b8bf41dcf0607cd6c6d5f7c6423344ce99ddaaa72c31a7d8fb332a218878",
+          "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
         project: {
           metadataCid: "metadatacid",
           metadata: { some: "metadata" },
@@ -130,13 +149,14 @@ describe("handleEvent", () => {
   describe("OwnerAdded", () => {
     test("should add owner", async () => {
       const project: Project = {
-        id: "0xd0c4b8bf41dcf0607cd6c6d5f7c6423344ce99ddaaa72c31a7d8fb332a218878",
+        id: "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
+        name: "Project 1",
         tags: ["allo-v1"],
         chainId: 1,
         metadata: null,
         metadataCid: null,
-        ownerAddresses: [parseAddress(zeroAddress)],
-        registryAddress: parseAddress(zeroAddress),
+        ownerAddresses: [parseAddress(addressTwo)],
+        registryAddress: parseAddress(addressZero),
         projectNumber: 1,
         createdAtBlock: 1n,
       };
@@ -151,18 +171,35 @@ describe("handleEvent", () => {
           name: "OwnerAdded",
           params: {
             projectID: 1n,
-            owner: oneAddress,
+            owner: addressThree,
           },
         },
       });
 
-      expect(changes).toHaveLength(1);
+      expect(changes).toHaveLength(2);
+
       expect(changes[0]).toEqual({
         type: "UpdateProject",
+        chainId: 1,
         projectId:
-          "0xd0c4b8bf41dcf0607cd6c6d5f7c6423344ce99ddaaa72c31a7d8fb332a218878",
+          "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
         project: {
-          ownerAddresses: [parseAddress(zeroAddress), parseAddress(oneAddress)],
+          ownerAddresses: [
+            parseAddress(addressTwo),
+            parseAddress(addressThree),
+          ],
+        },
+      });
+
+      expect(changes[1]).toEqual({
+        type: "InsertProjectRole",
+        projectRole: {
+          chainId: 1,
+          projectId:
+            "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
+          address: addressThree,
+          role: "owner",
+          createdAtBlock: 1n,
         },
       });
     });
@@ -171,13 +208,14 @@ describe("handleEvent", () => {
   describe("OwnerRemoved", () => {
     test("should add owner", async () => {
       const project: Project = {
-        id: "0xd0c4b8bf41dcf0607cd6c6d5f7c6423344ce99ddaaa72c31a7d8fb332a218878",
+        id: "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
+        name: "Project 1",
         tags: ["allo-v1"],
         chainId: 1,
         metadata: null,
         metadataCid: null,
-        ownerAddresses: [parseAddress(zeroAddress), parseAddress(oneAddress)],
-        registryAddress: parseAddress(zeroAddress),
+        ownerAddresses: [parseAddress(addressTwo), parseAddress(addressThree)],
+        registryAddress: parseAddress(addressZero),
         projectNumber: 1,
         createdAtBlock: 1n,
       };
@@ -192,18 +230,31 @@ describe("handleEvent", () => {
           name: "OwnerRemoved",
           params: {
             projectID: 1n,
-            owner: oneAddress,
+            owner: addressTwo,
           },
         },
       });
 
-      expect(changes).toHaveLength(1);
+      expect(changes).toHaveLength(2);
+
       expect(changes[0]).toEqual({
         type: "UpdateProject",
+        chainId: 1,
         projectId:
-          "0xd0c4b8bf41dcf0607cd6c6d5f7c6423344ce99ddaaa72c31a7d8fb332a218878",
+          "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
         project: {
-          ownerAddresses: [parseAddress(zeroAddress)],
+          ownerAddresses: [parseAddress(addressThree)],
+        },
+      });
+
+      expect(changes[1]).toEqual({
+        type: "DeleteAllProjectRolesByRoleAndAddress",
+        projectRole: {
+          chainId: 1,
+          projectId:
+            "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
+          role: "owner",
+          address: addressTwo,
         },
       });
     });

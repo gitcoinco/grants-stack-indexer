@@ -2,6 +2,8 @@ import { ChainId, Address } from "../types.js";
 import {
   NewProject,
   PartialProject,
+  NewProjectRole,
+  ProjectRole,
   NewRound,
   PartialRound,
   NewApplication,
@@ -17,8 +19,24 @@ export type DataChange =
     }
   | {
       type: "UpdateProject";
+      chainId: ChainId;
       projectId: string;
       project: PartialProject;
+    }
+  | {
+      type: "InsertProjectRole";
+      projectRole: NewProjectRole;
+    }
+  | {
+      type: "DeleteAllProjectRolesByRole";
+      projectRole: Pick<ProjectRole, "chainId" | "projectId" | "role">;
+    }
+  | {
+      type: "DeleteAllProjectRolesByRoleAndAddress";
+      projectRole: Pick<
+        ProjectRole,
+        "chainId" | "projectId" | "role" | "address"
+      >;
     }
   | {
       type: "InsertRound";
@@ -26,20 +44,20 @@ export type DataChange =
     }
   | {
       type: "UpdateRound";
-      roundId: Address;
       chainId: ChainId;
+      roundId: Address;
       round: PartialRound;
     }
   | {
       type: "IncrementRoundDonationStats";
-      roundId: Address;
       chainId: ChainId;
+      roundId: Address;
       amountInUsd: number;
     }
   | {
       type: "IncrementApplicationDonationStats";
-      roundId: Address;
       chainId: ChainId;
+      roundId: Address;
       applicationId: string;
       amountInUsd: number;
     }
@@ -49,8 +67,8 @@ export type DataChange =
     }
   | {
       type: "UpdateApplication";
-      roundId: Address;
       chainId: ChainId;
+      roundId: Address;
       applicationId: string;
       application: PartialApplication;
     }
