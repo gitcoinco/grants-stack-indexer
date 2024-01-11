@@ -36,6 +36,7 @@ export type PartialRound = Updateable<RoundTable>;
 
 export type ProjectTable = {
   id: string;
+  name: string;
   chainId: ChainId;
   projectNumber: number;
   registryAddress: Address;
@@ -49,6 +50,20 @@ export type ProjectTable = {
 export type Project = Selectable<ProjectTable>;
 export type NewProject = Insertable<ProjectTable>;
 export type PartialProject = Updateable<ProjectTable>;
+
+export type ProjectRoleNames = "owner" | "member";
+
+export type ProjectRoleTable = {
+  chainId: ChainId;
+  projectId: string;
+  address: Address;
+  role: ProjectRoleNames;
+  createdAtBlock: bigint;
+};
+
+export type ProjectRole = Selectable<ProjectRoleTable>;
+export type NewProjectRole = Insertable<ProjectRoleTable>;
+export type PartialProjectRole = Updateable<ProjectRoleTable>;
 
 export type ApplicationStatus = "PENDING" | "REJECTED" | "APPROVED";
 

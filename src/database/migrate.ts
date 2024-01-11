@@ -47,6 +47,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   await schema
     .createTable("projects")
     .addColumn("id", "text")
+    .addColumn("name", "text")
     .addColumn("chainId", CHAIN_ID_TYPE)
     .addColumn("projectNumber", "integer")
     .addColumn("registryAddress", ADDRESS_TYPE)
@@ -57,6 +58,33 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("tags", sql`text[]`)
 
     .addPrimaryKeyConstraint("projects_pkey", ["id", "chainId"])
+    .execute();
+
+  await schema
+    .createType("project_role_name")
+    .asEnum(["owner", "member"])
+    .execute();
+
+  await schema
+    .createTable("project_roles")
+    .addColumn("chainId", CHAIN_ID_TYPE)
+    .addColumn("project_id", "text")
+    .addColumn("address", ADDRESS_TYPE)
+    .addColumn("role", ref("project_role_name"))
+    .addColumn("createdAtBlock", BIGINT_TYPE)
+    .addPrimaryKeyConstraint("project_roles_pkey", [
+      "chainId",
+      "project_id",
+      "address",
+      "role",
+    ])
+
+    .execute();
+
+  await schema
+    .createIndex("project_roles_unique_index")
+    .on("project_roles")
+    .columns(["chain_id", "project_id", "address", "role"])
     .execute();
 
   await schema

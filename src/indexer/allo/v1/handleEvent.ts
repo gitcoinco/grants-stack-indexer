@@ -91,10 +91,21 @@ export async function handleEvent(
             chainId,
             registryAddress: parseAddress(event.address),
             id: projectId,
+            name: "",
             projectNumber: Number(event.params.projectID),
             metadataCid: null,
             metadata: null,
             ownerAddresses: [parseAddress(event.params.owner)],
+            createdAtBlock: event.blockNumber,
+          },
+        },
+        {
+          type: "InsertProjectRole",
+          projectRole: {
+            chainId,
+            projectId,
+            address: parseAddress(event.params.owner),
+            role: "owner",
             createdAtBlock: event.blockNumber,
           },
         },
@@ -115,6 +126,7 @@ export async function handleEvent(
       return [
         {
           type: "UpdateProject",
+          chainId,
           projectId,
           project: { metadata, metadataCid },
         },
@@ -138,12 +150,23 @@ export async function handleEvent(
       return [
         {
           type: "UpdateProject",
+          chainId,
           projectId,
           project: {
             ownerAddresses: [
               ...project.ownerAddresses,
               parseAddress(event.params.owner),
             ],
+          },
+        },
+        {
+          type: "InsertProjectRole",
+          projectRole: {
+            chainId,
+            projectId,
+            address: parseAddress(event.params.owner),
+            role: "owner",
+            createdAtBlock: event.blockNumber,
           },
         },
       ];
@@ -166,11 +189,21 @@ export async function handleEvent(
       return [
         {
           type: "UpdateProject",
+          chainId,
           projectId,
           project: {
             ownerAddresses: project.ownerAddresses.filter(
               (owner) => owner !== parseAddress(event.params.owner)
             ),
+          },
+        },
+        {
+          type: "DeleteAllProjectRolesByRoleAndAddress",
+          projectRole: {
+            chainId,
+            projectId,
+            role: "owner",
+            address: parseAddress(event.params.owner),
           },
         },
       ];
