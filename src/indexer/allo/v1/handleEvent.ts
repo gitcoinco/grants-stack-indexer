@@ -99,6 +99,16 @@ export async function handleEvent(
             createdAtBlock: event.blockNumber,
           },
         },
+        {
+          type: "InsertProjectRole",
+          projectRole: {
+            chainId,
+            projectId,
+            address: parseAddress(event.params.owner),
+            role: "owner",
+            createdAtBlock: event.blockNumber,
+          },
+        },
       ];
     }
 
@@ -149,6 +159,16 @@ export async function handleEvent(
             ],
           },
         },
+        {
+          type: "InsertProjectRole",
+          projectRole: {
+            chainId,
+            projectId,
+            address: parseAddress(event.params.owner),
+            role: "owner",
+            createdAtBlock: event.blockNumber,
+          },
+        },
       ];
     }
 
@@ -175,6 +195,15 @@ export async function handleEvent(
             ownerAddresses: project.ownerAddresses.filter(
               (owner) => owner !== parseAddress(event.params.owner)
             ),
+          },
+        },
+        {
+          type: "DeleteAllProjectRolesByRoleAndAddress",
+          projectRole: {
+            chainId,
+            projectId,
+            role: "owner",
+            address: parseAddress(event.params.owner),
           },
         },
       ];

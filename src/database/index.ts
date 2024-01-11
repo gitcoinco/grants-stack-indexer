@@ -222,6 +222,17 @@ export class Database {
         break;
       }
 
+      case "DeleteAllProjectRolesByRoleAndAddress": {
+        await this.#db
+          .deleteFrom("projectRoles")
+          .where("chainId", "=", change.projectRole.chainId)
+          .where("projectId", "=", change.projectRole.projectId)
+          .where("role", "=", change.projectRole.role)
+          .where("address", "=", change.projectRole.address)
+          .execute();
+        break;
+      }
+
       case "InsertRound": {
         await this.#db.insertInto("rounds").values(change.round).execute();
         break;

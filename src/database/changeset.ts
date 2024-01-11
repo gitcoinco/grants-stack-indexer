@@ -32,6 +32,13 @@ export type DataChange =
       projectRole: Pick<ProjectRole, "chainId" | "projectId" | "role">;
     }
   | {
+      type: "DeleteAllProjectRolesByRoleAndAddress";
+      projectRole: Pick<
+        ProjectRole,
+        "chainId" | "projectId" | "role" | "address"
+      >;
+    }
+  | {
       type: "InsertRound";
       round: NewRound;
     }
