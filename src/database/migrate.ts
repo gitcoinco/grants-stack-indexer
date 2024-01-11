@@ -73,6 +73,12 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("address", ADDRESS_TYPE)
     .addColumn("role", ref("project_role_name"))
     .addColumn("createdAtBlock", BIGINT_TYPE)
+    .addPrimaryKeyConstraint("project_roles_pkey", [
+      "chainId",
+      "project_id",
+      "address",
+      "role",
+    ])
 
     .execute();
 

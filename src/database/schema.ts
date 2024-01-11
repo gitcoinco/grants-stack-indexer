@@ -51,7 +51,7 @@ export type Project = Selectable<ProjectTable>;
 export type NewProject = Insertable<ProjectTable>;
 export type PartialProject = Updateable<ProjectTable>;
 
-export type ProjectRoleNames = "OWNER" | "MEMBER";
+export type ProjectRoleNames = "owner" | "member";
 
 export type ProjectRoleTable = {
   chainId: ChainId;

@@ -116,6 +116,7 @@ export async function handleEvent(
       return [
         {
           type: "UpdateProject",
+          chainId,
           projectId,
           project: { metadata, metadataCid },
         },
@@ -139,6 +140,7 @@ export async function handleEvent(
       return [
         {
           type: "UpdateProject",
+          chainId,
           projectId,
           project: {
             ownerAddresses: [
@@ -167,6 +169,7 @@ export async function handleEvent(
       return [
         {
           type: "UpdateProject",
+          chainId,
           projectId,
           project: {
             ownerAddresses: project.ownerAddresses.filter(

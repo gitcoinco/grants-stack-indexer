@@ -3,8 +3,7 @@ import {
   NewProject,
   PartialProject,
   NewProjectRole,
-  PartialProjectRole,
-  ProjectRoleNames,
+  ProjectRole,
   NewRound,
   PartialRound,
   NewApplication,
@@ -20,24 +19,17 @@ export type DataChange =
     }
   | {
       type: "UpdateProject";
+      chainId: ChainId;
       projectId: string;
       project: PartialProject;
     }
   | {
       type: "InsertProjectRole";
-      project: NewProjectRole;
+      projectRole: NewProjectRole;
     }
   | {
-      type: "UpdateProjectRole";
-      projectRoleId: string;
-      project: PartialProjectRole;
-    }
-  | {
-      type: "DeleteProjectRole";
-      chainId: ChainId;
-      projectId: string;
-      address: Address;
-      role: ProjectRoleNames;
+      type: "DeleteAllProjectRolesByRole";
+      projectRole: Pick<ProjectRole, "chainId" | "projectId" | "role">;
     }
   | {
       type: "InsertRound";
@@ -45,20 +37,20 @@ export type DataChange =
     }
   | {
       type: "UpdateRound";
-      roundId: Address;
       chainId: ChainId;
+      roundId: Address;
       round: PartialRound;
     }
   | {
       type: "IncrementRoundDonationStats";
-      roundId: Address;
       chainId: ChainId;
+      roundId: Address;
       amountInUsd: number;
     }
   | {
       type: "IncrementApplicationDonationStats";
-      roundId: Address;
       chainId: ChainId;
+      roundId: Address;
       applicationId: string;
       amountInUsd: number;
     }
@@ -68,8 +60,8 @@ export type DataChange =
     }
   | {
       type: "UpdateApplication";
-      roundId: Address;
       chainId: ChainId;
+      roundId: Address;
       applicationId: string;
       application: PartialApplication;
     }

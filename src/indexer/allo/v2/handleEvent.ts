@@ -40,6 +40,16 @@ export async function handleEvent(
             createdAtBlock: event.blockNumber,
           },
         },
+        {
+          type: "InsertProjectRole",
+          projectRole: {
+            chainId,
+            projectId: event.params.profileId,
+            address: parseAddress(event.params.owner),
+            role: "owner",
+            createdAtBlock: event.blockNumber,
+          },
+        },
       ];
     }
 
@@ -47,6 +57,7 @@ export async function handleEvent(
       return [
         {
           type: "UpdateProject",
+          chainId,
           projectId: event.params.profileId,
           project: {
             name: event.params.name,
@@ -61,6 +72,7 @@ export async function handleEvent(
       return [
         {
           type: "UpdateProject",
+          chainId,
           projectId: event.params.profileId,
           project: {
             metadataCid: metadataCid,
@@ -74,9 +86,28 @@ export async function handleEvent(
       return [
         {
           type: "UpdateProject",
+          chainId,
           projectId: event.params.profileId,
           project: {
             ownerAddresses: [parseAddress(event.params.owner)],
+          },
+        },
+        {
+          type: "DeleteAllProjectRolesByRole",
+          projectRole: {
+            chainId,
+            projectId: event.params.profileId,
+            role: "owner",
+          },
+        },
+        {
+          type: "InsertProjectRole",
+          projectRole: {
+            chainId,
+            projectId: event.params.profileId,
+            address: parseAddress(event.params.owner),
+            role: "owner",
+            createdAtBlock: event.blockNumber,
           },
         },
       ];

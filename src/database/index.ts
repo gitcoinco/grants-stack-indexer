@@ -8,6 +8,7 @@ import {
 
 import {
   ProjectTable,
+  ProjectRoleTable,
   RoundTable,
   ApplicationTable,
   DonationTable,
@@ -26,6 +27,7 @@ export type { DataChange as Changeset };
 
 interface Tables {
   projects: ProjectTable;
+  projectRoles: ProjectRoleTable;
   rounds: RoundTable;
   applications: ApplicationTable;
   donations: DonationTable;
@@ -160,7 +162,7 @@ export class Database {
   async createSchemaIfNotExists(logger: Logger) {
     const exists = await sql<{ exists: boolean }>`
     SELECT EXISTS (
-      SELECT 1 FROM information_schema.schemata 
+      SELECT 1 FROM information_schema.schemata
       WHERE schema_name = ${this.databaseSchemaName}
     )`.execute(this.#db);
 
@@ -198,6 +200,24 @@ export class Database {
           .updateTable("projects")
           .set(change.project)
           .where("id", "=", change.projectId)
+          .execute();
+        break;
+      }
+
+      case "InsertProjectRole": {
+        await this.#db
+          .insertInto("projectRoles")
+          .values(change.projectRole)
+          .execute();
+        break;
+      }
+
+      case "DeleteAllProjectRolesByRole": {
+        await this.#db
+          .deleteFrom("projectRoles")
+          .where("chainId", "=", change.projectRole.chainId)
+          .where("projectId", "=", change.projectRole.projectId)
+          .where("role", "=", change.projectRole.role)
           .execute();
         break;
       }
