@@ -14,11 +14,13 @@ import fetch from "make-fetch-happen";
 import { throttle } from "throttle-debounce";
 
 import * as pg from "pg";
+// @ts-expect-error pg not typed correctly
 const { Pool, types } = pg.default;
 
 import { postgraphile } from "postgraphile";
 import ConnectionFilterPlugin from "postgraphile-plugin-connection-filter";
 import PgSimplifyInflectorPlugin from "@graphile-contrib/pg-simplify-inflector";
+import PgAggregatesPlugin from "@graphile/pg-aggregates";
 
 import { createPassportProvider, PassportProvider } from "./passport/index.js";
 
@@ -234,18 +236,20 @@ async function main(): Promise<void> {
         bodySizeLimit: "100kb", // response body limit
         disableQueryLog: true,
         appendPlugins: [
+          // @ts-expect-error plugin typed correctly
           PgSimplifyInflectorPlugin.default,
           ConnectionFilterPlugin,
+          // @ts-expect-error plugin typed correctly
+          PgAggregatesPlugin.default,
         ],
         legacyRelations: "omit",
         setofFunctionsContainNulls: false,
         exportGqlSchemaPath: "./schema.graphql",
-        simpleCollections: "only",
+        simpleCollections: "both",
         graphileBuildOptions: {
           pgOmitListSuffix: true,
           pgShortPk: true,
         },
-
         // TODO: buy pro version?
         // defaultPaginationCap: 1000,
         // readOnlyConnection: true,
