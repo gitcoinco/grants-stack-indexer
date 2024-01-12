@@ -1,28 +1,24 @@
 import { describe, expect, beforeAll } from "vitest";
 import { getVotesWithCoefficients } from "../../calculator/votes.js";
-import {
-  test,
-  FakePassportProvider,
-} from "./proportionalMatch.test.fixtures.js";
+import { test } from "./proportionalMatch.test.fixtures.js";
 
 describe("getVotesWithCoefficients", () => {
   beforeAll(() => {});
 
   describe("should update the amount proportionally based on the passport score", () => {
-    test("returns votes with amounts updated proportionally based on passport score", async ({
+    test("returns votes with amounts updated proportionally based on passport score", ({
       chain,
       round,
       applications,
       data,
     }) => {
-      const fakePassportProvider = new FakePassportProvider(data.scores);
-      const res = await getVotesWithCoefficients({
+      const res = getVotesWithCoefficients({
         chain,
         round,
         applications,
         votes: data.votes,
-        passportProvider: fakePassportProvider,
-        options: { enablePassport: true },
+        passportScoreByAddress: data.passportScoresByAddress,
+        enablePassport: true,
       });
 
       const expectedData = [

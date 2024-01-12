@@ -1,8 +1,14 @@
-import type { Vote, Round, Application } from "../../indexer/types.js";
+import type {
+  DeprecatedVote,
+  DeprecatedRound,
+  DeprecatedApplication,
+} from "../../deprecatedJsonDatabase.js";
 import { test as baseTest } from "vitest";
 import { Chain } from "../../config.js";
 import type { PassportScore } from "../../passport/index.js";
 import type { PassportProvider } from "../../passport/index.js";
+import { AddressToPassportScoreMap } from "../../passport/index.js";
+import { isPresent } from "ts-is-present";
 
 export class FakePassportProvider implements PassportProvider {
   scores: {
@@ -25,6 +31,19 @@ export class FakePassportProvider implements PassportProvider {
   getScoreByAddress(address: string) {
     return Promise.resolve(this.scores[address]);
   }
+
+  getScoresByAddresses(
+    addresses: string[]
+  ): Promise<AddressToPassportScoreMap> {
+    return Promise.resolve(
+      new Map(
+        addresses
+          .map((address) => this.scores[address])
+          .filter(isPresent)
+          .map((score) => [score.address, score])
+      )
+    );
+  }
 }
 
 const SAMPLE_VOTES_AND_SCORES = [
@@ -36,7 +55,7 @@ const SAMPLE_VOTES_AND_SCORES = [
   { id: 6, amount: 1000n, rawScore: "30.0" },
 ];
 
-const round: Round = {
+const round: DeprecatedRound = {
   id: "0x1234",
   amountUSD: 0,
   votes: 0,
@@ -56,7 +75,7 @@ const round: Round = {
   updatedAtBlock: 0,
 };
 
-const applications: Application[] = [
+const applications: DeprecatedApplication[] = [
   {
     id: "application-id-1",
     projectId: "project-id-1",
@@ -105,7 +124,7 @@ const chain = {
 } as unknown as Chain;
 
 function generateVoteAndScore(id: number, amount: bigint, rawScore: string) {
-  const vote = {
+  const vote: DeprecatedVote = {
     id: `vote-${id}`,
     projectId: "project-id-1",
     applicationId: "application-id-1",
@@ -113,6 +132,8 @@ function generateVoteAndScore(id: number, amount: bigint, rawScore: string) {
     token: "0x83791638da5EB2fAa432aff1c65fbA47c5D29510",
     voter: `voter-${id}`,
     grantAddress: "grant-address-1",
+    transaction: "0x1234",
+    blockNumber: 0,
     amount: amount.toString(),
     amountUSD: Number(amount),
     amountRoundToken: amount.toString(),
@@ -139,23 +160,30 @@ function generateVoteAndScore(id: number, amount: bigint, rawScore: string) {
 }
 
 function generateData() {
-  const votes: Vote[] = [];
+  const votes: DeprecatedVote[] = [];
   const scores: PassportScore[] = [];
+
+  const passportScoresByAddress: AddressToPassportScoreMap = new Map();
 
   SAMPLE_VOTES_AND_SCORES.forEach(({ id, amount, rawScore }) => {
     const { vote, score } = generateVoteAndScore(id, amount, rawScore);
     votes.push(vote);
     scores.push(score);
+    passportScoresByAddress.set(score.address, score);
   });
 
-  return { votes, scores };
+  return { votes, scores, passportScoresByAddress };
 }
 
 export const test = baseTest.extend<{
-  round: Round;
-  applications: Application[];
+  round: DeprecatedRound;
+  applications: DeprecatedApplication[];
   chain: Chain;
-  data: { votes: Vote[]; scores: PassportScore[] };
+  data: {
+    votes: DeprecatedVote[];
+    scores: PassportScore[];
+    passportScoresByAddress: AddressToPassportScoreMap;
+  };
 }>({
   round,
   applications,

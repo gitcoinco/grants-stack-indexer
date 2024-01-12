@@ -4,7 +4,6 @@ import split2 from "split2";
 import { Level } from "level";
 import enhancedFetch from "make-fetch-happen";
 import { access } from "node:fs/promises";
-import { createWriteStream } from "node:fs";
 import { Logger } from "pino";
 
 const DEFAULT_DELAY_BETWEEN_FULL_UPDATES_MS = 1000 * 60 * 30;
@@ -24,11 +23,12 @@ export type PassportScore = {
   detail?: string;
 };
 
+export type AddressToPassportScoreMap = Map<string, PassportScore | undefined>;
+
 export interface PassportProviderConfig {
   scorerId: number;
   logger: Logger;
   dbPath: string;
-  deprecatedJSONPassportDumpPath?: string;
   fetch?: typeof enhancedFetch;
   delayBetweenFullUpdatesMs?: number;
 }
@@ -54,6 +54,9 @@ export interface PassportProvider {
   start: (opts?: { watch: boolean }) => Promise<void>;
   stop: () => void;
   getScoreByAddress: (address: string) => Promise<PassportScore | undefined>;
+  getScoresByAddresses: (
+    addresses: string[]
+  ) => Promise<AddressToPassportScoreMap>;
 }
 
 export const createPassportProvider = (
@@ -100,13 +103,6 @@ export const createPassportProvider = (
           valueEncoding: "json",
         }),
       };
-
-      if (config.deprecatedJSONPassportDumpPath !== undefined) {
-        await writeDeprecatedCompatibilityJSONDump(
-          state.db,
-          config.deprecatedJSONPassportDumpPath
-        );
-      }
     } catch (err) {
       logger.info(
         "no passports dataset found locally, fetching remote dataset before starting"
@@ -165,6 +161,20 @@ export const createPassportProvider = (
         throw err;
       }
     }
+  };
+
+  const getScoresByAddresses: PassportProvider["getScoresByAddresses"] = async (
+    addresses: string[]
+  ): Promise<AddressToPassportScoreMap> => {
+    if (state.type !== "ready") {
+      throw new Error("Service not started");
+    }
+    const { db } = state;
+    const uniqueAddresses = Array.from(new Set(addresses));
+    const records = await db.getMany(uniqueAddresses);
+    return new Map(
+      records.filter(Boolean).map((record) => [record.address, record])
+    );
   };
 
   // INTERNALS
@@ -251,40 +261,14 @@ export const createPassportProvider = (
           reject(err);
         });
     });
-
-    if (config.deprecatedJSONPassportDumpPath !== undefined) {
-      await writeDeprecatedCompatibilityJSONDump(
-        db,
-        config.deprecatedJSONPassportDumpPath
-      );
-    }
-  };
-
-  const writeDeprecatedCompatibilityJSONDump = async (
-    db: Level<string, PassportScore>,
-    path: string
-  ): Promise<void> => {
-    logger.info("writing passport JSON dump for backward compatibility");
-
-    const deprecatedCompatibilityDumpStream = createWriteStream(path);
-    deprecatedCompatibilityDumpStream.write("[\n");
-    let isFirst = true;
-    for await (const passportScore of db.values()) {
-      if (isFirst) {
-        isFirst = false;
-      } else {
-        deprecatedCompatibilityDumpStream.write(",\n");
-      }
-
-      deprecatedCompatibilityDumpStream.write(JSON.stringify(passportScore));
-    }
-    deprecatedCompatibilityDumpStream.write("\n]");
-    deprecatedCompatibilityDumpStream.end();
-
-    logger.info(`passport JSON dump written`);
   };
 
   // EXPORTS
 
-  return { start, stop, getScoreByAddress };
+  return {
+    start,
+    stop,
+    getScoreByAddress,
+    getScoresByAddresses,
+  };
 };

@@ -2,21 +2,30 @@ import {
   createObjectCsvStringifier,
   createArrayCsvStringifier,
 } from "csv-writer";
-import { JsonStorage } from "chainsauce";
 import express from "express";
-import { pino } from "pino";
 
-import database from "../../../database.js";
-import { createPriceProvider } from "../../../prices/provider.js";
-import { Round, Application, Vote } from "../../../indexer/types.js";
+import {
+  DeprecatedApplication,
+  DeprecatedVote,
+  createDeprecatedRound,
+} from "../../../deprecatedJsonDatabase.js";
+import { Round } from "../../../database/schema.js";
 import { getVotesWithCoefficients } from "../../../calculator/votes.js";
 import ClientError from "../clientError.js";
 import { HttpApiConfig } from "../../app.js";
+import { safeParseAddress } from "../../../address.js";
+import { extractCalculationConfigFromRound } from "../../../calculator/calculationConfig.js";
 
 export const createHandler = (config: HttpApiConfig): express.Router => {
   const router = express.Router();
+  const { dataProvider, db } = config;
 
-  async function exportVotesCSV(db: JsonStorage, round: Round) {
+  async function exportVotesCSV(chainId: number, round: Round) {
+    const votes = await dataProvider.loadFile<DeprecatedVote>(
+      "votes",
+      `${chainId}/rounds/${round.id}/votes.json`
+    );
+
     const csv = createObjectCsvStringifier({
       header: [
         "id",
@@ -34,27 +43,16 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       ].map((h) => ({ id: h, title: h })),
     });
 
-    return csv
-      .getHeaderString()!
-      .concat(
-        csv.stringifyRecords(
-          await db.collection(`rounds/${round.id}/votes`).all()
-        )
-      );
+    return csv.getHeaderString()!.concat(csv.stringifyRecords(votes));
   }
 
   async function exportPricesCSV(chainId: number, round: Round) {
-    const priceProvider = createPriceProvider({
-      logger: pino(),
-      chainDataDir: config.chainDataDir,
-    });
-
-    const prices = await priceProvider.getAllPricesForChain(chainId);
+    const prices = await db.getAllChainPrices(chainId);
 
     const pricesDuringRound = prices.filter(
       (price) =>
-        price.timestamp >= Number(round.roundStartTime) * 1000 &&
-        price.timestamp <= Number(round.roundEndTime) * 1000
+        price.timestamp.getTime() >= Number(round.donationsStartTime) * 1000 &&
+        price.timestamp.getTime() <= Number(round.donationsEndTime) * 1000
     );
 
     const csv = createObjectCsvStringifier({
@@ -69,28 +67,39 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       .concat(csv.stringifyRecords(pricesDuringRound));
   }
 
-  async function exportVoteCoefficientsCSV(
-    chainId: number,
-    db: JsonStorage,
-    round: Round
-  ) {
-    const [applications, votes] = await Promise.all([
-      db.collection<Application>(`rounds/${round.id}/applications`).all(),
-      db.collection<Vote>(`rounds/${round.id}/votes`).all(),
-    ]);
+  async function exportVoteCoefficientsCSV(chainId: number, round: Round) {
+    const applications = await dataProvider.loadFile<DeprecatedApplication>(
+      "applications",
+      `${chainId}/rounds/${round.id}/applications.json`
+    );
+
+    const votes = await dataProvider.loadFile<DeprecatedVote>(
+      "votes",
+      `${chainId}/rounds/${round.id}/votes.json`
+    );
 
     const chainConfig = config.chains.find((c) => c.id === chainId);
     if (chainConfig === undefined) {
       throw new Error(`Chain ${chainId} not configured`);
     }
 
-    const votesWithCoefficients = await getVotesWithCoefficients({
+    const passportScoreByAddress =
+      await config.passportProvider.getScoresByAddresses(
+        votes.map((vote) => vote.voter.toLowerCase())
+      );
+
+    const calculationConfig = extractCalculationConfigFromRound(
+      createDeprecatedRound(round)
+    );
+
+    const votesWithCoefficients = getVotesWithCoefficients({
       chain: chainConfig,
-      round,
+      round: createDeprecatedRound(round),
       applications,
       votes,
-      passportProvider: config.passportProvider,
-      options: {},
+      minimumAmountUSD: calculationConfig.minimumAmountUSD,
+      enablePassport: calculationConfig.enablePassport,
+      passportScoreByAddress,
     });
 
     const records = votesWithCoefficients.flatMap((vote) => {
@@ -175,10 +184,11 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     return csv.getHeaderString()!.concat(csv.stringifyRecords([round]));
   }
 
-  async function exportApplicationsCSV(db: JsonStorage, round: Round) {
-    const applications = await db
-      .collection<Application>(`rounds/${round.id}/applications`)
-      .all();
+  async function exportApplicationsCSV(chainId: number, round: Round) {
+    const applications = await dataProvider.loadFile<DeprecatedApplication>(
+      "applications",
+      `${chainId}/rounds/${round.id}/applications.json`
+    );
 
     let questionTitles: Array<string> = [];
 
@@ -237,41 +247,19 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     return csv.getHeaderString()!.concat(csv.stringifyRecords(records));
   }
 
-  // temporary route for backwards compatibility
-  router.get(
-    "/data/:chainId/rounds/:roundId/vote_coefficients.csv",
-    async (req, res) => {
-      const chainId = Number(req.params.chainId);
-      const roundId = req.params.roundId;
-      const db = database(config.chainDataDir, chainId);
-      const round = await db.collection<Round>("rounds").findById(roundId);
-
-      if (!round) {
-        throw new ClientError("Round not found", 404);
-      }
-
-      const body = await exportVoteCoefficientsCSV(chainId, db, round);
-
-      res.setHeader("content-type", "text/csv");
-      res.setHeader(
-        "content-disposition",
-        `attachment; filename=vote_coefficients-${round.id}.csv`
-      );
-      res.status(200);
-      res.send(body);
-    }
-  );
-
   router.get(
     "/chains/:chainId/rounds/:roundId/exports/:exportName",
     async (req, res) => {
       const chainId = Number(req.params.chainId);
-      const roundId = req.params.roundId;
+      const roundId = safeParseAddress(req.params.roundId);
       const exportName = req.params.exportName;
       let body = "";
 
-      const db = database(config.chainDataDir, chainId);
-      const round = await db.collection<Round>("rounds").findById(roundId);
+      if (roundId === null) {
+        throw new ClientError("Invalid round id", 400);
+      }
+
+      const round = await db.getRoundById(chainId, roundId);
 
       if (!round) {
         throw new ClientError("Round not found", 404);
@@ -279,11 +267,11 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
 
       switch (exportName) {
         case "votes": {
-          body = await exportVotesCSV(db, round);
+          body = await exportVotesCSV(chainId, round);
           break;
         }
         case "applications": {
-          body = await exportApplicationsCSV(db, round);
+          body = await exportApplicationsCSV(chainId, round);
           break;
         }
         case "prices": {
@@ -295,7 +283,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
           break;
         }
         case "vote_coefficients": {
-          body = await exportVoteCoefficientsCSV(chainId, db, round);
+          body = await exportVoteCoefficientsCSV(chainId, round);
           break;
         }
         default: {

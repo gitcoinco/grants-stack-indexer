@@ -12,6 +12,7 @@ kill_timeout = 5
   LOG_LEVEL = "debug"
   STORAGE_DIR = "/mnt/indexer"
   INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-testnet,pgn-mainnet,polygon-mumbai,polygon"
+  ENABLE_RESOURCE_MONITOR = "true"
   # BUILD_TAG = # set in deploy github action
 
 [processes]

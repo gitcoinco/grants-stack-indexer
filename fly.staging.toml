@@ -11,7 +11,8 @@ kill_timeout = 5
   DEPLOYMENT_ENVIRONMENT = "staging"
   LOG_LEVEL = "debug"
   STORAGE_DIR = "/mnt/indexer"
-  INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-testnet,pgn-mainnet,arbitrum,arbitrum-goerli,polygon-mumbai,polygon"
+  INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-testnet,pgn-mainnet,arbitrum,arbitrum-goerli,polygon-mumbai,polygon,goerli"
+  ENABLE_RESOURCE_MONITOR = "true"
   # BUILD_TAG = # set in deploy github action
 
 [processes]
