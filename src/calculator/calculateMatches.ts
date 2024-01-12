@@ -1,5 +1,5 @@
 import { Logger } from "pino";
-import { Application, Round, Vote } from "../indexer/types.js";
+import { Application } from "../indexer/types.js";
 import { PassportProvider } from "../passport/index.js";
 import { DataProvider } from "./dataProvider/index.js";
 import { ResourceNotFoundError } from "./errors.js";
@@ -15,6 +15,12 @@ import {
   overrideCalculationConfig,
 } from "./calculationConfig.js";
 import { convertTokenToFiat } from "../tokenMath.js";
+import { parseAddress } from "../address.js";
+import {
+  DeprecatedApplication,
+  DeprecatedRound,
+  DeprecatedVote,
+} from "../deprecatedJsonDatabase.js";
 
 export type CalculateMatchesConfig = {
   roundId: string;
@@ -50,20 +56,17 @@ export const calculateMatches = async (
     deps: { passportProvider, dataProvider, priceProvider },
   } = params;
 
-  const applications = await dataProvider.loadFile<Application>(
+  const applications = await dataProvider.loadFile<DeprecatedApplication>(
     "applications",
     `${chain.id}/rounds/${roundId}/applications.json`
   );
 
-  // TODO to lower memory usage here at the expense of speed, use
-  // https://www.npmjs.com/package/stream-json or
-  // https://www.npmjs.com/package/@streamparser/json
-  const votes = await dataProvider.loadFile<Vote>(
+  const votes = await dataProvider.loadFile<DeprecatedVote>(
     "votes",
     `${chain.id}/rounds/${roundId}/votes.json`
   );
 
-  const rounds = await dataProvider.loadFile<Round>(
+  const rounds = await dataProvider.loadFile<DeprecatedRound>(
     "rounds",
     `${chain.id}/rounds.json`
   );
@@ -82,12 +85,13 @@ export const calculateMatches = async (
   );
 
   const passportScoreByAddress = await passportProvider.getScoresByAddresses(
-    votes.map((vote) => vote.voter)
+    votes.map((vote) => vote.voter.toLowerCase())
   );
 
   const roundTokenPriceInUsd = await priceProvider.getUSDConversionRate(
     chain.id,
-    round.token
+    parseAddress(round.token),
+    "latest"
   );
 
   const aggregatedContributions = aggregateContributions({
@@ -130,11 +134,11 @@ export const calculateMatches = async (
     const conversionUSD = {
       amount: convertTokenToFiat({
         tokenAmount: calc.matched,
-        tokenDecimals: roundTokenPriceInUsd.decimals,
-        tokenPrice: roundTokenPriceInUsd.price,
+        tokenDecimals: roundTokenPriceInUsd.tokenDecimals,
+        tokenPrice: roundTokenPriceInUsd.priceInUsd,
         tokenPriceDecimals: 8,
       }),
-      price: roundTokenPriceInUsd.price,
+      price: roundTokenPriceInUsd.priceInUsd,
     };
 
     augmented.push({

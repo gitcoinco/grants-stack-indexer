@@ -1,8 +1,8 @@
 import type { LinearQf } from "./linearQf/index.js";
 import { Chain } from "../config.js";
-import { Application, Round, Vote } from "../indexer/types.js";
+import { Application } from "../indexer/types.js";
 import { DataProvider } from "./dataProvider/index.js";
-import { PriceProvider } from "../prices/provider.js";
+import { PriceProvider, PriceWithDecimals } from "../prices/provider.js";
 import { PassportProvider } from "../passport/index.js";
 import { RoundContributionsCache } from "./roundContributionsCache.js";
 import { ProportionalMatchOptions } from "./options.js";
@@ -12,13 +12,14 @@ import {
   aggregateContributions,
   mergeAggregatedContributions,
 } from "./votes.js";
-import { PriceWithDecimals } from "../prices/common.js";
 import { convertFiatToToken, convertTokenToFiat } from "../tokenMath.js";
 import {
   CalculationConfig,
   extractCalculationConfigFromRound,
   overrideCalculationConfig,
 } from "./calculationConfig.js";
+import { DeprecatedRound, DeprecatedVote } from "../deprecatedJsonDatabase.js";
+import { parseAddress } from "../address.js";
 
 export const potentialVoteSchema = z.object({
   projectId: z.string(),
@@ -54,7 +55,7 @@ export async function calculateMatchingEstimates({
   linearQfImpl,
 }: {
   chain: Chain;
-  round: Round;
+  round: DeprecatedRound;
   dataProvider: DataProvider;
   priceProvider: PriceProvider;
   passportProvider: PassportProvider;
@@ -85,7 +86,7 @@ export async function calculateMatchingEstimates({
   let aggregatedContributions: AggregatedContributions;
 
   if (cachedAggregatedContributions === undefined) {
-    const votes = await dataProvider.loadFile<Vote>(
+    const votes = await dataProvider.loadFile<DeprecatedVote>(
       `${chain.id}/rounds/${round.id}/votes.json`,
       `${chain.id}/rounds/${round.id}/votes.json`
     );
@@ -122,42 +123,48 @@ export async function calculateMatchingEstimates({
     if (usdPriceByAddress[vote.token] === undefined) {
       usdPriceByAddress[vote.token] = await priceProvider.getUSDConversionRate(
         chain.id,
-        vote.token
+        parseAddress(vote.token),
+        "latest"
       );
     }
   }
 
   const conversionRateRoundToken = await priceProvider.getUSDConversionRate(
     chain.id,
-    round.token
+    parseAddress(round.token),
+    "latest"
   );
 
-  const potentialVotesAugmented: Vote[] = potentialVotes.map((vote) => {
-    const tokenPrice = usdPriceByAddress[vote.token];
+  const potentialVotesAugmented: DeprecatedVote[] = potentialVotes.map(
+    (vote) => {
+      const tokenPrice = usdPriceByAddress[vote.token];
 
-    const voteAmountInUsd = convertTokenToFiat({
-      tokenAmount: vote.amount,
-      tokenDecimals: tokenPrice.decimals,
-      tokenPrice: tokenPrice.price,
-      tokenPriceDecimals: 8,
-    });
+      const voteAmountInUsd = convertTokenToFiat({
+        tokenAmount: vote.amount,
+        tokenDecimals: tokenPrice.tokenDecimals,
+        tokenPrice: tokenPrice.priceInUsd,
+        tokenPriceDecimals: 8,
+      });
 
-    const voteAmountInRoundToken = convertFiatToToken({
-      fiatAmount: voteAmountInUsd,
-      tokenDecimals: conversionRateRoundToken.decimals,
-      tokenPrice: conversionRateRoundToken.price,
-      tokenPriceDecimals: 8,
-    });
+      const voteAmountInRoundToken = convertFiatToToken({
+        fiatAmount: voteAmountInUsd,
+        tokenDecimals: conversionRateRoundToken.tokenDecimals,
+        tokenPrice: conversionRateRoundToken.priceInUsd,
+        tokenPriceDecimals: 8,
+      });
 
-    return {
-      ...vote,
-      amount: vote.amount.toString(),
-      amountRoundToken: voteAmountInRoundToken.toString(),
-      amountUSD: voteAmountInUsd,
-      applicationId: vote.applicationId,
-      id: "",
-    };
-  });
+      return {
+        ...vote,
+        amount: vote.amount.toString(),
+        amountRoundToken: voteAmountInRoundToken.toString(),
+        amountUSD: voteAmountInUsd,
+        applicationId: vote.applicationId,
+        blockNumber: 0,
+        id: "",
+        transaction: "0x",
+      };
+    }
+  );
 
   const originalResults = await linearQfImpl({
     aggregatedContributions,
@@ -215,8 +222,8 @@ export async function calculateMatchingEstimates({
 
     const differenceInUSD = convertTokenToFiat({
       tokenAmount: difference,
-      tokenDecimals: conversionRateRoundToken.decimals,
-      tokenPrice: conversionRateRoundToken.price,
+      tokenDecimals: conversionRateRoundToken.tokenDecimals,
+      tokenPrice: conversionRateRoundToken.priceInUsd,
       tokenPriceDecimals: 8,
     });
 

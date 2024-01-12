@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import { Address } from "../types.js";
 import { DataProvider } from "../calculator/dataProvider/index.js";
 import { FileNotFoundError } from "../calculator/errors.js";
 import {
@@ -7,10 +8,8 @@ import {
   PassportProvider,
   PassportScore,
 } from "../passport/index.js";
-import { Price } from "../prices/common.js";
 import { isPresent } from "ts-is-present";
-import { PriceProvider } from "../prices/provider.js";
-import { zeroAddress } from "viem";
+import { PriceProvider, PriceWithDecimals } from "../prices/provider.js";
 
 type Fixtures = { [path: string]: string | undefined | unknown[] };
 
@@ -80,30 +79,18 @@ export class TestDataProvider implements DataProvider {
 
 export class TestPriceProvider implements PriceProvider {
   async getUSDConversionRate(
-    _chainId: number,
-    tokenAddress: string,
-    _blockNumber?: number
-  ): Promise<Price & { decimals: number }> {
+    chainId: number,
+    tokenAddress: Address,
+    blockNumber: bigint | "latest"
+  ): Promise<PriceWithDecimals> {
     return Promise.resolve({
-      price: 1,
-      token: tokenAddress,
-      block: 0,
-      code: "",
-      decimals: 18,
-      timestamp: 0,
+      id: 0,
+      tokenDecimals: 18,
+      chainId: chainId,
+      priceInUsd: 1,
+      tokenAddress: tokenAddress,
+      blockNumber: blockNumber === "latest" ? 0n : blockNumber,
+      timestamp: new Date(),
     });
-  }
-
-  async getAllPricesForChain(_chainId: number): Promise<Price[]> {
-    return Promise.resolve([
-      {
-        price: 1,
-        token: zeroAddress,
-        block: 0,
-        code: "",
-        decimals: 18,
-        timestamp: 0,
-      },
-    ]);
   }
 }

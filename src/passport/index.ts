@@ -1,11 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 import fastq, { queueAsPromised } from "fastq";
 import split2 from "split2";
-import { dirname } from "path";
 import { Level } from "level";
 import enhancedFetch from "make-fetch-happen";
-import { access, mkdir } from "node:fs/promises";
-import { createWriteStream } from "node:fs";
+import { access } from "node:fs/promises";
 import { Logger } from "pino";
 
 const DEFAULT_DELAY_BETWEEN_FULL_UPDATES_MS = 1000 * 60 * 30;
@@ -31,7 +29,6 @@ export interface PassportProviderConfig {
   scorerId: number;
   logger: Logger;
   dbPath: string;
-  deprecatedJSONPassportDumpPath?: string;
   fetch?: typeof enhancedFetch;
   delayBetweenFullUpdatesMs?: number;
 }
@@ -106,13 +103,6 @@ export const createPassportProvider = (
           valueEncoding: "json",
         }),
       };
-
-      if (config.deprecatedJSONPassportDumpPath !== undefined) {
-        await writeDeprecatedCompatibilityJSONDump(
-          state.db,
-          config.deprecatedJSONPassportDumpPath
-        );
-      }
     } catch (err) {
       logger.info(
         "no passports dataset found locally, fetching remote dataset before starting"
@@ -271,39 +261,6 @@ export const createPassportProvider = (
           reject(err);
         });
     });
-
-    if (config.deprecatedJSONPassportDumpPath !== undefined) {
-      await writeDeprecatedCompatibilityJSONDump(
-        db,
-        config.deprecatedJSONPassportDumpPath
-      );
-    }
-  };
-
-  const writeDeprecatedCompatibilityJSONDump = async (
-    db: Level<string, PassportScore>,
-    path: string
-  ): Promise<void> => {
-    logger.info("writing passport JSON dump for backward compatibility");
-
-    await mkdir(dirname(path), { recursive: true });
-
-    const deprecatedCompatibilityDumpStream = createWriteStream(path);
-    deprecatedCompatibilityDumpStream.write("[\n");
-    let isFirst = true;
-    for await (const passportScore of db.values()) {
-      if (isFirst) {
-        isFirst = false;
-      } else {
-        deprecatedCompatibilityDumpStream.write(",\n");
-      }
-
-      deprecatedCompatibilityDumpStream.write(JSON.stringify(passportScore));
-    }
-    deprecatedCompatibilityDumpStream.write("\n]");
-    deprecatedCompatibilityDumpStream.end();
-
-    logger.info(`passport JSON dump written`);
   };
 
   // EXPORTS

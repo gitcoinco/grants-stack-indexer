@@ -1,10 +1,10 @@
 import {
-  RetryProvider,
   createIndexer,
-  JsonStorage,
+  createSqliteCache,
+  createPostgresSubscriptionStore,
+  createHttpRpcClient,
+  SubscriptionStore,
   Cache,
-  Indexer,
-  Event as ChainsauceEvent,
 } from "chainsauce";
 import { Logger, pino } from "pino";
 import path from "node:path";
@@ -13,22 +13,36 @@ import fs from "node:fs/promises";
 import fetch from "make-fetch-happen";
 import { throttle } from "throttle-debounce";
 
+import * as pg from "pg";
+const { Pool, types } = pg.default;
+
+import { postgraphile } from "postgraphile";
+import ConnectionFilterPlugin from "postgraphile-plugin-connection-filter";
+import PgSimplifyInflectorPlugin from "@graphile-contrib/pg-simplify-inflector";
+
 import { createPassportProvider, PassportProvider } from "./passport/index.js";
 
-import handleEvent from "./indexer/handleEvent.js";
-import { Chain, getConfig, Config } from "./config.js";
-import { createPriceUpdater } from "./prices/updater.js";
-import { createPriceProvider } from "./prices/provider.js";
+import { createResourceMonitor } from "./resourceMonitor.js";
+import diskstats from "diskstats";
+
+import { Chain, getConfig, Config, getChainConfigById } from "./config.js";
+import { createPriceProvider, PriceProvider } from "./prices/provider.js";
 import { createHttpApi } from "./http/app.js";
-import { FileSystemDataProvider } from "./calculator/dataProvider/fileSystemDataProvider.js";
+import { DatabaseDataProvider } from "./calculator/dataProvider/databaseDataProvider.js";
 import { CachedDataProvider } from "./calculator/dataProvider/cachedDataProvider.js";
-import { AsyncSentinel } from "./utils/asyncSentinel.js";
 import { ethers } from "ethers";
 import TTLCache from "@isaacs/ttlcache";
 
-// If, during reindexing, a chain has these many blocks left to index, consider
-// it caught up and start serving
-const MINIMUM_BLOCKS_LEFT_BEFORE_STARTING = 500;
+import abis from "./indexer/abis/index.js";
+import type { EventHandlerContext } from "./indexer/indexer.js";
+import { handleEvent as handleAlloV1Event } from "./indexer/allo/v1/handleEvent.js";
+import { handleEvent as handleAlloV2Event } from "./indexer/allo/v2/handleEvent.js";
+import { Database } from "./database/index.js";
+import { decodeJsonWithBigInts } from "./utils/index.js";
+import { Block } from "chainsauce/dist/cache.js";
+import { createPublicClient, http } from "viem";
+
+const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
 
 async function main(): Promise<void> {
   const config = getConfig();
@@ -56,6 +70,34 @@ async function main(): Promise<void> {
     service: `indexer-${config.deploymentEnvironment}`,
   });
 
+  // parse postgres numeric(78,0) as bigint
+  types.setTypeParser(1700, function (val) {
+    return BigInt(val);
+  });
+
+  // parse postgres jsonb with bigint support
+  types.setTypeParser(3802, function (val) {
+    return decodeJsonWithBigInts(val);
+  });
+
+  if (config.cacheDir) {
+    await fs.mkdir(config.cacheDir, { recursive: true });
+  }
+
+  const databaseConnectionPool = new Pool({
+    connectionString: config.databaseUrl,
+  });
+
+  const subscriptionStore = createPostgresSubscriptionStore({
+    pool: databaseConnectionPool,
+    schema: config.databaseSchemaName,
+  });
+
+  const db = new Database({
+    connectionPool: databaseConnectionPool,
+    schemaName: config.databaseSchemaName,
+  });
+
   baseLogger.info({
     msg: "starting",
     buildTag: config.buildTag,
@@ -71,18 +113,89 @@ async function main(): Promise<void> {
     ),
   });
 
+  if (config.dropDb) {
+    baseLogger.info("dropping schema");
+    await db.dropSchemaIfExists();
+  }
+
+  await db.createSchemaIfNotExists(baseLogger);
+
+  // the chainsauce cache is used to cache events and contract reads
+  const chainsauceCache = config.cacheDir
+    ? createSqliteCache(path.join(config.cacheDir, "chainsauceCache.db"))
+    : null;
+
+  const priceProvider = createPriceProvider({
+    db,
+    coingeckoApiUrl: config.coingeckoApiUrl,
+    coingeckoApiKey: config.coingeckoApiKey,
+    logger: baseLogger.child({ subsystem: "PriceProvider" }),
+    getBlockTimestampInMs: async (chainId, blockNumber) => {
+      const cachedBlock = await chainsauceCache?.getBlockByNumber({
+        chainId,
+        blockNumber,
+      });
+
+      if (cachedBlock) {
+        return cachedBlock.timestamp * 1000;
+      }
+
+      const chain = getChainConfigById(chainId);
+      const client = createPublicClient({
+        transport: http(chain.rpc),
+      });
+
+      const block = await client.getBlock({ blockNumber });
+      const timestamp = Number(block.timestamp);
+
+      const chainsauceBlock: Block = {
+        chainId,
+        blockNumber: BigInt(block.number),
+        timestamp: timestamp,
+        blockHash: block.hash,
+      };
+
+      await chainsauceCache?.insertBlock(chainsauceBlock);
+
+      return timestamp * 1000;
+    },
+    fetch: (url, options) => {
+      return fetch(url, {
+        ...options,
+        retry: false,
+        cache: "force-cache",
+        cachePath:
+          config.cacheDir !== null
+            ? path.join(config.cacheDir, "prices")
+            : undefined,
+      });
+    },
+  });
+
+  if (config.enableResourceMonitor) {
+    monitorAndLogResources({
+      logger: baseLogger,
+      directories: [config.storageDir].concat(
+        config.cacheDir ? [config.cacheDir] : []
+      ),
+    });
+  }
+
   if (config.runOnce) {
     await Promise.all(
       config.chains.map(async (chain) =>
-        catchupAndWatchChain({ chain, baseLogger, ...config })
+        catchupAndWatchChain({
+          chainsauceCache,
+          chain,
+          db,
+          subscriptionStore,
+          baseLogger,
+          priceProvider,
+          ...config,
+        })
       )
     );
-    // Workaround for active handles preventing process to terminate
-    // (to investigate: console.log(process._getActiveHandles()))
-    // Note: the delay is necessary to allow completing writes.
     baseLogger.info("exiting");
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    process.exit(0);
   } else {
     // Promises will be resolved once the initial catchup is done. Afterwards, services
     // will still be in listen-and-update mode.
@@ -93,20 +206,59 @@ async function main(): Promise<void> {
         baseLogger,
         runOnce: config.runOnce,
       }),
-      ...config.chains.map(async (chain) =>
-        catchupAndWatchChain({ chain, baseLogger, ...config })
+      ...config.chains.map((chain) =>
+        catchupAndWatchChain({
+          chainsauceCache,
+          chain,
+          db,
+          subscriptionStore,
+          baseLogger,
+          priceProvider,
+          ...config,
+        })
       ),
     ]);
 
+    // TODO: use read only connection, use separate pool?
+    const graphqlHandler = postgraphile(
+      databaseConnectionPool,
+      config.databaseSchemaName,
+      {
+        watchPg: false,
+        graphqlRoute: "/graphql",
+        graphiql: true,
+        graphiqlRoute: "/graphiql",
+        enhanceGraphiql: true,
+        disableDefaultMutations: true,
+        dynamicJson: true,
+        bodySizeLimit: "100kb", // response body limit
+        disableQueryLog: true,
+        appendPlugins: [
+          PgSimplifyInflectorPlugin.default,
+          ConnectionFilterPlugin,
+        ],
+        legacyRelations: "omit",
+        setofFunctionsContainNulls: false,
+        exportGqlSchemaPath: "./schema.graphql",
+        simpleCollections: "only",
+        graphileBuildOptions: {
+          pgOmitListSuffix: true,
+          pgShortPk: true,
+        },
+
+        // TODO: buy pro version?
+        // defaultPaginationCap: 1000,
+        // readOnlyConnection: true,
+        // graphqlDepthLimit: 2
+      }
+    );
+
     const httpApi = createHttpApi({
-      chainDataDir: config.chainDataDir,
-      priceProvider: createPriceProvider({
-        chainDataDir: config.chainDataDir,
-        logger: baseLogger.child({ subsystem: "PriceProvider" }),
-      }),
+      db,
+      priceProvider,
       passportProvider: passportProvider,
       dataProvider: new CachedDataProvider({
-        dataProvider: new FileSystemDataProvider(config.chainDataDir),
+        dataProvider: new DatabaseDataProvider(db),
         cache: new TTLCache({
           max: 10,
           ttl: 1000 * 60 * 1, // 1 minute
@@ -116,6 +268,8 @@ async function main(): Promise<void> {
       logger: baseLogger.child({ subsystem: "HttpApi" }),
       buildTag: config.buildTag,
       chains: config.chains,
+      hostname: config.hostname,
+      graphqlHandler: graphqlHandler,
       enableSentry: config.sentryDsn !== null,
       calculator: {
         esimatesLinearQfImplementation:
@@ -150,10 +304,6 @@ async function catchupAndWatchPassport(
       logger,
       scorerId: config.passportScorerId,
       dbPath: path.join(config.storageDir, "passport_scores.leveldb"),
-      deprecatedJSONPassportDumpPath: path.join(
-        config.chainDataDir,
-        "passport_scores.json"
-      ),
     });
 
     await passportProvider.start({ watch: !config.runOnce });
@@ -169,39 +319,23 @@ async function catchupAndWatchPassport(
 }
 
 async function catchupAndWatchChain(
-  config: Omit<Config, "chains"> & { chain: Chain; baseLogger: Logger }
-): Promise<void> {
+  config: Omit<Config, "chains"> & {
+    chainsauceCache: Cache | null;
+    subscriptionStore: SubscriptionStore;
+    priceProvider: PriceProvider;
+    db: Database;
+    chain: Chain;
+    baseLogger: Logger;
+  }
+) {
   const chainLogger = config.baseLogger.child({
     chain: config.chain.id,
   });
 
+  const { db, priceProvider } = config;
+
   try {
-    const CHAIN_DIR_PATH = path.join(
-      config.chainDataDir,
-      config.chain.id.toString()
-    );
-
-    const pricesCache: Cache | null = config.cacheDir
-      ? new Cache(path.join(config.cacheDir, "prices"))
-      : null;
-
-    // Force a full re-indexing on every startup.
-    // XXX For the longer term, verify whether ChainSauce supports
-    // any sort of stop-and-resume.
-    await fs.rm(CHAIN_DIR_PATH, { force: true, recursive: true });
-
-    const storage = new JsonStorage(CHAIN_DIR_PATH);
-
-    const priceProvider = createPriceProvider({
-      ...config,
-      chainDataDir: config.chainDataDir,
-      logger: chainLogger.child({ subsystem: "PriceProvider" }),
-    });
-
-    const rpcProvider = new RetryProvider({
-      url: config.chain.rpc,
-      timeout: 5 * 60 * 1000,
-    });
+    const rpcProvider = new ethers.providers.JsonRpcProvider(config.chain.rpc);
 
     const cachedIpfsGet = async <T>(cid: string): Promise<T | undefined> => {
       const cidRegex = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[0-9A-Za-z]{50,})$/;
@@ -212,7 +346,7 @@ async function catchupAndWatchChain(
 
       const url = `${config.ipfsGateway}/ipfs/${cid}`;
 
-      chainLogger.trace(`Fetching ${url}`);
+      // chainLogger.trace(`Fetching ${url}`);
 
       const res = await fetch(url, {
         timeout: 2000,
@@ -237,30 +371,7 @@ async function catchupAndWatchChain(
 
     await rpcProvider.getNetwork();
 
-    // Update prices to present and optionally keep watching for updates
-
-    const priceUpdater = createPriceUpdater({
-      ...config,
-      chainDataDir: config.chainDataDir,
-      rpcProvider,
-      chain: config.chain,
-      logger: chainLogger.child({ subsystem: "PriceUpdater" }),
-      blockCachePath: config.cacheDir
-        ? path.join(config.cacheDir, "blockCache.db")
-        : undefined,
-      withCacheFn:
-        pricesCache === null
-          ? undefined
-          : (cacheKey, fn) => pricesCache.lazy(cacheKey, fn),
-    });
-
-    await priceUpdater.start({
-      watch: !config.runOnce,
-      toBlock: config.toBlock,
-    });
-
     chainLogger.info("catching up with blockchain events");
-    const catchupSentinel = new AsyncSentinel();
 
     const indexerLogger = chainLogger.child({ subsystem: "DataUpdater" });
 
@@ -268,75 +379,141 @@ async function catchupAndWatchChain(
     const throttledLogProgress = throttle(
       5000,
       (currentBlock: number, lastBlock: number, pendingEventsCount: number) => {
+        const progressPercentage = ((currentBlock / lastBlock) * 100).toFixed(
+          1
+        );
+
         indexerLogger.info(
-          `pending events: ${pendingEventsCount} (indexing blocks ${currentBlock}-${lastBlock})`
+          `${currentBlock}/${lastBlock} indexed (${progressPercentage}%) (pending events: ${pendingEventsCount})`
         );
       }
     );
 
-    const indexer = await createIndexer(
-      rpcProvider,
-      storage,
-      async (indexer: Indexer<JsonStorage>, event: ChainsauceEvent) => {
-        try {
-          return await handleEvent(event, {
-            chainId: config.chain.id,
-            db: storage,
-            subscribe: (...args) => indexer.subscribe(...args),
-            ipfsGet: cachedIpfsGet,
-            priceProvider,
-            logger: indexerLogger,
-          });
-        } catch (err) {
-          indexerLogger.warn({
-            msg: "skipping event due to error while processing",
-            err,
-            event,
-          });
+    const eventHandlerContext: EventHandlerContext = {
+      chainId: config.chain.id,
+      db,
+      ipfsGet: cachedIpfsGet,
+      priceProvider,
+      logger: indexerLogger,
+    };
+
+    const indexer = createIndexer({
+      contracts: abis,
+      chain: {
+        maxBlockRange: 100000n,
+        id: config.chain.id,
+        pollingIntervalMs: 20 * 1000,
+        rpcClient: createHttpRpcClient({
+          retryDelayMs: 1000,
+          maxConcurrentRequests: 10,
+          maxRetries: 3,
+          url: config.chain.rpc,
+        }),
+      },
+      context: eventHandlerContext,
+      subscriptionStore: config.subscriptionStore,
+      cache: config.chainsauceCache,
+      logLevel: "trace",
+      logger: (level, msg, data) => {
+        if (level === "error") {
+          indexerLogger.error({ msg, data });
+        } else if (level === "warn") {
+          indexerLogger.warn({ msg, data });
+        } else if (level === "info") {
+          indexerLogger.info({ msg, data });
+        } else if (level === "debug") {
+          indexerLogger.debug({ msg, data });
+        } else if (level === "trace") {
+          indexerLogger.trace({ msg, data });
         }
       },
-      {
-        toBlock: config.toBlock,
-        logger: indexerLogger,
-        eventCacheDirectory: null,
-        requireExplicitStart: true,
-        onProgress: ({ currentBlock, lastBlock, pendingEventsCount }) => {
-          throttledLogProgress(currentBlock, lastBlock, pendingEventsCount);
+    });
 
-          if (
-            lastBlock - currentBlock < MINIMUM_BLOCKS_LEFT_BEFORE_STARTING &&
-            !catchupSentinel.isDone()
-          ) {
-            indexerLogger.info({
-              msg: "caught up with blockchain events",
-              lastBlock,
-              currentBlock,
-            });
-            catchupSentinel.declareDone();
+    indexer.on("event", async (args) => {
+      try {
+        // console.time(args.event.name);
+        // do not await donation inserts as they are write only
+        if (args.event.name === "Voted") {
+          void handleAlloV1Event(args).then((changesets) => {
+            for (const changeset of changesets) {
+              db.applyChange(changeset).catch((err: unknown) => {
+                indexerLogger.warn({
+                  msg: "error while processing vote",
+                  err,
+                  changeset,
+                });
+              });
+            }
+          });
+        } else {
+          const handler = args.event.contractName.startsWith("AlloV1")
+            ? handleAlloV1Event
+            : handleAlloV2Event;
+
+          const changesets = await handler(args);
+
+          for (const changeset of changesets) {
+            await db.applyChange(changeset);
           }
-        },
+        }
+      } catch (err) {
+        indexerLogger.warn({
+          msg: "skipping event due to error while processing",
+          err,
+          event: args.event,
+        });
+      } finally {
+        // console.timeEnd(args.event.name);
+      }
+    });
+
+    indexer.on(
+      "progress",
+      ({ currentBlock, targetBlock, pendingEventsCount }) => {
+        throttledLogProgress(
+          Number(currentBlock),
+          Number(targetBlock),
+          pendingEventsCount
+        );
       }
     );
 
     for (const subscription of config.chain.subscriptions) {
-      chainLogger.info(`subscribing to ${subscription.address}`);
-      indexer.subscribe(
-        subscription.address,
-        subscription.abi,
-        Math.max(subscription.fromBlock || 0, config.fromBlock)
-      );
+      const contractName = subscription.contractName;
+      const fromBlock =
+        subscription.fromBlock === undefined
+          ? undefined
+          : BigInt(subscription.fromBlock);
+
+      indexer.subscribeToContract({
+        contract: contractName,
+        address: subscription.address,
+        fromBlock: fromBlock,
+      });
     }
 
-    indexer.start();
+    await indexer.indexToBlock(config.toBlock);
 
-    await catchupSentinel.untilDone();
+    indexerLogger.info({
+      msg: "caught up with blockchain events",
+      toBlock: config.toBlock,
+    });
 
-    if (config.runOnce) {
-      priceUpdater.stop();
-      indexer.stop();
-    } else {
+    if (!config.runOnce) {
       chainLogger.info("listening to new blockchain events");
+
+      indexer.on("error", (err) => {
+        chainLogger.error({
+          msg: `error while watching chain ${config.chain.id}`,
+          err,
+        });
+        Sentry.captureException(err);
+      });
+
+      indexer.watch();
     }
+
+    return db;
   } catch (err) {
     chainLogger.error({
       msg: `error during initial catch up with chain ${config.chain.id}`,
@@ -344,4 +521,24 @@ async function catchupAndWatchChain(
     });
     throw err;
   }
+}
+
+function monitorAndLogResources(config: {
+  logger: Logger;
+  directories: string[];
+}) {
+  const resourceMonitorLogger = config.logger.child({
+    subsystem: "ResourceMonitor",
+  });
+
+  resourceMonitorLogger.info({ msg: "starting resource monitor" });
+
+  const resourceMonitor = createResourceMonitor({
+    logger: resourceMonitorLogger,
+    diskstats,
+    directories: config.directories,
+    pollingIntervalMs: RESOURCE_MONITOR_INTERVAL_MS,
+  });
+
+  resourceMonitor.start();
 }

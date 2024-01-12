@@ -4,7 +4,7 @@ import {
   aggregateContributions as aggregateContributionsPluralistic,
 } from "pluralistic";
 import { Chain } from "../config.js";
-import type { Round, Application, Vote } from "../indexer/types.js";
+import type { DeprecatedRound, DeprecatedApplication, DeprecatedVote } from "../deprecatedJsonDatabase.js";
 import type {
   PassportScore,
   AddressToPassportScoreMap,
@@ -13,16 +13,16 @@ import { ProportionalMatchOptions } from "./options.js";
 import { defaultProportionalMatchOptions } from "./options.js";
 import { CoefficientOverrides } from "./coefficientOverrides.js";
 
-export type VoteWithCoefficient = Vote & {
+export type VoteWithCoefficient = DeprecatedVote & {
   coefficient: number;
   passportScore?: PassportScore;
 };
 
 interface GetVotesWithCoefficientsArgs {
   chain: Chain;
-  round: Round;
-  applications: Array<Application>;
-  votes: Array<Vote>;
+  round: DeprecatedRound;
+  applications: Array<DeprecatedApplication>;
+  votes: Array<DeprecatedVote>;
   enablePassport?: boolean;
   minimumAmountUSD?: number;
   proportionalMatchOptions?: ProportionalMatchOptions;
@@ -37,7 +37,7 @@ export function getVotesWithCoefficients(
       map[application.id] = application;
       return map;
     },
-    {} as Record<string, Application>
+    {} as Record<string, DeprecatedApplication>
   );
 
   const enablePassport = args.enablePassport ?? false;
@@ -125,7 +125,7 @@ function passportScoreToCoefficient(
   return perc / 100;
 }
 
-export function applyVoteCap(chain: Chain, vote: Vote): Vote {
+export function applyVoteCap(chain: Chain, vote: DeprecatedVote): DeprecatedVote {
   const tokenConfig = chain.tokens.find(
     (t) => t.address.toLowerCase() === vote.token.toLowerCase()
   );
@@ -213,9 +213,9 @@ export function mergeAggregatedContributions(
 
 interface AggregatedContributionsConfig {
   chain: Chain;
-  round: Round;
-  applications: Application[];
-  votes: Vote[];
+  round: DeprecatedRound;
+  applications: DeprecatedApplication[];
+  votes: DeprecatedVote[];
   passportScoreByAddress: AddressToPassportScoreMap;
   enablePassport?: boolean;
   minimumAmountUSD?: number;

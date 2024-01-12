@@ -1,4 +1,4 @@
-import { Round } from "../indexer/types.js";
+import { DeprecatedRound } from "../deprecatedJsonDatabase.js";
 
 export interface CalculationConfig {
   minimumAmountUSD?: number;
@@ -22,7 +22,7 @@ export function overrideCalculationConfig(
 }
 
 export function extractCalculationConfigFromRound(
-  round: Round
+  round: DeprecatedRound
 ): CalculationConfig {
   const matchAmount = BigInt(round.matchAmount);
 
