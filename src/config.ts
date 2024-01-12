@@ -180,10 +180,10 @@ const CHAINS: Chain[] = [
     ],
   },
   {
-    id: 1,
+    id: 11155111,
     name: "sepolia",
     rpc: rpcUrl
-      .default("https://sepolia.infura.io/v3/")
+      .default("https://ethereum-sepolia.publicnode.com")
       .parse(process.env.SEPOLIA_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 11, 1, 0, 0, 0),
     tokens: [
@@ -209,17 +209,23 @@ const CHAINS: Chain[] = [
     subscriptions: [
       {
         address: "0x2420EABfA2C0e6f77E435B0B7615c848bF4963AF",
-        abi: abis.v2.ProjectRegistry,
+        contractName: "AlloV1/ProjectRegistry/V2",
+        fromBlock: 4738892,
       },
       {
         address: "0xF1d4F5f21746bCD75fD71eB18992443f4F0edb6f",
-        abi: abis.v2.RoundFactory,
+        contractName: "AlloV1/RoundFactory/V2",
         fromBlock: 4738000,
       },
       {
         address: "0xf5D111B57de221774866AC32c4435841F5c141D5",
-        abi: abis.v2.QuadraticFundingVotingStrategyFactory,
+        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         fromBlock: 4738000,
+      },
+      {
+        address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+        contractName: "AlloV2/Registry/V1",
+        fromBlock: 4617051,
       },
     ],
   },
