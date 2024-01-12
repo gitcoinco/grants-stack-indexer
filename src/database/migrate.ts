@@ -199,5 +199,10 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   E'@foreignKey ("round_id", "chain_id") references ${ref(
     "rounds"
   )}(id, chain_id)|@fieldName round|@foreignFieldName donations';
+
+  comment on table ${ref("project_roles")} is
+  E'@foreignKey ("project_id") references ${ref(
+    "projects"
+  )}(id)|@fieldName project|@foreignFieldName roles';
   `.execute(db);
 }
