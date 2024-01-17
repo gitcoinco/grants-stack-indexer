@@ -18,6 +18,10 @@ const addressTwo =
   "0x0000000000000000000000000000000000000002" as ChecksumAddress;
 const addressThree =
   "0x0000000000000000000000000000000000000004" as ChecksumAddress;
+const addressFour =
+  "0x0000000000000000000000000000000000000004" as ChecksumAddress;
+const addressFive =
+  "0x0000000000000000000000000000000000000005" as ChecksumAddress;
 
 const MOCK_PRICE_PROVIDER = new TestPriceProvider() as unknown as PriceProvider;
 
@@ -255,6 +259,150 @@ describe("handleEvent", () => {
             "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
           role: "owner",
           address: addressTwo,
+        },
+      });
+    });
+  });
+
+  describe("ProgramCreated", () => {
+    test("should insert a project tagged as program", async () => {
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          contractName: "AlloV1/ProgramFactory/V1",
+          name: "ProgramCreated",
+          params: {
+            programContractAddress: addressFour,
+            programImplementation: addressFive,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "InsertProject",
+        project: {
+          chainId: 1,
+          createdAtBlock: 1n,
+          id: addressFour,
+          name: "",
+          metadata: null,
+          metadataCid: null,
+          ownerAddresses: [],
+          projectNumber: 0,
+          registryAddress: addressZero,
+          tags: ["allo-v1", "program"],
+        },
+      });
+    });
+  });
+
+  describe("RoleGranted to programs", () => {
+    test("should update the program/project ownerAddresses and add a project role", async () => {
+      const project: Project = {
+        id: addressFour,
+        name: "",
+        tags: ["allo-v2"],
+        chainId: 1,
+        metadata: null,
+        metadataCid: null,
+        ownerAddresses: [parseAddress(addressOne)],
+        registryAddress: parseAddress(addressZero),
+        projectNumber: 1,
+        createdAtBlock: 1n,
+      };
+      MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
+
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/ProgramFactory/V1",
+          name: "RoleGranted",
+          params: {
+            role: "0x0000000000000000000000000000000000000000000000000000000000000000",
+            account: addressTwo,
+            sender: addressThree,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(2);
+
+      expect(changesets[0]).toEqual({
+        type: "UpdateProject",
+        chainId: 1,
+        projectId: addressFour,
+        project: {
+          ownerAddresses: [addressOne, addressTwo],
+        },
+      });
+
+      expect(changesets[1]).toEqual({
+        type: "InsertProjectRole",
+        projectRole: {
+          chainId: 1,
+          projectId: addressFour,
+          address: addressTwo,
+          role: "owner",
+          createdAtBlock: 1n,
+        },
+      });
+    });
+  });
+
+  describe("RoleRevoked from programs", () => {
+    test("should update the program/project ownerAddresses and remove a project role", async () => {
+      const project: Project = {
+        id: addressFour,
+        name: "",
+        tags: ["allo-v2"],
+        chainId: 1,
+        metadata: null,
+        metadataCid: null,
+        ownerAddresses: [parseAddress(addressOne), parseAddress(addressTwo)],
+        registryAddress: parseAddress(addressZero),
+        projectNumber: 1,
+        createdAtBlock: 1n,
+      };
+      MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
+
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/ProgramFactory/V1",
+          name: "RoleRevoked",
+          params: {
+            role: "0x0000000000000000000000000000000000000000000000000000000000000000",
+            account: addressTwo,
+            sender: addressThree,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(2);
+
+      expect(changesets[0]).toEqual({
+        type: "UpdateProject",
+        chainId: 1,
+        projectId: addressFour,
+        project: {
+          ownerAddresses: [addressOne],
+        },
+      });
+
+      expect(changesets[1]).toEqual({
+        type: "DeleteAllProjectRolesByRoleAndAddress",
+        projectRole: {
+          chainId: 1,
+          projectId: addressFour,
+          address: addressTwo,
+          role: "owner",
         },
       });
     });

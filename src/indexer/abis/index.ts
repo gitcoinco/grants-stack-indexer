@@ -4,6 +4,7 @@ import RoundFactoryV1 from "./allo-v1/v1/RoundFactory.js";
 import RoundImplementationV1 from "./allo-v1/v1/RoundImplementation.js";
 import QuadraticFundingVotingStrategyFactoryV1 from "./allo-v1/v1/QuadraticFundingVotingStrategyFactory.js";
 import QuadraticFundingVotingStrategyImplementationV1 from "./allo-v1/v1/QuadraticFundingVotingStrategyImplementation.js";
+import ProgramFactoryV1 from "./allo-v1/v1/ProgramFactory.js";
 
 // V1.2
 import ProjectRegistryV2 from "./allo-v1/v2/ProjectRegistry.js";
@@ -20,6 +21,7 @@ import AlloV2Registry from "./allo-v2/Registry.js";
 export default {
   "AlloV1/ProjectRegistry/V1": ProjectRegistryV1,
   "AlloV1/ProjectRegistry/V2": ProjectRegistryV2,
+  "AlloV1/ProgramFactory/V1": ProgramFactoryV1,
   "AlloV1/RoundFactory/V1": RoundFactoryV1,
   "AlloV1/RoundImplementation/V1": RoundImplementationV1,
   "AlloV1/QuadraticFundingVotingStrategyFactory/V1":
