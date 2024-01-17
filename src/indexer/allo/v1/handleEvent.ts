@@ -379,11 +379,11 @@ export async function handleEvent(
     }
 
     case "RoleGranted": {
-      return await roleGranted(args);
+      return await roleGranted({ ...args, event });
     }
 
     case "RoleRevoked": {
-      return await roleRevoked(args);
+      return await roleRevoked({ ...args, event });
     }
 
     case "MatchAmountUpdated": {
