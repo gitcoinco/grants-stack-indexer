@@ -61,6 +61,11 @@ const CHAINS: Chain[] = [
         address: "0x4AAcca72145e1dF2aeC137E1f3C5E3D75DB8b5f3",
         fromBlock: 9975287,
       },
+      {
+        contractName: "AlloV1/ProgramFactory/V1",
+        address: "0x2562e3035905e62723fe85467bA4c9314df7A5e4",
+        fromBlock: 9602226,
+      },
     ],
   },
   {
@@ -113,6 +118,11 @@ const CHAINS: Chain[] = [
         contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0x4a850F463D1C4842937c5Bc9540dBc803D744c9F",
         fromBlock: 16994526,
+      },
+      {
+        contractName: "AlloV1/ProgramFactory/V1",
+        address: "0x56296242CA408bA36393f3981879fF9692F193cC",
+        fromBlock: 16994451,
       },
     ],
   },
@@ -176,6 +186,11 @@ const CHAINS: Chain[] = [
         contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0x838C5e10dcc1e54d62761d994722367BA167AC22",
         fromBlock: 87168143,
+      },
+      {
+        contractName: "AlloV1/ProgramFactory/V1",
+        address: "0xd5Fb00093Ebd30011d932cB69bb6313c550aB05f",
+        fromBlock: 87162429,
       },
     ],
   },
@@ -290,6 +305,11 @@ const CHAINS: Chain[] = [
         address: "0x534d2AAc03dCd0Cb3905B591BAf04C14A95426AB",
         fromBlock: 66509340,
       },
+      {
+        contractName: "AlloV1/ProgramFactory/V1",
+        address: "0x4d1f64c7920262c8F78e989C9E7Bf48b7eC02Eb5",
+        fromBlock: 65169115,
+      },
     ],
   },
   {
@@ -387,6 +407,11 @@ const CHAINS: Chain[] = [
         address: "0x2AFA4bE0f2468347A2F086c2167630fb1E58b725",
         fromBlock: 0,
       },
+      {
+        contractName: "AlloV1/ProgramFactory/V1",
+        address: "0xd07D54b0231088Ca9BF7DA6291c911B885cBC140",
+        fromBlock: 0,
+      },
     ],
   },
   {
@@ -437,6 +462,11 @@ const CHAINS: Chain[] = [
       {
         contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0xC3A195EEa198e74D67671732E1B8F8A23781D735",
+      },
+      {
+        contractName: "AlloV1/ProgramFactory/V1",
+        address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
+        fromBlock: 123566896,
       },
     ],
   },
@@ -489,6 +519,11 @@ const CHAINS: Chain[] = [
         contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0x0BFA0AAF5f2D81f859e85C8E82A3fc5b624fc6E8",
       },
+      {
+        contractName: "AlloV1/ProgramFactory/V1",
+        address: "0xd39b40aC9279EeeB86FBbDeb2C9acDF16e16cF89",
+        fromBlock: 0,
+      },
     ],
   },
   {
@@ -531,6 +566,11 @@ const CHAINS: Chain[] = [
         contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0xF7c101A95Ea4cBD5DA0Ab9827D7B2C9857440143",
       },
+      {
+        contractName: "AlloV1/ProgramFactory/V1",
+        address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
+        fromBlock: 39793132,
+      },
     ],
   },
   {
@@ -572,6 +612,11 @@ const CHAINS: Chain[] = [
       {
         contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0xc1a26b0789C3E93b07713e90596Cad8d0442C826",
+      },
+      {
+        contractName: "AlloV1/ProgramFactory/V1",
+        address: "0xF7c101A95Ea4cBD5DA0Ab9827D7B2C9857440143",
+        fromBlock: 47215935,
       },
     ],
   },
@@ -616,6 +661,11 @@ const CHAINS: Chain[] = [
         address: "0xC3A195EEa198e74D67671732E1B8F8A23781D735",
         contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         fromBlock: 7151900,
+      },
+      {
+        contractName: "AlloV1/ProgramFactory/V1",
+        address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
+        fromBlock: 7151884,
       },
     ],
   },
@@ -697,6 +747,11 @@ const CHAINS: Chain[] = [
         contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         fromBlock: 20900000,
       },
+      {
+        contractName: "AlloV1/ProgramFactory/V1",
+        address: "0x68a14AF71BFa0FE09fC937033f6Ea5153c0e75e4",
+        fromBlock: 20907048,
+      },
     ],
   },
   {
@@ -741,6 +796,11 @@ const CHAINS: Chain[] = [
         contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         fromBlock: 14410000,
       },
+      {
+        contractName: "AlloV1/ProgramFactory/V1",
+        address: "0x6D341814Be4E2316142D9190E390b494F1dECFAf",
+        fromBlock: 14412765,
+      },
     ],
   },
   {
@@ -782,6 +842,11 @@ const CHAINS: Chain[] = [
       {
         contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0x2AFA4bE0f2468347A2F086c2167630fb1E58b725",
+      },
+      {
+        contractName: "AlloV1/ProgramFactory/V1",
+        address: "0xd07D54b0231088Ca9BF7DA6291c911B885cBC140",
+        fromBlock: 34540182,
       },
     ],
   },
@@ -825,6 +890,11 @@ const CHAINS: Chain[] = [
         contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0x2AFA4bE0f2468347A2F086c2167630fb1E58b725",
       },
+      {
+        contractName: "AlloV1/ProgramFactory/V1",
+        address: "0x862D7F621409cF572f179367DdF1B7144AcE1c76",
+        fromBlock: 25380385,
+      },
     ],
   },
   {
@@ -866,6 +936,11 @@ const CHAINS: Chain[] = [
       {
         contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0x545B282A50EaeA01A619914d44105437036CbB36",
+      },
+      {
+        contractName: "AlloV1/ProgramFactory/V1",
+        address: "0xd07D54b0231088Ca9BF7DA6291c911B885cBC140",
+        fromBlock: 2735989,
       },
     ],
   },

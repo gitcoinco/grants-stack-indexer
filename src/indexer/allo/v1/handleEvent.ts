@@ -21,6 +21,8 @@ import matchAmountUpdated, {
 } from "./matchAmountUpdated.js";
 import roundMetaPtrUpdated from "./roundMetaPtrUpdated.js";
 import applicationMetaPtrUpdated from "./applicationMetaPtrUpdated.js";
+import roleGranted from "./roleGranted.js";
+import roleRevoked from "./roleRevoked.js";
 import { convertFromUSD, convertToUSD } from "../../../prices/provider.js";
 
 enum ApplicationStatus {
@@ -209,6 +211,37 @@ export async function handleEvent(
       ];
     }
 
+    // --- Program
+    case "ProgramCreated": {
+      const programAddress = parseAddress(event.params.programContractAddress);
+      const contract = "AlloV1/ProgramFactory/V1";
+
+      subscribeToContract({
+        contract,
+        address: programAddress,
+      });
+
+      return [
+        {
+          type: "InsertProject",
+          project: {
+            tags: ["allo-v1", "program"],
+            chainId,
+            registryAddress: parseAddress(
+              "0x0000000000000000000000000000000000000000"
+            ),
+            id: programAddress,
+            name: "",
+            projectNumber: 0,
+            metadataCid: null,
+            metadata: null,
+            ownerAddresses: [],
+            createdAtBlock: event.blockNumber,
+          },
+        },
+      ];
+    }
+
     // --- ROUND
     case "RoundCreated": {
       const contract =
@@ -343,6 +376,14 @@ export async function handleEvent(
           priceProvider: priceProvider,
         }),
       ];
+    }
+
+    case "RoleGranted": {
+      return await roleGranted({ ...args, event });
+    }
+
+    case "RoleRevoked": {
+      return await roleRevoked({ ...args, event });
     }
 
     case "MatchAmountUpdated": {
