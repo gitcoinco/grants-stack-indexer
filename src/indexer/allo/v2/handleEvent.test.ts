@@ -102,7 +102,6 @@ describe("handleEvent", () => {
             some: "metadata",
           },
           metadataCid: "CID-1",
-          ownerAddresses: [addressTwo],
           projectNumber: 0,
           registryAddress: addressOne,
           tags: ["allo-v2"],
@@ -196,18 +195,9 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(changesets).toHaveLength(3);
+      expect(changesets).toHaveLength(2);
 
       expect(changesets[0]).toEqual({
-        type: "UpdateProject",
-        chainId: 1,
-        projectId: "0x0001",
-        project: {
-          ownerAddresses: [addressFour],
-        },
-      });
-
-      expect(changesets[1]).toEqual({
         type: "DeleteAllProjectRolesByRole",
         projectRole: {
           chainId: 1,
@@ -216,7 +206,7 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(changesets[2]).toEqual({
+      expect(changesets[1]).toEqual({
         type: "InsertProjectRole",
         projectRole: {
           chainId: 1,

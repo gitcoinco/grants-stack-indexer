@@ -42,7 +42,6 @@ export type ProjectTable = {
   registryAddress: Address;
   metadataCid: string | null;
   metadata: unknown | null;
-  ownerAddresses: Address[];
   createdAtBlock: bigint;
   tags: string[];
 };

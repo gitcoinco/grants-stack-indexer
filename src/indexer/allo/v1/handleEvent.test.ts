@@ -97,7 +97,6 @@ describe("handleEvent", () => {
           name: "",
           metadata: null,
           metadataCid: null,
-          ownerAddresses: [addressTwo],
           projectNumber: 1,
           registryAddress: addressOne,
           tags: ["allo-v1"],
@@ -159,7 +158,6 @@ describe("handleEvent", () => {
         chainId: 1,
         metadata: null,
         metadataCid: null,
-        ownerAddresses: [parseAddress(addressTwo)],
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
         createdAtBlock: 1n,
@@ -180,22 +178,9 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(changes).toHaveLength(2);
+      expect(changes).toHaveLength(1);
 
       expect(changes[0]).toEqual({
-        type: "UpdateProject",
-        chainId: 1,
-        projectId:
-          "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
-        project: {
-          ownerAddresses: [
-            parseAddress(addressTwo),
-            parseAddress(addressThree),
-          ],
-        },
-      });
-
-      expect(changes[1]).toEqual({
         type: "InsertProjectRole",
         projectRole: {
           chainId: 1,
@@ -210,7 +195,7 @@ describe("handleEvent", () => {
   });
 
   describe("OwnerRemoved", () => {
-    test("should add owner", async () => {
+    test("should remove owner", async () => {
       const project: Project = {
         id: "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
         name: "Project 1",
@@ -218,7 +203,6 @@ describe("handleEvent", () => {
         chainId: 1,
         metadata: null,
         metadataCid: null,
-        ownerAddresses: [parseAddress(addressTwo), parseAddress(addressThree)],
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
         createdAtBlock: 1n,
@@ -239,19 +223,9 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(changes).toHaveLength(2);
+      expect(changes).toHaveLength(1);
 
       expect(changes[0]).toEqual({
-        type: "UpdateProject",
-        chainId: 1,
-        projectId:
-          "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
-        project: {
-          ownerAddresses: [parseAddress(addressThree)],
-        },
-      });
-
-      expect(changes[1]).toEqual({
         type: "DeleteAllProjectRolesByRoleAndAddress",
         projectRole: {
           chainId: 1,
@@ -290,7 +264,6 @@ describe("handleEvent", () => {
           name: "",
           metadata: null,
           metadataCid: null,
-          ownerAddresses: [],
           projectNumber: 0,
           registryAddress: addressZero,
           tags: ["allo-v1", "program"],
@@ -300,7 +273,7 @@ describe("handleEvent", () => {
   });
 
   describe("RoleGranted to programs", () => {
-    test("should update the program/project ownerAddresses and add a project role", async () => {
+    test("should add a project role", async () => {
       const project: Project = {
         id: addressFour,
         name: "",
@@ -308,7 +281,6 @@ describe("handleEvent", () => {
         chainId: 1,
         metadata: null,
         metadataCid: null,
-        ownerAddresses: [parseAddress(addressOne)],
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
         createdAtBlock: 1n,
@@ -330,18 +302,9 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(changesets).toHaveLength(2);
+      expect(changesets).toHaveLength(1);
 
       expect(changesets[0]).toEqual({
-        type: "UpdateProject",
-        chainId: 1,
-        projectId: addressFour,
-        project: {
-          ownerAddresses: [addressOne, addressTwo],
-        },
-      });
-
-      expect(changesets[1]).toEqual({
         type: "InsertProjectRole",
         projectRole: {
           chainId: 1,
@@ -355,7 +318,7 @@ describe("handleEvent", () => {
   });
 
   describe("RoleRevoked from programs", () => {
-    test("should update the program/project ownerAddresses and remove a project role", async () => {
+    test("should remove a project role", async () => {
       const project: Project = {
         id: addressFour,
         name: "",
@@ -363,7 +326,6 @@ describe("handleEvent", () => {
         chainId: 1,
         metadata: null,
         metadataCid: null,
-        ownerAddresses: [parseAddress(addressOne), parseAddress(addressTwo)],
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
         createdAtBlock: 1n,
@@ -385,18 +347,9 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(changesets).toHaveLength(2);
+      expect(changesets).toHaveLength(1);
 
       expect(changesets[0]).toEqual({
-        type: "UpdateProject",
-        chainId: 1,
-        projectId: addressFour,
-        project: {
-          ownerAddresses: [addressOne],
-        },
-      });
-
-      expect(changesets[1]).toEqual({
         type: "DeleteAllProjectRolesByRoleAndAddress",
         projectRole: {
           chainId: 1,
