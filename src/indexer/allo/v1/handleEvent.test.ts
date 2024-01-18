@@ -272,8 +272,8 @@ describe("handleEvent", () => {
     });
   });
 
-  describe("RoleGranted to programs", () => {
-    test("should add a project role", async () => {
+  describe("Program: RoleGranted", () => {
+    test("should add an owner project role", async () => {
       const project: Project = {
         id: addressFour,
         name: "",
@@ -315,10 +315,53 @@ describe("handleEvent", () => {
         },
       });
     });
+
+    test("should add a member project role", async () => {
+      const project: Project = {
+        id: addressFour,
+        name: "",
+        tags: ["allo-v2"],
+        chainId: 1,
+        metadata: null,
+        metadataCid: null,
+        registryAddress: parseAddress(addressZero),
+        projectNumber: 1,
+        createdAtBlock: 1n,
+      };
+      MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
+
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/ProgramFactory/V1",
+          name: "RoleGranted",
+          params: {
+            role: "0xaa630204f2780b6f080cc77cc0e9c0a5c21e92eb0c6771e709255dd27d6de132",
+            account: addressTwo,
+            sender: addressThree,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "InsertProjectRole",
+        projectRole: {
+          chainId: 1,
+          projectId: addressFour,
+          address: addressTwo,
+          role: "member",
+          createdAtBlock: 1n,
+        },
+      });
+    });
   });
 
-  describe("RoleRevoked from programs", () => {
-    test("should remove a project role", async () => {
+  describe("Program: RoleRevoked", () => {
+    test("should remove the owner project role", async () => {
       const project: Project = {
         id: addressFour,
         name: "",
@@ -356,6 +399,48 @@ describe("handleEvent", () => {
           projectId: addressFour,
           address: addressTwo,
           role: "owner",
+        },
+      });
+    });
+
+    test("should remove the member project role", async () => {
+      const project: Project = {
+        id: addressFour,
+        name: "",
+        tags: ["allo-v2"],
+        chainId: 1,
+        metadata: null,
+        metadataCid: null,
+        registryAddress: parseAddress(addressZero),
+        projectNumber: 1,
+        createdAtBlock: 1n,
+      };
+      MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
+
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/ProgramFactory/V1",
+          name: "RoleRevoked",
+          params: {
+            role: "0xaa630204f2780b6f080cc77cc0e9c0a5c21e92eb0c6771e709255dd27d6de132",
+            account: addressTwo,
+            sender: addressThree,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "DeleteAllProjectRolesByRoleAndAddress",
+        projectRole: {
+          chainId: 1,
+          projectId: addressFour,
+          address: addressTwo,
+          role: "member",
         },
       });
     });

@@ -2,7 +2,7 @@ import { EventHandlerArgs } from "chainsauce";
 import type { Indexer } from "../../indexer.js";
 import { Changeset } from "../../../database/index.js";
 import { parseAddress } from "../../../address.js";
-import { PROGRAM_ADMIN_ROLE } from "./roles.js";
+import { PROGRAM_ADMIN_ROLE, PROGRAM_OPERATOR_ROLE } from "./roles.js";
 
 export default async function handleEvent(
   args: EventHandlerArgs<
@@ -19,31 +19,55 @@ export default async function handleEvent(
 
   switch (args.event.contractName) {
     case "AlloV1/ProgramFactory/V1": {
-      const projectId = parseAddress(event.address);
-      const project = await db.getProjectById(projectId);
+      const programAddress = parseAddress(event.address);
+      const project = await db.getProjectById(programAddress);
       if (project === null) {
         logger.error({
-          msg: `Program/Project ${projectId} not found`,
+          msg: `Program/Project ${programAddress} not found`,
           event,
         });
         return [];
       }
 
-      if (event.params.role === PROGRAM_ADMIN_ROLE) {
-        const account = parseAddress(event.params.account);
-        return [
-          {
-            type: "DeleteAllProjectRolesByRoleAndAddress",
-            projectRole: {
-              chainId,
-              projectId,
-              role: "owner",
-              address: parseAddress(account),
+      const account = parseAddress(event.params.account);
+      const role = event.params.role.toLocaleLowerCase();
+
+      switch (role) {
+        case PROGRAM_ADMIN_ROLE: {
+          return [
+            {
+              type: "DeleteAllProjectRolesByRoleAndAddress",
+              projectRole: {
+                chainId,
+                projectId: programAddress,
+                role: "owner",
+                address: account,
+              },
             },
-          },
-        ];
-      } else {
-        return [];
+          ];
+        }
+
+        case PROGRAM_OPERATOR_ROLE: {
+          return [
+            {
+              type: "DeleteAllProjectRolesByRoleAndAddress",
+              projectRole: {
+                chainId,
+                projectId: programAddress,
+                role: "member",
+                address: account,
+              },
+            },
+          ];
+        }
+
+        default: {
+          logger.error({
+            msg: `Unknown role ${role} for program ${programAddress}`,
+            event,
+          });
+          return [];
+        }
       }
     }
 
