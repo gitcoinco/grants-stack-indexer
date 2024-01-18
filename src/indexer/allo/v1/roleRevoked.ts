@@ -37,7 +37,7 @@ export default async function handleEvent(
             projectRole: {
               chainId,
               projectId,
-              role: "owner",
+              role: "admin",
               address: parseAddress(account),
             },
           },

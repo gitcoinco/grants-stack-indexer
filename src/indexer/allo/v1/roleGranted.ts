@@ -37,7 +37,7 @@ export default async function handleEvent(
               chainId,
               projectId,
               address: parseAddress(event.params.account),
-              role: "owner",
+              role: "admin",
               createdAtBlock: event.blockNumber,
             },
           },

@@ -149,7 +149,7 @@ describe("handleEvent", () => {
     });
   });
 
-  describe("OwnerAdded", () => {
+  describe("Registry: OwnerAdded", () => {
     test("should add owner", async () => {
       const project: Project = {
         id: "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
@@ -194,7 +194,7 @@ describe("handleEvent", () => {
     });
   });
 
-  describe("OwnerRemoved", () => {
+  describe("Registry: OwnerRemoved", () => {
     test("should remove owner", async () => {
       const project: Project = {
         id: "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
@@ -272,7 +272,7 @@ describe("handleEvent", () => {
     });
   });
 
-  describe("RoleGranted to programs", () => {
+  describe("Program: RoleGranted", () => {
     test("should add a project role", async () => {
       const project: Project = {
         id: addressFour,
@@ -310,14 +310,14 @@ describe("handleEvent", () => {
           chainId: 1,
           projectId: addressFour,
           address: addressTwo,
-          role: "owner",
+          role: "admin",
           createdAtBlock: 1n,
         },
       });
     });
   });
 
-  describe("RoleRevoked from programs", () => {
+  describe("Program: RoleRevoked", () => {
     test("should remove a project role", async () => {
       const project: Project = {
         id: addressFour,
@@ -355,7 +355,7 @@ describe("handleEvent", () => {
           chainId: 1,
           projectId: addressFour,
           address: addressTwo,
-          role: "owner",
+          role: "admin",
         },
       });
     });
