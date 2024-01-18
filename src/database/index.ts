@@ -8,6 +8,7 @@ import {
 
 import {
   ProjectTable,
+  PendingProjectRoleTable,
   ProjectRoleTable,
   RoundTable,
   ApplicationTable,
@@ -27,6 +28,7 @@ export type { DataChange as Changeset };
 
 interface Tables {
   projects: ProjectTable;
+  pendingProjectRoles: PendingProjectRoleTable;
   projectRoles: ProjectRoleTable;
   rounds: RoundTable;
   applications: ApplicationTable;
@@ -190,6 +192,14 @@ export class Database {
 
   async applyChange(change: DataChange): Promise<void> {
     switch (change.type) {
+      case "InsertPendingProjectRole": {
+        await this.#db
+          .insertInto("pendingProjectRoles")
+          .values(change.pendingProjectRole)
+          .execute();
+        break;
+      }
+
       case "InsertProject": {
         await this.#db.insertInto("projects").values(change.project).execute();
         break;
@@ -336,6 +346,16 @@ export class Database {
       default:
         throw new Error(`Unknown changeset type`);
     }
+  }
+
+  async getPendingProjectRolesByRole(role: string) {
+    const pendingProjectRole = await this.#db
+      .selectFrom("pendingProjectRoles")
+      .where("role", "=", role)
+      .selectAll()
+      .execute();
+
+    return pendingProjectRole ?? null;
   }
 
   async getProjectById(projectId: string) {

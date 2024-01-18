@@ -2,6 +2,7 @@ import { ChainId, Address } from "../types.js";
 import {
   NewProject,
   PartialProject,
+  NewPendingProjectRole,
   NewProjectRole,
   ProjectRole,
   NewRound,
@@ -22,6 +23,14 @@ export type DataChange =
       chainId: ChainId;
       projectId: string;
       project: PartialProject;
+    }
+  | {
+      type: "InsertPendingProjectRole";
+      pendingProjectRole: NewPendingProjectRole;
+    }
+  | {
+      type: "DeletePendingProjectRole";
+      id: number;
     }
   | {
       type: "InsertProjectRole";
