@@ -36,7 +36,6 @@ export async function handleEvent(
             projectNumber: 0,
             metadataCid: metadataCid,
             metadata: metadata,
-            ownerAddresses: [parseAddress(event.params.owner)],
             createdAtBlock: event.blockNumber,
           },
         },
@@ -84,14 +83,6 @@ export async function handleEvent(
 
     case "ProfileOwnerUpdated": {
       return [
-        {
-          type: "UpdateProject",
-          chainId,
-          projectId: event.params.profileId,
-          project: {
-            ownerAddresses: [parseAddress(event.params.owner)],
-          },
-        },
         {
           type: "DeleteAllProjectRolesByRole",
           projectRole: {

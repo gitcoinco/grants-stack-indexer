@@ -32,17 +32,6 @@ export default async function handleEvent(
       if (event.params.role === PROGRAM_ADMIN_ROLE) {
         return [
           {
-            type: "UpdateProject",
-            chainId,
-            projectId,
-            project: {
-              ownerAddresses: [
-                ...project.ownerAddresses,
-                parseAddress(event.params.account),
-              ],
-            },
-          },
-          {
             type: "InsertProjectRole",
             projectRole: {
               chainId,

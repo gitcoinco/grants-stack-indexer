@@ -30,25 +30,8 @@ export default async function handleEvent(
       }
 
       if (event.params.role === PROGRAM_ADMIN_ROLE) {
-        let ownerAddresses = project.ownerAddresses;
         const account = parseAddress(event.params.account);
-        const index = ownerAddresses.indexOf(account);
-        if (index > -1) {
-          ownerAddresses = [
-            ...ownerAddresses.slice(0, index),
-            ...ownerAddresses.slice(index + 1),
-          ];
-        }
-
         return [
-          {
-            type: "UpdateProject",
-            chainId,
-            projectId,
-            project: {
-              ownerAddresses: [...ownerAddresses],
-            },
-          },
           {
             type: "DeleteAllProjectRolesByRoleAndAddress",
             projectRole: {

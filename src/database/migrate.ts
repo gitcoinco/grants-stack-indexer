@@ -53,7 +53,6 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("registryAddress", ADDRESS_TYPE)
     .addColumn("metadataCid", "text")
     .addColumn("metadata", "jsonb")
-    .addColumn("ownerAddresses", sql`text[]`)
     .addColumn("createdAtBlock", BIGINT_TYPE)
     .addColumn("tags", sql`text[]`)
 
