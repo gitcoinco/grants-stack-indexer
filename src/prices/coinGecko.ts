@@ -76,7 +76,7 @@ export async function fetchPricesForRange({
         | { error: string }
         | { status: { error_code: number; error_message: string } };
 
-      if (res.status !== 429) {
+      if (res.status === 429) {
         throw new Error(
           `CoinGecko API rate limit exceeded, are you using an API key?`
         );
