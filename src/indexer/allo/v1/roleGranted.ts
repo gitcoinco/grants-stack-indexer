@@ -7,7 +7,7 @@ import { PROGRAM_ADMIN_ROLE, PROGRAM_OPERATOR_ROLE } from "./roles.js";
 export default async function handleEvent(
   args: EventHandlerArgs<
     Indexer,
-    "AlloV1/ProgramFactory/V1" | "AlloV2/Registry/V1",
+    "AlloV1/ProgramFactory/V1" | "AlloV1/RoundImplementation/V1",
     "RoleGranted"
   >
 ): Promise<Changeset[]> {

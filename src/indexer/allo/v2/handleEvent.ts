@@ -3,12 +3,8 @@ import type { Indexer } from "../../indexer.js";
 import { ProjectTable } from "../../../database/schema.js";
 import { Changeset } from "../../../database/index.js";
 import { parseAddress } from "../../../address.js";
-
-export const Roles = {
-  admin: "0x0000000000000000000000000000000000000000000000000000000000000000",
-  owner: "0x815b5a78dc333d344c7df9da23c04dbd432015cc701876ddb9ffe850e6882747",
-  // member role is the profileId
-};
+import roleGranted from "./roleGranted.js";
+import roleRevoked from "./roleRevoked.js";
 
 export async function handleEvent(
   args: EventHandlerArgs<Indexer>
@@ -16,22 +12,23 @@ export async function handleEvent(
   const {
     chainId,
     event,
-    context: { ipfsGet },
+    context: { db, ipfsGet },
   } = args;
 
   switch (event.name) {
     // -- Allo V2 Profiles
     case "ProfileCreated": {
+      const profileId = event.params.profileId;
       const metadataCid = event.params.metadata.pointer;
       const metadata = await ipfsGet<ProjectTable["metadata"]>(metadataCid);
-      return [
+      const changes: Changeset[] = [
         {
           type: "InsertProject",
           project: {
             tags: ["allo-v2"],
             chainId,
             registryAddress: parseAddress(event.address),
-            id: event.params.profileId,
+            id: profileId,
             name: event.params.name,
             projectNumber: 0,
             metadataCid: metadataCid,
@@ -50,6 +47,41 @@ export async function handleEvent(
           },
         },
       ];
+
+      const pendingProjectRoles = await db.getPendingProjectRolesByRole(
+        chainId,
+        profileId
+      );
+
+      if (pendingProjectRoles.length !== 0) {
+        for (const role of pendingProjectRoles) {
+          changes.push({
+            type: "InsertProjectRole",
+            projectRole: {
+              chainId,
+              projectId: profileId,
+              address: parseAddress(role.address),
+              role: "member",
+              createdAtBlock: event.blockNumber,
+            },
+          });
+        }
+
+        changes.push({
+          type: "DeletePendingProjectRoles",
+          ids: pendingProjectRoles.map((r) => r.id!),
+        });
+      }
+
+      return changes;
+    }
+
+    case "RoleGranted": {
+      return await roleGranted({ ...args, event });
+    }
+
+    case "RoleRevoked": {
+      return await roleRevoked({ ...args, event });
     }
 
     case "ProfileNameUpdated": {
