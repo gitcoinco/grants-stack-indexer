@@ -445,4 +445,73 @@ describe("handleEvent", () => {
       });
     });
   });
+
+  describe("RoundCreated", () => {
+    test("should insert a new round", async () => {
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        readContract: vi.fn().mockImplementation(({ functionName }) => {
+          switch (functionName) {
+            case "matchAmount":
+              return 0n;
+            case "roundMetaPtr":
+              return [0, "test-cid"];
+            case "applicationMetaPtr":
+              return [0, "test-cid"];
+            case "token":
+              return addressZero;
+            default:
+              return undefined;
+          }
+        }),
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/RoundFactory/V2",
+          name: "RoundCreated",
+          params: {
+            roundAddress: addressTwo,
+            ownedBy: addressThree,
+            roundImplementation: addressZero,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(2);
+
+      console.log(changesets[1]);
+
+      expect(changesets[0]).toEqual({
+        type: "InsertRound",
+        round: {
+          chainId: 1,
+          id: "0x0000000000000000000000000000000000000002",
+          tags: ["allo-v1"],
+          totalDonationsCount: 0,
+          totalAmountDonatedInUsd: 0,
+          uniqueDonorsCount: 0,
+          matchTokenAddress: "0x0000000000000000000000000000000000000000",
+          matchAmount: 0n,
+          matchAmountInUsd: 0,
+          applicationMetadataCid: "test-cid",
+          applicationMetadata: { some: "metadata" },
+          roundMetadataCid: "test-cid",
+          roundMetadata: { some: "metadata" },
+          applicationsStartTime: null,
+          applicationsEndTime: null,
+          donationsStartTime: null,
+          donationsEndTime: null,
+          createdAtBlock: 1n,
+          updatedAtBlock: 1n,
+        },
+      });
+
+      expect(changesets[1]).toEqual({
+        type: "UpdateRound",
+        roundId: addressTwo,
+        chainId: 1,
+        round: { updatedAtBlock: 1n, matchAmount: 0n, matchAmountInUsd: 0 },
+      });
+    });
+  });
 });
