@@ -1,10 +1,5 @@
 import { Pool } from "pg";
 import { sql, Kysely, PostgresDialect, CamelCasePlugin } from "kysely";
-import {
-  tinybatch,
-  AddToBatch,
-  timeoutScheduler,
-} from "@teamawesome/tiny-batch";
 
 import {
   ProjectTable,
@@ -36,10 +31,15 @@ interface Tables {
 
 type KyselyDb = Kysely<Tables>;
 
+const FLUSH_DONATION_BATCH_EVERY_MS = 5_000;
+const UPDATE_STATS_EVERY_MS = 60_000;
+
 export class Database {
   #db: KyselyDb;
   #roundMatchTokenCache = new LRUCache<string, Address>({ max: 500 });
-  #batchDonationInsert: AddToBatch<void, NewDonation[]>;
+  #donationQueue: NewDonation[] = [];
+  #donationBatchTimeout: ReturnType<typeof setTimeout> | null = null;
+  #statsTimeout: ReturnType<typeof setTimeout> | null = null;
 
   readonly databaseSchemaName: string;
 
@@ -56,99 +56,108 @@ export class Database {
     this.#db = this.#db.withSchema(options.schemaName);
 
     this.databaseSchemaName = options.schemaName;
-    this.#batchDonationInsert = tinybatch<void, NewDonation[]>(async (args) => {
-      const donations = args.flat();
 
+    this.scheduleDonationQueueFlush();
+    this.scheduleStatsUpdate();
+  }
+
+  private scheduleStatsUpdate() {
+    if (this.#statsTimeout !== null) {
+      clearTimeout(this.#statsTimeout);
+    }
+
+    this.#statsTimeout = setTimeout(() => {
+      this.#statsTimeout = null;
+      void this.updateStats();
+      this.scheduleStatsUpdate();
+    }, UPDATE_STATS_EVERY_MS);
+  }
+
+  private async updateStats() {
+    const donationsTableRef = `"${this.databaseSchemaName}"."donations"`;
+
+    await sql
+      .raw(
+        `
+      UPDATE "${this.databaseSchemaName}"."rounds" AS r
+      SET 
+          total_amount_donated_in_usd = d.total_amount,
+          total_donations_count = d.donation_count,
+          unique_donors_count = d.unique_donors_count
+      FROM (
+          SELECT 
+              chain_id, 
+              round_id, 
+              SUM(amount_in_usd) AS total_amount, 
+              COUNT(*) AS donation_count, 
+              COUNT(DISTINCT donor_address) AS unique_donors_count
+          FROM ${donationsTableRef}
+          GROUP BY chain_id, round_id
+      ) AS d
+      WHERE r.chain_id = d.chain_id AND r.id = d.round_id;
+      `
+      )
+      .execute(this.#db);
+
+    await sql
+      .raw(
+        `
+      UPDATE "${this.databaseSchemaName}"."applications" AS a
+      SET
+          total_amount_donated_in_usd = d.total_amount,
+          total_donations_count = d.donation_count,
+          unique_donors_count = d.unique_donors_count
+      FROM (
+          SELECT
+              chain_id,
+              round_id,
+              application_id,
+              SUM(amount_in_usd) AS total_amount,
+              COUNT(*) AS donation_count,
+              COUNT(DISTINCT donor_address) AS unique_donors_count
+          FROM ${donationsTableRef}
+          GROUP BY chain_id, round_id, application_id
+      ) AS d
+      WHERE a.chain_id = d.chain_id AND a.round_id = d.round_id AND a.id = d.application_id;
+      `
+      )
+      .execute(this.#db);
+  }
+
+  private scheduleDonationQueueFlush() {
+    if (this.#donationBatchTimeout !== null) {
+      clearTimeout(this.#donationBatchTimeout);
+    }
+
+    this.#donationBatchTimeout = setTimeout(() => {
+      this.#donationBatchTimeout = null;
+      void this.flushDonationQueue();
+      this.scheduleDonationQueueFlush();
+    }, FLUSH_DONATION_BATCH_EVERY_MS);
+  }
+
+  private async flushDonationQueue() {
+    const donations = this.#donationQueue.splice(0, this.#donationQueue.length);
+
+    if (donations.length === 0) {
+      return;
+    }
+
+    // chunk donations into batches of 1k to void hitting the 65k parameter limit
+    // https://github.com/brianc/node-postgres/issues/1463
+    const chunkSize = 1_000;
+    const chunks = [];
+
+    for (let i = 0; i < donations.length; i += chunkSize) {
+      chunks.push(donations.slice(i, i + chunkSize));
+    }
+
+    for (const chunk of chunks) {
       await this.applyChange({
         type: "InsertManyDonations",
-        donations: donations,
+        donations: chunk,
       });
-
-      // update round and application stats, sort of like materialized column
-      // that automatically updates when donations are inserted
-      const donationsTableRef = `"${this.databaseSchemaName}"."donations"`;
-
-      const updateRoundStatsStatements = Array.from(
-        donations.reduce((acc, donation) => {
-          const key = `${donation.chainId}:${donation.roundId}`;
-          acc.add(key);
-          return acc;
-        }, new Set<string>())
-      ).map((round) => {
-        const [chainId, roundId] = round.split(":");
-
-        return sql.raw(`
-        UPDATE "${this.databaseSchemaName}"."rounds"
-        SET total_amount_donated_in_usd = total_amount_donated_in_usd + (
-          SELECT SUM(amount_in_usd)
-          FROM ${donationsTableRef}
-          WHERE chain_id = ${chainId}
-          AND round_id = '${roundId}'
-        ),
-        total_donations_count = total_donations_count + (
-          SELECT COUNT(*)
-          FROM ${donationsTableRef}
-          WHERE chain_id = ${chainId}
-          AND round_id = '${roundId}'
-        ),
-        unique_donors_count = unique_donors_count + (
-          SELECT COUNT(DISTINCT donor_address)
-          FROM ${donationsTableRef}
-          WHERE chain_id = ${chainId}
-          AND round_id = '${roundId}'
-        )
-        WHERE chain_id = ${chainId}
-        AND id = '${roundId}'
-      `);
-      });
-
-      const updateApplicationStatsStatements = Array.from(
-        donations.reduce((acc, donation) => {
-          const key = `${donation.chainId}:${donation.roundId}:${donation.applicationId}`;
-          acc.add(key);
-          return acc;
-        }, new Set<string>())
-      ).map((application) => {
-        const [chainId, roundId, applicationId] = application.split(":");
-
-        return sql.raw(`
-        UPDATE "${this.databaseSchemaName}"."applications"
-        SET total_amount_donated_in_usd = total_amount_donated_in_usd + (
-          SELECT SUM(amount_in_usd)
-          FROM ${donationsTableRef}
-          WHERE chain_id = ${chainId}
-          AND round_id = '${roundId}'
-          AND application_id = '${applicationId}'
-        ),
-        total_donations_count = total_donations_count + (
-          SELECT COUNT(*)
-          FROM ${donationsTableRef}
-          WHERE chain_id = ${chainId}
-          AND round_id = '${roundId}'
-          AND application_id = '${applicationId}'
-        ),
-        unique_donors_count = unique_donors_count + (
-          SELECT COUNT(DISTINCT donor_address)
-          FROM ${donationsTableRef}
-          WHERE chain_id = ${chainId}
-          AND round_id = '${roundId}'
-          AND application_id = '${applicationId}'
-        )
-        WHERE chain_id = ${chainId}
-        AND round_id = '${roundId}'
-        AND id = '${applicationId}'
-      `);
-      });
-
-      await sql
-        .join(
-          updateRoundStatsStatements.concat(updateApplicationStatsStatements),
-          sql`;`
-        )
-        .execute(this.#db);
-
-      return [];
-    }, timeoutScheduler(1000));
+    }
   }
 
   async dropSchemaIfExists() {
@@ -281,7 +290,7 @@ export class Database {
       }
 
       case "InsertDonation": {
-        await this.#batchDonationInsert(change.donation);
+        this.#donationQueue.push(change.donation);
         break;
       }
 
