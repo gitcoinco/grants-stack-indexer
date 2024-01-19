@@ -86,8 +86,7 @@ export async function fetchPricesForRange({
     },
     {
       retries: 4,
-      minTimeout: 2000,
-      maxTimeout: 10000,
+      minTimeout: 4000,
     }
   );
 
