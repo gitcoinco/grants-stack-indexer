@@ -200,6 +200,14 @@ export class Database {
         break;
       }
 
+      case "DeletePendingProjectRoles": {
+        await this.#db
+          .deleteFrom("pendingProjectRoles")
+          .where("id", "in", change.ids)
+          .execute();
+        break;
+      }
+
       case "InsertProject": {
         await this.#db.insertInto("projects").values(change.project).execute();
         break;
@@ -348,9 +356,10 @@ export class Database {
     }
   }
 
-  async getPendingProjectRolesByRole(role: string) {
+  async getPendingProjectRolesByRole(chainId: ChainId, role: string) {
     const pendingProjectRole = await this.#db
       .selectFrom("pendingProjectRoles")
+      .where("chainId", "=", chainId)
       .where("role", "=", role)
       .selectAll()
       .execute();

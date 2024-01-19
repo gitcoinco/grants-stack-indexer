@@ -62,9 +62,10 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
 
   await schema
     .createTable("pending_project_roles")
-    .addColumn("id", "integer", (col) => col.autoIncrement().primaryKey())
+    .addColumn("id", "serial", (col) => col.primaryKey())
     .addColumn("chainId", CHAIN_ID_TYPE)
     .addColumn("role", PENDING_ROLE_TYPE)
+    .addColumn("address", ADDRESS_TYPE)
     .addColumn("createdAtBlock", BIGINT_TYPE)
     .execute();
 

@@ -29,8 +29,8 @@ export type DataChange =
       pendingProjectRole: NewPendingProjectRole;
     }
   | {
-      type: "DeletePendingProjectRole";
-      id: number;
+      type: "DeletePendingProjectRoles";
+      ids: number[];
     }
   | {
       type: "InsertProjectRole";

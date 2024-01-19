@@ -170,7 +170,7 @@ describe("handleEvent", () => {
           },
         });
 
-        expect(changesets).toHaveLength(4);
+        expect(changesets).toHaveLength(5);
 
         expect(changesets[0]).toEqual({
           type: "InsertProject",
@@ -220,6 +220,11 @@ describe("handleEvent", () => {
             role: "member",
             createdAtBlock: 1n,
           },
+        });
+
+        expect(changesets[4]).toEqual({
+          type: "DeletePendingProjectRoles",
+          ids: [1, 2],
         });
       });
     });

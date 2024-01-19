@@ -3,6 +3,9 @@ import type { Indexer } from "../../indexer.js";
 import { Changeset } from "../../../database/index.js";
 import { parseAddress } from "../../../address.js";
 
+const ALLO_OWNER_ROLE =
+  "0x815b5a78dc333d344c7df9da23c04dbd432015cc701876ddb9ffe850e6882747";
+
 export default async function handleEvent(
   args: EventHandlerArgs<
     Indexer,
@@ -18,8 +21,12 @@ export default async function handleEvent(
 
   switch (args.event.contractName) {
     case "AlloV2/Registry/V1": {
-      const account = parseAddress(event.params.account);
       const role = event.params.role.toLocaleLowerCase();
+      if (role === ALLO_OWNER_ROLE) {
+        return [];
+      }
+
+      const account = parseAddress(event.params.account);
       const project = await db.getProjectById(role);
       // The member role for an Allo V2 profile, is the profileId itself.
       // If a project exists with that id, we create the member role

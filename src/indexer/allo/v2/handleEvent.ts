@@ -48,8 +48,10 @@ export async function handleEvent(
         },
       ];
 
-      const pendingProjectRoles =
-        await db.getPendingProjectRolesByRole(profileId);
+      const pendingProjectRoles = await db.getPendingProjectRolesByRole(
+        chainId,
+        profileId
+      );
 
       if (pendingProjectRoles.length !== 0) {
         for (const role of pendingProjectRoles) {
@@ -64,6 +66,11 @@ export async function handleEvent(
             },
           });
         }
+
+        changes.push({
+          type: "DeletePendingProjectRoles",
+          ids: pendingProjectRoles.map((r) => r.id!),
+        });
       }
 
       return changes;
