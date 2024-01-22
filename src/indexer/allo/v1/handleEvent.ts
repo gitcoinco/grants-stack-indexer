@@ -141,10 +141,13 @@ export async function handleEvent(
         event.address
       );
 
-      const project = await db.getProjectById(projectId);
+      const project = await db.getProjectById(chainId, projectId);
 
       if (project === null) {
-        logger.error({ msg: `Project ${projectId} not found`, event });
+        logger.error({
+          msg: `Project ${chainId}/${projectId} not found`,
+          event,
+        });
         return [];
       }
 
@@ -169,10 +172,13 @@ export async function handleEvent(
         event.address
       );
 
-      const project = await db.getProjectById(projectId);
+      const project = await db.getProjectById(chainId, projectId);
 
       if (project === null) {
-        logger.error({ msg: `Project ${projectId} not found`, event });
+        logger.error({
+          msg: `Project ${chainId}/${projectId} not found`,
+          event,
+        });
         return [];
       }
 

@@ -7,6 +7,8 @@ import {
   ProjectRole,
   NewRound,
   PartialRound,
+  NewRoundRole,
+  RoundRole,
   NewApplication,
   PartialApplication,
   NewDonation,
@@ -69,6 +71,14 @@ export type DataChange =
       roundId: Address;
       applicationId: string;
       amountInUsd: number;
+    }
+  | {
+      type: "InsertRoundRole";
+      roundRole: NewRoundRole;
+    }
+  | {
+      type: "DeleteAllRoundRolesByRoleAndAddress";
+      roundRole: Pick<RoundRole, "chainId" | "roundId" | "role" | "address">;
     }
   | {
       type: "InsertApplication";
