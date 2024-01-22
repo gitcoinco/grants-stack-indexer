@@ -74,7 +74,6 @@ export function createDeprecatedProject(project: Project): DeprecatedProject {
   return {
     id: project.id,
     metaPtr: project.metadataCid,
-    owners: project.ownerAddresses.map(getAddress),
     createdAtBlock: Number(project.createdAtBlock),
     projectNumber: project.projectNumber,
     metadata: project.metadata as DeprecatedProject["metadata"],
@@ -114,7 +113,6 @@ export type DeprecatedRound = {
 export type DeprecatedProject = {
   id: string;
   metaPtr: string | null;
-  owners: Array<string>;
   createdAtBlock: number;
   projectNumber: number;
   metadata: {

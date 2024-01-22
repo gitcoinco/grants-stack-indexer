@@ -42,7 +42,6 @@ export type ProjectTable = {
   registryAddress: Address;
   metadataCid: string | null;
   metadata: unknown | null;
-  ownerAddresses: Address[];
   createdAtBlock: bigint;
   tags: string[];
 };
@@ -50,6 +49,22 @@ export type ProjectTable = {
 export type Project = Selectable<ProjectTable>;
 export type NewProject = Insertable<ProjectTable>;
 export type PartialProject = Updateable<ProjectTable>;
+
+// In Allo V2 profile roles are emitted before a profile exists.
+// The role emitted is the profile id.
+// Once a profile is created we search for roles with that profile id
+// and add real project roles. After that we can remove the pending project roles.
+export type PendingProjectRoleTable = {
+  id?: number;
+  chainId: ChainId;
+  role: string;
+  address: Address;
+  createdAtBlock: bigint;
+};
+
+export type PendingProjectRole = Selectable<PendingProjectRoleTable>;
+export type NewPendingProjectRole = Insertable<PendingProjectRoleTable>;
+export type PartialPendingProjectRole = Updateable<PendingProjectRoleTable>;
 
 export type ProjectRoleNames = "owner" | "member";
 

@@ -21,6 +21,8 @@ import matchAmountUpdated, {
 } from "./matchAmountUpdated.js";
 import roundMetaPtrUpdated from "./roundMetaPtrUpdated.js";
 import applicationMetaPtrUpdated from "./applicationMetaPtrUpdated.js";
+import roleGranted from "./roleGranted.js";
+import roleRevoked from "./roleRevoked.js";
 import { convertFromUSD, convertToUSD } from "../../../prices/provider.js";
 
 enum ApplicationStatus {
@@ -95,7 +97,6 @@ export async function handleEvent(
             projectNumber: Number(event.params.projectID),
             metadataCid: null,
             metadata: null,
-            ownerAddresses: [parseAddress(event.params.owner)],
             createdAtBlock: event.blockNumber,
           },
         },
@@ -149,17 +150,6 @@ export async function handleEvent(
 
       return [
         {
-          type: "UpdateProject",
-          chainId,
-          projectId,
-          project: {
-            ownerAddresses: [
-              ...project.ownerAddresses,
-              parseAddress(event.params.owner),
-            ],
-          },
-        },
-        {
           type: "InsertProjectRole",
           projectRole: {
             chainId,
@@ -188,22 +178,42 @@ export async function handleEvent(
 
       return [
         {
-          type: "UpdateProject",
-          chainId,
-          projectId,
-          project: {
-            ownerAddresses: project.ownerAddresses.filter(
-              (owner) => owner !== parseAddress(event.params.owner)
-            ),
-          },
-        },
-        {
           type: "DeleteAllProjectRolesByRoleAndAddress",
           projectRole: {
             chainId,
             projectId,
             role: "owner",
             address: parseAddress(event.params.owner),
+          },
+        },
+      ];
+    }
+
+    // --- Program
+    case "ProgramCreated": {
+      const programAddress = parseAddress(event.params.programContractAddress);
+      const contract = "AlloV1/ProgramFactory/V1";
+
+      subscribeToContract({
+        contract,
+        address: programAddress,
+      });
+
+      return [
+        {
+          type: "InsertProject",
+          project: {
+            tags: ["allo-v1", "program"],
+            chainId,
+            registryAddress: parseAddress(
+              "0x0000000000000000000000000000000000000000"
+            ),
+            id: programAddress,
+            name: "",
+            projectNumber: 0,
+            metadataCid: null,
+            metadata: null,
+            createdAtBlock: event.blockNumber,
           },
         },
       ];
@@ -343,6 +353,14 @@ export async function handleEvent(
           priceProvider: priceProvider,
         }),
       ];
+    }
+
+    case "RoleGranted": {
+      return await roleGranted({ ...args, event });
+    }
+
+    case "RoleRevoked": {
+      return await roleRevoked({ ...args, event });
     }
 
     case "MatchAmountUpdated": {

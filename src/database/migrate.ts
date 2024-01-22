@@ -5,6 +5,7 @@ const BIGINT_TYPE = sql`decimal(78,0)`;
 
 const ADDRESS_TYPE = "text";
 const CHAIN_ID_TYPE = "integer";
+const PENDING_ROLE_TYPE = "text";
 
 export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   const ref = (name: string) => sql.table(`${schemaName}.${name}`);
@@ -53,11 +54,19 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("registryAddress", ADDRESS_TYPE)
     .addColumn("metadataCid", "text")
     .addColumn("metadata", "jsonb")
-    .addColumn("ownerAddresses", sql`text[]`)
     .addColumn("createdAtBlock", BIGINT_TYPE)
     .addColumn("tags", sql`text[]`)
 
     .addPrimaryKeyConstraint("projects_pkey", ["id", "chainId"])
+    .execute();
+
+  await schema
+    .createTable("pending_project_roles")
+    .addColumn("id", "serial", (col) => col.primaryKey())
+    .addColumn("chainId", CHAIN_ID_TYPE)
+    .addColumn("role", PENDING_ROLE_TYPE)
+    .addColumn("address", ADDRESS_TYPE)
+    .addColumn("createdAtBlock", BIGINT_TYPE)
     .execute();
 
   await schema
@@ -199,5 +208,10 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   E'@foreignKey ("round_id", "chain_id") references ${ref(
     "rounds"
   )}(id, chain_id)|@fieldName round|@foreignFieldName donations';
+
+  comment on table ${ref("project_roles")} is
+  E'@foreignKey ("project_id") references ${ref(
+    "projects"
+  )}(id)|@fieldName project|@foreignFieldName roles';
   `.execute(db);
 }

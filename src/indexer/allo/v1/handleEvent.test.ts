@@ -18,6 +18,10 @@ const addressTwo =
   "0x0000000000000000000000000000000000000002" as ChecksumAddress;
 const addressThree =
   "0x0000000000000000000000000000000000000004" as ChecksumAddress;
+const addressFour =
+  "0x0000000000000000000000000000000000000004" as ChecksumAddress;
+const addressFive =
+  "0x0000000000000000000000000000000000000005" as ChecksumAddress;
 
 const MOCK_PRICE_PROVIDER = new TestPriceProvider() as unknown as PriceProvider;
 
@@ -93,7 +97,6 @@ describe("handleEvent", () => {
           name: "",
           metadata: null,
           metadataCid: null,
-          ownerAddresses: [addressTwo],
           projectNumber: 1,
           registryAddress: addressOne,
           tags: ["allo-v1"],
@@ -155,7 +158,6 @@ describe("handleEvent", () => {
         chainId: 1,
         metadata: null,
         metadataCid: null,
-        ownerAddresses: [parseAddress(addressTwo)],
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
         createdAtBlock: 1n,
@@ -176,22 +178,9 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(changes).toHaveLength(2);
+      expect(changes).toHaveLength(1);
 
       expect(changes[0]).toEqual({
-        type: "UpdateProject",
-        chainId: 1,
-        projectId:
-          "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
-        project: {
-          ownerAddresses: [
-            parseAddress(addressTwo),
-            parseAddress(addressThree),
-          ],
-        },
-      });
-
-      expect(changes[1]).toEqual({
         type: "InsertProjectRole",
         projectRole: {
           chainId: 1,
@@ -206,7 +195,7 @@ describe("handleEvent", () => {
   });
 
   describe("OwnerRemoved", () => {
-    test("should add owner", async () => {
+    test("should remove owner", async () => {
       const project: Project = {
         id: "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
         name: "Project 1",
@@ -214,7 +203,6 @@ describe("handleEvent", () => {
         chainId: 1,
         metadata: null,
         metadataCid: null,
-        ownerAddresses: [parseAddress(addressTwo), parseAddress(addressThree)],
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
         createdAtBlock: 1n,
@@ -235,19 +223,9 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(changes).toHaveLength(2);
+      expect(changes).toHaveLength(1);
 
       expect(changes[0]).toEqual({
-        type: "UpdateProject",
-        chainId: 1,
-        projectId:
-          "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
-        project: {
-          ownerAddresses: [parseAddress(addressThree)],
-        },
-      });
-
-      expect(changes[1]).toEqual({
         type: "DeleteAllProjectRolesByRoleAndAddress",
         projectRole: {
           chainId: 1,
@@ -255,6 +233,214 @@ describe("handleEvent", () => {
             "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
           role: "owner",
           address: addressTwo,
+        },
+      });
+    });
+  });
+
+  describe("ProgramCreated", () => {
+    test("should insert a project tagged as program", async () => {
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          contractName: "AlloV1/ProgramFactory/V1",
+          name: "ProgramCreated",
+          params: {
+            programContractAddress: addressFour,
+            programImplementation: addressFive,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "InsertProject",
+        project: {
+          chainId: 1,
+          createdAtBlock: 1n,
+          id: addressFour,
+          name: "",
+          metadata: null,
+          metadataCid: null,
+          projectNumber: 0,
+          registryAddress: addressZero,
+          tags: ["allo-v1", "program"],
+        },
+      });
+    });
+  });
+
+  describe("Program: RoleGranted", () => {
+    test("should add an owner project role", async () => {
+      const project: Project = {
+        id: addressFour,
+        name: "",
+        tags: ["allo-v2"],
+        chainId: 1,
+        metadata: null,
+        metadataCid: null,
+        registryAddress: parseAddress(addressZero),
+        projectNumber: 1,
+        createdAtBlock: 1n,
+      };
+      MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
+
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/ProgramFactory/V1",
+          name: "RoleGranted",
+          params: {
+            role: "0x0000000000000000000000000000000000000000000000000000000000000000",
+            account: addressTwo,
+            sender: addressThree,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "InsertProjectRole",
+        projectRole: {
+          chainId: 1,
+          projectId: addressFour,
+          address: addressTwo,
+          role: "owner",
+          createdAtBlock: 1n,
+        },
+      });
+    });
+
+    test("should add a member project role", async () => {
+      const project: Project = {
+        id: addressFour,
+        name: "",
+        tags: ["allo-v2"],
+        chainId: 1,
+        metadata: null,
+        metadataCid: null,
+        registryAddress: parseAddress(addressZero),
+        projectNumber: 1,
+        createdAtBlock: 1n,
+      };
+      MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
+
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/ProgramFactory/V1",
+          name: "RoleGranted",
+          params: {
+            role: "0xaa630204f2780b6f080cc77cc0e9c0a5c21e92eb0c6771e709255dd27d6de132",
+            account: addressTwo,
+            sender: addressThree,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "InsertProjectRole",
+        projectRole: {
+          chainId: 1,
+          projectId: addressFour,
+          address: addressTwo,
+          role: "member",
+          createdAtBlock: 1n,
+        },
+      });
+    });
+  });
+
+  describe("Program: RoleRevoked", () => {
+    test("should remove the owner project role", async () => {
+      const project: Project = {
+        id: addressFour,
+        name: "",
+        tags: ["allo-v2"],
+        chainId: 1,
+        metadata: null,
+        metadataCid: null,
+        registryAddress: parseAddress(addressZero),
+        projectNumber: 1,
+        createdAtBlock: 1n,
+      };
+      MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
+
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/ProgramFactory/V1",
+          name: "RoleRevoked",
+          params: {
+            role: "0x0000000000000000000000000000000000000000000000000000000000000000",
+            account: addressTwo,
+            sender: addressThree,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "DeleteAllProjectRolesByRoleAndAddress",
+        projectRole: {
+          chainId: 1,
+          projectId: addressFour,
+          address: addressTwo,
+          role: "owner",
+        },
+      });
+    });
+
+    test("should remove the member project role", async () => {
+      const project: Project = {
+        id: addressFour,
+        name: "",
+        tags: ["allo-v2"],
+        chainId: 1,
+        metadata: null,
+        metadataCid: null,
+        registryAddress: parseAddress(addressZero),
+        projectNumber: 1,
+        createdAtBlock: 1n,
+      };
+      MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
+
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/ProgramFactory/V1",
+          name: "RoleRevoked",
+          params: {
+            role: "0xaa630204f2780b6f080cc77cc0e9c0a5c21e92eb0c6771e709255dd27d6de132",
+            account: addressTwo,
+            sender: addressThree,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "DeleteAllProjectRolesByRoleAndAddress",
+        projectRole: {
+          chainId: 1,
+          projectId: addressFour,
+          address: addressTwo,
+          role: "member",
         },
       });
     });
