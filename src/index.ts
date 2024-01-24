@@ -244,6 +244,7 @@ async function main(): Promise<void> {
         graphileBuildOptions: {
           pgOmitListSuffix: true,
           pgShortPk: true,
+          connectionFilterRelations: true,
         },
 
         // TODO: buy pro version?

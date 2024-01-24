@@ -30,10 +30,11 @@ export async function handleEvent(
             registryAddress: parseAddress(event.address),
             id: profileId,
             name: event.params.name,
-            projectNumber: 0,
+            projectNumber: null,
             metadataCid: metadataCid,
             metadata: metadata,
             createdAtBlock: event.blockNumber,
+            updatedAtBlock: event.blockNumber,
           },
         },
         {

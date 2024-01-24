@@ -339,8 +339,9 @@ describe("handleEvent", () => {
           metadata: null,
           metadataCid: null,
           registryAddress: parseAddress(addressZero),
-          projectNumber: 1,
+          projectNumber: null,
           createdAtBlock: 1n,
+          updatedAtBlock: 1n,
         };
         MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
 
@@ -414,8 +415,9 @@ describe("handleEvent", () => {
         metadata: null,
         metadataCid: null,
         registryAddress: parseAddress(addressZero),
-        projectNumber: 1,
+        projectNumber: null,
         createdAtBlock: 1n,
+        updatedAtBlock: 1n,
       };
       MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
 

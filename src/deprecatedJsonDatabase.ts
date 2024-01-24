@@ -114,7 +114,7 @@ export type DeprecatedProject = {
   id: string;
   metaPtr: string | null;
   createdAtBlock: number;
-  projectNumber: number;
+  projectNumber: number | null;
   metadata: {
     title: string;
     description: string;

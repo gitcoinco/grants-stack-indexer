@@ -55,6 +55,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("metadataCid", "text")
     .addColumn("metadata", "jsonb")
     .addColumn("createdAtBlock", BIGINT_TYPE)
+    .addColumn("updatedAtBlock", BIGINT_TYPE)
     .addColumn("tags", sql`text[]`)
 
     .addPrimaryKeyConstraint("projects_pkey", ["id", "chainId"])
