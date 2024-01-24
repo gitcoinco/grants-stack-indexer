@@ -232,7 +232,10 @@ async function main(): Promise<void> {
         disableDefaultMutations: true,
         dynamicJson: true,
         bodySizeLimit: "100kb", // response body limit
-        disableQueryLog: true,
+        // disableQueryLog: false,
+        // allowExplain: (req) => {
+        //   return true;
+        // },
         appendPlugins: [
           PgSimplifyInflectorPlugin.default,
           ConnectionFilterPlugin,
@@ -244,6 +247,20 @@ async function main(): Promise<void> {
         graphileBuildOptions: {
           pgOmitListSuffix: true,
           pgShortPk: true,
+          connectionFilterRelations: true,
+          connectionFilterUseListInflectors: true,
+          connectionFilterAllowedOperators: [
+            "isNull",
+            "equalTo",
+            "notEqualTo",
+            "lessThan",
+            "lessThanOrEqualTo",
+            "greaterThan",
+            "greaterThanOrEqualTo",
+            "in",
+            "notIn",
+            "contains",
+          ],
         },
 
         // TODO: buy pro version?

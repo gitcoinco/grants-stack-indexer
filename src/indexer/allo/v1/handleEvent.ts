@@ -98,6 +98,7 @@ export async function handleEvent(
             metadataCid: null,
             metadata: null,
             createdAtBlock: event.blockNumber,
+            updatedAtBlock: event.blockNumber,
           },
         },
         {
@@ -210,10 +211,11 @@ export async function handleEvent(
             ),
             id: programAddress,
             name: "",
-            projectNumber: 0,
+            projectNumber: null,
             metadataCid: null,
             metadata: null,
             createdAtBlock: event.blockNumber,
+            updatedAtBlock: event.blockNumber,
           },
         },
       ];

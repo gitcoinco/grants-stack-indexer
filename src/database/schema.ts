@@ -38,11 +38,12 @@ export type ProjectTable = {
   id: string;
   name: string;
   chainId: ChainId;
-  projectNumber: number;
+  projectNumber: number | null;
   registryAddress: Address;
   metadataCid: string | null;
   metadata: unknown | null;
   createdAtBlock: bigint;
+  updatedAtBlock: bigint;
   tags: string[];
 };
 

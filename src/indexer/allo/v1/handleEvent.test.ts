@@ -93,6 +93,7 @@ describe("handleEvent", () => {
         project: {
           chainId: 1,
           createdAtBlock: 1n,
+          updatedAtBlock: 1n,
           id: "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
           name: "",
           metadata: null,
@@ -161,6 +162,7 @@ describe("handleEvent", () => {
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
         createdAtBlock: 1n,
+        updatedAtBlock: 1n,
       };
 
       MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
@@ -206,6 +208,7 @@ describe("handleEvent", () => {
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
         createdAtBlock: 1n,
+        updatedAtBlock: 1n,
       };
 
       MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
@@ -260,11 +263,12 @@ describe("handleEvent", () => {
         project: {
           chainId: 1,
           createdAtBlock: 1n,
+          updatedAtBlock: 1n,
           id: addressFour,
           name: "",
           metadata: null,
           metadataCid: null,
-          projectNumber: 0,
+          projectNumber: null,
           registryAddress: addressZero,
           tags: ["allo-v1", "program"],
         },
@@ -284,6 +288,7 @@ describe("handleEvent", () => {
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
         createdAtBlock: 1n,
+        updatedAtBlock: 1n,
       };
       MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
 
@@ -327,6 +332,7 @@ describe("handleEvent", () => {
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
         createdAtBlock: 1n,
+        updatedAtBlock: 1n,
       };
       MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
 
@@ -372,6 +378,7 @@ describe("handleEvent", () => {
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
         createdAtBlock: 1n,
+        updatedAtBlock: 1n,
       };
       MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
 
@@ -414,6 +421,7 @@ describe("handleEvent", () => {
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
         createdAtBlock: 1n,
+        updatedAtBlock: 1n,
       };
       MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
 
