@@ -104,6 +104,7 @@ describe("handleEvent", () => {
             chainId: 1,
             name: "Project 1",
             createdAtBlock: 1n,
+            updatedAtBlock: 1n,
             id: "0x0001",
             metadata: {
               some: "metadata",
@@ -178,6 +179,7 @@ describe("handleEvent", () => {
             chainId: 1,
             name: "Project 1",
             createdAtBlock: 1n,
+            updatedAtBlock: 1n,
             id: "0x0001",
             metadata: {
               some: "metadata",
