@@ -73,20 +73,34 @@ export async function fetchPricesForRange({
 
       const body = (await res.json()) as
         | { prices: Array<[TimestampInMs, Price]> }
-        | { error: string };
+        | { error: string }
+        | { status: { error_code: number; error_message: string } };
+
+      if (res.status === 429) {
+        throw new Error(
+          `CoinGecko API rate limit exceeded, are you using an API key?`
+        );
+      }
 
       return body;
     },
     {
       retries: 4,
-      minTimeout: 1000,
-      maxTimeout: 10000,
+      minTimeout: 4000,
     }
   );
 
   if ("error" in responseBody) {
     throw new Error(
       `Error from CoinGecko API: ${JSON.stringify(responseBody)}`
+    );
+  }
+
+  if ("status" in responseBody) {
+    throw new Error(
+      `Error from CoinGecko API: ${JSON.stringify(
+        responseBody.status.error_message
+      )}`
     );
   }
 
