@@ -13,6 +13,7 @@ import {
   Round,
   NewApplication,
   NewRound,
+  Project,
 } from "../../../database/schema.js";
 import { Changeset } from "../../../database/index.js";
 import { Address, parseAddress } from "../../../address.js";
@@ -200,6 +201,20 @@ export async function handleEvent(
         address: programAddress,
       });
 
+      const [metaPtrResolved] = await Promise.all([
+        readContract({
+          contract,
+          address: event.params.programContractAddress,
+          functionName: "metaPtr",
+        }),
+      ]);
+
+      const programMetadataCid = metaPtrResolved[1];
+
+      const programMetadata = await ipfsGet<Project["metadata"]>(
+        programMetadataCid
+      );
+
       return [
         {
           type: "InsertProject",
@@ -213,7 +228,7 @@ export async function handleEvent(
             name: "",
             projectNumber: null,
             metadataCid: null,
-            metadata: null,
+            metadata: programMetadata,
             createdAtBlock: event.blockNumber,
             updatedAtBlock: event.blockNumber,
           },
@@ -304,8 +319,9 @@ export async function handleEvent(
       );
       const donationsEndTime = new Date(Number(roundEndTimeResolved) * 1000);
 
-      const roundMetadata =
-        await ipfsGet<Round["roundMetadata"]>(roundMetadataCid);
+      const roundMetadata = await ipfsGet<Round["roundMetadata"]>(
+        roundMetadataCid
+      );
 
       const applicationMetadata = await ipfsGet<Round["applicationMetadata"]>(
         applicationMetadataCid
