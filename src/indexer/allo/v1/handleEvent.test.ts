@@ -42,11 +42,6 @@ const MOCK_DB = {
 
 const MOCK_READ_CONTRACT: EventHandlerArgs<Indexer>["readContract"] = vi.fn();
 
-const MOCK_READ_CONTRACT_METADATA: EventHandlerArgs<Indexer>["readContract"] =
-  vi.fn(() =>
-    Promise.resolve({ protocol: 1, pointer: "metadatacid" })
-  ) as unknown as EventHandlerArgs<Indexer>["readContract"];
-
 const MOCK_SUBSCRIBE_TO_CONTRACT: EventHandlerArgs<Indexer>["subscribeToContract"] =
   vi.fn();
 
@@ -248,10 +243,15 @@ describe("handleEvent", () => {
   });
 
   describe("ProgramCreated", () => {
-    test.skip("should insert a project tagged as program", async () => {
+    test("should insert a project tagged as program", async () => {
       const changesets = await handleEvent({
         ...DEFAULT_ARGS,
-        readContract: MOCK_READ_CONTRACT_METADATA,
+        readContract: vi
+          .fn()
+          .mockResolvedValue([
+            1n,
+            "metadatacid",
+          ]) as unknown as EventHandlerArgs<Indexer>["readContract"],
         event: {
           ...DEFAULT_ARGS.event,
           contractName: "AlloV1/ProgramFactory/V1",

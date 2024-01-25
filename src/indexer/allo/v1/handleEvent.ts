@@ -211,9 +211,8 @@ export async function handleEvent(
 
       const programMetadataCid = metaPtrResolved[1];
 
-      const programMetadata = await ipfsGet<Project["metadata"]>(
-        programMetadataCid
-      );
+      const programMetadata =
+        await ipfsGet<Project["metadata"]>(programMetadataCid);
 
       return [
         {
@@ -319,9 +318,8 @@ export async function handleEvent(
       );
       const donationsEndTime = new Date(Number(roundEndTimeResolved) * 1000);
 
-      const roundMetadata = await ipfsGet<Round["roundMetadata"]>(
-        roundMetadataCid
-      );
+      const roundMetadata =
+        await ipfsGet<Round["roundMetadata"]>(roundMetadataCid);
 
       const applicationMetadata = await ipfsGet<Round["applicationMetadata"]>(
         applicationMetadataCid
