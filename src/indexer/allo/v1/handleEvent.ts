@@ -194,7 +194,7 @@ export async function handleEvent(
     // --- Program
     case "ProgramCreated": {
       const programAddress = parseAddress(event.params.programContractAddress);
-      const contract = "AlloV1/ProgramFactory/V1";
+      const contract = "AlloV1/ProgramImplementation/V1";
 
       subscribeToContract({
         contract,
