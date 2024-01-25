@@ -227,7 +227,7 @@ export async function handleEvent(
             id: programAddress,
             name: "",
             projectNumber: null,
-            metadataCid: null,
+            metadataCid: programMetadataCid,
             metadata: programMetadata,
             createdAtBlock: event.blockNumber,
             updatedAtBlock: event.blockNumber,
