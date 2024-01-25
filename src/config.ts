@@ -599,6 +599,15 @@ const CHAINS: Chain[] = [
           address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
         },
       },
+      {
+        code: "DATA",
+        address: "0x3a9A81d576d83FF21f26f325066054540720fC34",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x8f693ca8d21b157107184d29d398a8d082b38b76",
+        },
+      },
     ],
     subscriptions: [
       {
