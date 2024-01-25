@@ -13,6 +13,7 @@ import {
   Round,
   NewApplication,
   NewRound,
+  Project,
 } from "../../../database/schema.js";
 import { Changeset } from "../../../database/index.js";
 import { Address, parseAddress } from "../../../address.js";
@@ -193,12 +194,25 @@ export async function handleEvent(
     // --- Program
     case "ProgramCreated": {
       const programAddress = parseAddress(event.params.programContractAddress);
-      const contract = "AlloV1/ProgramFactory/V1";
+      const contract = "AlloV1/ProgramImplementation/V1";
 
       subscribeToContract({
         contract,
         address: programAddress,
       });
+
+      const [metaPtrResolved] = await Promise.all([
+        readContract({
+          contract,
+          address: event.params.programContractAddress,
+          functionName: "metaPtr",
+        }),
+      ]);
+
+      const programMetadataCid = metaPtrResolved[1];
+
+      const programMetadata =
+        await ipfsGet<Project["metadata"]>(programMetadataCid);
 
       return [
         {
@@ -212,8 +226,8 @@ export async function handleEvent(
             id: programAddress,
             name: "",
             projectNumber: null,
-            metadataCid: null,
-            metadata: null,
+            metadataCid: programMetadataCid,
+            metadata: programMetadata,
             createdAtBlock: event.blockNumber,
             updatedAtBlock: event.blockNumber,
           },
