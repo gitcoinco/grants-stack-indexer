@@ -260,8 +260,6 @@ async function main(): Promise<void> {
             "in",
             "notIn",
             "contains",
-            "anyEqualTo",
-            "anyNotEqualTo",
           ],
         },
 
