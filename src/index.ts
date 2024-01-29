@@ -417,9 +417,9 @@ async function catchupAndWatchChain(
     const indexer = createIndexer({
       contracts: abis,
       chain: {
-        maxBlockRange: 100000n,
         id: config.chain.id,
-        pollingIntervalMs: 20 * 1000,
+        maxBlockRange: 100000n,
+        pollingIntervalMs: 5 * 1000, // 5 seconds
         rpcClient: createHttpRpcClient({
           retryDelayMs: 1000,
           maxConcurrentRequests: 10,
