@@ -6,7 +6,6 @@ import {
   PendingProjectRoleTable,
   ProjectRoleTable,
   RoundTable,
-  RoundRoleTable,
   ApplicationTable,
   DonationTable,
   PriceTable,
@@ -27,7 +26,6 @@ interface Tables {
   pendingProjectRoles: PendingProjectRoleTable;
   projectRoles: ProjectRoleTable;
   rounds: RoundTable;
-  roundRoles: RoundRoleTable;
   applications: ApplicationTable;
   donations: DonationTable;
   prices: PriceTable;
@@ -84,16 +82,16 @@ export class Database {
       .raw(
         `
       UPDATE "${this.databaseSchemaName}"."rounds" AS r
-      SET
+      SET 
           total_amount_donated_in_usd = d.total_amount,
           total_donations_count = d.donation_count,
           unique_donors_count = d.unique_donors_count
       FROM (
-          SELECT
-              chain_id,
-              round_id,
-              SUM(amount_in_usd) AS total_amount,
-              COUNT(*) AS donation_count,
+          SELECT 
+              chain_id, 
+              round_id, 
+              SUM(amount_in_usd) AS total_amount, 
+              COUNT(*) AS donation_count, 
               COUNT(DISTINCT donor_address) AS unique_donors_count
           FROM ${donationsTableRef}
           GROUP BY chain_id, round_id
@@ -277,25 +275,6 @@ export class Database {
         break;
       }
 
-      case "InsertRoundRole": {
-        await this.#db
-          .insertInto("roundRoles")
-          .values(change.roundRole)
-          .execute();
-        break;
-      }
-
-      case "DeleteAllRoundRolesByRoleAndAddress": {
-        await this.#db
-          .deleteFrom("roundRoles")
-          .where("chainId", "=", change.roundRole.chainId)
-          .where("roundId", "=", change.roundRole.roundId)
-          .where("role", "=", change.roundRole.role)
-          .where("address", "=", change.roundRole.address)
-          .execute();
-        break;
-      }
-
       case "InsertApplication": {
         let application = change.application;
         if (application.statusSnapshots !== undefined) {
@@ -397,10 +376,9 @@ export class Database {
     return pendingProjectRole ?? null;
   }
 
-  async getProjectById(chainId: ChainId, projectId: string) {
+  async getProjectById(projectId: string) {
     const project = await this.#db
       .selectFrom("projects")
-      .where("chainId", "=", chainId)
       .where("id", "=", projectId)
       .selectAll()
       .executeTakeFirst();
