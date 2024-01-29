@@ -20,7 +20,7 @@ export default async function handleEvent(
     case "AlloV2/Registry/V1": {
       const account = parseAddress(event.params.account);
       const role = event.params.role.toLocaleLowerCase();
-      const project = await db.getProjectById(chainId, role);
+      const project = await db.getProjectById(role);
 
       // The role value for a member is the profileId in Allo V1
       // which is the project id in this database.

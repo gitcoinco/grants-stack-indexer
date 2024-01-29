@@ -34,20 +34,6 @@ export type Round = Selectable<RoundTable>;
 export type NewRound = Insertable<RoundTable>;
 export type PartialRound = Updateable<RoundTable>;
 
-export type RoundRoleNames = "admin" | "manager";
-
-export type RoundRoleTable = {
-  chainId: ChainId;
-  roundId: string;
-  address: Address;
-  role: RoundRoleNames;
-  createdAtBlock: bigint;
-};
-
-export type RoundRole = Selectable<RoundRoleTable>;
-export type NewRoundRole = Insertable<RoundRoleTable>;
-export type PartialRoundRole = Updateable<RoundRoleTable>;
-
 export type ProjectTable = {
   id: string;
   name: string;
