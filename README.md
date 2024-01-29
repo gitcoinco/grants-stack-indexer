@@ -14,6 +14,8 @@ Indexed chains are defined in [config.ts](src/config.ts).
 
 ## Setup
 
+**Requires Node 18 minimum.**
+
 Copy `.env.example` to `.env`, review and optionally customize it.
 
 To pick chains to index, set `INDEXED_CHAINS` to a comma-separated list of chain identifiers. Available chain identifiers can be found in `src/config.ts`.
