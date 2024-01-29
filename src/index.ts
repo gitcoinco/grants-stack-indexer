@@ -34,15 +34,80 @@ import { ethers } from "ethers";
 import TTLCache from "@isaacs/ttlcache";
 
 import abis from "./indexer/abis/index.js";
-import type { EventHandlerContext } from "./indexer/indexer.js";
+import type { EventHandlerContext, Indexer } from "./indexer/indexer.js";
 import { handleEvent as handleAlloV1Event } from "./indexer/allo/v1/handleEvent.js";
 import { handleEvent as handleAlloV2Event } from "./indexer/allo/v2/handleEvent.js";
 import { Database } from "./database/index.js";
 import { decodeJsonWithBigInts } from "./utils/index.js";
 import { Block } from "chainsauce/dist/cache.js";
 import { createPublicClient, http } from "viem";
+import { IndexerEvents } from "chainsauce/dist/indexer.js";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
+
+class RoundPruner {
+  #chainId: number;
+  #indexer: Indexer;
+  #logger: Logger;
+  #database: Database;
+
+  #intervalMs = 10 * 60 * 1000;
+
+  #timer: NodeJS.Timeout | null = null;
+
+  constructor(opts: {
+    chainId: number;
+    indexer: Indexer;
+    logger: Logger;
+    database: Database;
+  }) {
+    this.#chainId = opts.chainId;
+    this.#indexer = opts.indexer;
+    this.#logger = opts.logger;
+    this.#database = opts.database;
+  }
+
+  start() {
+    if (this.#timer !== null) {
+      throw new Error("Pruner already started");
+    }
+
+    this.#scheduleNextPrune();
+  }
+
+  stop() {
+    if (this.#timer === null) {
+      throw new Error("Pruner not started");
+    }
+
+    clearTimeout(this.#timer);
+    this.#timer = null;
+  }
+
+  #scheduleNextPrune() {
+    this.#timer = setTimeout(() => this.#prune(), this.#intervalMs);
+  }
+
+  async #prune(): Promise<void> {
+    const subscriptions = new Set(
+      this.#indexer.getSubscriptions().map((s) => s.contractAddress)
+    );
+
+    const endedRounds = await this.#database.getAllEndedChainRounds(
+      this.#chainId
+    );
+
+    for (const round of endedRounds) {
+      if (!subscriptions.has(round.id)) {
+        this.#logger.info({
+          msg: "pruning round",
+          roundId: round.id,
+        });
+        this.#indexer.unsubscribeFromContract({ address: round.id });
+      }
+    }
+  }
+}
 
 async function main(): Promise<void> {
   const config = getConfig();
@@ -392,20 +457,6 @@ async function catchupAndWatchChain(
 
     const indexerLogger = chainLogger.child({ subsystem: "DataUpdater" });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-    const throttledLogProgress = throttle(
-      5000,
-      (currentBlock: number, lastBlock: number, pendingEventsCount: number) => {
-        const progressPercentage = ((currentBlock / lastBlock) * 100).toFixed(
-          1
-        );
-
-        indexerLogger.info(
-          `${currentBlock}/${lastBlock} indexed (${progressPercentage}%) (pending events: ${pendingEventsCount})`
-        );
-      }
-    );
-
     const eventHandlerContext: EventHandlerContext = {
       chainId: config.chain.id,
       db,
@@ -486,13 +537,25 @@ async function catchupAndWatchChain(
 
     indexer.on(
       "progress",
-      ({ currentBlock, targetBlock, pendingEventsCount }) => {
-        throttledLogProgress(
-          Number(currentBlock),
-          Number(targetBlock),
-          pendingEventsCount
-        );
-      }
+      throttle<IndexerEvents["progress"]>(
+        5000,
+        ({ currentBlock, targetBlock, pendingEventsCount }) => {
+          const progressPercentage = (
+            (Number(currentBlock) / Number(targetBlock)) *
+            100
+          ).toFixed(1);
+
+          const subscriptions = indexer.getSubscriptions();
+
+          const activeSubscriptions = subscriptions.filter((sub) => {
+            return sub.toBlock === "latest" || sub.toBlock < targetBlock;
+          });
+
+          indexerLogger.info(
+            `${currentBlock}/${targetBlock} indexed (${progressPercentage}%) (pending events: ${pendingEventsCount}) (contracts: ${activeSubscriptions.length})`
+          );
+        }
+      )
     );
 
     for (const subscription of config.chain.subscriptions) {
@@ -528,6 +591,15 @@ async function catchupAndWatchChain(
       });
 
       indexer.watch();
+
+      const roundPruner = new RoundPruner({
+        chainId: config.chain.id,
+        database: db,
+        logger: chainLogger,
+        indexer,
+      });
+
+      roundPruner.start();
     }
 
     return db;

@@ -32,7 +32,7 @@
     "@teamawesome/tiny-batch": "^1.0.7",
     "async-retry": "^1.3.3",
     "better-sqlite3": "^8.6.0",
-    "chainsauce": "github:boudra/chainsauce#main",
+    "chainsauce": "github:gitcoinco/chainsauce#main",
     "cors": "^2.8.5",
     "csv-parser": "^3.0.0",
     "csv-writer": "^1.6.0",
