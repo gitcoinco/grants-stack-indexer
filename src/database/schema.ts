@@ -9,7 +9,7 @@ import {
 import { Address, Hex, ChainId } from "../types.js";
 
 export type RoundTable = {
-  id: Address;
+  id: Address | string;
   chainId: ChainId;
   matchAmount: bigint;
   matchTokenAddress: Address;
@@ -33,6 +33,22 @@ export type RoundTable = {
 export type Round = Selectable<RoundTable>;
 export type NewRound = Insertable<RoundTable>;
 export type PartialRound = Updateable<RoundTable>;
+
+// In Allo V2 rounds roles are emitted before a pool/round exists.
+// The role emitted is the bytes32(poolId).
+// Once a round is created we search for roles with that pool id
+// and add real round roles. After that we can remove the pending round roles.
+export type PendingRoundRoleTable = {
+  id?: number;
+  chainId: ChainId;
+  role: string;
+  address: Address;
+  createdAtBlock: bigint;
+};
+
+export type PendingRoundRole = Selectable<PendingRoundRoleTable>;
+export type NewPendingRoundRole = Insertable<PendingRoundRoleTable>;
+export type PartialPendingRoundRole = Updateable<PendingRoundRoleTable>;
 
 export type RoundRoleNames = "admin" | "manager";
 
