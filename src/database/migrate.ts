@@ -88,13 +88,26 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
       "address",
       "role",
     ])
-
     .execute();
 
   await schema
-    .createIndex("project_roles_unique_index")
-    .on("project_roles")
-    .columns(["chain_id", "project_id", "address", "role"])
+    .createType("round_role_name")
+    .asEnum(["admin", "manager"])
+    .execute();
+
+  await schema
+    .createTable("round_roles")
+    .addColumn("chainId", CHAIN_ID_TYPE)
+    .addColumn("roundId", "text")
+    .addColumn("address", ADDRESS_TYPE)
+    .addColumn("role", ref("round_role_name"))
+    .addColumn("createdAtBlock", BIGINT_TYPE)
+    .addPrimaryKeyConstraint("round_roles_pkey", [
+      "chainId",
+      "roundId",
+      "address",
+      "role",
+    ])
     .execute();
 
   await schema
