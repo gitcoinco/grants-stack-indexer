@@ -7,7 +7,7 @@ import { PROGRAM_ADMIN_ROLE, PROGRAM_OPERATOR_ROLE } from "./roles.js";
 export default async function handleEvent(
   args: EventHandlerArgs<
     Indexer,
-    "AlloV1/ProgramFactory/V1" | "AlloV1/RoundImplementation/V1",
+    "AlloV1/ProgramImplementation/V1" | "AlloV1/RoundImplementation/V1",
     "RoleGranted"
   >
 ): Promise<Changeset[]> {
@@ -18,7 +18,7 @@ export default async function handleEvent(
   } = args;
 
   switch (args.event.contractName) {
-    case "AlloV1/ProgramFactory/V1": {
+    case "AlloV1/ProgramImplementation/V1": {
       const programAddress = parseAddress(event.address);
       const project = await db.getProjectById(programAddress);
       if (project === null) {

@@ -304,7 +304,7 @@ describe("handleEvent", () => {
         event: {
           ...DEFAULT_ARGS.event,
           address: addressFour,
-          contractName: "AlloV1/ProgramFactory/V1",
+          contractName: "AlloV1/ProgramImplementation/V1",
           name: "RoleGranted",
           params: {
             role: "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -348,7 +348,7 @@ describe("handleEvent", () => {
         event: {
           ...DEFAULT_ARGS.event,
           address: addressFour,
-          contractName: "AlloV1/ProgramFactory/V1",
+          contractName: "AlloV1/ProgramImplementation/V1",
           name: "RoleGranted",
           params: {
             role: "0xaa630204f2780b6f080cc77cc0e9c0a5c21e92eb0c6771e709255dd27d6de132",
@@ -394,7 +394,7 @@ describe("handleEvent", () => {
         event: {
           ...DEFAULT_ARGS.event,
           address: addressFour,
-          contractName: "AlloV1/ProgramFactory/V1",
+          contractName: "AlloV1/ProgramImplementation/V1",
           name: "RoleRevoked",
           params: {
             role: "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -437,7 +437,7 @@ describe("handleEvent", () => {
         event: {
           ...DEFAULT_ARGS.event,
           address: addressFour,
-          contractName: "AlloV1/ProgramFactory/V1",
+          contractName: "AlloV1/ProgramImplementation/V1",
           name: "RoleRevoked",
           params: {
             role: "0xaa630204f2780b6f080cc77cc0e9c0a5c21e92eb0c6771e709255dd27d6de132",
