@@ -431,20 +431,6 @@ export class Database {
     return rounds;
   }
 
-  async getAllEndedChainRounds(chainId: ChainId) {
-    const rounds = await this.#db
-      .selectFrom("rounds")
-      .where("chainId", "=", chainId)
-      .where(
-        (eb) =>
-          sql`${eb.ref("donationsStartTime")} + INTERVAL '2 month' < NOW()`
-      )
-      .selectAll()
-      .execute();
-
-    return rounds;
-  }
-
   async getAllRoundApplications(chainId: ChainId, roundId: Address) {
     return await this.#db
       .selectFrom("applications")
