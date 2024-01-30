@@ -7,6 +7,7 @@ import {
   ProjectRole,
   NewRound,
   PartialRound,
+  NewPendingRoundRole,
   NewRoundRole,
   RoundRole,
   NewApplication,
@@ -71,6 +72,14 @@ export type DataChange =
       roundId: Address;
       applicationId: string;
       amountInUsd: number;
+    }
+  | {
+      type: "InsertPendingRoundRole";
+      pendingRoundRole: NewPendingRoundRole;
+    }
+  | {
+      type: "DeletePendingRoundRoles";
+      ids: number[];
     }
   | {
       type: "InsertRoundRole";
