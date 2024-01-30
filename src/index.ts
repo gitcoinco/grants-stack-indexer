@@ -34,7 +34,7 @@ import { ethers } from "ethers";
 import TTLCache from "@isaacs/ttlcache";
 
 import abis from "./indexer/abis/index.js";
-import type { EventHandlerContext, Indexer } from "./indexer/indexer.js";
+import type { EventHandlerContext } from "./indexer/indexer.js";
 import { handleEvent as handleAlloV1Event } from "./indexer/allo/v1/handleEvent.js";
 import { handleEvent as handleAlloV2Event } from "./indexer/allo/v2/handleEvent.js";
 import { Database } from "./database/index.js";
@@ -42,72 +42,9 @@ import { decodeJsonWithBigInts } from "./utils/index.js";
 import { Block } from "chainsauce/dist/cache.js";
 import { createPublicClient, http } from "viem";
 import { IndexerEvents } from "chainsauce/dist/indexer.js";
+import { ContractSubscriptionPruner } from "./contractSubscriptionPruner.js";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
-
-class RoundPruner {
-  #chainId: number;
-  #indexer: Indexer;
-  #logger: Logger;
-  #database: Database;
-
-  #intervalMs = 10 * 60 * 1000;
-
-  #timer: NodeJS.Timeout | null = null;
-
-  constructor(opts: {
-    chainId: number;
-    indexer: Indexer;
-    logger: Logger;
-    database: Database;
-  }) {
-    this.#chainId = opts.chainId;
-    this.#indexer = opts.indexer;
-    this.#logger = opts.logger;
-    this.#database = opts.database;
-  }
-
-  start() {
-    if (this.#timer !== null) {
-      throw new Error("Pruner already started");
-    }
-
-    this.#scheduleNextPrune();
-  }
-
-  stop() {
-    if (this.#timer === null) {
-      throw new Error("Pruner not started");
-    }
-
-    clearTimeout(this.#timer);
-    this.#timer = null;
-  }
-
-  #scheduleNextPrune() {
-    this.#timer = setTimeout(() => this.#prune(), this.#intervalMs);
-  }
-
-  async #prune(): Promise<void> {
-    const subscriptions = new Set(
-      this.#indexer.getSubscriptions().map((s) => s.contractAddress)
-    );
-
-    const endedRounds = await this.#database.getAllEndedChainRounds(
-      this.#chainId
-    );
-
-    for (const round of endedRounds) {
-      if (!subscriptions.has(round.id)) {
-        this.#logger.info({
-          msg: "pruning round",
-          roundId: round.id,
-        });
-        this.#indexer.unsubscribeFromContract({ address: round.id });
-      }
-    }
-  }
-}
 
 async function main(): Promise<void> {
   const config = getConfig();
@@ -465,18 +402,20 @@ async function catchupAndWatchChain(
       logger: indexerLogger,
     };
 
+    const rpcClient = createHttpRpcClient({
+      retryDelayMs: 1000,
+      maxConcurrentRequests: 10,
+      maxRetries: 3,
+      url: config.chain.rpc,
+    });
+
     const indexer = createIndexer({
       contracts: abis,
       chain: {
         id: config.chain.id,
         maxBlockRange: 100000n,
         pollingIntervalMs: 5 * 1000, // 5 seconds
-        rpcClient: createHttpRpcClient({
-          retryDelayMs: 1000,
-          maxConcurrentRequests: 10,
-          maxRetries: 3,
-          url: config.chain.rpc,
-        }),
+        rpcClient,
       },
       context: eventHandlerContext,
       subscriptionStore: config.subscriptionStore,
@@ -592,14 +531,13 @@ async function catchupAndWatchChain(
 
       indexer.watch();
 
-      const roundPruner = new RoundPruner({
-        chainId: config.chain.id,
-        database: db,
+      const contractSubscriptionPruner = new ContractSubscriptionPruner({
+        client: rpcClient,
         logger: chainLogger,
         indexer,
       });
 
-      roundPruner.start();
+      contractSubscriptionPruner.start();
     }
 
     return db;

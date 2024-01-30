@@ -436,7 +436,8 @@ export class Database {
       .selectFrom("rounds")
       .where("chainId", "=", chainId)
       .where(
-        (eb) => sql`${eb.ref("donationsEndTime")} + INTERVAL '2 month' > NOW()`
+        (eb) =>
+          sql`${eb.ref("donationsStartTime")} + INTERVAL '2 month' < NOW()`
       )
       .selectAll()
       .execute();

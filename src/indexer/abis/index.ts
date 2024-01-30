@@ -19,7 +19,7 @@ import DirectPayoutStrategyImplementationV2 from "./allo-v1/v2/DirectPayoutStrat
 // V2
 import AlloV2Registry from "./allo-v2/Registry.js";
 
-export default {
+const abis = {
   "AlloV1/ProjectRegistry/V1": ProjectRegistryV1,
   "AlloV1/ProjectRegistry/V2": ProjectRegistryV2,
   "AlloV1/ProgramFactory/V1": ProgramFactoryV1,
@@ -42,3 +42,6 @@ export default {
 
   "AlloV2/Registry/V1": AlloV2Registry,
 } as const;
+
+export default abis;
+export type ContractName = keyof typeof abis;
