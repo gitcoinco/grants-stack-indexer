@@ -41,6 +41,8 @@ import { Database } from "./database/index.js";
 import { decodeJsonWithBigInts } from "./utils/index.js";
 import { Block } from "chainsauce/dist/cache.js";
 import { createPublicClient, http } from "viem";
+import { IndexerEvents } from "chainsauce/dist/indexer.js";
+import { ContractSubscriptionPruner } from "./contractSubscriptionPruner.js";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
 
@@ -392,20 +394,6 @@ async function catchupAndWatchChain(
 
     const indexerLogger = chainLogger.child({ subsystem: "DataUpdater" });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-    const throttledLogProgress = throttle(
-      5000,
-      (currentBlock: number, lastBlock: number, pendingEventsCount: number) => {
-        const progressPercentage = ((currentBlock / lastBlock) * 100).toFixed(
-          1
-        );
-
-        indexerLogger.info(
-          `${currentBlock}/${lastBlock} indexed (${progressPercentage}%) (pending events: ${pendingEventsCount})`
-        );
-      }
-    );
-
     const eventHandlerContext: EventHandlerContext = {
       chainId: config.chain.id,
       db,
@@ -414,18 +402,20 @@ async function catchupAndWatchChain(
       logger: indexerLogger,
     };
 
+    const rpcClient = createHttpRpcClient({
+      retryDelayMs: 1000,
+      maxConcurrentRequests: 10,
+      maxRetries: 3,
+      url: config.chain.rpc,
+    });
+
     const indexer = createIndexer({
       contracts: abis,
       chain: {
-        maxBlockRange: 100000n,
         id: config.chain.id,
-        pollingIntervalMs: 20 * 1000,
-        rpcClient: createHttpRpcClient({
-          retryDelayMs: 1000,
-          maxConcurrentRequests: 10,
-          maxRetries: 3,
-          url: config.chain.rpc,
-        }),
+        maxBlockRange: 100000n,
+        pollingIntervalMs: 5 * 1000, // 5 seconds
+        rpcClient,
       },
       context: eventHandlerContext,
       subscriptionStore: config.subscriptionStore,
@@ -486,13 +476,25 @@ async function catchupAndWatchChain(
 
     indexer.on(
       "progress",
-      ({ currentBlock, targetBlock, pendingEventsCount }) => {
-        throttledLogProgress(
-          Number(currentBlock),
-          Number(targetBlock),
-          pendingEventsCount
-        );
-      }
+      throttle<IndexerEvents["progress"]>(
+        5000,
+        ({ currentBlock, targetBlock, pendingEventsCount }) => {
+          const progressPercentage = (
+            (Number(currentBlock) / Number(targetBlock)) *
+            100
+          ).toFixed(1);
+
+          const subscriptions = indexer.getSubscriptions();
+
+          const activeSubscriptions = subscriptions.filter((sub) => {
+            return sub.toBlock === "latest" || sub.toBlock < targetBlock;
+          });
+
+          indexerLogger.info(
+            `${currentBlock}/${targetBlock} indexed (${progressPercentage}%) (pending events: ${pendingEventsCount}) (contracts: ${activeSubscriptions.length})`
+          );
+        }
+      )
     );
 
     for (const subscription of config.chain.subscriptions) {
@@ -528,6 +530,14 @@ async function catchupAndWatchChain(
       });
 
       indexer.watch();
+
+      const contractSubscriptionPruner = new ContractSubscriptionPruner({
+        client: rpcClient,
+        logger: chainLogger,
+        indexer,
+      });
+
+      contractSubscriptionPruner.start();
     }
 
     return db;
