@@ -41,6 +41,8 @@ const MOCK_DB = {
 const MOCK_READ_CONTRACT: EventHandlerArgs<Indexer>["readContract"] = vi.fn();
 const MOCK_SUBSCRIBE_TO_CONTRACT: EventHandlerArgs<Indexer>["subscribeToContract"] =
   vi.fn();
+const MOCK_UNSUBSCRIBE_FROM_CONTRACT: EventHandlerArgs<Indexer>["unsubscribeFromContract"] =
+  vi.fn();
 
 const DEFAULT_ARGS = {
   chainId: 1,
@@ -54,6 +56,7 @@ const DEFAULT_ARGS = {
     params: {},
   },
   subscribeToContract: MOCK_SUBSCRIBE_TO_CONTRACT,
+  unsubscribeFromContract: MOCK_UNSUBSCRIBE_FROM_CONTRACT,
   readContract: MOCK_READ_CONTRACT,
   context: {
     priceProvider: MOCK_PRICE_PROVIDER,
