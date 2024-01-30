@@ -27,7 +27,7 @@ export default async function handleEvent(
       }
 
       const account = parseAddress(event.params.account);
-      const project = await db.getProjectById(role);
+      const project = await db.getProjectById(chainId, role);
       // The member role for an Allo V2 profile, is the profileId itself.
       // If a project exists with that id, we create the member role
       // If it doesn't exists we create a pending project role. This can happens

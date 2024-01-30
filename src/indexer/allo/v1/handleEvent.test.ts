@@ -7,7 +7,7 @@ import { Database } from "../../../database/index.js";
 import { EventHandlerArgs } from "chainsauce";
 import { Indexer } from "../.././indexer.js";
 import { Address as ChecksumAddress, Hex } from "viem";
-import { Project } from "../../../database/schema.js";
+import { Project, Round } from "../../../database/schema.js";
 import { parseAddress } from "../../../address.js";
 
 const addressZero =
@@ -287,12 +287,12 @@ describe("handleEvent", () => {
     });
   });
 
-  describe("Program: RoleGranted", () => {
+  describe("Allo V1 Program: RoleGranted", () => {
     test("should add an owner project role", async () => {
       const project: Project = {
         id: addressFour,
         name: "",
-        tags: ["allo-v2"],
+        tags: ["allo-v1"],
         chainId: 1,
         metadata: null,
         metadataCid: null,
@@ -377,7 +377,7 @@ describe("handleEvent", () => {
     });
   });
 
-  describe("Program: RoleRevoked", () => {
+  describe("Allo V1 Program: RoleRevoked", () => {
     test("should remove the owner project role", async () => {
       const project: Project = {
         id: addressFour,
@@ -461,6 +461,409 @@ describe("handleEvent", () => {
           address: addressTwo,
           role: "member",
         },
+      });
+    });
+  });
+
+  describe("Allo V1 RoundImplementationV1: RoleGranted", () => {
+    test("should add an owner project role", async () => {
+      const round: Round = {
+        id: parseAddress(addressFour),
+        chainId: 1,
+        matchAmount: 0n,
+        matchTokenAddress: parseAddress(addressZero),
+        matchAmountInUsd: 0,
+        applicationMetadataCid: "",
+        applicationMetadata: null,
+        roundMetadataCid: "",
+        roundMetadata: {},
+        applicationsStartTime: null,
+        applicationsEndTime: null,
+        donationsStartTime: null,
+        donationsEndTime: null,
+        createdAtBlock: 1n,
+        updatedAtBlock: 2n,
+        totalAmountDonatedInUsd: 0,
+        totalDonationsCount: 0,
+        uniqueDonorsCount: 0,
+        tags: [],
+      };
+      MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
+
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/RoundImplementation/V1",
+          name: "RoleGranted",
+          params: {
+            role: "0x0000000000000000000000000000000000000000000000000000000000000000",
+            account: addressTwo,
+            sender: addressThree,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "InsertRoundRole",
+        roundRole: {
+          chainId: 1,
+          roundId: addressFour,
+          address: addressTwo,
+          role: "admin",
+          createdAtBlock: 1n,
+        },
+      });
+    });
+
+    test("should add a member project role", async () => {
+      const round: Round = {
+        id: parseAddress(addressFour),
+        chainId: 1,
+        matchAmount: 0n,
+        matchTokenAddress: parseAddress(addressZero),
+        matchAmountInUsd: 0,
+        applicationMetadataCid: "",
+        applicationMetadata: null,
+        roundMetadataCid: "",
+        roundMetadata: {},
+        applicationsStartTime: null,
+        applicationsEndTime: null,
+        donationsStartTime: null,
+        donationsEndTime: null,
+        createdAtBlock: 1n,
+        updatedAtBlock: 2n,
+        totalAmountDonatedInUsd: 0,
+        totalDonationsCount: 0,
+        uniqueDonorsCount: 0,
+        tags: [],
+      };
+      MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
+
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/RoundImplementation/V1",
+          name: "RoleGranted",
+          params: {
+            role: "0xec61da14b5abbac5c5fda6f1d57642a264ebd5d0674f35852829746dfb8174a5",
+            account: addressTwo,
+            sender: addressThree,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "InsertRoundRole",
+        roundRole: {
+          chainId: 1,
+          roundId: addressFour,
+          address: addressTwo,
+          role: "manager",
+          createdAtBlock: 1n,
+        },
+      });
+    });
+  });
+
+  describe("Allo V1 RoundImplementationV2: RoleGranted", () => {
+    test("should add an owner project role", async () => {
+      const round: Round = {
+        id: parseAddress(addressFour),
+        chainId: 1,
+        matchAmount: 0n,
+        matchTokenAddress: parseAddress(addressZero),
+        matchAmountInUsd: 0,
+        applicationMetadataCid: "",
+        applicationMetadata: null,
+        roundMetadataCid: "",
+        roundMetadata: {},
+        applicationsStartTime: null,
+        applicationsEndTime: null,
+        donationsStartTime: null,
+        donationsEndTime: null,
+        createdAtBlock: 1n,
+        updatedAtBlock: 2n,
+        totalAmountDonatedInUsd: 0,
+        totalDonationsCount: 0,
+        uniqueDonorsCount: 0,
+        tags: [],
+      };
+      MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
+
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/RoundImplementation/V2",
+          name: "RoleGranted",
+          params: {
+            role: "0x0000000000000000000000000000000000000000000000000000000000000000",
+            account: addressTwo,
+            sender: addressThree,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "InsertRoundRole",
+        roundRole: {
+          chainId: 1,
+          roundId: addressFour,
+          address: addressTwo,
+          role: "admin",
+          createdAtBlock: 1n,
+        },
+      });
+    });
+
+    test("should add a member project role", async () => {
+      const round: Round = {
+        id: parseAddress(addressFour),
+        chainId: 1,
+        matchAmount: 0n,
+        matchTokenAddress: parseAddress(addressZero),
+        matchAmountInUsd: 0,
+        applicationMetadataCid: "",
+        applicationMetadata: null,
+        roundMetadataCid: "",
+        roundMetadata: {},
+        applicationsStartTime: null,
+        applicationsEndTime: null,
+        donationsStartTime: null,
+        donationsEndTime: null,
+        createdAtBlock: 1n,
+        updatedAtBlock: 2n,
+        totalAmountDonatedInUsd: 0,
+        totalDonationsCount: 0,
+        uniqueDonorsCount: 0,
+        tags: [],
+      };
+      MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
+
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/RoundImplementation/V2",
+          name: "RoleGranted",
+          params: {
+            role: "0xec61da14b5abbac5c5fda6f1d57642a264ebd5d0674f35852829746dfb8174a5",
+            account: addressTwo,
+            sender: addressThree,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "InsertRoundRole",
+        roundRole: {
+          chainId: 1,
+          roundId: addressFour,
+          address: addressTwo,
+          role: "manager",
+          createdAtBlock: 1n,
+        },
+      });
+    });
+  });
+
+  describe("Allo V1 RoundImplementationV1: RoleRevoked", () => {
+    test("should remove an owner project role", async () => {
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/RoundImplementation/V1",
+          name: "RoleRevoked",
+          params: {
+            role: "0x0000000000000000000000000000000000000000000000000000000000000000",
+            account: addressTwo,
+            sender: addressThree,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "DeleteAllRoundRolesByRoleAndAddress",
+        roundRole: {
+          chainId: 1,
+          roundId: addressFour,
+          address: addressTwo,
+          role: "admin",
+        },
+      });
+    });
+
+    test("should remove a manager project role", async () => {
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/RoundImplementation/V1",
+          name: "RoleRevoked",
+          params: {
+            role: "0xec61da14b5abbac5c5fda6f1d57642a264ebd5d0674f35852829746dfb8174a5",
+            account: addressTwo,
+            sender: addressThree,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "DeleteAllRoundRolesByRoleAndAddress",
+        roundRole: {
+          chainId: 1,
+          roundId: addressFour,
+          address: addressTwo,
+          role: "manager",
+        },
+      });
+    });
+  });
+
+  describe("Allo V1 RoundImplementationV2: RoleRevoked", () => {
+    test("should remove an owner project role", async () => {
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/RoundImplementation/V2",
+          name: "RoleRevoked",
+          params: {
+            role: "0x0000000000000000000000000000000000000000000000000000000000000000",
+            account: addressTwo,
+            sender: addressThree,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "DeleteAllRoundRolesByRoleAndAddress",
+        roundRole: {
+          chainId: 1,
+          roundId: addressFour,
+          address: addressTwo,
+          role: "admin",
+        },
+      });
+    });
+
+    test("should remove a manager project role", async () => {
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/RoundImplementation/V2",
+          name: "RoleRevoked",
+          params: {
+            role: "0xec61da14b5abbac5c5fda6f1d57642a264ebd5d0674f35852829746dfb8174a5",
+            account: addressTwo,
+            sender: addressThree,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "DeleteAllRoundRolesByRoleAndAddress",
+        roundRole: {
+          chainId: 1,
+          roundId: addressFour,
+          address: addressTwo,
+          role: "manager",
+        },
+      });
+    });
+  });
+
+  describe("RoundCreated", () => {
+    test("should insert a new round", async () => {
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        readContract: vi.fn().mockImplementation(({ functionName }) => {
+          switch (functionName) {
+            case "matchAmount":
+              return 0n;
+            case "roundMetaPtr":
+              return [0, "test-cid"];
+            case "applicationMetaPtr":
+              return [0, "test-cid"];
+            case "token":
+              return addressZero;
+            default:
+              return undefined;
+          }
+        }),
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/RoundFactory/V2",
+          name: "RoundCreated",
+          params: {
+            roundAddress: addressTwo,
+            ownedBy: addressThree,
+            roundImplementation: addressZero,
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(2);
+
+      expect(changesets[0]).toEqual({
+        type: "InsertRound",
+        round: {
+          chainId: 1,
+          id: "0x0000000000000000000000000000000000000002",
+          tags: ["allo-v1"],
+          totalDonationsCount: 0,
+          totalAmountDonatedInUsd: 0,
+          uniqueDonorsCount: 0,
+          matchTokenAddress: "0x0000000000000000000000000000000000000000",
+          matchAmount: 0n,
+          matchAmountInUsd: 0,
+          applicationMetadataCid: "test-cid",
+          applicationMetadata: { some: "metadata" },
+          roundMetadataCid: "test-cid",
+          roundMetadata: { some: "metadata" },
+          applicationsStartTime: null,
+          applicationsEndTime: null,
+          donationsStartTime: null,
+          donationsEndTime: null,
+          createdAtBlock: 1n,
+          updatedAtBlock: 1n,
+        },
+      });
+
+      expect(changesets[1]).toEqual({
+        type: "UpdateRound",
+        roundId: addressTwo,
+        chainId: 1,
+        round: { updatedAtBlock: 1n, matchAmount: 0n, matchAmountInUsd: 0 },
       });
     });
   });
