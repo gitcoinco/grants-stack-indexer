@@ -407,13 +407,18 @@ async function catchupAndWatchChain(
       maxConcurrentRequests: 10,
       maxRetries: 3,
       url: config.chain.rpc,
+      onRequest({ method, params }) {
+        chainLogger.trace({ msg: `RPC Request ${method}`, params });
+      },
     });
 
     const indexer = createIndexer({
       contracts: abis,
       chain: {
         id: config.chain.id,
-        maxBlockRange: 100000n,
+        maxBlockRange: config.chain.maxGetLogsRange
+          ? BigInt(config.chain.maxGetLogsRange)
+          : 100000n,
         pollingIntervalMs: 5 * 1000, // 5 seconds
         rpcClient,
       },
