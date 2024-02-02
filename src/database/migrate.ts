@@ -36,6 +36,11 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("createdAtBlock", BIGINT_TYPE)
     .addColumn("updatedAtBlock", BIGINT_TYPE)
 
+    // POOL_MANAGER_ROLE = bytes32(poolId);
+    .addColumn("managerRole", "text")
+    // POOL_ADMIN_ROLE = keccak256(abi.encodePacked(poolId, "admin"));
+    .addColumn("adminRole", "text")
+
     // aggregates
 
     .addColumn("totalAmountDonatedInUSD", "real")

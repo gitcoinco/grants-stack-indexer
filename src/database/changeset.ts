@@ -1,4 +1,4 @@
-import { ChainId, Address } from "../types.js";
+import { ChainId, Address, Hex } from "../types.js";
 import {
   NewProject,
   PartialProject,
@@ -57,7 +57,7 @@ export type DataChange =
   | {
       type: "UpdateRound";
       chainId: ChainId;
-      roundId: Address;
+      roundId: Address | Hex;
       round: PartialRound;
     }
   | {

@@ -9,7 +9,7 @@ import {
 import { Address, Hex, ChainId } from "../types.js";
 
 export type RoundTable = {
-  id: Address | string;
+  id: Address | Hex;
   chainId: ChainId;
   matchAmount: bigint;
   matchTokenAddress: Address;
@@ -27,6 +27,9 @@ export type RoundTable = {
   totalAmountDonatedInUsd: number;
   totalDonationsCount: number;
   uniqueDonorsCount: number;
+  managerRole: string;
+  adminRole: string;
+
   tags: string[];
 };
 
