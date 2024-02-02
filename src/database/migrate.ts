@@ -96,6 +96,15 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .execute();
 
   await schema
+    .createTable("pending_round_roles")
+    .addColumn("id", "serial", (col) => col.primaryKey())
+    .addColumn("chainId", CHAIN_ID_TYPE)
+    .addColumn("role", PENDING_ROLE_TYPE)
+    .addColumn("address", ADDRESS_TYPE)
+    .addColumn("createdAtBlock", BIGINT_TYPE)
+    .execute();
+
+  await schema
     .createType("round_role_name")
     .asEnum(["admin", "manager"])
     .execute();
