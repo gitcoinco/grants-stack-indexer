@@ -57,7 +57,7 @@ export type DataChange =
   | {
       type: "UpdateRound";
       chainId: ChainId;
-      roundId: Address | Hex;
+      roundId: Address | string;
       round: PartialRound;
     }
   | {

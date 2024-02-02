@@ -1,12 +1,36 @@
 import { EventHandlerArgs } from "chainsauce";
+import { ethers } from "ethers";
 import type { Indexer } from "../../indexer.js";
 import { ProjectTable, NewRound } from "../../../database/schema.js";
 import { Changeset } from "../../../database/index.js";
 import { parseAddress } from "../../../address.js";
-import { parseHex } from "../../../hex.js";
 import roleGranted from "./roleGranted.js";
 import roleRevoked from "./roleRevoked.js";
 import { fetchPoolMetadata } from "./parsePoolMetadata.js";
+
+function padBytes32Hex(s: string): string {
+  if (s.length > 64) {
+    return s;
+  }
+
+  const padding = 64 - s.length;
+  let hex = s;
+  hex = "0".repeat(padding) + hex;
+  return "0x" + hex;
+}
+
+function generateRoundRoles(poolId: string) {
+  // POOL_MANAGER_ROLE = bytes32(poolId);
+  const managerRole = padBytes32Hex(poolId);
+
+  // POOL_ADMIN_ROLE = keccak256(abi.encodePacked(poolId, "admin"));
+  const adminRawRole = ethers.utils.solidityPack(
+    ["uint256", "string"],
+    [poolId, "admin"]
+  );
+  const adminRole = ethers.utils.solidityKeccak256(["bytes"], [adminRawRole]);
+  return { managerRole, adminRole };
+}
 
 export async function handleEvent(
   args: EventHandlerArgs<Indexer>
@@ -91,9 +115,12 @@ export async function handleEvent(
         metadataPointer
       );
 
+      const poolId = event.params.poolId.toString();
+      const { managerRole, adminRole } = generateRoundRoles(poolId);
+
       const newRound: NewRound = {
         chainId,
-        id: parseHex(event.params.poolId.toString()),
+        id: poolId,
         tags: ["allo-v2"],
         totalDonationsCount: 0,
         totalAmountDonatedInUsd: 0,
@@ -117,8 +144,8 @@ export async function handleEvent(
         donationsEndTime: isNaN(donationsEndTime.getTime())
           ? null
           : donationsEndTime,
-        managerRole: "",
-        adminRole: "",
+        managerRole,
+        adminRole,
         createdAtBlock: event.blockNumber,
         updatedAtBlock: event.blockNumber,
       };
