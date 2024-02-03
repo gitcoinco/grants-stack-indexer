@@ -7,6 +7,7 @@ import { parseAddress } from "../../../address.js";
 import roleGranted from "./roleGranted.js";
 import roleRevoked from "./roleRevoked.js";
 import { fetchPoolMetadata } from "./parsePoolMetadata.js";
+import { extractStrategyFromId } from "./strategy.js";
 
 function padBytes32Hex(s: string): string {
   if (s.length > 64) {
@@ -38,6 +39,7 @@ export async function handleEvent(
   const {
     chainId,
     event,
+    readContract,
     context: { db, ipfsGet },
   } = args;
 
@@ -104,11 +106,6 @@ export async function handleEvent(
     }
 
     case "PoolCreated": {
-      const applicationsStartTime = new Date();
-      const applicationsEndTime = new Date();
-      const donationsStartTime = new Date();
-      const donationsEndTime = new Date();
-
       const { pointer: metadataPointer } = event.params.metadata;
       const { roundMetadata, applicationMetadata } = await fetchPoolMetadata(
         ipfsGet,
@@ -117,6 +114,67 @@ export async function handleEvent(
 
       const poolId = event.params.poolId.toString();
       const { managerRole, adminRole } = generateRoundRoles(poolId);
+
+      const strategyAddress = event.params.strategy;
+
+      const strategyId = await readContract({
+        contract: "AlloV2/IStrategy/V1",
+        address: strategyAddress,
+        functionName: "getStrategyId",
+      });
+
+      const strategy = extractStrategyFromId(strategyId);
+
+      let applicationsStartTime = new Date();
+      let applicationsEndTime = new Date();
+      let donationsStartTime = new Date();
+      let donationsEndTime = new Date();
+
+      if (
+        strategy !== null &&
+        strategy.name ===
+          "allov2.DonationVotingMerkleDistributionDirectTransferStrategy"
+      ) {
+        const contract =
+          "AlloV2/DonationVotingMerkleDistributionDirectTransferStrategy/V1";
+        const [
+          registrationStartTimeResolved,
+          registrationEndTimeResolved,
+          allocationStartTimeResolved,
+          allocationEndTimeResolved,
+        ] = await Promise.all([
+          await readContract({
+            contract,
+            address: strategyAddress,
+            functionName: "registrationStartTime",
+          }),
+          await readContract({
+            contract,
+            address: strategyAddress,
+            functionName: "registrationEndTime",
+          }),
+          await readContract({
+            contract,
+            address: strategyAddress,
+            functionName: "allocationStartTime",
+          }),
+          await readContract({
+            contract,
+            address: strategyAddress,
+            functionName: "allocationEndTime",
+          }),
+        ]);
+        applicationsStartTime = new Date(
+          Number(registrationStartTimeResolved) * 1000
+        );
+        applicationsEndTime = new Date(
+          Number(registrationEndTimeResolved) * 1000
+        );
+        donationsStartTime = new Date(
+          Number(allocationStartTimeResolved) * 1000
+        );
+        donationsEndTime = new Date(Number(allocationEndTimeResolved) * 1000);
+      }
 
       const newRound: NewRound = {
         chainId,
@@ -128,9 +186,9 @@ export async function handleEvent(
         matchTokenAddress: parseAddress(event.params.token),
         matchAmount: event.params.amount,
         matchAmountInUsd: 0,
-        applicationMetadataCid: "",
+        applicationMetadataCid: metadataPointer,
         applicationMetadata: applicationMetadata ?? {},
-        roundMetadataCid: "",
+        roundMetadataCid: metadataPointer,
         roundMetadata: roundMetadata ?? {},
         applicationsStartTime: isNaN(applicationsStartTime.getTime())
           ? null
@@ -146,6 +204,9 @@ export async function handleEvent(
           : donationsEndTime,
         managerRole,
         adminRole,
+        strategyAddress: parseAddress(strategyAddress),
+        strategyId,
+        strategyName: strategy?.name ?? "",
         createdAtBlock: event.blockNumber,
         updatedAtBlock: event.blockNumber,
       };

@@ -19,6 +19,8 @@ import DirectPayoutStrategyImplementationV2 from "./allo-v1/v2/DirectPayoutStrat
 // V2
 import AlloV2 from "./allo-v2/v1/Allo.js";
 import AlloV2Registry from "./allo-v2/v1/Registry.js";
+import AlloV2IStrategy from "./allo-v2/v1/IStrategy.js";
+import AlloV2DonationVotingMerkleDistributionDirectTransferStrategy from "./allo-v2/v1/DonationVotingMerkleDistributionDirectTransferStrategy.js";
 
 const abis = {
   "AlloV1/ProjectRegistry/V1": ProjectRegistryV1,
@@ -43,6 +45,9 @@ const abis = {
 
   "AlloV2/Allo/V1": AlloV2,
   "AlloV2/Registry/V1": AlloV2Registry,
+  "AlloV2/IStrategy/V1": AlloV2IStrategy,
+  "AlloV2/DonationVotingMerkleDistributionDirectTransferStrategy/V1":
+    AlloV2DonationVotingMerkleDistributionDirectTransferStrategy,
 } as const;
 
 export default abis;

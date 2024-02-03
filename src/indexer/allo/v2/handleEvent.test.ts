@@ -457,6 +457,90 @@ describe("handleEvent", () => {
     });
   });
 
+  describe("PoolCreated", () => {
+    test("should insert a new round", async () => {
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        readContract: vi.fn().mockImplementation(({ functionName }) => {
+          switch (functionName) {
+            case "getStrategyId":
+              return "0x6f9291df02b2664139cec5703c124e4ebce32879c74b6297faa1468aa5ff9ebf";
+            case "roundMetaPtr":
+              return [0, "test-cid"];
+            case "applicationMetaPtr":
+              return [0, "test-cid"];
+            case "token":
+              return addressZero;
+            default:
+              return undefined;
+          }
+        }),
+        context: {
+          ...DEFAULT_ARGS.context,
+          ipfsGet: <T>(_arg: string) => {
+            return Promise.resolve({
+              round: { roundMetadata: "round metadata" },
+              application: { applicationMetadata: "application metadata" },
+            } as T);
+          },
+        },
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressOne,
+          contractName: "AlloV2/Allo/V1",
+          name: "PoolCreated",
+          params: {
+            poolId: 1n,
+            profileId: "0x0002",
+            strategy: addressTwo,
+            token: addressZero,
+            amount: 10n,
+            metadata: {
+              protocol: 1n,
+              pointer: "test-cid",
+            },
+          },
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "InsertRound",
+        round: {
+          chainId: 1,
+          id: "1",
+          tags: ["allo-v2"],
+          totalDonationsCount: 0,
+          totalAmountDonatedInUsd: 0,
+          uniqueDonorsCount: 0,
+          matchTokenAddress: "0x0000000000000000000000000000000000000000",
+          matchAmount: 10n,
+          matchAmountInUsd: 0,
+          applicationMetadataCid: "test-cid",
+          applicationMetadata: { applicationMetadata: "application metadata" },
+          roundMetadataCid: "test-cid",
+          roundMetadata: { roundMetadata: "round metadata" },
+          applicationsStartTime: null,
+          applicationsEndTime: null,
+          donationsStartTime: null,
+          donationsEndTime: null,
+          managerRole:
+            "0x0000000000000000000000000000000000000000000000000000000000000001",
+          adminRole:
+            "0xd866368887d58dbdd097c420fb7ec3bf9a28071e2c715e21155ba472632c67b1",
+          createdAtBlock: 1n,
+          updatedAtBlock: 1n,
+          strategyAddress: parseAddress(addressTwo),
+          strategyId:
+            "0x6f9291df02b2664139cec5703c124e4ebce32879c74b6297faa1468aa5ff9ebf",
+          strategyName:
+            "allov2.DonationVotingMerkleDistributionDirectTransferStrategy",
+        },
+      });
+    });
+  });
+
   describe("Pool: RoleGranted", () => {
     describe("when round doesn't exist yet", () => {
       test("should create a round pending role", async () => {
@@ -512,6 +596,9 @@ describe("handleEvent", () => {
         managerRole: "0x01",
         adminRole: "0x9999",
         tags: [],
+        strategyAddress: parseAddress(addressZero),
+        strategyId: "",
+        strategyName: "",
       };
 
       test("should create a round manager role", async () => {
@@ -638,6 +725,9 @@ describe("handleEvent", () => {
         managerRole: "0x01",
         adminRole: "0x9999",
         tags: [],
+        strategyAddress: parseAddress(addressZero),
+        strategyId: "",
+        strategyName: "",
       };
 
       test("should delete a round manager role", async () => {
