@@ -51,6 +51,18 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .execute();
 
   await schema
+    .createIndex("idx_rounds_manager_role")
+    .on("rounds")
+    .columns(["managerRole"])
+    .execute();
+
+  await schema
+    .createIndex("idx_rounds_admin_role")
+    .on("rounds")
+    .columns(["adminRole"])
+    .execute();
+
+  await schema
     .createTable("projects")
     .addColumn("id", "text")
     .addColumn("name", "text")

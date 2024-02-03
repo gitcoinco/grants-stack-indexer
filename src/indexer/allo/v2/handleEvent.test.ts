@@ -7,7 +7,11 @@ import { Logger } from "pino";
 import { Database } from "../../../database/index.js";
 import { EventHandlerArgs } from "chainsauce";
 import { Indexer } from "../.././indexer.js";
-import { Project, PendingProjectRole } from "../../../database/schema.js";
+import {
+  Project,
+  PendingProjectRole,
+  Round,
+} from "../../../database/schema.js";
 import { parseAddress } from "../../../address.js";
 
 const addressZero =
@@ -449,6 +453,265 @@ describe("handleEvent", () => {
           address: addressTwo,
           role: "member",
         },
+      });
+    });
+  });
+
+  describe("Pool: RoleGranted", () => {
+    describe("when round doesn't exist yet", () => {
+      test("should create a round pending role", async () => {
+        MOCK_DB.getRoundByRole = vi.fn().mockResolvedValue(null);
+
+        const changesets = await handleEvent({
+          ...DEFAULT_ARGS,
+          event: {
+            ...DEFAULT_ARGS.event,
+            contractName: "AlloV2/Allo/V1",
+            name: "RoleGranted",
+            params: {
+              role: "0x01",
+              account: addressTwo,
+              sender: addressThree,
+            },
+          },
+        });
+
+        expect(changesets).toHaveLength(1);
+        expect(changesets[0]).toEqual({
+          type: "InsertPendingRoundRole",
+          pendingRoundRole: {
+            chainId: 1,
+            role: "0x01",
+            address: addressTwo,
+            createdAtBlock: 1n,
+          },
+        });
+      });
+    });
+
+    describe("when round already exists", () => {
+      const round: Round = {
+        id: "0x01",
+        chainId: 1,
+        matchAmount: 0n,
+        matchTokenAddress: parseAddress(addressZero),
+        matchAmountInUsd: 0,
+        applicationMetadataCid: "",
+        applicationMetadata: null,
+        roundMetadataCid: "",
+        roundMetadata: {},
+        applicationsStartTime: new Date(),
+        applicationsEndTime: new Date(),
+        donationsStartTime: new Date(),
+        donationsEndTime: new Date(),
+        createdAtBlock: 1n,
+        updatedAtBlock: 1n,
+        totalAmountDonatedInUsd: 0,
+        totalDonationsCount: 0,
+        uniqueDonorsCount: 0,
+        managerRole: "0x01",
+        adminRole: "0x9999",
+        tags: [],
+      };
+
+      test("should create a round manager role", async () => {
+        MOCK_DB.getRoundByRole = vi
+          .fn()
+          .mockImplementation(async (_chainId, roleName, _roleValue) => {
+            if (roleName === "manager") {
+              return round;
+            }
+
+            return null;
+          });
+
+        const changesets = await handleEvent({
+          ...DEFAULT_ARGS,
+          event: {
+            ...DEFAULT_ARGS.event,
+            contractName: "AlloV2/Allo/V1",
+            name: "RoleGranted",
+            params: {
+              role: "0x01",
+              account: addressTwo,
+              sender: addressThree,
+            },
+          },
+        });
+
+        expect(changesets).toHaveLength(1);
+        expect(changesets[0]).toEqual({
+          type: "InsertRoundRole",
+          roundRole: {
+            chainId: 1,
+            roundId: "0x01",
+            address: addressTwo,
+            role: "manager",
+            createdAtBlock: 1n,
+          },
+        });
+      });
+
+      test("should create a round admin role", async () => {
+        MOCK_DB.getRoundByRole = vi
+          .fn()
+          .mockImplementation(async (_chainId, roleName, _roleValue) => {
+            if (roleName === "admin") {
+              return round;
+            }
+
+            return null;
+          });
+
+        const changesets = await handleEvent({
+          ...DEFAULT_ARGS,
+          event: {
+            ...DEFAULT_ARGS.event,
+            contractName: "AlloV2/Allo/V1",
+            name: "RoleGranted",
+            params: {
+              role: "0x01",
+              account: addressTwo,
+              sender: addressThree,
+            },
+          },
+        });
+
+        expect(changesets).toHaveLength(1);
+        expect(changesets[0]).toEqual({
+          type: "InsertRoundRole",
+          roundRole: {
+            chainId: 1,
+            roundId: "0x01",
+            address: addressTwo,
+            role: "admin",
+            createdAtBlock: 1n,
+          },
+        });
+      });
+    });
+  });
+
+  describe("Pool: RoleRevoked", () => {
+    describe("when a round with the revoked role doesn't exist", () => {
+      test("should return an empty changeset", async () => {
+        MOCK_DB.getRoundByRole = vi.fn().mockResolvedValue(null);
+
+        const changesets = await handleEvent({
+          ...DEFAULT_ARGS,
+          event: {
+            ...DEFAULT_ARGS.event,
+            contractName: "AlloV2/Allo/V1",
+            name: "RoleRevoked",
+            params: {
+              role: "0x01",
+              account: addressTwo,
+              sender: addressThree,
+            },
+          },
+        });
+
+        expect(changesets).toHaveLength(0);
+      });
+    });
+
+    describe("when round already exists", () => {
+      const round: Round = {
+        id: "0x01",
+        chainId: 1,
+        matchAmount: 0n,
+        matchTokenAddress: parseAddress(addressZero),
+        matchAmountInUsd: 0,
+        applicationMetadataCid: "",
+        applicationMetadata: null,
+        roundMetadataCid: "",
+        roundMetadata: {},
+        applicationsStartTime: new Date(),
+        applicationsEndTime: new Date(),
+        donationsStartTime: new Date(),
+        donationsEndTime: new Date(),
+        createdAtBlock: 1n,
+        updatedAtBlock: 1n,
+        totalAmountDonatedInUsd: 0,
+        totalDonationsCount: 0,
+        uniqueDonorsCount: 0,
+        managerRole: "0x01",
+        adminRole: "0x9999",
+        tags: [],
+      };
+
+      test("should delete a round manager role", async () => {
+        MOCK_DB.getRoundByRole = vi
+          .fn()
+          .mockImplementation(async (_chainId, roleName, _roleValue) => {
+            if (roleName === "manager") {
+              return round;
+            }
+
+            return null;
+          });
+
+        const changesets = await handleEvent({
+          ...DEFAULT_ARGS,
+          event: {
+            ...DEFAULT_ARGS.event,
+            contractName: "AlloV2/Allo/V1",
+            name: "RoleRevoked",
+            params: {
+              role: "0x01",
+              account: addressTwo,
+              sender: addressThree,
+            },
+          },
+        });
+
+        expect(changesets).toHaveLength(1);
+        expect(changesets[0]).toEqual({
+          type: "DeleteAllRoundRolesByRoleAndAddress",
+          roundRole: {
+            chainId: 1,
+            roundId: "0x01",
+            role: "manager",
+            address: addressTwo,
+          },
+        });
+      });
+
+      test("should delete a round admin role", async () => {
+        MOCK_DB.getRoundByRole = vi
+          .fn()
+          .mockImplementation(async (_chainId, roleName, _roleValue) => {
+            if (roleName === "admin") {
+              return round;
+            }
+
+            return null;
+          });
+
+        const changesets = await handleEvent({
+          ...DEFAULT_ARGS,
+          event: {
+            ...DEFAULT_ARGS.event,
+            contractName: "AlloV2/Allo/V1",
+            name: "RoleRevoked",
+            params: {
+              role: "0x01",
+              account: addressTwo,
+              sender: addressThree,
+            },
+          },
+        });
+
+        expect(changesets).toHaveLength(1);
+        expect(changesets[0]).toEqual({
+          type: "DeleteAllRoundRolesByRoleAndAddress",
+          roundRole: {
+            chainId: 1,
+            roundId: "0x01",
+            role: "admin",
+            address: addressTwo,
+          },
+        });
       });
     });
   });

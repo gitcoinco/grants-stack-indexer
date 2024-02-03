@@ -862,6 +862,8 @@ describe("handleEvent", () => {
           applicationsEndTime: null,
           donationsStartTime: null,
           donationsEndTime: null,
+          managerRole: "",
+          adminRole: "",
           createdAtBlock: 1n,
           updatedAtBlock: 1n,
           managerRole: "",

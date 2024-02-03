@@ -448,6 +448,21 @@ export class Database {
     return round ?? null;
   }
 
+  async getRoundByRole(
+    chainId: ChainId,
+    roleName: "admin" | "manager",
+    roleValue: string
+  ) {
+    const round = await this.#db
+      .selectFrom("rounds")
+      .where("chainId", "=", chainId)
+      .where(`${roleName}Role`, "=", roleValue)
+      .selectAll()
+      .executeTakeFirst();
+
+    return round ?? null;
+  }
+
   async getRoundMatchTokenAddressById(chainId: ChainId, roundId: Address) {
     const cacheKey = `${chainId}-${roundId}`;
     const cachedRoundMatchTokenAddress =
