@@ -864,6 +864,8 @@ describe("handleEvent", () => {
           donationsEndTime: null,
           createdAtBlock: 1n,
           updatedAtBlock: 1n,
+          managerRole: "",
+          adminRole: "",
         },
       });
 
