@@ -48,7 +48,14 @@ export async function handleEvent(
     case "ProfileCreated": {
       const profileId = event.params.profileId;
       const metadataCid = event.params.metadata.pointer;
-      const metadata = await ipfsGet<ProjectTable["metadata"]>(metadataCid);
+      let metadata = await ipfsGet<ProjectTable["metadata"]>(metadataCid);
+
+      // FIXME: update this when we validate all the metadata
+      // for projects and rounds
+      if (Array.isArray(metadata) || typeof metadata !== "object") {
+        metadata = {};
+      }
+
       const changes: Changeset[] = [
         {
           type: "InsertProject",
