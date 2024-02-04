@@ -239,7 +239,36 @@ export async function handleEvent(
 
         changes.push({
           type: "DeletePendingRoundRoles",
-          ids: pendingRoundRoles.map((r) => r.id!),
+          ids: pendingAdminRoundRoles.map((r) => r.id!),
+        });
+      }
+
+      // Manager roles for the pool are emitted before the pool is created
+      // so a pending round role is inserted in the db.
+      // Now that the PoolCreated event is emitted, we can convert
+      // pending roles to actual round roles.
+      const pendingManagerRoundRoles = await db.getPendingRoundRolesByRole(
+        chainId,
+        managerRole
+      );
+
+      if (pendingManagerRoundRoles.length > 0) {
+        for (const pr of pendingManagerRoundRoles) {
+          changes.push({
+            type: "InsertRoundRole",
+            roundRole: {
+              chainId,
+              roundId: poolId.toString(),
+              address: pr.address,
+              role: "manager",
+              createdAtBlock: event.blockNumber,
+            },
+          });
+        }
+
+        changes.push({
+          type: "DeletePendingRoundRoles",
+          ids: pendingManagerRoundRoles.map((r) => r.id!),
         });
       }
 

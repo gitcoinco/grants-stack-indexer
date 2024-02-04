@@ -465,7 +465,24 @@ describe("handleEvent", () => {
           id: 99,
           chainId: 1,
           role: "0xd866368887d58dbdd097c420fb7ec3bf9a28071e2c715e21155ba472632c67b1",
+          address: parseAddress(addressTwo),
+          createdAtBlock: 1n,
+        },
+      ];
+
+      const pendingManagerRoundRoles: PendingRoundRole[] = [
+        {
+          id: 100,
+          chainId: 1,
+          role: "0x0000000000000000000000000000000000000000000000000000000000000001",
           address: parseAddress(addressThree),
+          createdAtBlock: 1n,
+        },
+        {
+          id: 101,
+          chainId: 1,
+          role: "0x0000000000000000000000000000000000000000000000000000000000000001",
+          address: parseAddress(addressFour),
           createdAtBlock: 1n,
         },
       ];
@@ -476,6 +493,8 @@ describe("handleEvent", () => {
           switch (role) {
             case "0xd866368887d58dbdd097c420fb7ec3bf9a28071e2c715e21155ba472632c67b1":
               return pendingAdminRoundRoles;
+            case "0x0000000000000000000000000000000000000000000000000000000000000001":
+              return pendingManagerRoundRoles;
             default:
               return [];
           }
@@ -525,7 +544,7 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(changesets).toHaveLength(3);
+      expect(changesets).toHaveLength(6);
 
       expect(changesets[0]).toEqual({
         type: "InsertRound",
@@ -566,7 +585,7 @@ describe("handleEvent", () => {
         roundRole: {
           chainId: 1,
           roundId: "1",
-          address: addressThree,
+          address: addressTwo,
           role: "admin",
           createdAtBlock: 1n,
         },
