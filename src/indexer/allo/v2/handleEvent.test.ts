@@ -489,7 +489,7 @@ describe("handleEvent", () => {
 
       MOCK_DB.getPendingRoundRolesByRole = vi
         .fn()
-        .mockImplementation(async (_chainId, role) => {
+        .mockImplementation((_chainId, role) => {
           switch (role) {
             case "0xd866368887d58dbdd097c420fb7ec3bf9a28071e2c715e21155ba472632c67b1":
               return pendingAdminRoundRoles;
