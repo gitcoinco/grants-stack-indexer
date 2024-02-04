@@ -878,8 +878,6 @@ describe("handleEvent", () => {
           adminRole: "",
           createdAtBlock: 1n,
           updatedAtBlock: 1n,
-          managerRole: "",
-          adminRole: "",
           strategyAddress: parseAddress(addressZero),
           strategyId: "",
           strategyName: "",

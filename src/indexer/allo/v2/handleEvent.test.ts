@@ -604,7 +604,7 @@ describe("handleEvent", () => {
       test("should create a round manager role", async () => {
         MOCK_DB.getRoundByRole = vi
           .fn()
-          .mockImplementation(async (_chainId, roleName, _roleValue) => {
+          .mockImplementation((_chainId, roleName, _roleValue) => {
             if (roleName === "manager") {
               return round;
             }
@@ -642,7 +642,7 @@ describe("handleEvent", () => {
       test("should create a round admin role", async () => {
         MOCK_DB.getRoundByRole = vi
           .fn()
-          .mockImplementation(async (_chainId, roleName, _roleValue) => {
+          .mockImplementation((_chainId, roleName, _roleValue) => {
             if (roleName === "admin") {
               return round;
             }
@@ -733,7 +733,7 @@ describe("handleEvent", () => {
       test("should delete a round manager role", async () => {
         MOCK_DB.getRoundByRole = vi
           .fn()
-          .mockImplementation(async (_chainId, roleName, _roleValue) => {
+          .mockImplementation((_chainId, roleName, _roleValue) => {
             if (roleName === "manager") {
               return round;
             }
@@ -770,7 +770,7 @@ describe("handleEvent", () => {
       test("should delete a round admin role", async () => {
         MOCK_DB.getRoundByRole = vi
           .fn()
-          .mockImplementation(async (_chainId, roleName, _roleValue) => {
+          .mockImplementation((_chainId, roleName, _roleValue) => {
             if (roleName === "admin") {
               return round;
             }
