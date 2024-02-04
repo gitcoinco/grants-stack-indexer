@@ -1,4 +1,4 @@
-import { ChainId, Address, Hex } from "../types.js";
+import { ChainId, Address } from "../types.js";
 import {
   NewProject,
   PartialProject,
