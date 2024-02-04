@@ -56,6 +56,7 @@ const CHAINS: Chain[] = [
       },
     ],
     subscriptions: [
+      // Allo V2
       {
         contractName: "AlloV2/Registry/V1",
         address: "0x4AAcca72145e1dF2aeC137E1f3C5E3D75DB8b5f3",
