@@ -211,12 +211,39 @@ export async function handleEvent(
         updatedAtBlock: event.blockNumber,
       };
 
-      return [
+      const changes: Changeset[] = [
         {
           type: "InsertRound",
           round: newRound,
         },
       ];
+
+      const pendingRoundRoles = await db.getPendingRoundRolesByRole(
+        chainId,
+        adminRole
+      );
+
+      if (pendingRoundRoles.length > 0) {
+        for (const pr of pendingRoundRoles) {
+          changes.push({
+            type: "InsertRoundRole",
+            roundRole: {
+              chainId,
+              roundId: poolId,
+              address: pr.address,
+              role: "admin",
+              createdAtBlock: event.blockNumber,
+            },
+          });
+        }
+
+        changes.push({
+          type: "DeletePendingRoundRoles",
+          ids: pendingRoundRoles.map((r) => r.id!),
+        });
+      }
+
+      return changes;
     }
 
     case "RoleGranted": {

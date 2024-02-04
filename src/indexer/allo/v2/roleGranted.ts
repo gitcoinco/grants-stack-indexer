@@ -65,7 +65,6 @@ export default async function handleEvent(
     case "AlloV2/Allo/V1": {
       const role = event.params.role.toLocaleLowerCase();
       const account = parseAddress(event.params.account);
-
       let round: Round | null = null;
 
       // search for a round where the admin role is the role granted

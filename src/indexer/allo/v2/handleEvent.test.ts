@@ -10,6 +10,7 @@ import { Indexer } from "../.././indexer.js";
 import {
   Project,
   PendingProjectRole,
+  PendingRoundRole,
   Round,
 } from "../../../database/schema.js";
 import { parseAddress } from "../../../address.js";
@@ -458,7 +459,28 @@ describe("handleEvent", () => {
   });
 
   describe("PoolCreated", () => {
-    test("should insert a new round", async () => {
+    test("should insert a new round and convert pending roles", async () => {
+      const pendingAdminRoundRoles: PendingRoundRole[] = [
+        {
+          id: 99,
+          chainId: 1,
+          role: "0xd866368887d58dbdd097c420fb7ec3bf9a28071e2c715e21155ba472632c67b1",
+          address: parseAddress(addressThree),
+          createdAtBlock: 1n,
+        },
+      ];
+
+      MOCK_DB.getPendingRoundRolesByRole = vi
+        .fn()
+        .mockImplementation(async (_chainId, role) => {
+          switch (role) {
+            case "0xd866368887d58dbdd097c420fb7ec3bf9a28071e2c715e21155ba472632c67b1":
+              return pendingAdminRoundRoles;
+            default:
+              return [];
+          }
+        });
+
       const changesets = await handleEvent({
         ...DEFAULT_ARGS,
         readContract: vi.fn().mockImplementation(({ functionName }) => {
@@ -503,7 +525,7 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(changesets).toHaveLength(1);
+      expect(changesets).toHaveLength(3);
 
       expect(changesets[0]).toEqual({
         type: "InsertRound",
@@ -537,6 +559,22 @@ describe("handleEvent", () => {
           strategyName:
             "allov2.DonationVotingMerkleDistributionDirectTransferStrategy",
         },
+      });
+
+      expect(changesets[1]).toEqual({
+        type: "InsertRoundRole",
+        roundRole: {
+          chainId: 1,
+          roundId: "1",
+          address: addressThree,
+          role: "admin",
+          createdAtBlock: 1n,
+        },
+      });
+
+      expect(changesets[2]).toEqual({
+        type: "DeletePendingRoundRoles",
+        ids: [99],
       });
     });
   });
