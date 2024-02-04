@@ -20,9 +20,9 @@ function padBytes32Hex(s: string): string {
   return "0x" + hex;
 }
 
-function generateRoundRoles(poolId: string) {
+function generateRoundRoles(poolId: bigint) {
   // POOL_MANAGER_ROLE = bytes32(poolId);
-  const managerRole = padBytes32Hex(poolId);
+  const managerRole = padBytes32Hex(poolId.toString(16));
 
   // POOL_ADMIN_ROLE = keccak256(abi.encodePacked(poolId, "admin"));
   const adminRawRole = ethers.utils.solidityPack(
@@ -112,7 +112,7 @@ export async function handleEvent(
         metadataPointer
       );
 
-      const poolId = event.params.poolId.toString();
+      const poolId = event.params.poolId;
       const { managerRole, adminRole } = generateRoundRoles(poolId);
 
       const strategyAddress = event.params.strategy;
@@ -178,7 +178,7 @@ export async function handleEvent(
 
       const newRound: NewRound = {
         chainId,
-        id: poolId,
+        id: poolId.toString(),
         tags: ["allo-v2"],
         totalDonationsCount: 0,
         totalAmountDonatedInUsd: 0,
@@ -218,18 +218,22 @@ export async function handleEvent(
         },
       ];
 
-      const pendingRoundRoles = await db.getPendingRoundRolesByRole(
+      // Admin roles for the pool are emitted before the pool is created
+      // so a pending round role is inserted in the db.
+      // Now that the PoolCreated event is emitted, we can convert
+      // pending roles to actual round roles.
+      const pendingAdminRoundRoles = await db.getPendingRoundRolesByRole(
         chainId,
         adminRole
       );
 
-      if (pendingRoundRoles.length > 0) {
-        for (const pr of pendingRoundRoles) {
+      if (pendingAdminRoundRoles.length > 0) {
+        for (const pr of pendingAdminRoundRoles) {
           changes.push({
             type: "InsertRoundRole",
             roundRole: {
               chainId,
-              roundId: poolId,
+              roundId: poolId.toString(),
               address: pr.address,
               role: "admin",
               createdAtBlock: event.blockNumber,
