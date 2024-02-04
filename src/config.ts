@@ -1018,7 +1018,7 @@ export type Config = {
   estimatesLinearQfWorkerPoolSize: number | null;
 };
 
-const CHAIN_DATA_VERSION = "17";
+const CHAIN_DATA_VERSION = "18";
 
 export function getConfig(): Config {
   const buildTag = z
