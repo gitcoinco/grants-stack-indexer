@@ -537,4 +537,30 @@ export class Database {
       .selectAll()
       .execute();
   }
+
+  async getDonationsByDonorAddressWithProjectAndRound(
+    chainId: ChainId,
+    donorAddress: Address
+  ) {
+    const donations = await this.#db
+      .selectFrom("donations")
+      .where("donations.donorAddress", "=", donorAddress)
+      .where("donations.chainId", "=", chainId)
+      .innerJoin("projects", "donations.projectId", "projects.id")
+      .innerJoin("rounds", (join) =>
+        join
+          .onRef("donations.chainId", "=", "rounds.chainId")
+          .onRef("donations.roundId", "=", "rounds.id")
+      )
+      .selectAll("donations")
+      .select([
+        "rounds.roundMetadata as roundMetadata",
+        "rounds.donationsStartTime",
+        "rounds.donationsEndTime",
+        "projects.metadata as projectMetadata",
+      ])
+      .execute();
+
+    return donations;
+  }
 }

@@ -130,10 +130,11 @@ export type DeprecatedProject = {
   } | null;
 };
 
-export type DeprecatedContributor = {
-  id: string;
-  amountUSD: number;
-  votes: number;
+export type DetailedVote = DeprecatedVote & {
+  roundName?: string;
+  projectTitle?: string;
+  roundStartTime?: string;
+  roundEndTime?: string;
 };
 
 export type DeprecatedApplication = {
