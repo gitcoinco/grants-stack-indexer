@@ -8,10 +8,8 @@ import roleGranted from "./roleGranted.js";
 import roleRevoked from "./roleRevoked.js";
 import { fetchPoolMetadata } from "./poolMetadata.js";
 import { extractStrategyFromId } from "./strategy.js";
-import { fetchPoolMetadata } from "./parsePoolMetadata.js";
-import { extractStrategyFromId } from "./strategy.js";
 
-function generateRoundRoles(poolId: string) {
+function generateRoundRoles(poolId: bigint) {
   // POOL_MANAGER_ROLE = bytes32(poolId);
   const managerRole = pad(`0x${poolId.toString(16)}`);
 
