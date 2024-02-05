@@ -827,7 +827,7 @@ const CHAINS: Chain[] = [
     id: 43114,
     name: "avalanche",
     rpc: rpcUrl
-      .default("https://avalanche-c-chain.publicnode.com")
+      .default("https://rpc.ankr.com/avalanche")
       .parse(process.env.AVALANCHE_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 8, 19, 0, 0, 0),
     tokens: [
@@ -854,19 +854,22 @@ const CHAINS: Chain[] = [
       {
         contractName: "AlloV1/ProjectRegistry/V2",
         address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
+        fromBlock: 34540051,
       },
       {
         contractName: "AlloV1/RoundFactory/V2",
         address: "0x8eC471f30cA797FD52F9D37A47Be2517a7BD6912",
+        fromBlock: 34540051,
       },
       {
         contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0x2AFA4bE0f2468347A2F086c2167630fb1E58b725",
+        fromBlock: 34540051,
       },
       {
         contractName: "AlloV1/ProgramFactory/V1",
         address: "0xd07D54b0231088Ca9BF7DA6291c911B885cBC140",
-        fromBlock: 34540182,
+        fromBlock: 34540051,
       },
     ],
   },
