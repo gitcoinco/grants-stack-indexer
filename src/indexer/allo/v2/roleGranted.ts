@@ -2,6 +2,7 @@ import { EventHandlerArgs } from "chainsauce";
 import type { Indexer } from "../../indexer.js";
 import { Changeset } from "../../../database/index.js";
 import { parseAddress } from "../../../address.js";
+import { Round } from "../../../database/schema.js";
 
 const ALLO_OWNER_ROLE =
   "0x815b5a78dc333d344c7df9da23c04dbd432015cc701876ddb9ffe850e6882747";
@@ -9,7 +10,7 @@ const ALLO_OWNER_ROLE =
 export default async function handleEvent(
   args: EventHandlerArgs<
     Indexer,
-    "AlloV2/Registry/V1" | "AlloV1/ProjectRegistry/V1", // the second type will change in the next PR to Allo/V1
+    "AlloV2/Registry/V1" | "AlloV2/Allo/V1",
     "RoleGranted"
   >
 ): Promise<Changeset[]> {
@@ -52,6 +53,59 @@ export default async function handleEvent(
         {
           type: "InsertPendingProjectRole",
           pendingProjectRole: {
+            chainId,
+            role: role,
+            address: account,
+            createdAtBlock: event.blockNumber,
+          },
+        },
+      ];
+    }
+
+    case "AlloV2/Allo/V1": {
+      const role = event.params.role.toLocaleLowerCase();
+      const account = parseAddress(event.params.account);
+
+      let round: Round | null = null;
+
+      // search for a round where the admin role is the role granted
+      round = await db.getRoundByRole(chainId, "admin", role);
+      if (round !== null) {
+        return [
+          {
+            type: "InsertRoundRole",
+            roundRole: {
+              chainId,
+              roundId: round.id,
+              role: "admin",
+              address: account,
+              createdAtBlock: event.blockNumber,
+            },
+          },
+        ];
+      }
+
+      // search for a round where the manager role is the role granted
+      round = await db.getRoundByRole(chainId, "manager", role);
+      if (round !== null) {
+        return [
+          {
+            type: "InsertRoundRole",
+            roundRole: {
+              chainId,
+              roundId: round.id,
+              role: "manager",
+              address: account,
+              createdAtBlock: event.blockNumber,
+            },
+          },
+        ];
+      }
+
+      return [
+        {
+          type: "InsertPendingRoundRole",
+          pendingRoundRole: {
             chainId,
             role: role,
             address: account,

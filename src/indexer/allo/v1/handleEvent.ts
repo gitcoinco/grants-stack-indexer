@@ -359,6 +359,11 @@ export async function handleEvent(
           : donationsEndTime,
         managerRole: "",
         adminRole: "",
+        strategyAddress: parseAddress(
+          "0x0000000000000000000000000000000000000000"
+        ),
+        strategyId: "",
+        strategyName: "",
         createdAtBlock: event.blockNumber,
         updatedAtBlock: event.blockNumber,
       };

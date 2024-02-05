@@ -41,6 +41,11 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     // POOL_ADMIN_ROLE = keccak256(abi.encodePacked(poolId, "admin"));
     .addColumn("adminRole", "text")
 
+    .addColumn("strategyAddress", "text")
+    .addColumn("strategyId", "text")
+    .addColumn("strategyName", "text")
+
+
     // aggregates
 
     .addColumn("totalAmountDonatedInUSD", "real")
@@ -48,6 +53,18 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("uniqueDonorsCount", "integer")
 
     .addPrimaryKeyConstraint("rounds_pkey", ["id", "chainId"])
+    .execute();
+
+  await schema
+    .createIndex("idx_rounds_manager_role")
+    .on("rounds")
+    .columns(["managerRole"])
+    .execute();
+
+  await schema
+    .createIndex("idx_rounds_admin_role")
+    .on("rounds")
+    .columns(["adminRole"])
     .execute();
 
   await schema

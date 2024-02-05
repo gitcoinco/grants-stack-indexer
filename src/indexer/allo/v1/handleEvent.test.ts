@@ -489,6 +489,9 @@ describe("handleEvent", () => {
         tags: [],
         managerRole: "",
         adminRole: "",
+        strategyAddress: parseAddress(addressZero),
+        strategyId: "",
+        strategyName: "",
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
 
@@ -544,6 +547,9 @@ describe("handleEvent", () => {
         tags: [],
         managerRole: "",
         adminRole: "",
+        strategyAddress: parseAddress(addressZero),
+        strategyId: "",
+        strategyName: "",
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
 
@@ -601,6 +607,9 @@ describe("handleEvent", () => {
         tags: [],
         managerRole: "",
         adminRole: "",
+        strategyAddress: parseAddress(addressZero),
+        strategyId: "",
+        strategyName: "",
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
 
@@ -656,6 +665,9 @@ describe("handleEvent", () => {
         tags: [],
         managerRole: "",
         adminRole: "",
+        strategyAddress: parseAddress(addressZero),
+        strategyId: "",
+        strategyName: "",
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
 
@@ -862,10 +874,13 @@ describe("handleEvent", () => {
           applicationsEndTime: null,
           donationsStartTime: null,
           donationsEndTime: null,
-          createdAtBlock: 1n,
-          updatedAtBlock: 1n,
           managerRole: "",
           adminRole: "",
+          createdAtBlock: 1n,
+          updatedAtBlock: 1n,
+          strategyAddress: parseAddress(addressZero),
+          strategyId: "",
+          strategyName: "",
         },
       });
 

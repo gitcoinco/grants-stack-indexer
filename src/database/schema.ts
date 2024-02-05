@@ -29,6 +29,9 @@ export type RoundTable = {
   uniqueDonorsCount: number;
   managerRole: string;
   adminRole: string;
+  strategyAddress: Address;
+  strategyId: string;
+  strategyName: string;
 
   tags: string[];
 };
