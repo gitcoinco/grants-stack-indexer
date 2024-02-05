@@ -1,5 +1,5 @@
 import { EventHandlerArgs } from "chainsauce";
-import { keccak256, encodePacked } from "viem";
+import { keccak256, encodePacked, pad } from "viem";
 import type { Indexer } from "../../indexer.js";
 import { ProjectTable, NewRound } from "../../../database/schema.js";
 import { Changeset } from "../../../database/index.js";
@@ -9,20 +9,9 @@ import roleRevoked from "./roleRevoked.js";
 import { fetchPoolMetadata } from "./poolMetadata.js";
 import { extractStrategyFromId } from "./strategy.js";
 
-function padBytes32Hex(s: string): string {
-  if (s.length > 64) {
-    return s;
-  }
-
-  const padding = 64 - s.length;
-  let hex = s;
-  hex = "0".repeat(padding) + hex;
-  return "0x" + hex;
-}
-
 function generateRoundRoles(poolId: bigint) {
   // POOL_MANAGER_ROLE = bytes32(poolId);
-  const managerRole = padBytes32Hex(poolId.toString(16));
+  const managerRole = pad(`0x${poolId.toString(16)}`);
 
   // POOL_ADMIN_ROLE = keccak256(abi.encodePacked(poolId, "admin"));
   const adminRawRole = encodePacked(["uint256", "string"], [poolId, "admin"]);
