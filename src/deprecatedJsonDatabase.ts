@@ -130,7 +130,7 @@ export type DeprecatedProject = {
   } | null;
 };
 
-export type DetailedVote = DeprecatedVote & {
+export type DeprecatedDetailedVote = DeprecatedVote & {
   roundName?: string;
   projectTitle?: string;
   roundStartTime?: string;
