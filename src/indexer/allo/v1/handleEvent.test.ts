@@ -487,6 +487,8 @@ describe("handleEvent", () => {
         totalDonationsCount: 0,
         uniqueDonorsCount: 0,
         tags: [],
+        managerRole: "",
+        adminRole: "",
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
 
@@ -540,6 +542,8 @@ describe("handleEvent", () => {
         totalDonationsCount: 0,
         uniqueDonorsCount: 0,
         tags: [],
+        managerRole: "",
+        adminRole: "",
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
 
@@ -595,6 +599,8 @@ describe("handleEvent", () => {
         totalDonationsCount: 0,
         uniqueDonorsCount: 0,
         tags: [],
+        managerRole: "",
+        adminRole: "",
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
 
@@ -648,6 +654,8 @@ describe("handleEvent", () => {
         totalDonationsCount: 0,
         uniqueDonorsCount: 0,
         tags: [],
+        managerRole: "",
+        adminRole: "",
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
 
@@ -856,6 +864,8 @@ describe("handleEvent", () => {
           donationsEndTime: null,
           createdAtBlock: 1n,
           updatedAtBlock: 1n,
+          managerRole: "",
+          adminRole: "",
         },
       });
 

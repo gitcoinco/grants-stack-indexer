@@ -1,10 +1,36 @@
 import { EventHandlerArgs } from "chainsauce";
+import { ethers } from "ethers";
 import type { Indexer } from "../../indexer.js";
-import { ProjectTable } from "../../../database/schema.js";
+import { ProjectTable, NewRound } from "../../../database/schema.js";
 import { Changeset } from "../../../database/index.js";
 import { parseAddress } from "../../../address.js";
 import roleGranted from "./roleGranted.js";
 import roleRevoked from "./roleRevoked.js";
+import { fetchPoolMetadata } from "./parsePoolMetadata.js";
+
+function padBytes32Hex(s: string): string {
+  if (s.length > 64) {
+    return s;
+  }
+
+  const padding = 64 - s.length;
+  let hex = s;
+  hex = "0".repeat(padding) + hex;
+  return "0x" + hex;
+}
+
+function generateRoundRoles(poolId: string) {
+  // POOL_MANAGER_ROLE = bytes32(poolId);
+  const managerRole = padBytes32Hex(poolId);
+
+  // POOL_ADMIN_ROLE = keccak256(abi.encodePacked(poolId, "admin"));
+  const adminRawRole = ethers.utils.solidityPack(
+    ["uint256", "string"],
+    [poolId, "admin"]
+  );
+  const adminRole = ethers.utils.solidityKeccak256(["bytes"], [adminRawRole]);
+  return { managerRole, adminRole };
+}
 
 export async function handleEvent(
   args: EventHandlerArgs<Indexer>
@@ -75,6 +101,61 @@ export async function handleEvent(
       }
 
       return changes;
+    }
+
+    case "PoolCreated": {
+      const applicationsStartTime = new Date();
+      const applicationsEndTime = new Date();
+      const donationsStartTime = new Date();
+      const donationsEndTime = new Date();
+
+      const { pointer: metadataPointer } = event.params.metadata;
+      const { roundMetadata, applicationMetadata } = await fetchPoolMetadata(
+        ipfsGet,
+        metadataPointer
+      );
+
+      const poolId = event.params.poolId.toString();
+      const { managerRole, adminRole } = generateRoundRoles(poolId);
+
+      const newRound: NewRound = {
+        chainId,
+        id: poolId,
+        tags: ["allo-v2"],
+        totalDonationsCount: 0,
+        totalAmountDonatedInUsd: 0,
+        uniqueDonorsCount: 0,
+        matchTokenAddress: parseAddress(event.params.token),
+        matchAmount: event.params.amount,
+        matchAmountInUsd: 0,
+        applicationMetadataCid: "",
+        applicationMetadata: applicationMetadata ?? {},
+        roundMetadataCid: "",
+        roundMetadata: roundMetadata ?? {},
+        applicationsStartTime: isNaN(applicationsStartTime.getTime())
+          ? null
+          : applicationsStartTime,
+        applicationsEndTime: isNaN(applicationsEndTime.getTime())
+          ? null
+          : applicationsEndTime,
+        donationsStartTime: isNaN(donationsStartTime.getTime())
+          ? null
+          : donationsStartTime,
+        donationsEndTime: isNaN(donationsEndTime.getTime())
+          ? null
+          : donationsEndTime,
+        managerRole,
+        adminRole,
+        createdAtBlock: event.blockNumber,
+        updatedAtBlock: event.blockNumber,
+      };
+
+      return [
+        {
+          type: "InsertRound",
+          round: newRound,
+        },
+      ];
     }
 
     case "RoleGranted": {

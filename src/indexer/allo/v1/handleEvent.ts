@@ -357,6 +357,8 @@ export async function handleEvent(
         donationsEndTime: isNaN(donationsEndTime.getTime())
           ? null
           : donationsEndTime,
+        managerRole: "",
+        adminRole: "",
         createdAtBlock: event.blockNumber,
         updatedAtBlock: event.blockNumber,
       };

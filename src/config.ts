@@ -67,6 +67,11 @@ const CHAINS: Chain[] = [
         address: "0x2562e3035905e62723fe85467bA4c9314df7A5e4",
         fromBlock: 9602226,
       },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+        fromBlock: 9975490,
+      },
     ],
   },
   {
@@ -242,6 +247,11 @@ const CHAINS: Chain[] = [
         address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
         contractName: "AlloV2/Registry/V1",
         fromBlock: 4617051,
+      },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+        fromBlock: 4617314,
       },
     ],
   },
@@ -1063,7 +1073,7 @@ export type Config = {
   estimatesLinearQfWorkerPoolSize: number | null;
 };
 
-const CHAIN_DATA_VERSION = "16";
+const CHAIN_DATA_VERSION = "17";
 
 export function getConfig(): Config {
   const buildTag = z

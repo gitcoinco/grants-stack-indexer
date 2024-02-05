@@ -4,7 +4,7 @@ import { getAddress } from "viem";
 
 export function createDeprecatedRound(round: Round): DeprecatedRound {
   return {
-    id: round.id,
+    id: round.id.toString(),
     amountUSD: round.totalAmountDonatedInUsd,
     votes: round.totalDonationsCount,
     token: getAddress(round.matchTokenAddress),
@@ -81,7 +81,7 @@ export function createDeprecatedProject(project: Project): DeprecatedProject {
 }
 
 export type DeprecatedRound = {
-  id: Hex;
+  id: Hex | string;
   amountUSD: number;
   votes: number;
   token: string;

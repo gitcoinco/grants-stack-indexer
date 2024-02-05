@@ -6,6 +6,7 @@ import {
   PendingProjectRoleTable,
   ProjectRoleTable,
   RoundTable,
+  PendingRoundRoleTable,
   RoundRoleTable,
   ApplicationTable,
   DonationTable,
@@ -27,6 +28,7 @@ interface Tables {
   pendingProjectRoles: PendingProjectRoleTable;
   projectRoles: ProjectRoleTable;
   rounds: RoundTable;
+  pendingRoundRoles: PendingRoundRoleTable;
   roundRoles: RoundRoleTable;
   applications: ApplicationTable;
   donations: DonationTable;
@@ -219,6 +221,22 @@ export class Database {
         break;
       }
 
+      case "InsertPendingRoundRole": {
+        await this.#db
+          .insertInto("pendingRoundRoles")
+          .values(change.pendingRoundRole)
+          .execute();
+        break;
+      }
+
+      case "DeletePendingRoundRoles": {
+        await this.#db
+          .deleteFrom("pendingRoundRoles")
+          .where("id", "in", change.ids)
+          .execute();
+        break;
+      }
+
       case "InsertProject": {
         await this.#db.insertInto("projects").values(change.project).execute();
         break;
@@ -395,6 +413,17 @@ export class Database {
       .execute();
 
     return pendingProjectRole ?? null;
+  }
+
+  async getPendingRoundRolesByRole(chainId: ChainId, role: string) {
+    const pendingRoundRole = await this.#db
+      .selectFrom("pendingRoundRoles")
+      .where("chainId", "=", chainId)
+      .where("role", "=", role)
+      .selectAll()
+      .execute();
+
+    return pendingRoundRole ?? null;
   }
 
   async getProjectById(chainId: ChainId, projectId: string) {
