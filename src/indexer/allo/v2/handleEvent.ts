@@ -1,5 +1,5 @@
 import { EventHandlerArgs } from "chainsauce";
-import { ethers } from "ethers";
+import { keccak256, encodePacked } from "viem";
 import type { Indexer } from "../../indexer.js";
 import { ProjectTable, NewRound } from "../../../database/schema.js";
 import { Changeset } from "../../../database/index.js";
@@ -25,11 +25,8 @@ function generateRoundRoles(poolId: bigint) {
   const managerRole = padBytes32Hex(poolId.toString(16));
 
   // POOL_ADMIN_ROLE = keccak256(abi.encodePacked(poolId, "admin"));
-  const adminRawRole = ethers.utils.solidityPack(
-    ["uint256", "string"],
-    [poolId, "admin"]
-  );
-  const adminRole = ethers.utils.solidityKeccak256(["bytes"], [adminRawRole]);
+  const adminRawRole = encodePacked(["uint256", "string"], [poolId, "admin"]);
+  const adminRole = keccak256(adminRawRole);
   return { managerRole, adminRole };
 }
 
