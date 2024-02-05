@@ -1,11 +1,11 @@
-type ipfsGetFn = <T>(cid: string) => Promise<T | undefined>;
+type IpfsGetFn = <T>(cid: string) => Promise<T | undefined>;
 
 type Metadata = {
   round: unknown;
   application: unknown;
 };
 
-export async function fetchPoolMetadata(ipfsGet: ipfsGetFn, cid: string) {
+export async function fetchPoolMetadata(ipfsGet: IpfsGetFn, cid: string) {
   let roundMetadata: Metadata["round"] | null;
   let applicationMetadata: Metadata["application"] | null;
   const metadata = await ipfsGet<Metadata | undefined>(cid);

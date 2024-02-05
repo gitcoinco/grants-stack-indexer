@@ -6,7 +6,7 @@ import { Changeset } from "../../../database/index.js";
 import { parseAddress } from "../../../address.js";
 import roleGranted from "./roleGranted.js";
 import roleRevoked from "./roleRevoked.js";
-import { fetchPoolMetadata } from "./parsePoolMetadata.js";
+import { fetchPoolMetadata } from "./poolMetadata.js";
 import { extractStrategyFromId } from "./strategy.js";
 
 function padBytes32Hex(s: string): string {
