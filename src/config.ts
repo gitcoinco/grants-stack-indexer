@@ -32,6 +32,7 @@ export type Chain = {
   pricesFromTimestamp: number;
   tokens: Token[];
   subscriptions: Subscription[];
+  maxGetLogsRange?: number;
 };
 
 const rpcUrl = z.string().url();
@@ -923,6 +924,7 @@ const CHAINS: Chain[] = [
       .default("https://sepolia-rpc.scroll.io")
       .parse(process.env.SCROLL_SEPOLIA_RPC_URL),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
+    maxGetLogsRange: 2000,
     tokens: [
       {
         code: "ETH",
@@ -947,19 +949,72 @@ const CHAINS: Chain[] = [
       {
         contractName: "AlloV1/ProjectRegistry/V2",
         address: "0xA78Daa89fE9C1eC66c5cB1c5833bC8C6Cb307918",
+        fromBlock: 2774478,
       },
       {
         contractName: "AlloV1/RoundFactory/V2",
         address: "0xF2a07728107B04266015E67b1468cA0a536956C8",
+        fromBlock: 2774478,
       },
       {
         contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
         address: "0x545B282A50EaeA01A619914d44105437036CbB36",
+        fromBlock: 2774478,
       },
       {
         contractName: "AlloV1/ProgramFactory/V1",
         address: "0xd07D54b0231088Ca9BF7DA6291c911B885cBC140",
-        fromBlock: 2735989,
+        fromBlock: 2774478,
+      },
+    ],
+  },
+  {
+    id: 534352,
+    name: "scroll",
+    rpc: rpcUrl
+      .default("https://rpc.scroll.io")
+      .parse(process.env.SCROLL_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "ETH",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "MTK",
+        address: "0xc2332031de487f430fae3290c05465d907785eda",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        },
+      },
+    ],
+    subscriptions: [
+      {
+        contractName: "AlloV1/ProjectRegistry/V2",
+        address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
+        fromBlock: 2683205,
+      },
+      {
+        contractName: "AlloV1/RoundFactory/V2",
+        address: "0x29aAF7D4E83A778DAee08Fe04B0712c4C2989AD1",
+        fromBlock: 2683205,
+      },
+      {
+        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
+        address: "0x5b55728e41154562ee80027C1247B13382692e5C",
+        fromBlock: 2683205,
+      },
+      {
+        contractName: "AlloV1/ProgramFactory/V1",
+        address: "0x545B282A50EaeA01A619914d44105437036CbB36",
+        fromBlock: 2683205,
       },
     ],
   },
