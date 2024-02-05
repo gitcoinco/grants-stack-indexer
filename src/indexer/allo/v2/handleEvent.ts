@@ -1,35 +1,23 @@
 import { EventHandlerArgs } from "chainsauce";
-import { ethers } from "ethers";
+import { keccak256, encodePacked, pad } from "viem";
 import type { Indexer } from "../../indexer.js";
 import { ProjectTable, NewRound } from "../../../database/schema.js";
 import { Changeset } from "../../../database/index.js";
 import { parseAddress } from "../../../address.js";
 import roleGranted from "./roleGranted.js";
 import roleRevoked from "./roleRevoked.js";
+import { fetchPoolMetadata } from "./poolMetadata.js";
+import { extractStrategyFromId } from "./strategy.js";
 import { fetchPoolMetadata } from "./parsePoolMetadata.js";
 import { extractStrategyFromId } from "./strategy.js";
 
-function padBytes32Hex(s: string): string {
-  if (s.length > 64) {
-    return s;
-  }
-
-  const padding = 64 - s.length;
-  let hex = s;
-  hex = "0".repeat(padding) + hex;
-  return "0x" + hex;
-}
-
 function generateRoundRoles(poolId: string) {
   // POOL_MANAGER_ROLE = bytes32(poolId);
-  const managerRole = padBytes32Hex(poolId);
+  const managerRole = pad(`0x${poolId.toString(16)}`);
 
   // POOL_ADMIN_ROLE = keccak256(abi.encodePacked(poolId, "admin"));
-  const adminRawRole = ethers.utils.solidityPack(
-    ["uint256", "string"],
-    [poolId, "admin"]
-  );
-  const adminRole = ethers.utils.solidityKeccak256(["bytes"], [adminRawRole]);
+  const adminRawRole = encodePacked(["uint256", "string"], [poolId, "admin"]);
+  const adminRole = keccak256(adminRawRole);
   return { managerRole, adminRole };
 }
 
@@ -112,7 +100,7 @@ export async function handleEvent(
         metadataPointer
       );
 
-      const poolId = event.params.poolId.toString();
+      const poolId = event.params.poolId;
       const { managerRole, adminRole } = generateRoundRoles(poolId);
 
       const strategyAddress = event.params.strategy;
@@ -178,7 +166,7 @@ export async function handleEvent(
 
       const newRound: NewRound = {
         chainId,
-        id: poolId,
+        id: poolId.toString(),
         tags: ["allo-v2"],
         totalDonationsCount: 0,
         totalAmountDonatedInUsd: 0,
@@ -211,12 +199,72 @@ export async function handleEvent(
         updatedAtBlock: event.blockNumber,
       };
 
-      return [
+      const changes: Changeset[] = [
         {
           type: "InsertRound",
           round: newRound,
         },
       ];
+
+      // Admin roles for the pool are emitted before the pool is created
+      // so a pending round role is inserted in the db.
+      // Now that the PoolCreated event is emitted, we can convert
+      // pending roles to actual round roles.
+      const pendingAdminRoundRoles = await db.getPendingRoundRolesByRole(
+        chainId,
+        adminRole
+      );
+
+      if (pendingAdminRoundRoles.length > 0) {
+        for (const pr of pendingAdminRoundRoles) {
+          changes.push({
+            type: "InsertRoundRole",
+            roundRole: {
+              chainId,
+              roundId: poolId.toString(),
+              address: pr.address,
+              role: "admin",
+              createdAtBlock: event.blockNumber,
+            },
+          });
+        }
+
+        changes.push({
+          type: "DeletePendingRoundRoles",
+          ids: pendingAdminRoundRoles.map((r) => r.id!),
+        });
+      }
+
+      // Manager roles for the pool are emitted before the pool is created
+      // so a pending round role is inserted in the db.
+      // Now that the PoolCreated event is emitted, we can convert
+      // pending roles to actual round roles.
+      const pendingManagerRoundRoles = await db.getPendingRoundRolesByRole(
+        chainId,
+        managerRole
+      );
+
+      if (pendingManagerRoundRoles.length > 0) {
+        for (const pr of pendingManagerRoundRoles) {
+          changes.push({
+            type: "InsertRoundRole",
+            roundRole: {
+              chainId,
+              roundId: poolId.toString(),
+              address: pr.address,
+              role: "manager",
+              createdAtBlock: event.blockNumber,
+            },
+          });
+        }
+
+        changes.push({
+          type: "DeletePendingRoundRoles",
+          ids: pendingManagerRoundRoles.map((r) => r.id!),
+        });
+      }
+
+      return changes;
     }
 
     case "RoleGranted": {

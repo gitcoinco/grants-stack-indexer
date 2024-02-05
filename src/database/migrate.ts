@@ -45,7 +45,6 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("strategyId", "text")
     .addColumn("strategyName", "text")
 
-
     // aggregates
 
     .addColumn("totalAmountDonatedInUSD", "real")
