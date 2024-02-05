@@ -11,7 +11,7 @@ kill_timeout = 5
   DEPLOYMENT_ENVIRONMENT = "staging"
   LOG_LEVEL = "debug"
   STORAGE_DIR = "/mnt/indexer"
-  INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-testnet,pgn-mainnet,arbitrum,arbitrum-goerli,polygon-mumbai,polygon,goerli,sepolia,avalanche,avalanche-fuji,scroll,scroll-sepolia,base,zsync-era-mainnet"
+  INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-testnet,pgn-mainnet,arbitrum,arbitrum-goerli,polygon-mumbai,polygon,goerli,sepolia,avalanche,avalanche-fuji,scroll,scroll-sepolia,base,zksync-era-mainnet"
   ENABLE_RESOURCE_MONITOR = "true"
   # BUILD_TAG = # set in deploy github action
 
