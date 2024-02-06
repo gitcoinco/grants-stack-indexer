@@ -25,6 +25,7 @@ import {
 } from "../../../calculator/calculateMatchingEstimates.js";
 import { linearQFWithAggregates } from "pluralistic";
 import { DeprecatedRound } from "../../../deprecatedJsonDatabase.js";
+import { getAddress } from "viem";
 
 function createLinearQf(
   config: HttpApiConfig["calculator"]["esimatesLinearQfImplementation"]
@@ -136,7 +137,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     }
 
     const matches = await calculateMatches({
-      roundId: roundId,
+      roundId: getAddress(roundId),
       coefficientOverrides: overrides,
       chain: chainConfig,
       calculationConfigOverride: {
