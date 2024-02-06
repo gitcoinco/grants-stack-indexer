@@ -203,6 +203,12 @@ export class Database {
     });
   }
 
+  async applyChanges(changes: DataChange[]): Promise<void> {
+    for (const change of changes) {
+      await this.applyChange(change);
+    }
+  }
+
   async applyChange(change: DataChange): Promise<void> {
     switch (change.type) {
       case "InsertPendingProjectRole": {

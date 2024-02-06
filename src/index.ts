@@ -446,17 +446,14 @@ async function catchupAndWatchChain(
         // console.time(args.event.name);
         // do not await donation inserts as they are write only
         if (args.event.name === "Voted") {
-          void handleAlloV1Event(args).then((changesets) => {
-            for (const changeset of changesets) {
-              db.applyChange(changeset).catch((err: unknown) => {
-                indexerLogger.warn({
-                  msg: "error while processing vote",
-                  err,
-                  changeset,
-                });
+          handleAlloV1Event(args)
+            .then((changesets) => db.applyChanges(changesets))
+            .catch((err: unknown) => {
+              indexerLogger.warn({
+                msg: "error while processing vote",
+                err,
               });
-            }
-          });
+            });
         } else {
           const handler = args.event.contractName.startsWith("AlloV1")
             ? handleAlloV1Event
