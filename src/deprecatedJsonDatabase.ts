@@ -2,9 +2,17 @@ import { Hex } from "./types.js";
 import { Application, Donation, Project, Round } from "./database/schema.js";
 import { getAddress } from "viem";
 
+function maybeChecksumAddress(address: string): string {
+  try {
+    return getAddress(address);
+  } catch (e) {
+    return address;
+  }
+}
+
 export function createDeprecatedRound(round: Round): DeprecatedRound {
   return {
-    id: round.id.toString(),
+    id: maybeChecksumAddress(round.id.toString()),
     amountUSD: round.totalAmountDonatedInUsd,
     votes: round.totalDonationsCount,
     token: getAddress(round.matchTokenAddress),
