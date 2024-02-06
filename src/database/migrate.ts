@@ -109,6 +109,12 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
       "address",
       "role",
     ])
+    .addForeignKeyConstraint(
+      "project_roles_projects_fkey",
+      ["chainId", "projectId"],
+      "projects",
+      ["chainId", "id"]
+    )
     .execute();
 
   await schema
@@ -138,6 +144,12 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
       "address",
       "role",
     ])
+    .addForeignKeyConstraint(
+      "round_roles_rounds_fkey",
+      ["chainId", "roundId"],
+      "rounds",
+      ["chainId", "id"]
+    )
     .execute();
 
   await schema
@@ -253,9 +265,12 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     "rounds"
   )}(id, chain_id)|@fieldName round|@foreignFieldName donations';
 
-  comment on table ${ref("project_roles")} is
-  E'@foreignKey ("project_id") references ${ref(
-    "projects"
-  )}(id)|@fieldName project|@foreignFieldName roles';
+  comment on constraint "round_roles_rounds_fkey" on ${ref("round_roles")} is
+  E'@foreignFieldName roles\n@fieldName round';
+
+  comment on constraint "project_roles_projects_fkey" on ${ref(
+    "project_roles"
+  )} is
+  E'@foreignFieldName roles\n@fieldName project';
   `.execute(db);
 }
