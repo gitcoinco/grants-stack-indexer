@@ -67,7 +67,7 @@ export class DatabaseDataProvider implements DataProvider {
               roundStartTime: Math.trunc(
                 d.donationsStartTime.getTime() / 1000
               ).toString(),
-              roundsEndTime: Math.trunc(
+              roundEndTime: Math.trunc(
                 d.donationsEndTime.getTime() / 1000
               ).toString(),
             },
