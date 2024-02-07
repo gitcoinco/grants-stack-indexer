@@ -201,6 +201,18 @@ async function main(): Promise<void> {
   } else {
     // Promises will be resolved once the initial catchup is done. Afterwards, services
     // will still be in listen-and-update mode.
+    //
+    const chains = config.chains.map((chain) =>
+      catchupAndWatchChain({
+        chainsauceCache,
+        chain,
+        db,
+        subscriptionStore,
+        baseLogger,
+        priceProvider,
+        ...config,
+      })
+    );
 
     const [passportProvider] = await Promise.all([
       catchupAndWatchPassport({
@@ -208,17 +220,7 @@ async function main(): Promise<void> {
         baseLogger,
         runOnce: config.runOnce,
       }),
-      ...config.chains.map((chain) =>
-        catchupAndWatchChain({
-          chainsauceCache,
-          chain,
-          db,
-          subscriptionStore,
-          baseLogger,
-          priceProvider,
-          ...config,
-        })
-      ),
+      ...(config.httpServerWaitForSync ? chains : []),
     ]);
 
     // TODO: use read only connection, use separate pool?

@@ -1141,6 +1141,7 @@ export type Config = {
   toBlock: ToBlock;
   passportScorerId: number;
   logLevel: "trace" | "debug" | "info" | "warn" | "error";
+  httpServerWaitForSync: boolean;
   ipfsGateway: string;
   coingeckoApiKey: string | null;
   coingeckoApiUrl: string;
@@ -1225,6 +1226,9 @@ export function getConfig(): Config {
       "no-cache": {
         type: "boolean",
       },
+      "http-wait-for-sync": {
+        type: "boolean",
+      },
     },
   });
 
@@ -1286,6 +1290,12 @@ export function getConfig(): Config {
     .default(null)
     .parse(process.env.ESTIMATES_LINEARQF_WORKER_POOL_SIZE);
 
+  const httpServerWaitForSync = z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true")
+    .parse(args["http-wait-for-sync"] ?? process.env.HTTP_SERVER_WAIT_FOR_SYNC);
+
   return {
     buildTag: buildTag,
     sentryDsn,
@@ -1306,6 +1316,7 @@ export function getConfig(): Config {
     databaseUrl,
     dropDb,
     databaseSchemaName,
+    httpServerWaitForSync,
     hostname: os.hostname(),
     estimatesLinearQfWorkerPoolSize,
   };
