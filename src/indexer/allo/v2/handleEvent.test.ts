@@ -577,6 +577,7 @@ describe("handleEvent", () => {
             "0x6f9291df02b2664139cec5703c124e4ebce32879c74b6297faa1468aa5ff9ebf",
           strategyName:
             "allov2.DonationVotingMerkleDistributionDirectTransferStrategy",
+          projectId: "0x0002",
         },
       });
 
