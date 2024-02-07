@@ -595,6 +595,33 @@ describe("handleEvent", () => {
         type: "DeletePendingRoundRoles",
         ids: [99],
       });
+
+      expect(changesets[3]).toEqual({
+        type: "InsertRoundRole",
+        roundRole: {
+          chainId: 1,
+          roundId: "1",
+          address: addressThree,
+          role: "manager",
+          createdAtBlock: 1n,
+        },
+      });
+
+      expect(changesets[4]).toEqual({
+        type: "InsertRoundRole",
+        roundRole: {
+          chainId: 1,
+          roundId: "1",
+          address: addressFour,
+          role: "manager",
+          createdAtBlock: 1n,
+        },
+      });
+
+      expect(changesets[5]).toEqual({
+        type: "DeletePendingRoundRoles",
+        ids: [100, 101],
+      });
     });
   });
 
