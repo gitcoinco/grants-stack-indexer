@@ -656,6 +656,7 @@ describe("handleEvent", () => {
         strategyAddress: parseAddress(addressZero),
         strategyId: "",
         strategyName: "",
+        projectId: addressZero,
       };
 
       test("should create a round manager role", async () => {
@@ -785,6 +786,7 @@ describe("handleEvent", () => {
         strategyAddress: parseAddress(addressZero),
         strategyId: "",
         strategyName: "",
+        projectId: addressZero,
       };
 
       test("should delete a round manager role", async () => {
