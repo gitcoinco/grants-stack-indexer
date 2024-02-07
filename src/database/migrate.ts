@@ -13,60 +13,6 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   const schema = db.withSchema(schemaName).schema;
 
   await schema
-    .createTable("rounds")
-    .addColumn("id", "text")
-    .addColumn("chainId", CHAIN_ID_TYPE)
-
-    .addColumn("tags", sql`text[]`)
-
-    .addColumn("matchAmount", BIGINT_TYPE)
-    .addColumn("matchTokenAddress", ADDRESS_TYPE)
-    .addColumn("matchAmountInUSD", "real")
-
-    .addColumn("applicationMetadataCid", "text")
-    .addColumn("applicationMetadata", "jsonb")
-    .addColumn("roundMetadataCid", "text")
-    .addColumn("roundMetadata", "jsonb")
-
-    .addColumn("applicationsStartTime", "timestamp")
-    .addColumn("applicationsEndTime", "timestamp")
-    .addColumn("donationsStartTime", "timestamp")
-    .addColumn("donationsEndTime", "timestamp")
-
-    .addColumn("createdAtBlock", BIGINT_TYPE)
-    .addColumn("updatedAtBlock", BIGINT_TYPE)
-
-    // POOL_MANAGER_ROLE = bytes32(poolId);
-    .addColumn("managerRole", "text")
-    // POOL_ADMIN_ROLE = keccak256(abi.encodePacked(poolId, "admin"));
-    .addColumn("adminRole", "text")
-
-    .addColumn("strategyAddress", "text")
-    .addColumn("strategyId", "text")
-    .addColumn("strategyName", "text")
-
-    // aggregates
-
-    .addColumn("totalAmountDonatedInUSD", "real")
-    .addColumn("totalDonationsCount", "integer")
-    .addColumn("uniqueDonorsCount", "integer")
-
-    .addPrimaryKeyConstraint("rounds_pkey", ["id", "chainId"])
-    .execute();
-
-  await schema
-    .createIndex("idx_rounds_manager_role")
-    .on("rounds")
-    .columns(["managerRole"])
-    .execute();
-
-  await schema
-    .createIndex("idx_rounds_admin_role")
-    .on("rounds")
-    .columns(["adminRole"])
-    .execute();
-
-  await schema
     .createTable("projects")
     .addColumn("id", "text")
     .addColumn("name", "text")
@@ -115,6 +61,69 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
       "projects",
       ["chainId", "id"]
     )
+    .execute();
+
+  await schema
+    .createTable("rounds")
+    .addColumn("id", "text")
+    .addColumn("chainId", CHAIN_ID_TYPE)
+
+    .addColumn("tags", sql`text[]`)
+
+    .addColumn("matchAmount", BIGINT_TYPE)
+    .addColumn("matchTokenAddress", ADDRESS_TYPE)
+    .addColumn("matchAmountInUSD", "real")
+
+    .addColumn("applicationMetadataCid", "text")
+    .addColumn("applicationMetadata", "jsonb")
+    .addColumn("roundMetadataCid", "text")
+    .addColumn("roundMetadata", "jsonb")
+
+    .addColumn("applicationsStartTime", "timestamp")
+    .addColumn("applicationsEndTime", "timestamp")
+    .addColumn("donationsStartTime", "timestamp")
+    .addColumn("donationsEndTime", "timestamp")
+
+    .addColumn("createdAtBlock", BIGINT_TYPE)
+    .addColumn("updatedAtBlock", BIGINT_TYPE)
+
+    // POOL_MANAGER_ROLE = bytes32(poolId);
+    .addColumn("managerRole", "text")
+    // POOL_ADMIN_ROLE = keccak256(abi.encodePacked(poolId, "admin"));
+    .addColumn("adminRole", "text")
+
+    .addColumn("strategyAddress", "text")
+    .addColumn("strategyId", "text")
+    .addColumn("strategyName", "text")
+
+    .addColumn("projectId", "text")
+
+    .addForeignKeyConstraint(
+      "rounds_projects_fkey",
+      ["chainId", "projectId"],
+      "projects",
+      ["chainId", "id"]
+    )
+
+    // aggregates
+
+    .addColumn("totalAmountDonatedInUSD", "real")
+    .addColumn("totalDonationsCount", "integer")
+    .addColumn("uniqueDonorsCount", "integer")
+
+    .addPrimaryKeyConstraint("rounds_pkey", ["id", "chainId"])
+    .execute();
+
+  await schema
+    .createIndex("idx_rounds_manager_role")
+    .on("rounds")
+    .columns(["managerRole"])
+    .execute();
+
+  await schema
+    .createIndex("idx_rounds_admin_role")
+    .on("rounds")
+    .columns(["adminRole"])
     .execute();
 
   await schema
@@ -272,5 +281,8 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     "project_roles"
   )} is
   E'@foreignFieldName roles\n@fieldName project';
+
+  comment on constraint "rounds_projects_fkey" on ${ref("rounds")} is
+  E'@foreignFieldName rounds\n@fieldName project';
   `.execute(db);
 }

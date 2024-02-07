@@ -33,6 +33,8 @@ export type RoundTable = {
   strategyId: string;
   strategyName: string;
 
+  projectId: string;
+
   tags: string[];
 };
 

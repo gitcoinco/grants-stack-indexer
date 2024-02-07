@@ -255,6 +255,9 @@ export async function handleEvent(
         address: roundId,
       });
 
+      // programAddress
+      const projectId = parseAddress(event.params.ownedBy);
+
       const [
         matchAmountResolved,
         applicationMetaPtrResolved,
@@ -364,6 +367,7 @@ export async function handleEvent(
         ),
         strategyId: "",
         strategyName: "",
+        projectId,
         createdAtBlock: event.blockNumber,
         updatedAtBlock: event.blockNumber,
       };
