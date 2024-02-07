@@ -194,10 +194,7 @@ export class Database {
     });
 
     await this.#db.transaction().execute(async (tx) => {
-      await tx.schema
-        .createSchema(this.databaseSchemaName)
-        .ifNotExists()
-        .execute();
+      await tx.schema.createSchema(this.databaseSchemaName).execute();
 
       await migrate(tx, this.databaseSchemaName);
     });

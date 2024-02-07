@@ -17,7 +17,7 @@ const addressOne =
 const addressTwo =
   "0x0000000000000000000000000000000000000002" as ChecksumAddress;
 const addressThree =
-  "0x0000000000000000000000000000000000000004" as ChecksumAddress;
+  "0x0000000000000000000000000000000000000003" as ChecksumAddress;
 const addressFour =
   "0x0000000000000000000000000000000000000004" as ChecksumAddress;
 const addressFive =
@@ -492,6 +492,7 @@ describe("handleEvent", () => {
         strategyAddress: parseAddress(addressZero),
         strategyId: "",
         strategyName: "",
+        projectId: parseAddress(addressZero),
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
 
@@ -550,6 +551,7 @@ describe("handleEvent", () => {
         strategyAddress: parseAddress(addressZero),
         strategyId: "",
         strategyName: "",
+        projectId: parseAddress(addressZero),
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
 
@@ -610,6 +612,7 @@ describe("handleEvent", () => {
         strategyAddress: parseAddress(addressZero),
         strategyId: "",
         strategyName: "",
+        projectId: parseAddress(addressZero),
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
 
@@ -668,6 +671,7 @@ describe("handleEvent", () => {
         strategyAddress: parseAddress(addressZero),
         strategyId: "",
         strategyName: "",
+        projectId: parseAddress(addressZero),
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
 
@@ -881,6 +885,7 @@ describe("handleEvent", () => {
           strategyAddress: parseAddress(addressZero),
           strategyId: "",
           strategyName: "",
+          projectId: addressThree,
         },
       });
 

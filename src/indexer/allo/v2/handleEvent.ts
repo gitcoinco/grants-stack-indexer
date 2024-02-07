@@ -206,6 +206,7 @@ export async function handleEvent(
         strategyName: strategy?.name ?? "",
         createdAtBlock: event.blockNumber,
         updatedAtBlock: event.blockNumber,
+        projectId: event.params.profileId,
       };
 
       const changes: Changeset[] = [
