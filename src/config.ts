@@ -1227,7 +1227,7 @@ export function getConfig(): Config {
         type: "boolean",
       },
       "http-wait-for-sync": {
-        type: "boolean",
+        type: "string",
       },
     },
   });
