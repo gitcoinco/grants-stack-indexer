@@ -159,6 +159,15 @@ const CHAINS: Chain[] = [
         },
       },
       {
+        code: "USDGLO",
+        address: "0x4f604735c1cf31399c6e711d5962b2b3e0225ad3",
+        decimals: 18,
+        priceSource: {
+          chainId: 10,
+          address: "0x4f604735c1cf31399c6e711d5962b2b3e0225ad3",
+        },
+      },
+      {
         code: "GIST",
         address: "0x93a5347036f69bc6f37ed2b59cbcdda927719217",
         decimals: 18,
@@ -449,6 +458,15 @@ const CHAINS: Chain[] = [
         priceSource: {
           chainId: 42161,
           address: "0x912ce59144191c1204e64559fe8253a0e49e6548",
+        },
+      },
+      {
+        code: "USDGLO",
+        address: "0x4f604735c1cf31399c6e711d5962b2b3e0225ad3",
+        decimals: 18,
+        priceSource: {
+          chainId: 42161,
+          address: "0x4f604735c1cf31399c6e711d5962b2b3e0225ad3",
         },
       },
       {
