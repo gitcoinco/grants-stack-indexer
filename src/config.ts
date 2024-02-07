@@ -1163,6 +1163,9 @@ export function getConfig(): Config {
       "no-cache": {
         type: "boolean",
       },
+      "http-wait-for-sync": {
+        type: "boolean",
+      },
     },
   });
 
@@ -1228,7 +1231,7 @@ export function getConfig(): Config {
     .enum(["true", "false"])
     .default("true")
     .transform((value) => value === "true")
-    .parse(process.env.HTTP_SERVER_WAIT_FOR_SYNC);
+    .parse(args["http-wait-for-sync"] ?? process.env.HTTP_SERVER_WAIT_FOR_SYNC);
 
   return {
     buildTag: buildTag,

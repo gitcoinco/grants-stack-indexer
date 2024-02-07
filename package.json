@@ -8,8 +8,8 @@
   "scripts": {
     "start": "node dist/src/index.js",
     "start:run-once": "node dist/src/index.js --run-once | pino-pretty",
-    "dev": "tsx watch src/index.ts | pino-pretty",
-    "dev:drop-db": "tsx watch src/index.ts --drop-db | pino-pretty",
+    "dev": "tsx watch src/index.ts --http-wait-for-sync=false | pino-pretty",
+    "dev:drop-db": "tsx watch src/index.ts --http-wait-for-sync=false --drop-db | pino-pretty",
     "build": "tsc",
     "lint": "eslint src",
     "test": "vitest run --reporter verbose",
