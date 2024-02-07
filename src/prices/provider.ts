@@ -181,8 +181,8 @@ export function createPriceProvider(
     const prices = await fetchPricesForRange({
       chainId: token.priceSource.chainId,
       tokenAddress: parseAddress(token.priceSource.address),
-      startTimestampInMs: blockTimestampInMs,
-      endTimestampInMs: blockTimestampInMs + twoHoursInMs,
+      startTimestampInMs: blockTimestampInMs - twoHoursInMs,
+      endTimestampInMs: blockTimestampInMs,
       coingeckoApiUrl: config.coingeckoApiUrl,
       coingeckoApiKey: config.coingeckoApiKey,
       fetch: (url, opts) => config.fetch(url, opts),
