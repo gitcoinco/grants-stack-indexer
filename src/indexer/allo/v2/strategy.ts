@@ -6,6 +6,7 @@ type Strategy = {
 
 export function extractStrategyFromId(_id: string): Strategy | null {
   const id = _id.toLowerCase();
+  /* eslint-disable no-fallthrough */
   switch (id) {
     // SQFSuperfluidv1
     case "0xf8a14294e80ff012e54157ec9d1b2827421f1e7f6bde38c06730b1c031b3f935":
