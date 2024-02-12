@@ -65,6 +65,8 @@ export function extractStrategyFromId(_id: string): Strategy | null {
 
     // DonationVotingMerkleDistributionDirectTransferStrategyv1.0
     case "0x6f9291df02b2664139cec5703c124e4ebce32879c74b6297faa1468aa5ff9ebf":
+    // DonationVotingMerkleDistributionDirectTransferStrategyv1.1
+    case "0x2f46bf157821dc41daa51479e94783bb0c8699eac63bf75ec450508ab03867ce":
       return {
         id: id,
         name: "allov2.DonationVotingMerkleDistributionDirectTransferStrategy",
@@ -75,6 +77,8 @@ export function extractStrategyFromId(_id: string): Strategy | null {
 
     // DonationVotingMerkleDistributionVaultStrategyv1.0
     case "0x7e75375f0a7cd9f7ea159c8b065976e4f764f9dcef1edf692f31dd1842f70c87":
+    // DonationVotingMerkleDistributionVaultStrategyv1.1
+    case "0x093072375737c0e8872fef36808849aeba7f865e182d495f2b98308115c9ef13":
       return {
         id: id,
         name: "allov2.DonationVotingMerkleDistributionVaultStrategy",
