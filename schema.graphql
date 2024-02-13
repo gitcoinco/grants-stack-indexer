@@ -1,0 +1,2107 @@
+"""The root query type which gives access points into the data universe."""
+type Query implements Node {
+  """
+  Exposes the root query type nested one level down. This is helpful for Relay 1
+  which can only query top level fields if they are in a particular form.
+  """
+  query: Query!
+
+  """
+  The root query type must be a `Node` to work well with Relay 1 mutations. This just resolves to `query`.
+  """
+  nodeId: ID!
+
+  """Fetches an object given its globally unique `ID`."""
+  node(
+    """The globally unique `ID`."""
+    nodeId: ID!
+  ): Node
+
+  """Reads a set of `Application`."""
+  applications(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Skip the first `n` values."""
+    offset: Int
+
+    """The method to use when ordering `Application`."""
+    orderBy: [ApplicationsOrderBy!]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: ApplicationCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: ApplicationFilter
+  ): [Application!]
+
+  """Reads a set of `Donation`."""
+  donations(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Skip the first `n` values."""
+    offset: Int
+
+    """The method to use when ordering `Donation`."""
+    orderBy: [DonationsOrderBy!]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: DonationCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: DonationFilter
+  ): [Donation!]
+
+  """Reads a set of `PendingProjectRole`."""
+  pendingProjectRoles(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Skip the first `n` values."""
+    offset: Int
+
+    """The method to use when ordering `PendingProjectRole`."""
+    orderBy: [PendingProjectRolesOrderBy!]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: PendingProjectRoleCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: PendingProjectRoleFilter
+  ): [PendingProjectRole!]
+
+  """Reads a set of `PendingRoundRole`."""
+  pendingRoundRoles(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Skip the first `n` values."""
+    offset: Int
+
+    """The method to use when ordering `PendingRoundRole`."""
+    orderBy: [PendingRoundRolesOrderBy!]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: PendingRoundRoleCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: PendingRoundRoleFilter
+  ): [PendingRoundRole!]
+
+  """Reads a set of `Price`."""
+  prices(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Skip the first `n` values."""
+    offset: Int
+
+    """The method to use when ordering `Price`."""
+    orderBy: [PricesOrderBy!]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: PriceCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: PriceFilter
+  ): [Price!]
+
+  """Reads a set of `ProjectRole`."""
+  projectRoles(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Skip the first `n` values."""
+    offset: Int
+
+    """The method to use when ordering `ProjectRole`."""
+    orderBy: [ProjectRolesOrderBy!]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: ProjectRoleCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: ProjectRoleFilter
+  ): [ProjectRole!]
+
+  """Reads a set of `Project`."""
+  projects(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Skip the first `n` values."""
+    offset: Int
+
+    """The method to use when ordering `Project`."""
+    orderBy: [ProjectsOrderBy!]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: ProjectCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: ProjectFilter
+  ): [Project!]
+
+  """Reads a set of `RoundRole`."""
+  roundRoles(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Skip the first `n` values."""
+    offset: Int
+
+    """The method to use when ordering `RoundRole`."""
+    orderBy: [RoundRolesOrderBy!]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: RoundRoleCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: RoundRoleFilter
+  ): [RoundRole!]
+
+  """Reads a set of `Round`."""
+  rounds(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Skip the first `n` values."""
+    offset: Int
+
+    """The method to use when ordering `Round`."""
+    orderBy: [RoundsOrderBy!]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: RoundCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: RoundFilter
+  ): [Round!]
+  application(chainId: Int!, roundId: String!, id: String!): Application
+  donation(id: String!): Donation
+  pendingProjectRole(id: Int!): PendingProjectRole
+  pendingRoundRole(id: Int!): PendingRoundRole
+  price(id: Int!): Price
+  projectRole(chainId: Int!, projectId: String!, address: String!, role: ProjectRoleName!): ProjectRole
+  project(id: String!, chainId: Int!): Project
+  roundRole(chainId: Int!, roundId: String!, address: String!, role: RoundRoleName!): RoundRole
+  round(id: String!, chainId: Int!): Round
+
+  """Reads a single `Application` using its globally unique `ID`."""
+  applicationByNodeId(
+    """
+    The globally unique `ID` to be used in selecting a single `Application`.
+    """
+    nodeId: ID!
+  ): Application
+
+  """Reads a single `Donation` using its globally unique `ID`."""
+  donationByNodeId(
+    """The globally unique `ID` to be used in selecting a single `Donation`."""
+    nodeId: ID!
+  ): Donation
+
+  """Reads a single `PendingProjectRole` using its globally unique `ID`."""
+  pendingProjectRoleByNodeId(
+    """
+    The globally unique `ID` to be used in selecting a single `PendingProjectRole`.
+    """
+    nodeId: ID!
+  ): PendingProjectRole
+
+  """Reads a single `PendingRoundRole` using its globally unique `ID`."""
+  pendingRoundRoleByNodeId(
+    """
+    The globally unique `ID` to be used in selecting a single `PendingRoundRole`.
+    """
+    nodeId: ID!
+  ): PendingRoundRole
+
+  """Reads a single `Price` using its globally unique `ID`."""
+  priceByNodeId(
+    """The globally unique `ID` to be used in selecting a single `Price`."""
+    nodeId: ID!
+  ): Price
+
+  """Reads a single `ProjectRole` using its globally unique `ID`."""
+  projectRoleByNodeId(
+    """
+    The globally unique `ID` to be used in selecting a single `ProjectRole`.
+    """
+    nodeId: ID!
+  ): ProjectRole
+
+  """Reads a single `Project` using its globally unique `ID`."""
+  projectByNodeId(
+    """The globally unique `ID` to be used in selecting a single `Project`."""
+    nodeId: ID!
+  ): Project
+
+  """Reads a single `RoundRole` using its globally unique `ID`."""
+  roundRoleByNodeId(
+    """The globally unique `ID` to be used in selecting a single `RoundRole`."""
+    nodeId: ID!
+  ): RoundRole
+
+  """Reads a single `Round` using its globally unique `ID`."""
+  roundByNodeId(
+    """The globally unique `ID` to be used in selecting a single `Round`."""
+    nodeId: ID!
+  ): Round
+}
+
+"""An object with a globally unique `ID`."""
+interface Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+}
+
+type Application implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  id: String!
+  chainId: Int!
+  roundId: String!
+  projectId: String
+  status: ApplicationStatus
+  statusSnapshots: JSON
+  metadataCid: String
+  metadata: JSON
+  createdAtBlock: BigFloat
+  statusUpdatedAtBlock: BigFloat
+  totalDonationsCount: Int
+  totalAmountDonatedInUsd: Float
+  uniqueDonorsCount: Int
+
+  """Reads a single `Round` that is related to this `Application`."""
+  round: Round
+
+  """Reads a single `Project` that is related to this `Application`."""
+  project: Project
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  IN_REVIEW
+}
+
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSON
+
+"""
+A floating point number that requires more precision than IEEE 754 binary 64
+"""
+scalar BigFloat
+
+type Round implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  id: String!
+  chainId: Int!
+  tags: [String]
+  matchAmount: BigFloat
+  matchTokenAddress: String
+  matchAmountInUsd: Float
+  applicationMetadataCid: String
+  applicationMetadata: JSON
+  roundMetadataCid: String
+  roundMetadata: JSON
+  applicationsStartTime: Datetime
+  applicationsEndTime: Datetime
+  donationsStartTime: Datetime
+  donationsEndTime: Datetime
+  createdAtBlock: BigFloat
+  updatedAtBlock: BigFloat
+  managerRole: String
+  adminRole: String
+  strategyAddress: String
+  strategyId: String
+  strategyName: String
+  projectId: String
+  totalAmountDonatedInUsd: Float
+  totalDonationsCount: Int
+  uniqueDonorsCount: Int
+
+  """Reads a single `Project` that is related to this `Round`."""
+  project: Project
+
+  """Reads and enables pagination through a set of `RoundRole`."""
+  roles(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Skip the first `n` values."""
+    offset: Int
+
+    """The method to use when ordering `RoundRole`."""
+    orderBy: [RoundRolesOrderBy!]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: RoundRoleCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: RoundRoleFilter
+  ): [RoundRole!]!
+
+  """Reads and enables pagination through a set of `Application`."""
+  applications(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Skip the first `n` values."""
+    offset: Int
+
+    """The method to use when ordering `Application`."""
+    orderBy: [ApplicationsOrderBy!]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: ApplicationCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: ApplicationFilter
+  ): [Application!]!
+
+  """Reads and enables pagination through a set of `Donation`."""
+  donations(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Skip the first `n` values."""
+    offset: Int
+
+    """The method to use when ordering `Donation`."""
+    orderBy: [DonationsOrderBy!]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: DonationCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: DonationFilter
+  ): [Donation!]!
+}
+
+"""
+A point in time as described by the [ISO
+8601](https://en.wikipedia.org/wiki/ISO_8601) standard. May or may not include a timezone.
+"""
+scalar Datetime
+
+type Project implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  id: String!
+  name: String
+  nonce: BigFloat
+  anchor: String
+  chainId: Int!
+  projectNumber: Int
+  registryAddress: String
+  metadataCid: String
+  metadata: JSON
+  createdAtBlock: BigFloat
+  updatedAtBlock: BigFloat
+  tags: [String]
+
+  """Reads and enables pagination through a set of `ProjectRole`."""
+  roles(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Skip the first `n` values."""
+    offset: Int
+
+    """The method to use when ordering `ProjectRole`."""
+    orderBy: [ProjectRolesOrderBy!]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: ProjectRoleCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: ProjectRoleFilter
+  ): [ProjectRole!]!
+
+  """Reads and enables pagination through a set of `Round`."""
+  rounds(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Skip the first `n` values."""
+    offset: Int
+
+    """The method to use when ordering `Round`."""
+    orderBy: [RoundsOrderBy!]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: RoundCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: RoundFilter
+  ): [Round!]!
+
+  """Reads and enables pagination through a set of `Application`."""
+  applications(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Skip the first `n` values."""
+    offset: Int
+
+    """The method to use when ordering `Application`."""
+    orderBy: [ApplicationsOrderBy!]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: ApplicationCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: ApplicationFilter
+  ): [Application!]!
+}
+
+type ProjectRole implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  chainId: Int!
+  projectId: String!
+  address: String!
+  role: ProjectRoleName!
+  createdAtBlock: BigFloat
+
+  """Reads a single `Project` that is related to this `ProjectRole`."""
+  project: Project
+}
+
+enum ProjectRoleName {
+  OWNER
+  MEMBER
+}
+
+"""Methods to use when ordering `ProjectRole`."""
+enum ProjectRolesOrderBy {
+  NATURAL
+  CHAIN_ID_ASC
+  CHAIN_ID_DESC
+  PROJECT_ID_ASC
+  PROJECT_ID_DESC
+  ADDRESS_ASC
+  ADDRESS_DESC
+  ROLE_ASC
+  ROLE_DESC
+  CREATED_AT_BLOCK_ASC
+  CREATED_AT_BLOCK_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `ProjectRole` object types. All fields are tested
+for equality and combined with a logical ‘and.’
+"""
+input ProjectRoleCondition {
+  """Checks for equality with the object’s `chainId` field."""
+  chainId: Int
+
+  """Checks for equality with the object’s `projectId` field."""
+  projectId: String
+
+  """Checks for equality with the object’s `address` field."""
+  address: String
+
+  """Checks for equality with the object’s `role` field."""
+  role: ProjectRoleName
+
+  """Checks for equality with the object’s `createdAtBlock` field."""
+  createdAtBlock: BigFloat
+}
+
+"""
+A filter to be used against `ProjectRole` object types. All fields are combined with a logical ‘and.’
+"""
+input ProjectRoleFilter {
+  """Filter by the object’s `chainId` field."""
+  chainId: IntFilter
+
+  """Filter by the object’s `projectId` field."""
+  projectId: StringFilter
+
+  """Filter by the object’s `address` field."""
+  address: StringFilter
+
+  """Filter by the object’s `role` field."""
+  role: ProjectRoleNameFilter
+
+  """Filter by the object’s `createdAtBlock` field."""
+  createdAtBlock: BigFloatFilter
+
+  """Filter by the object’s `project` relation."""
+  project: ProjectFilter
+
+  """Checks for all expressions in this list."""
+  and: [ProjectRoleFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [ProjectRoleFilter!]
+
+  """Negates the expression."""
+  not: ProjectRoleFilter
+}
+
+"""
+A filter to be used against Int fields. All fields are combined with a logical ‘and.’
+"""
+input IntFilter {
+  """
+  Is null (if `true` is specified) or is not null (if `false` is specified).
+  """
+  isNull: Boolean
+
+  """Equal to the specified value."""
+  equalTo: Int
+
+  """Not equal to the specified value."""
+  notEqualTo: Int
+
+  """Included in the specified list."""
+  in: [Int!]
+
+  """Not included in the specified list."""
+  notIn: [Int!]
+
+  """Less than the specified value."""
+  lessThan: Int
+
+  """Less than or equal to the specified value."""
+  lessThanOrEqualTo: Int
+
+  """Greater than the specified value."""
+  greaterThan: Int
+
+  """Greater than or equal to the specified value."""
+  greaterThanOrEqualTo: Int
+}
+
+"""
+A filter to be used against String fields. All fields are combined with a logical ‘and.’
+"""
+input StringFilter {
+  """
+  Is null (if `true` is specified) or is not null (if `false` is specified).
+  """
+  isNull: Boolean
+
+  """Equal to the specified value."""
+  equalTo: String
+
+  """Not equal to the specified value."""
+  notEqualTo: String
+
+  """Included in the specified list."""
+  in: [String!]
+
+  """Not included in the specified list."""
+  notIn: [String!]
+
+  """Less than the specified value."""
+  lessThan: String
+
+  """Less than or equal to the specified value."""
+  lessThanOrEqualTo: String
+
+  """Greater than the specified value."""
+  greaterThan: String
+
+  """Greater than or equal to the specified value."""
+  greaterThanOrEqualTo: String
+}
+
+"""
+A filter to be used against ProjectRoleName fields. All fields are combined with a logical ‘and.’
+"""
+input ProjectRoleNameFilter {
+  """
+  Is null (if `true` is specified) or is not null (if `false` is specified).
+  """
+  isNull: Boolean
+
+  """Equal to the specified value."""
+  equalTo: ProjectRoleName
+
+  """Not equal to the specified value."""
+  notEqualTo: ProjectRoleName
+
+  """Included in the specified list."""
+  in: [ProjectRoleName!]
+
+  """Not included in the specified list."""
+  notIn: [ProjectRoleName!]
+
+  """Less than the specified value."""
+  lessThan: ProjectRoleName
+
+  """Less than or equal to the specified value."""
+  lessThanOrEqualTo: ProjectRoleName
+
+  """Greater than the specified value."""
+  greaterThan: ProjectRoleName
+
+  """Greater than or equal to the specified value."""
+  greaterThanOrEqualTo: ProjectRoleName
+}
+
+"""
+A filter to be used against BigFloat fields. All fields are combined with a logical ‘and.’
+"""
+input BigFloatFilter {
+  """
+  Is null (if `true` is specified) or is not null (if `false` is specified).
+  """
+  isNull: Boolean
+
+  """Equal to the specified value."""
+  equalTo: BigFloat
+
+  """Not equal to the specified value."""
+  notEqualTo: BigFloat
+
+  """Included in the specified list."""
+  in: [BigFloat!]
+
+  """Not included in the specified list."""
+  notIn: [BigFloat!]
+
+  """Less than the specified value."""
+  lessThan: BigFloat
+
+  """Less than or equal to the specified value."""
+  lessThanOrEqualTo: BigFloat
+
+  """Greater than the specified value."""
+  greaterThan: BigFloat
+
+  """Greater than or equal to the specified value."""
+  greaterThanOrEqualTo: BigFloat
+}
+
+"""
+A filter to be used against `Project` object types. All fields are combined with a logical ‘and.’
+"""
+input ProjectFilter {
+  """Filter by the object’s `id` field."""
+  id: StringFilter
+
+  """Filter by the object’s `name` field."""
+  name: StringFilter
+
+  """Filter by the object’s `nonce` field."""
+  nonce: BigFloatFilter
+
+  """Filter by the object’s `anchor` field."""
+  anchor: StringFilter
+
+  """Filter by the object’s `chainId` field."""
+  chainId: IntFilter
+
+  """Filter by the object’s `projectNumber` field."""
+  projectNumber: IntFilter
+
+  """Filter by the object’s `registryAddress` field."""
+  registryAddress: StringFilter
+
+  """Filter by the object’s `metadataCid` field."""
+  metadataCid: StringFilter
+
+  """Filter by the object’s `metadata` field."""
+  metadata: JSONFilter
+
+  """Filter by the object’s `createdAtBlock` field."""
+  createdAtBlock: BigFloatFilter
+
+  """Filter by the object’s `updatedAtBlock` field."""
+  updatedAtBlock: BigFloatFilter
+
+  """Filter by the object’s `tags` field."""
+  tags: StringListFilter
+
+  """Filter by the object’s `roles` relation."""
+  roles: ProjectToManyProjectRoleFilter
+
+  """Some related `roles` exist."""
+  rolesExist: Boolean
+
+  """Filter by the object’s `rounds` relation."""
+  rounds: ProjectToManyRoundFilter
+
+  """Some related `rounds` exist."""
+  roundsExist: Boolean
+
+  """Filter by the object’s `applications` relation."""
+  applications: ProjectToManyApplicationFilter
+
+  """Some related `applications` exist."""
+  applicationsExist: Boolean
+
+  """Checks for all expressions in this list."""
+  and: [ProjectFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [ProjectFilter!]
+
+  """Negates the expression."""
+  not: ProjectFilter
+}
+
+"""
+A filter to be used against JSON fields. All fields are combined with a logical ‘and.’
+"""
+input JSONFilter {
+  """
+  Is null (if `true` is specified) or is not null (if `false` is specified).
+  """
+  isNull: Boolean
+
+  """Equal to the specified value."""
+  equalTo: JSON
+
+  """Not equal to the specified value."""
+  notEqualTo: JSON
+
+  """Included in the specified list."""
+  in: [JSON!]
+
+  """Not included in the specified list."""
+  notIn: [JSON!]
+
+  """Less than the specified value."""
+  lessThan: JSON
+
+  """Less than or equal to the specified value."""
+  lessThanOrEqualTo: JSON
+
+  """Greater than the specified value."""
+  greaterThan: JSON
+
+  """Greater than or equal to the specified value."""
+  greaterThanOrEqualTo: JSON
+
+  """Contains the specified JSON."""
+  contains: JSON
+}
+
+"""
+A filter to be used against String List fields. All fields are combined with a logical ‘and.’
+"""
+input StringListFilter {
+  """
+  Is null (if `true` is specified) or is not null (if `false` is specified).
+  """
+  isNull: Boolean
+
+  """Equal to the specified value."""
+  equalTo: [String]
+
+  """Not equal to the specified value."""
+  notEqualTo: [String]
+
+  """Less than the specified value."""
+  lessThan: [String]
+
+  """Less than or equal to the specified value."""
+  lessThanOrEqualTo: [String]
+
+  """Greater than the specified value."""
+  greaterThan: [String]
+
+  """Greater than or equal to the specified value."""
+  greaterThanOrEqualTo: [String]
+
+  """Contains the specified list of values."""
+  contains: [String]
+}
+
+"""
+A filter to be used against many `ProjectRole` object types. All fields are combined with a logical ‘and.’
+"""
+input ProjectToManyProjectRoleFilter {
+  """
+  Every related `ProjectRole` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: ProjectRoleFilter
+
+  """
+  Some related `ProjectRole` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: ProjectRoleFilter
+
+  """
+  No related `ProjectRole` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: ProjectRoleFilter
+}
+
+"""
+A filter to be used against many `Round` object types. All fields are combined with a logical ‘and.’
+"""
+input ProjectToManyRoundFilter {
+  """
+  Every related `Round` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: RoundFilter
+
+  """
+  Some related `Round` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: RoundFilter
+
+  """
+  No related `Round` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: RoundFilter
+}
+
+"""
+A filter to be used against `Round` object types. All fields are combined with a logical ‘and.’
+"""
+input RoundFilter {
+  """Filter by the object’s `id` field."""
+  id: StringFilter
+
+  """Filter by the object’s `chainId` field."""
+  chainId: IntFilter
+
+  """Filter by the object’s `tags` field."""
+  tags: StringListFilter
+
+  """Filter by the object’s `matchAmount` field."""
+  matchAmount: BigFloatFilter
+
+  """Filter by the object’s `matchTokenAddress` field."""
+  matchTokenAddress: StringFilter
+
+  """Filter by the object’s `matchAmountInUsd` field."""
+  matchAmountInUsd: FloatFilter
+
+  """Filter by the object’s `applicationMetadataCid` field."""
+  applicationMetadataCid: StringFilter
+
+  """Filter by the object’s `applicationMetadata` field."""
+  applicationMetadata: JSONFilter
+
+  """Filter by the object’s `roundMetadataCid` field."""
+  roundMetadataCid: StringFilter
+
+  """Filter by the object’s `roundMetadata` field."""
+  roundMetadata: JSONFilter
+
+  """Filter by the object’s `applicationsStartTime` field."""
+  applicationsStartTime: DatetimeFilter
+
+  """Filter by the object’s `applicationsEndTime` field."""
+  applicationsEndTime: DatetimeFilter
+
+  """Filter by the object’s `donationsStartTime` field."""
+  donationsStartTime: DatetimeFilter
+
+  """Filter by the object’s `donationsEndTime` field."""
+  donationsEndTime: DatetimeFilter
+
+  """Filter by the object’s `createdAtBlock` field."""
+  createdAtBlock: BigFloatFilter
+
+  """Filter by the object’s `updatedAtBlock` field."""
+  updatedAtBlock: BigFloatFilter
+
+  """Filter by the object’s `managerRole` field."""
+  managerRole: StringFilter
+
+  """Filter by the object’s `adminRole` field."""
+  adminRole: StringFilter
+
+  """Filter by the object’s `strategyAddress` field."""
+  strategyAddress: StringFilter
+
+  """Filter by the object’s `strategyId` field."""
+  strategyId: StringFilter
+
+  """Filter by the object’s `strategyName` field."""
+  strategyName: StringFilter
+
+  """Filter by the object’s `projectId` field."""
+  projectId: StringFilter
+
+  """Filter by the object’s `totalAmountDonatedInUsd` field."""
+  totalAmountDonatedInUsd: FloatFilter
+
+  """Filter by the object’s `totalDonationsCount` field."""
+  totalDonationsCount: IntFilter
+
+  """Filter by the object’s `uniqueDonorsCount` field."""
+  uniqueDonorsCount: IntFilter
+
+  """Filter by the object’s `roles` relation."""
+  roles: RoundToManyRoundRoleFilter
+
+  """Some related `roles` exist."""
+  rolesExist: Boolean
+
+  """Filter by the object’s `applications` relation."""
+  applications: RoundToManyApplicationFilter
+
+  """Some related `applications` exist."""
+  applicationsExist: Boolean
+
+  """Filter by the object’s `donations` relation."""
+  donations: RoundToManyDonationFilter
+
+  """Some related `donations` exist."""
+  donationsExist: Boolean
+
+  """Filter by the object’s `project` relation."""
+  project: ProjectFilter
+
+  """A related `project` exists."""
+  projectExists: Boolean
+
+  """Checks for all expressions in this list."""
+  and: [RoundFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [RoundFilter!]
+
+  """Negates the expression."""
+  not: RoundFilter
+}
+
+"""
+A filter to be used against Float fields. All fields are combined with a logical ‘and.’
+"""
+input FloatFilter {
+  """
+  Is null (if `true` is specified) or is not null (if `false` is specified).
+  """
+  isNull: Boolean
+
+  """Equal to the specified value."""
+  equalTo: Float
+
+  """Not equal to the specified value."""
+  notEqualTo: Float
+
+  """Included in the specified list."""
+  in: [Float!]
+
+  """Not included in the specified list."""
+  notIn: [Float!]
+
+  """Less than the specified value."""
+  lessThan: Float
+
+  """Less than or equal to the specified value."""
+  lessThanOrEqualTo: Float
+
+  """Greater than the specified value."""
+  greaterThan: Float
+
+  """Greater than or equal to the specified value."""
+  greaterThanOrEqualTo: Float
+}
+
+"""
+A filter to be used against Datetime fields. All fields are combined with a logical ‘and.’
+"""
+input DatetimeFilter {
+  """
+  Is null (if `true` is specified) or is not null (if `false` is specified).
+  """
+  isNull: Boolean
+
+  """Equal to the specified value."""
+  equalTo: Datetime
+
+  """Not equal to the specified value."""
+  notEqualTo: Datetime
+
+  """Included in the specified list."""
+  in: [Datetime!]
+
+  """Not included in the specified list."""
+  notIn: [Datetime!]
+
+  """Less than the specified value."""
+  lessThan: Datetime
+
+  """Less than or equal to the specified value."""
+  lessThanOrEqualTo: Datetime
+
+  """Greater than the specified value."""
+  greaterThan: Datetime
+
+  """Greater than or equal to the specified value."""
+  greaterThanOrEqualTo: Datetime
+}
+
+"""
+A filter to be used against many `RoundRole` object types. All fields are combined with a logical ‘and.’
+"""
+input RoundToManyRoundRoleFilter {
+  """
+  Every related `RoundRole` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: RoundRoleFilter
+
+  """
+  Some related `RoundRole` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: RoundRoleFilter
+
+  """
+  No related `RoundRole` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: RoundRoleFilter
+}
+
+"""
+A filter to be used against `RoundRole` object types. All fields are combined with a logical ‘and.’
+"""
+input RoundRoleFilter {
+  """Filter by the object’s `chainId` field."""
+  chainId: IntFilter
+
+  """Filter by the object’s `roundId` field."""
+  roundId: StringFilter
+
+  """Filter by the object’s `address` field."""
+  address: StringFilter
+
+  """Filter by the object’s `role` field."""
+  role: RoundRoleNameFilter
+
+  """Filter by the object’s `createdAtBlock` field."""
+  createdAtBlock: BigFloatFilter
+
+  """Filter by the object’s `round` relation."""
+  round: RoundFilter
+
+  """Checks for all expressions in this list."""
+  and: [RoundRoleFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [RoundRoleFilter!]
+
+  """Negates the expression."""
+  not: RoundRoleFilter
+}
+
+"""
+A filter to be used against RoundRoleName fields. All fields are combined with a logical ‘and.’
+"""
+input RoundRoleNameFilter {
+  """
+  Is null (if `true` is specified) or is not null (if `false` is specified).
+  """
+  isNull: Boolean
+
+  """Equal to the specified value."""
+  equalTo: RoundRoleName
+
+  """Not equal to the specified value."""
+  notEqualTo: RoundRoleName
+
+  """Included in the specified list."""
+  in: [RoundRoleName!]
+
+  """Not included in the specified list."""
+  notIn: [RoundRoleName!]
+
+  """Less than the specified value."""
+  lessThan: RoundRoleName
+
+  """Less than or equal to the specified value."""
+  lessThanOrEqualTo: RoundRoleName
+
+  """Greater than the specified value."""
+  greaterThan: RoundRoleName
+
+  """Greater than or equal to the specified value."""
+  greaterThanOrEqualTo: RoundRoleName
+}
+
+enum RoundRoleName {
+  ADMIN
+  MANAGER
+}
+
+"""
+A filter to be used against many `Application` object types. All fields are combined with a logical ‘and.’
+"""
+input RoundToManyApplicationFilter {
+  """
+  Every related `Application` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: ApplicationFilter
+
+  """
+  Some related `Application` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: ApplicationFilter
+
+  """
+  No related `Application` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: ApplicationFilter
+}
+
+"""
+A filter to be used against `Application` object types. All fields are combined with a logical ‘and.’
+"""
+input ApplicationFilter {
+  """Filter by the object’s `id` field."""
+  id: StringFilter
+
+  """Filter by the object’s `chainId` field."""
+  chainId: IntFilter
+
+  """Filter by the object’s `roundId` field."""
+  roundId: StringFilter
+
+  """Filter by the object’s `projectId` field."""
+  projectId: StringFilter
+
+  """Filter by the object’s `status` field."""
+  status: ApplicationStatusFilter
+
+  """Filter by the object’s `statusSnapshots` field."""
+  statusSnapshots: JSONFilter
+
+  """Filter by the object’s `metadataCid` field."""
+  metadataCid: StringFilter
+
+  """Filter by the object’s `metadata` field."""
+  metadata: JSONFilter
+
+  """Filter by the object’s `createdAtBlock` field."""
+  createdAtBlock: BigFloatFilter
+
+  """Filter by the object’s `statusUpdatedAtBlock` field."""
+  statusUpdatedAtBlock: BigFloatFilter
+
+  """Filter by the object’s `totalDonationsCount` field."""
+  totalDonationsCount: IntFilter
+
+  """Filter by the object’s `totalAmountDonatedInUsd` field."""
+  totalAmountDonatedInUsd: FloatFilter
+
+  """Filter by the object’s `uniqueDonorsCount` field."""
+  uniqueDonorsCount: IntFilter
+
+  """Filter by the object’s `round` relation."""
+  round: RoundFilter
+
+  """Filter by the object’s `project` relation."""
+  project: ProjectFilter
+
+  """A related `project` exists."""
+  projectExists: Boolean
+
+  """Checks for all expressions in this list."""
+  and: [ApplicationFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [ApplicationFilter!]
+
+  """Negates the expression."""
+  not: ApplicationFilter
+}
+
+"""
+A filter to be used against ApplicationStatus fields. All fields are combined with a logical ‘and.’
+"""
+input ApplicationStatusFilter {
+  """
+  Is null (if `true` is specified) or is not null (if `false` is specified).
+  """
+  isNull: Boolean
+
+  """Equal to the specified value."""
+  equalTo: ApplicationStatus
+
+  """Not equal to the specified value."""
+  notEqualTo: ApplicationStatus
+
+  """Included in the specified list."""
+  in: [ApplicationStatus!]
+
+  """Not included in the specified list."""
+  notIn: [ApplicationStatus!]
+
+  """Less than the specified value."""
+  lessThan: ApplicationStatus
+
+  """Less than or equal to the specified value."""
+  lessThanOrEqualTo: ApplicationStatus
+
+  """Greater than the specified value."""
+  greaterThan: ApplicationStatus
+
+  """Greater than or equal to the specified value."""
+  greaterThanOrEqualTo: ApplicationStatus
+}
+
+"""
+A filter to be used against many `Donation` object types. All fields are combined with a logical ‘and.’
+"""
+input RoundToManyDonationFilter {
+  """
+  Every related `Donation` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: DonationFilter
+
+  """
+  Some related `Donation` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: DonationFilter
+
+  """
+  No related `Donation` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: DonationFilter
+}
+
+"""
+A filter to be used against `Donation` object types. All fields are combined with a logical ‘and.’
+"""
+input DonationFilter {
+  """Filter by the object’s `id` field."""
+  id: StringFilter
+
+  """Filter by the object’s `chainId` field."""
+  chainId: IntFilter
+
+  """Filter by the object’s `roundId` field."""
+  roundId: StringFilter
+
+  """Filter by the object’s `applicationId` field."""
+  applicationId: StringFilter
+
+  """Filter by the object’s `donorAddress` field."""
+  donorAddress: StringFilter
+
+  """Filter by the object’s `recipientAddress` field."""
+  recipientAddress: StringFilter
+
+  """Filter by the object’s `projectId` field."""
+  projectId: StringFilter
+
+  """Filter by the object’s `transactionHash` field."""
+  transactionHash: StringFilter
+
+  """Filter by the object’s `blockNumber` field."""
+  blockNumber: BigFloatFilter
+
+  """Filter by the object’s `tokenAddress` field."""
+  tokenAddress: StringFilter
+
+  """Filter by the object’s `amount` field."""
+  amount: BigFloatFilter
+
+  """Filter by the object’s `amountInUsd` field."""
+  amountInUsd: FloatFilter
+
+  """Filter by the object’s `amountInRoundMatchToken` field."""
+  amountInRoundMatchToken: BigFloatFilter
+
+  """Filter by the object’s `round` relation."""
+  round: RoundFilter
+
+  """A related `round` exists."""
+  roundExists: Boolean
+
+  """Checks for all expressions in this list."""
+  and: [DonationFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [DonationFilter!]
+
+  """Negates the expression."""
+  not: DonationFilter
+}
+
+"""
+A filter to be used against many `Application` object types. All fields are combined with a logical ‘and.’
+"""
+input ProjectToManyApplicationFilter {
+  """
+  Every related `Application` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: ApplicationFilter
+
+  """
+  Some related `Application` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: ApplicationFilter
+
+  """
+  No related `Application` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: ApplicationFilter
+}
+
+"""Methods to use when ordering `Round`."""
+enum RoundsOrderBy {
+  NATURAL
+  ID_ASC
+  ID_DESC
+  CHAIN_ID_ASC
+  CHAIN_ID_DESC
+  TAGS_ASC
+  TAGS_DESC
+  MATCH_AMOUNT_ASC
+  MATCH_AMOUNT_DESC
+  MATCH_TOKEN_ADDRESS_ASC
+  MATCH_TOKEN_ADDRESS_DESC
+  MATCH_AMOUNT_IN_USD_ASC
+  MATCH_AMOUNT_IN_USD_DESC
+  APPLICATION_METADATA_CID_ASC
+  APPLICATION_METADATA_CID_DESC
+  APPLICATION_METADATA_ASC
+  APPLICATION_METADATA_DESC
+  ROUND_METADATA_CID_ASC
+  ROUND_METADATA_CID_DESC
+  ROUND_METADATA_ASC
+  ROUND_METADATA_DESC
+  APPLICATIONS_START_TIME_ASC
+  APPLICATIONS_START_TIME_DESC
+  APPLICATIONS_END_TIME_ASC
+  APPLICATIONS_END_TIME_DESC
+  DONATIONS_START_TIME_ASC
+  DONATIONS_START_TIME_DESC
+  DONATIONS_END_TIME_ASC
+  DONATIONS_END_TIME_DESC
+  CREATED_AT_BLOCK_ASC
+  CREATED_AT_BLOCK_DESC
+  UPDATED_AT_BLOCK_ASC
+  UPDATED_AT_BLOCK_DESC
+  MANAGER_ROLE_ASC
+  MANAGER_ROLE_DESC
+  ADMIN_ROLE_ASC
+  ADMIN_ROLE_DESC
+  STRATEGY_ADDRESS_ASC
+  STRATEGY_ADDRESS_DESC
+  STRATEGY_ID_ASC
+  STRATEGY_ID_DESC
+  STRATEGY_NAME_ASC
+  STRATEGY_NAME_DESC
+  PROJECT_ID_ASC
+  PROJECT_ID_DESC
+  TOTAL_AMOUNT_DONATED_IN_USD_ASC
+  TOTAL_AMOUNT_DONATED_IN_USD_DESC
+  TOTAL_DONATIONS_COUNT_ASC
+  TOTAL_DONATIONS_COUNT_DESC
+  UNIQUE_DONORS_COUNT_ASC
+  UNIQUE_DONORS_COUNT_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `Round` object types. All fields are tested for equality and combined with a logical ‘and.’
+"""
+input RoundCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: String
+
+  """Checks for equality with the object’s `chainId` field."""
+  chainId: Int
+
+  """Checks for equality with the object’s `tags` field."""
+  tags: [String]
+
+  """Checks for equality with the object’s `matchAmount` field."""
+  matchAmount: BigFloat
+
+  """Checks for equality with the object’s `matchTokenAddress` field."""
+  matchTokenAddress: String
+
+  """Checks for equality with the object’s `matchAmountInUsd` field."""
+  matchAmountInUsd: Float
+
+  """Checks for equality with the object’s `applicationMetadataCid` field."""
+  applicationMetadataCid: String
+
+  """Checks for equality with the object’s `applicationMetadata` field."""
+  applicationMetadata: JSON
+
+  """Checks for equality with the object’s `roundMetadataCid` field."""
+  roundMetadataCid: String
+
+  """Checks for equality with the object’s `roundMetadata` field."""
+  roundMetadata: JSON
+
+  """Checks for equality with the object’s `applicationsStartTime` field."""
+  applicationsStartTime: Datetime
+
+  """Checks for equality with the object’s `applicationsEndTime` field."""
+  applicationsEndTime: Datetime
+
+  """Checks for equality with the object’s `donationsStartTime` field."""
+  donationsStartTime: Datetime
+
+  """Checks for equality with the object’s `donationsEndTime` field."""
+  donationsEndTime: Datetime
+
+  """Checks for equality with the object’s `createdAtBlock` field."""
+  createdAtBlock: BigFloat
+
+  """Checks for equality with the object’s `updatedAtBlock` field."""
+  updatedAtBlock: BigFloat
+
+  """Checks for equality with the object’s `managerRole` field."""
+  managerRole: String
+
+  """Checks for equality with the object’s `adminRole` field."""
+  adminRole: String
+
+  """Checks for equality with the object’s `strategyAddress` field."""
+  strategyAddress: String
+
+  """Checks for equality with the object’s `strategyId` field."""
+  strategyId: String
+
+  """Checks for equality with the object’s `strategyName` field."""
+  strategyName: String
+
+  """Checks for equality with the object’s `projectId` field."""
+  projectId: String
+
+  """Checks for equality with the object’s `totalAmountDonatedInUsd` field."""
+  totalAmountDonatedInUsd: Float
+
+  """Checks for equality with the object’s `totalDonationsCount` field."""
+  totalDonationsCount: Int
+
+  """Checks for equality with the object’s `uniqueDonorsCount` field."""
+  uniqueDonorsCount: Int
+}
+
+"""Methods to use when ordering `Application`."""
+enum ApplicationsOrderBy {
+  NATURAL
+  ID_ASC
+  ID_DESC
+  CHAIN_ID_ASC
+  CHAIN_ID_DESC
+  ROUND_ID_ASC
+  ROUND_ID_DESC
+  PROJECT_ID_ASC
+  PROJECT_ID_DESC
+  STATUS_ASC
+  STATUS_DESC
+  STATUS_SNAPSHOTS_ASC
+  STATUS_SNAPSHOTS_DESC
+  METADATA_CID_ASC
+  METADATA_CID_DESC
+  METADATA_ASC
+  METADATA_DESC
+  CREATED_AT_BLOCK_ASC
+  CREATED_AT_BLOCK_DESC
+  STATUS_UPDATED_AT_BLOCK_ASC
+  STATUS_UPDATED_AT_BLOCK_DESC
+  TOTAL_DONATIONS_COUNT_ASC
+  TOTAL_DONATIONS_COUNT_DESC
+  TOTAL_AMOUNT_DONATED_IN_USD_ASC
+  TOTAL_AMOUNT_DONATED_IN_USD_DESC
+  UNIQUE_DONORS_COUNT_ASC
+  UNIQUE_DONORS_COUNT_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `Application` object types. All fields are tested
+for equality and combined with a logical ‘and.’
+"""
+input ApplicationCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: String
+
+  """Checks for equality with the object’s `chainId` field."""
+  chainId: Int
+
+  """Checks for equality with the object’s `roundId` field."""
+  roundId: String
+
+  """Checks for equality with the object’s `projectId` field."""
+  projectId: String
+
+  """Checks for equality with the object’s `status` field."""
+  status: ApplicationStatus
+
+  """Checks for equality with the object’s `statusSnapshots` field."""
+  statusSnapshots: JSON
+
+  """Checks for equality with the object’s `metadataCid` field."""
+  metadataCid: String
+
+  """Checks for equality with the object’s `metadata` field."""
+  metadata: JSON
+
+  """Checks for equality with the object’s `createdAtBlock` field."""
+  createdAtBlock: BigFloat
+
+  """Checks for equality with the object’s `statusUpdatedAtBlock` field."""
+  statusUpdatedAtBlock: BigFloat
+
+  """Checks for equality with the object’s `totalDonationsCount` field."""
+  totalDonationsCount: Int
+
+  """Checks for equality with the object’s `totalAmountDonatedInUsd` field."""
+  totalAmountDonatedInUsd: Float
+
+  """Checks for equality with the object’s `uniqueDonorsCount` field."""
+  uniqueDonorsCount: Int
+}
+
+type RoundRole implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  chainId: Int!
+  roundId: String!
+  address: String!
+  role: RoundRoleName!
+  createdAtBlock: BigFloat
+
+  """Reads a single `Round` that is related to this `RoundRole`."""
+  round: Round
+}
+
+"""Methods to use when ordering `RoundRole`."""
+enum RoundRolesOrderBy {
+  NATURAL
+  CHAIN_ID_ASC
+  CHAIN_ID_DESC
+  ROUND_ID_ASC
+  ROUND_ID_DESC
+  ADDRESS_ASC
+  ADDRESS_DESC
+  ROLE_ASC
+  ROLE_DESC
+  CREATED_AT_BLOCK_ASC
+  CREATED_AT_BLOCK_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `RoundRole` object types. All fields are tested
+for equality and combined with a logical ‘and.’
+"""
+input RoundRoleCondition {
+  """Checks for equality with the object’s `chainId` field."""
+  chainId: Int
+
+  """Checks for equality with the object’s `roundId` field."""
+  roundId: String
+
+  """Checks for equality with the object’s `address` field."""
+  address: String
+
+  """Checks for equality with the object’s `role` field."""
+  role: RoundRoleName
+
+  """Checks for equality with the object’s `createdAtBlock` field."""
+  createdAtBlock: BigFloat
+}
+
+type Donation implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  id: String!
+  chainId: Int
+  roundId: String
+  applicationId: String
+  donorAddress: String
+  recipientAddress: String
+  projectId: String
+  transactionHash: String
+  blockNumber: BigFloat
+  tokenAddress: String
+  amount: BigFloat
+  amountInUsd: Float
+  amountInRoundMatchToken: BigFloat
+
+  """Reads a single `Round` that is related to this `Donation`."""
+  round: Round
+}
+
+"""Methods to use when ordering `Donation`."""
+enum DonationsOrderBy {
+  NATURAL
+  ID_ASC
+  ID_DESC
+  CHAIN_ID_ASC
+  CHAIN_ID_DESC
+  ROUND_ID_ASC
+  ROUND_ID_DESC
+  APPLICATION_ID_ASC
+  APPLICATION_ID_DESC
+  DONOR_ADDRESS_ASC
+  DONOR_ADDRESS_DESC
+  RECIPIENT_ADDRESS_ASC
+  RECIPIENT_ADDRESS_DESC
+  PROJECT_ID_ASC
+  PROJECT_ID_DESC
+  TRANSACTION_HASH_ASC
+  TRANSACTION_HASH_DESC
+  BLOCK_NUMBER_ASC
+  BLOCK_NUMBER_DESC
+  TOKEN_ADDRESS_ASC
+  TOKEN_ADDRESS_DESC
+  AMOUNT_ASC
+  AMOUNT_DESC
+  AMOUNT_IN_USD_ASC
+  AMOUNT_IN_USD_DESC
+  AMOUNT_IN_ROUND_MATCH_TOKEN_ASC
+  AMOUNT_IN_ROUND_MATCH_TOKEN_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `Donation` object types. All fields are tested
+for equality and combined with a logical ‘and.’
+"""
+input DonationCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: String
+
+  """Checks for equality with the object’s `chainId` field."""
+  chainId: Int
+
+  """Checks for equality with the object’s `roundId` field."""
+  roundId: String
+
+  """Checks for equality with the object’s `applicationId` field."""
+  applicationId: String
+
+  """Checks for equality with the object’s `donorAddress` field."""
+  donorAddress: String
+
+  """Checks for equality with the object’s `recipientAddress` field."""
+  recipientAddress: String
+
+  """Checks for equality with the object’s `projectId` field."""
+  projectId: String
+
+  """Checks for equality with the object’s `transactionHash` field."""
+  transactionHash: String
+
+  """Checks for equality with the object’s `blockNumber` field."""
+  blockNumber: BigFloat
+
+  """Checks for equality with the object’s `tokenAddress` field."""
+  tokenAddress: String
+
+  """Checks for equality with the object’s `amount` field."""
+  amount: BigFloat
+
+  """Checks for equality with the object’s `amountInUsd` field."""
+  amountInUsd: Float
+
+  """Checks for equality with the object’s `amountInRoundMatchToken` field."""
+  amountInRoundMatchToken: BigFloat
+}
+
+type PendingProjectRole implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  id: Int!
+  chainId: Int
+  role: String
+  address: String
+  createdAtBlock: BigFloat
+}
+
+"""Methods to use when ordering `PendingProjectRole`."""
+enum PendingProjectRolesOrderBy {
+  NATURAL
+  ID_ASC
+  ID_DESC
+  CHAIN_ID_ASC
+  CHAIN_ID_DESC
+  ROLE_ASC
+  ROLE_DESC
+  ADDRESS_ASC
+  ADDRESS_DESC
+  CREATED_AT_BLOCK_ASC
+  CREATED_AT_BLOCK_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `PendingProjectRole` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input PendingProjectRoleCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: Int
+
+  """Checks for equality with the object’s `chainId` field."""
+  chainId: Int
+
+  """Checks for equality with the object’s `role` field."""
+  role: String
+
+  """Checks for equality with the object’s `address` field."""
+  address: String
+
+  """Checks for equality with the object’s `createdAtBlock` field."""
+  createdAtBlock: BigFloat
+}
+
+"""
+A filter to be used against `PendingProjectRole` object types. All fields are combined with a logical ‘and.’
+"""
+input PendingProjectRoleFilter {
+  """Filter by the object’s `id` field."""
+  id: IntFilter
+
+  """Filter by the object’s `chainId` field."""
+  chainId: IntFilter
+
+  """Filter by the object’s `role` field."""
+  role: StringFilter
+
+  """Filter by the object’s `address` field."""
+  address: StringFilter
+
+  """Filter by the object’s `createdAtBlock` field."""
+  createdAtBlock: BigFloatFilter
+
+  """Checks for all expressions in this list."""
+  and: [PendingProjectRoleFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [PendingProjectRoleFilter!]
+
+  """Negates the expression."""
+  not: PendingProjectRoleFilter
+}
+
+type PendingRoundRole implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  id: Int!
+  chainId: Int
+  role: String
+  address: String
+  createdAtBlock: BigFloat
+}
+
+"""Methods to use when ordering `PendingRoundRole`."""
+enum PendingRoundRolesOrderBy {
+  NATURAL
+  ID_ASC
+  ID_DESC
+  CHAIN_ID_ASC
+  CHAIN_ID_DESC
+  ROLE_ASC
+  ROLE_DESC
+  ADDRESS_ASC
+  ADDRESS_DESC
+  CREATED_AT_BLOCK_ASC
+  CREATED_AT_BLOCK_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `PendingRoundRole` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input PendingRoundRoleCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: Int
+
+  """Checks for equality with the object’s `chainId` field."""
+  chainId: Int
+
+  """Checks for equality with the object’s `role` field."""
+  role: String
+
+  """Checks for equality with the object’s `address` field."""
+  address: String
+
+  """Checks for equality with the object’s `createdAtBlock` field."""
+  createdAtBlock: BigFloat
+}
+
+"""
+A filter to be used against `PendingRoundRole` object types. All fields are combined with a logical ‘and.’
+"""
+input PendingRoundRoleFilter {
+  """Filter by the object’s `id` field."""
+  id: IntFilter
+
+  """Filter by the object’s `chainId` field."""
+  chainId: IntFilter
+
+  """Filter by the object’s `role` field."""
+  role: StringFilter
+
+  """Filter by the object’s `address` field."""
+  address: StringFilter
+
+  """Filter by the object’s `createdAtBlock` field."""
+  createdAtBlock: BigFloatFilter
+
+  """Checks for all expressions in this list."""
+  and: [PendingRoundRoleFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [PendingRoundRoleFilter!]
+
+  """Negates the expression."""
+  not: PendingRoundRoleFilter
+}
+
+type Price implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  id: Int!
+  chainId: Int
+  tokenAddress: String
+  priceInUsd: Float
+  timestamp: Datetime
+  blockNumber: BigFloat
+}
+
+"""Methods to use when ordering `Price`."""
+enum PricesOrderBy {
+  NATURAL
+  ID_ASC
+  ID_DESC
+  CHAIN_ID_ASC
+  CHAIN_ID_DESC
+  TOKEN_ADDRESS_ASC
+  TOKEN_ADDRESS_DESC
+  PRICE_IN_USD_ASC
+  PRICE_IN_USD_DESC
+  TIMESTAMP_ASC
+  TIMESTAMP_DESC
+  BLOCK_NUMBER_ASC
+  BLOCK_NUMBER_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `Price` object types. All fields are tested for equality and combined with a logical ‘and.’
+"""
+input PriceCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: Int
+
+  """Checks for equality with the object’s `chainId` field."""
+  chainId: Int
+
+  """Checks for equality with the object’s `tokenAddress` field."""
+  tokenAddress: String
+
+  """Checks for equality with the object’s `priceInUsd` field."""
+  priceInUsd: Float
+
+  """Checks for equality with the object’s `timestamp` field."""
+  timestamp: Datetime
+
+  """Checks for equality with the object’s `blockNumber` field."""
+  blockNumber: BigFloat
+}
+
+"""
+A filter to be used against `Price` object types. All fields are combined with a logical ‘and.’
+"""
+input PriceFilter {
+  """Filter by the object’s `id` field."""
+  id: IntFilter
+
+  """Filter by the object’s `chainId` field."""
+  chainId: IntFilter
+
+  """Filter by the object’s `tokenAddress` field."""
+  tokenAddress: StringFilter
+
+  """Filter by the object’s `priceInUsd` field."""
+  priceInUsd: FloatFilter
+
+  """Filter by the object’s `timestamp` field."""
+  timestamp: DatetimeFilter
+
+  """Filter by the object’s `blockNumber` field."""
+  blockNumber: BigFloatFilter
+
+  """Checks for all expressions in this list."""
+  and: [PriceFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [PriceFilter!]
+
+  """Negates the expression."""
+  not: PriceFilter
+}
+
+"""Methods to use when ordering `Project`."""
+enum ProjectsOrderBy {
+  NATURAL
+  ID_ASC
+  ID_DESC
+  NAME_ASC
+  NAME_DESC
+  NONCE_ASC
+  NONCE_DESC
+  ANCHOR_ASC
+  ANCHOR_DESC
+  CHAIN_ID_ASC
+  CHAIN_ID_DESC
+  PROJECT_NUMBER_ASC
+  PROJECT_NUMBER_DESC
+  REGISTRY_ADDRESS_ASC
+  REGISTRY_ADDRESS_DESC
+  METADATA_CID_ASC
+  METADATA_CID_DESC
+  METADATA_ASC
+  METADATA_DESC
+  CREATED_AT_BLOCK_ASC
+  CREATED_AT_BLOCK_DESC
+  UPDATED_AT_BLOCK_ASC
+  UPDATED_AT_BLOCK_DESC
+  TAGS_ASC
+  TAGS_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `Project` object types. All fields are tested for equality and combined with a logical ‘and.’
+"""
+input ProjectCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: String
+
+  """Checks for equality with the object’s `name` field."""
+  name: String
+
+  """Checks for equality with the object’s `nonce` field."""
+  nonce: BigFloat
+
+  """Checks for equality with the object’s `anchor` field."""
+  anchor: String
+
+  """Checks for equality with the object’s `chainId` field."""
+  chainId: Int
+
+  """Checks for equality with the object’s `projectNumber` field."""
+  projectNumber: Int
+
+  """Checks for equality with the object’s `registryAddress` field."""
+  registryAddress: String
+
+  """Checks for equality with the object’s `metadataCid` field."""
+  metadataCid: String
+
+  """Checks for equality with the object’s `metadata` field."""
+  metadata: JSON
+
+  """Checks for equality with the object’s `createdAtBlock` field."""
+  createdAtBlock: BigFloat
+
+  """Checks for equality with the object’s `updatedAtBlock` field."""
+  updatedAtBlock: BigFloat
+
+  """Checks for equality with the object’s `tags` field."""
+  tags: [String]
+}
