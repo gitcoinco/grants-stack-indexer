@@ -15,6 +15,7 @@ import QuadraticFundingVotingStrategyFactoryV2 from "./allo-v1/v2/QuadraticFundi
 import QuadraticFundingVotingStrategyImplementationV2 from "./allo-v1/v2/QuadraticFundingVotingStrategyImplementation.js";
 import DirectPayoutStrategyFactoryV2 from "./allo-v1/v2/DirectPayoutStrategyFactory.js";
 import DirectPayoutStrategyImplementationV2 from "./allo-v1/v2/DirectPayoutStrategyImplementation.js";
+import MerklePayoutStrategyFactory from "./allo-v1/v2/MerklePayoutStrategyFactory.js";
 
 // V2
 import AlloV2 from "./allo-v2/v1/Allo.js";
@@ -42,6 +43,7 @@ const abis = {
   "AlloV1/DirectPayoutStrategyFactory/V2": DirectPayoutStrategyFactoryV2,
   "AlloV1/DirectPayoutStrategyImplementation/V2":
     DirectPayoutStrategyImplementationV2,
+  "AlloV1/MerklePayoutStrategyFactory/V2": MerklePayoutStrategyFactory,
 
   "AlloV2/Allo/V1": AlloV2,
   "AlloV2/Registry/V1": AlloV2Registry,
