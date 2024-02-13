@@ -111,6 +111,8 @@ describe("handleEvent", () => {
           project: {
             chainId: 1,
             name: "Project 1",
+            nonce: 1n,
+            anchor: addressThree,
             createdAtBlock: 1n,
             updatedAtBlock: 1n,
             id: "0x0001",
@@ -186,6 +188,8 @@ describe("handleEvent", () => {
           project: {
             chainId: 1,
             name: "Project 1",
+            nonce: 1n,
+            anchor: addressThree,
             createdAtBlock: 1n,
             updatedAtBlock: 1n,
             id: "0x0001",

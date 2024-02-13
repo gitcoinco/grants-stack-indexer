@@ -55,6 +55,8 @@ export async function handleEvent(
             registryAddress: parseAddress(event.address),
             id: profileId,
             name: event.params.name,
+            nonce: event.params.nonce,
+            anchor: event.params.anchor,
             projectNumber: null,
             metadataCid: metadataCid,
             metadata: metadata,
