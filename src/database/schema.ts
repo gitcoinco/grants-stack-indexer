@@ -75,6 +75,8 @@ export type PartialRoundRole = Updateable<RoundRoleTable>;
 export type ProjectTable = {
   id: string;
   name: string;
+  nonce: bigint | null;
+  anchorAddress: Address | null;
   chainId: ChainId;
   projectNumber: number | null;
   registryAddress: Address;
