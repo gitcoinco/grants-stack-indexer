@@ -1283,7 +1283,7 @@ export type Config = {
   estimatesLinearQfWorkerPoolSize: number | null;
 };
 
-const CHAIN_DATA_VERSION = "24";
+const CHAIN_DATA_VERSION = "25";
 
 export function getConfig(): Config {
   const buildTag = z
