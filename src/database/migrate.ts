@@ -17,7 +17,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("id", "text")
     .addColumn("name", "text")
     .addColumn("nonce", BIGINT_TYPE)
-    .addColumn("anchor", ADDRESS_TYPE)
+    .addColumn("anchorAddress", ADDRESS_TYPE)
     .addColumn("chainId", CHAIN_ID_TYPE)
     .addColumn("projectNumber", "integer")
     .addColumn("registryAddress", ADDRESS_TYPE)
