@@ -388,45 +388,6 @@ export async function handleEvent(
       ];
     }
 
-    case "PayoutContractCreated": {
-      let contractImplementationName: typeof event.contractName;
-      let strategyName: string;
-
-      if (event.contractName === "AlloV1/DirectPayoutStrategyFactory/V2") {
-        contractImplementationName =
-          "AlloV1/DirectPayoutStrategyImplementation/V2";
-        strategyName = "allov1.DirectGrants";
-      } else if (
-        event.contractName === "AlloV1/MerklePayoutStrategyFactory/V2"
-      ) {
-        contractImplementationName =
-          "AlloV1/MerklePayoutStrategyImplementation/V2";
-        strategyName = "allov1.QF";
-      } else {
-        throw new Error(`Unknown payout contract: ${event.contractName}`);
-      }
-
-      const roundId = parseAddress(
-        await readContract({
-          contract: contractImplementationName,
-          functionName: "roundAddress",
-          address: event.params.payoutContractAddress,
-        })
-      );
-
-      return [
-        {
-          type: "UpdateRound",
-          roundId: roundId,
-          chainId: chainId,
-          round: {
-            strategyAddress: parseAddress(event.params.payoutContractAddress),
-            strategyName,
-          },
-        },
-      ];
-    }
-
     case "RoleGranted": {
       return await roleGranted({ ...args, event });
     }
@@ -683,13 +644,49 @@ export async function handleEvent(
       ];
     }
 
-    // --- Direct Payout Strategy
+    // --- Payout Strategy
     case "PayoutContractCreated": {
+      let contractImplementationName: typeof event.contractName;
+      let strategyName: string;
+
+      if (event.contractName === "AlloV1/DirectPayoutStrategyFactory/V2") {
+        contractImplementationName =
+          "AlloV1/DirectPayoutStrategyImplementation/V2";
+        strategyName = "allov1.Direct";
+      } else if (
+        event.contractName === "AlloV1/MerklePayoutStrategyFactory/V2"
+      ) {
+        contractImplementationName =
+          "AlloV1/MerklePayoutStrategyImplementation/V2";
+        strategyName = "allov1.QF";
+      } else {
+        throw new Error(`Unknown payout contract: ${event.contractName}`);
+      }
+
       subscribeToContract({
-        contract: "AlloV1/DirectPayoutStrategyImplementation/V2",
+        contract: contractImplementationName,
         address: event.params.payoutContractAddress,
       });
-      break;
+
+      const roundId = parseAddress(
+        await readContract({
+          contract: contractImplementationName,
+          functionName: "roundAddress",
+          address: event.params.payoutContractAddress,
+        })
+      );
+
+      return [
+        {
+          type: "UpdateRound",
+          roundId: roundId,
+          chainId: chainId,
+          round: {
+            strategyAddress: parseAddress(event.params.payoutContractAddress),
+            strategyName,
+          },
+        },
+      ];
     }
 
     case "ApplicationInReviewUpdated": {

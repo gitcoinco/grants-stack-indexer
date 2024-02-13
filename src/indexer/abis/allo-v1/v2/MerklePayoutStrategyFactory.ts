@@ -1,30 +1,15 @@
 export default [
   {
-    inputs: [
-      { internalType: "address", name: "_logic", type: "address" },
-      { internalType: "address", name: "admin_", type: "address" },
-      { internalType: "bytes", name: "_data", type: "bytes" },
-    ],
-    stateMutability: "payable",
-    type: "constructor",
-  },
-  {
     anonymous: false,
     inputs: [
       {
         indexed: false,
-        internalType: "address",
-        name: "previousAdmin",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "newAdmin",
-        type: "address",
+        internalType: "uint8",
+        name: "version",
+        type: "uint8",
       },
     ],
-    name: "AdminChanged",
+    name: "Initialized",
     type: "event",
   },
   {
@@ -33,11 +18,17 @@ export default [
       {
         indexed: true,
         internalType: "address",
-        name: "beacon",
+        name: "previousOwner",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "newOwner",
         type: "address",
       },
     ],
-    name: "BeaconUpgraded",
+    name: "OwnershipTransferred",
     type: "event",
   },
   {
@@ -46,55 +37,122 @@ export default [
       {
         indexed: true,
         internalType: "address",
-        name: "implementation",
+        name: "payoutContractAddress",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "payoutImplementation",
         type: "address",
       },
     ],
-    name: "Upgraded",
+    name: "PayoutContractCreated",
     type: "event",
   },
-  { stateMutability: "payable", type: "fallback" },
   {
-    inputs: [],
-    name: "admin",
-    outputs: [{ internalType: "address", name: "admin_", type: "address" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "newAdmin", type: "address" }],
-    name: "changeAdmin",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "address",
+        name: "merklePayoutStrategyAddress",
+        type: "address",
+      },
+    ],
+    name: "PayoutImplementationUpdated",
+    type: "event",
   },
   {
     inputs: [],
-    name: "implementation",
+    name: "create",
     outputs: [
-      { internalType: "address", name: "implementation_", type: "address" },
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
     ],
     stateMutability: "nonpayable",
     type: "function",
   },
   {
-    inputs: [
-      { internalType: "address", name: "newImplementation", type: "address" },
+    inputs: [],
+    name: "initialize",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "nonce",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
     ],
-    name: "upgradeTo",
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "owner",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "payoutImplementation",
+    outputs: [
+      {
+        internalType: "address payable",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "renounceOwnership",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
   },
   {
     inputs: [
-      { internalType: "address", name: "newImplementation", type: "address" },
-      { internalType: "bytes", name: "data", type: "bytes" },
+      {
+        internalType: "address",
+        name: "newOwner",
+        type: "address",
+      },
     ],
-    name: "upgradeToAndCall",
+    name: "transferOwnership",
     outputs: [],
-    stateMutability: "payable",
+    stateMutability: "nonpayable",
     type: "function",
   },
-  { stateMutability: "payable", type: "receive" },
+  {
+    inputs: [
+      {
+        internalType: "address payable",
+        name: "newPayoutImplementation",
+        type: "address",
+      },
+    ],
+    name: "updatePayoutImplementation",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
 ] as const;

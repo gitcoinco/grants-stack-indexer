@@ -23,8 +23,16 @@ export default [
       },
       {
         components: [
-          { internalType: "uint256", name: "protocol", type: "uint256" },
-          { internalType: "string", name: "pointer", type: "string" },
+          {
+            internalType: "uint256",
+            name: "protocol",
+            type: "uint256",
+          },
+          {
+            internalType: "string",
+            name: "pointer",
+            type: "string",
+          },
         ],
         indexed: false,
         internalType: "struct MetaPtr",
@@ -94,23 +102,45 @@ export default [
   {
     anonymous: false,
     inputs: [
-      { indexed: false, internalType: "uint8", name: "version", type: "uint8" },
+      {
+        indexed: false,
+        internalType: "uint8",
+        name: "version",
+        type: "uint8",
+      },
     ],
     name: "Initialized",
     type: "event",
   },
-  { anonymous: false, inputs: [], name: "ReadyForPayout", type: "event" },
+  {
+    anonymous: false,
+    inputs: [],
+    name: "ReadyForPayout",
+    type: "event",
+  },
   {
     inputs: [],
     name: "ROUND_OPERATOR_ROLE",
-    outputs: [{ internalType: "bytes32", name: "", type: "bytes32" }],
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+    ],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [],
     name: "VERSION",
-    outputs: [{ internalType: "string", name: "", type: "string" }],
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
+    ],
     stateMutability: "view",
     type: "function",
   },
@@ -118,16 +148,36 @@ export default [
     inputs: [],
     name: "distributionMetaPtr",
     outputs: [
-      { internalType: "uint256", name: "protocol", type: "uint256" },
-      { internalType: "string", name: "pointer", type: "string" },
+      {
+        internalType: "uint256",
+        name: "protocol",
+        type: "uint256",
+      },
+      {
+        internalType: "string",
+        name: "pointer",
+        type: "string",
+      },
     ],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [{ internalType: "uint256", name: "_index", type: "uint256" }],
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_index",
+        type: "uint256",
+      },
+    ],
     name: "hasBeenDistributed",
-    outputs: [{ internalType: "bool", name: "", type: "bool" }],
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
     stateMutability: "view",
     type: "function",
   },
@@ -148,21 +198,39 @@ export default [
   {
     inputs: [],
     name: "isDistributionSet",
-    outputs: [{ internalType: "bool", name: "", type: "bool" }],
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [],
     name: "isReadyForPayout",
-    outputs: [{ internalType: "bool", name: "", type: "bool" }],
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [],
     name: "merkleRoot",
-    outputs: [{ internalType: "bytes32", name: "", type: "bytes32" }],
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+    ],
     stateMutability: "view",
     type: "function",
   },
@@ -170,11 +238,31 @@ export default [
     inputs: [
       {
         components: [
-          { internalType: "uint256", name: "index", type: "uint256" },
-          { internalType: "address", name: "grantee", type: "address" },
-          { internalType: "uint256", name: "amount", type: "uint256" },
-          { internalType: "bytes32[]", name: "merkleProof", type: "bytes32[]" },
-          { internalType: "bytes32", name: "projectId", type: "bytes32" },
+          {
+            internalType: "uint256",
+            name: "index",
+            type: "uint256",
+          },
+          {
+            internalType: "address",
+            name: "grantee",
+            type: "address",
+          },
+          {
+            internalType: "uint256",
+            name: "amount",
+            type: "uint256",
+          },
+          {
+            internalType: "bytes32[]",
+            name: "merkleProof",
+            type: "bytes32[]",
+          },
+          {
+            internalType: "bytes32",
+            name: "projectId",
+            type: "bytes32",
+          },
         ],
         internalType:
           "struct MerklePayoutStrategyImplementation.Distribution[]",
@@ -190,7 +278,13 @@ export default [
   {
     inputs: [],
     name: "roundAddress",
-    outputs: [{ internalType: "address payable", name: "", type: "address" }],
+    outputs: [
+      {
+        internalType: "address payable",
+        name: "",
+        type: "address",
+      },
+    ],
     stateMutability: "view",
     type: "function",
   },
@@ -204,13 +298,23 @@ export default [
   {
     inputs: [],
     name: "tokenAddress",
-    outputs: [{ internalType: "address", name: "", type: "address" }],
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [
-      { internalType: "bytes", name: "encodedDistribution", type: "bytes" },
+      {
+        internalType: "bytes",
+        name: "encodedDistribution",
+        type: "bytes",
+      },
     ],
     name: "updateDistribution",
     outputs: [],
@@ -230,5 +334,8 @@ export default [
     stateMutability: "payable",
     type: "function",
   },
-  { stateMutability: "payable", type: "receive" },
+  {
+    stateMutability: "payable",
+    type: "receive",
+  },
 ] as const;
