@@ -76,7 +76,7 @@ export type ProjectTable = {
   id: string;
   name: string;
   nonce: bigint | null;
-  anchor: Address | null;
+  anchorAddress: Address | null;
   chainId: ChainId;
   projectNumber: number | null;
   registryAddress: Address;

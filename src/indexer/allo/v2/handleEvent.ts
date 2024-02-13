@@ -56,7 +56,7 @@ export async function handleEvent(
             id: profileId,
             name: event.params.name,
             nonce: event.params.nonce,
-            anchor: parseAddress(event.params.anchor),
+            anchorAddress: parseAddress(event.params.anchor),
             projectNumber: null,
             metadataCid: metadataCid,
             metadata: metadata,
