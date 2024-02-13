@@ -7,6 +7,8 @@ const CONTRACT_EXPIRATION_IN_DAYS: Partial<Record<ContractName, number>> = {
   "AlloV1/RoundImplementation/V1": 60,
   "AlloV1/RoundImplementation/V2": 60,
   "AlloV1/QuadraticFundingVotingStrategyImplementation/V2": 60,
+  "AlloV1/DirectPayoutStrategyImplementation/V2": 60,
+  "AlloV1/MerklePayoutStrategyImplementation/V2": 60,
 };
 
 export class ContractSubscriptionPruner {
