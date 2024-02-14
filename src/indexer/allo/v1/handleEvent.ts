@@ -74,7 +74,7 @@ export async function handleEvent(
     event,
     subscribeToContract,
     readContract,
-    context: { db, ipfsGet, priceProvider, logger },
+    context: { db, rpcClient, ipfsGet, priceProvider, logger },
   } = args;
 
   switch (event.name) {
@@ -85,6 +85,12 @@ export async function handleEvent(
         Number(event.params.projectID),
         event.address
       );
+
+      const tx = await rpcClient.getTransaction({
+        hash: event.transactionHash,
+      });
+
+      const createdBy = tx.from;
 
       return [
         {
@@ -98,6 +104,7 @@ export async function handleEvent(
             projectNumber: Number(event.params.projectID),
             metadataCid: null,
             metadata: null,
+            createdByAddress: parseAddress(createdBy),
             createdAtBlock: event.blockNumber,
             updatedAtBlock: event.blockNumber,
           },
@@ -220,6 +227,12 @@ export async function handleEvent(
       const programMetadata =
         await ipfsGet<Project["metadata"]>(programMetadataCid);
 
+      const tx = await rpcClient.getTransaction({
+        hash: event.transactionHash,
+      });
+
+      const createdBy = tx.from;
+
       return [
         {
           type: "InsertProject",
@@ -234,6 +247,7 @@ export async function handleEvent(
             projectNumber: null,
             metadataCid: programMetadataCid,
             metadata: programMetadata,
+            createdByAddress: parseAddress(createdBy),
             createdAtBlock: event.blockNumber,
             updatedAtBlock: event.blockNumber,
           },
@@ -334,6 +348,12 @@ export async function handleEvent(
         applicationMetadataCid
       );
 
+      const tx = await rpcClient.getTransaction({
+        hash: event.transactionHash,
+      });
+
+      const createdBy = tx.from;
+
       const newRound: NewRound = {
         chainId,
         id: roundId,
@@ -368,6 +388,7 @@ export async function handleEvent(
         strategyId: "",
         strategyName: "",
         projectId,
+        createdByAddress: parseAddress(createdBy),
         createdAtBlock: event.blockNumber,
         updatedAtBlock: event.blockNumber,
       };
@@ -423,6 +444,12 @@ export async function handleEvent(
         event.params.applicationMetaPtr.pointer
       );
 
+      const tx = await rpcClient.getTransaction({
+        hash: event.transactionHash,
+      });
+
+      const createdBy = tx.from;
+
       const application: NewApplication = {
         chainId,
         id: applicationIndex,
@@ -431,6 +458,7 @@ export async function handleEvent(
         status: "PENDING",
         metadataCid: event.params.applicationMetaPtr.pointer,
         metadata: metadata ?? null,
+        createdByAddress: parseAddress(createdBy),
         createdAtBlock: event.blockNumber,
         statusUpdatedAtBlock: event.blockNumber,
         statusSnapshots: [
