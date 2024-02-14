@@ -9,6 +9,7 @@ import { Indexer } from "../.././indexer.js";
 import { Address as ChecksumAddress, Hex } from "viem";
 import { Project, Round } from "../../../database/schema.js";
 import { parseAddress } from "../../../address.js";
+import { PublicClient } from "viem";
 
 const addressZero =
   "0x0000000000000000000000000000000000000000" as ChecksumAddress;
@@ -27,6 +28,14 @@ const MOCK_PRICE_PROVIDER = new TestPriceProvider() as unknown as PriceProvider;
 
 function MOCK_IPFS_GET<TReturn>(_arg: string) {
   return Promise.resolve({ some: "metadata" } as TReturn);
+}
+
+function MOCK_RPC_CLIENT() {
+  return {
+    getTransaction: vi
+      .fn()
+      .mockResolvedValue({ blockNumber: 1n, from: addressTwo }),
+  } as unknown as PublicClient;
 }
 
 const MOCK_LOGGER = {
@@ -68,6 +77,7 @@ const DEFAULT_ARGS = {
     chainId: 1,
     logger: MOCK_LOGGER,
     db: MOCK_DB,
+    rpcClient: MOCK_RPC_CLIENT(),
   },
 };
 
@@ -89,6 +99,10 @@ describe("handleEvent", () => {
             owner: addressTwo,
           },
         },
+        context: {
+          ...DEFAULT_ARGS.context,
+          rpcClient: MOCK_RPC_CLIENT(),
+        },
       });
 
       expect(changesets).toHaveLength(2);
@@ -97,6 +111,7 @@ describe("handleEvent", () => {
         type: "InsertProject",
         project: {
           chainId: 1,
+          createdByAddress: addressTwo,
           createdAtBlock: 1n,
           updatedAtBlock: 1n,
           id: "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
@@ -168,6 +183,7 @@ describe("handleEvent", () => {
         metadataCid: null,
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
+        createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 1n,
       };
@@ -216,6 +232,7 @@ describe("handleEvent", () => {
         metadataCid: null,
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
+        createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 1n,
       };
@@ -269,6 +286,10 @@ describe("handleEvent", () => {
             programImplementation: addressFive,
           },
         },
+        context: {
+          ...DEFAULT_ARGS.context,
+          rpcClient: MOCK_RPC_CLIENT(),
+        },
       });
 
       expect(changesets).toHaveLength(1);
@@ -277,6 +298,7 @@ describe("handleEvent", () => {
         type: "InsertProject",
         project: {
           chainId: 1,
+          createdByAddress: addressTwo,
           createdAtBlock: 1n,
           updatedAtBlock: 1n,
           id: addressFour,
@@ -304,6 +326,7 @@ describe("handleEvent", () => {
         metadataCid: null,
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
+        createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 1n,
       };
@@ -350,6 +373,7 @@ describe("handleEvent", () => {
         metadataCid: null,
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
+        createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 1n,
       };
@@ -398,6 +422,7 @@ describe("handleEvent", () => {
         metadataCid: null,
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
+        createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 1n,
       };
@@ -443,6 +468,7 @@ describe("handleEvent", () => {
         metadataCid: null,
         registryAddress: parseAddress(addressZero),
         projectNumber: 1,
+        createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 1n,
       };
@@ -493,6 +519,7 @@ describe("handleEvent", () => {
         applicationsEndTime: null,
         donationsStartTime: null,
         donationsEndTime: null,
+        createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 2n,
         totalAmountDonatedInUsd: 0,
@@ -552,6 +579,7 @@ describe("handleEvent", () => {
         applicationsEndTime: null,
         donationsStartTime: null,
         donationsEndTime: null,
+        createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 2n,
         totalAmountDonatedInUsd: 0,
@@ -613,6 +641,7 @@ describe("handleEvent", () => {
         applicationsEndTime: null,
         donationsStartTime: null,
         donationsEndTime: null,
+        createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 2n,
         totalAmountDonatedInUsd: 0,
@@ -672,6 +701,7 @@ describe("handleEvent", () => {
         applicationsEndTime: null,
         donationsStartTime: null,
         donationsEndTime: null,
+        createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 2n,
         totalAmountDonatedInUsd: 0,
@@ -866,6 +896,10 @@ describe("handleEvent", () => {
             roundImplementation: addressZero,
           },
         },
+        context: {
+          ...DEFAULT_ARGS.context,
+          rpcClient: MOCK_RPC_CLIENT(),
+        },
       });
 
       expect(changesets).toHaveLength(2);
@@ -892,6 +926,7 @@ describe("handleEvent", () => {
           donationsEndTime: null,
           managerRole: "",
           adminRole: "",
+          createdByAddress: parseAddress(addressTwo),
           createdAtBlock: 1n,
           updatedAtBlock: 1n,
           strategyAddress: parseAddress(addressZero),

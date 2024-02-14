@@ -26,7 +26,7 @@ export async function handleEvent(
     chainId,
     event,
     readContract,
-    context: { db, ipfsGet },
+    context: { db, rpcClient, ipfsGet },
   } = args;
 
   switch (event.name) {
@@ -46,6 +46,12 @@ export async function handleEvent(
         metadata = {};
       }
 
+      const tx = await rpcClient.getTransaction({
+        hash: event.transactionHash,
+      });
+
+      const createdBy = tx.from;
+
       const changes: Changeset[] = [
         {
           type: "InsertProject",
@@ -60,6 +66,7 @@ export async function handleEvent(
             projectNumber: null,
             metadataCid: metadataCid,
             metadata: metadata,
+            createdByAddress: parseAddress(createdBy),
             createdAtBlock: event.blockNumber,
             updatedAtBlock: event.blockNumber,
           },
@@ -175,6 +182,12 @@ export async function handleEvent(
         donationsEndTime = new Date(Number(allocationEndTimeResolved) * 1000);
       }
 
+      const tx = await rpcClient.getTransaction({
+        hash: event.transactionHash,
+      });
+
+      const createdBy = tx.from;
+
       const newRound: NewRound = {
         chainId,
         id: poolId.toString(),
@@ -206,6 +219,7 @@ export async function handleEvent(
         strategyAddress: parseAddress(strategyAddress),
         strategyId,
         strategyName: strategy?.name ?? "",
+        createdByAddress: parseAddress(createdBy),
         createdAtBlock: event.blockNumber,
         updatedAtBlock: event.blockNumber,
         projectId: event.params.profileId,

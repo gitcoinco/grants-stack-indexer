@@ -22,6 +22,7 @@ export type RoundTable = {
   applicationsEndTime: Date | null;
   donationsStartTime: Date | null;
   donationsEndTime: Date | null;
+  createdByAddress: Address;
   createdAtBlock: bigint;
   updatedAtBlock: bigint;
   totalAmountDonatedInUsd: number;
@@ -82,6 +83,7 @@ export type ProjectTable = {
   registryAddress: Address;
   metadataCid: string | null;
   metadata: unknown | null;
+  createdByAddress: Address;
   createdAtBlock: bigint;
   updatedAtBlock: bigint;
   tags: string[];
@@ -141,6 +143,7 @@ export type ApplicationTable = {
   >;
   metadataCid: string | null;
   metadata: unknown | null;
+  createdByAddress: Address;
   createdAtBlock: bigint;
   statusUpdatedAtBlock: bigint;
   totalDonationsCount: number;
