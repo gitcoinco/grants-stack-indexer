@@ -5,7 +5,8 @@ dist
 node_modules
 .idea
 /test/snapshot.*
-
+schema.graphql
 
 # variable data file directory
 /.var
+
