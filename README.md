@@ -49,3 +49,12 @@ To only index data without tracking new events nor starting a server, provide th
 npm run build
 npm run start:run-once
 ```
+
+# Deployment
+
+We're currently continuously deploying the `main` branch into Fly.
+
+There are a few things to consider when it comes to deploying your changes:
+
+- Deployments resume indexing from the last indexed block, which means that your changes will only apply to new blocks, and migrations are not applied
+- If you need to change the database schema or change an event handler retroactively, you need to increment the `CHAIN_DATA_VERSION` constant found in [src/config.ts](https://github.com/gitcoinco/grants-stack-indexer/blob/main/src/config.ts#L1286C7-L1286C25), on deployment this will automatically create a new schema in Postgres and reindex all events. Note that deployments that reindex will take longer.
