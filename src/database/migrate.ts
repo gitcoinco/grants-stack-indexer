@@ -21,6 +21,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("registryAddress", ADDRESS_TYPE)
     .addColumn("metadataCid", "text")
     .addColumn("metadata", "jsonb")
+    .addColumn("createdByAddress", ADDRESS_TYPE)
     .addColumn("createdAtBlock", BIGINT_TYPE)
     .addColumn("updatedAtBlock", BIGINT_TYPE)
     .addColumn("tags", sql`text[]`)
@@ -84,6 +85,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("donationsStartTime", "timestamp")
     .addColumn("donationsEndTime", "timestamp")
 
+    .addColumn("createdByAddress", ADDRESS_TYPE)
     .addColumn("createdAtBlock", BIGINT_TYPE)
     .addColumn("updatedAtBlock", BIGINT_TYPE)
 
@@ -178,6 +180,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("metadataCid", "text")
     .addColumn("metadata", "jsonb")
 
+    .addColumn("createdByAddress", ADDRESS_TYPE)
     .addColumn("createdAtBlock", BIGINT_TYPE)
     .addColumn("statusUpdatedAtBlock", BIGINT_TYPE)
 
