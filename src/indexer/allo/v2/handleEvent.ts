@@ -1,13 +1,20 @@
 import { EventHandlerArgs } from "chainsauce";
-import { keccak256, encodePacked, pad } from "viem";
+import { keccak256, encodePacked, pad, decodeAbiParameters, Hex } from "viem";
 import type { Indexer } from "../../indexer.js";
-import { ProjectTable, NewRound } from "../../../database/schema.js";
+import {
+  ProjectTable,
+  NewRound,
+  NewApplication,
+  ApplicationTable,
+} from "../../../database/schema.js";
 import { Changeset } from "../../../database/index.js";
 import { parseAddress } from "../../../address.js";
 import roleGranted from "./roleGranted.js";
 import roleRevoked from "./roleRevoked.js";
 import { fetchPoolMetadata } from "./poolMetadata.js";
 import { extractStrategyFromId } from "./strategy.js";
+import { DVMDApplicationData } from "../../types.js";
+import ClientError from "../../../http/api/clientError.js";
 
 function generateRoundRoles(poolId: bigint) {
   // POOL_MANAGER_ROLE = bytes32(poolId);
@@ -19,12 +26,54 @@ function generateRoundRoles(poolId: bigint) {
   return { managerRole, adminRole };
 }
 
+// Decode the application data from DonationVotingMerkleDistribution
+function decodeDVMDApplicationData(
+  encodedData: Hex
+): DVMDApplicationData {
+  const values = decodeAbiParameters(
+    [
+      { name: "data", type: "bytes" },
+      { name: "recipientsCounter", type: "uint256" },
+    ],
+    encodedData
+  );
+
+  const decodedData = decodeAbiParameters(
+    [
+      { name: "registryAnchor", type: "address" },
+      { name: "recipientAddress", type: "address" },
+      {
+        name: "metadata",
+        type: "tuple",
+        components: [
+          { name: "protocol", type: "uint256" },
+          { name: "pointer", type: "string" },
+        ],
+      },
+    ],
+    values[0]
+  );
+
+  const results: DVMDApplicationData = {
+    recipientsCounter: values[1].toString(),
+    anchorAddress: decodedData[0],
+    recipientAddress: decodedData[1],
+    metadata: {
+      protocol: Number(decodedData[2].protocol),
+      pointer: decodedData[2].pointer,
+    },
+  };
+
+  return results;
+}
+
 export async function handleEvent(
   args: EventHandlerArgs<Indexer>
 ): Promise<Changeset[]> {
   const {
     chainId,
     event,
+    subscribeToContract,
     readContract,
     context: { db, rpcClient, ipfsGet },
   } = args;
@@ -130,6 +179,15 @@ export async function handleEvent(
       });
 
       const strategy = extractStrategyFromId(strategyId);
+
+      switch (strategy?.name) {
+        case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
+          subscribeToContract({
+            contract: "AlloV2/DonationVotingMerkleDistributionDirectTransferStrategy/V1",
+            address: strategyAddress,
+          });
+          break;
+      }
 
       let applicationsStartTime = new Date();
       let applicationsEndTime = new Date();
@@ -349,6 +407,68 @@ export async function handleEvent(
             role: "owner",
             createdAtBlock: event.blockNumber,
           },
+        },
+      ];
+    }
+
+    case "Registered": {
+
+      const anchorAddress = parseAddress(event.params.recipientId);
+      const project = await db.getProjectByAnchor(chainId, anchorAddress)
+
+      if (!project) {
+        throw new ClientError("Project not found", 404);
+      }
+
+      const encodedData = event.params.data;
+
+      const strategyAddress = parseAddress(event.address);
+      const round  = await db.getRoundByStrategyAddress(chainId, strategyAddress);
+
+      if (!round) {
+        throw new ClientError("Round not found", 404);
+      }
+
+      // TODO: discuss how to handle differnt decode based on round.strategyName
+      const values = decodeDVMDApplicationData(encodedData);
+
+      const metadata = await ipfsGet<ApplicationTable["metadata"]>(
+        values.metadata.pointer
+      );
+
+      // -1 because the contract starts counting at 1
+      const applicationIndex = (
+        Number(values.recipientsCounter) - 1
+      ).toString();
+
+      const application: NewApplication = {
+        chainId,
+        id: applicationIndex,
+        projectId: project.id,
+        anchorAddress,
+        roundId: round.id,
+        status: "PENDING",
+        metadataCid: values.metadata.pointer,
+        metadata: metadata ?? null,
+        createdAtBlock: event.blockNumber,
+        createdByAddress: parseAddress(event.params.sender),
+        statusUpdatedAtBlock: event.blockNumber,
+        statusSnapshots: [
+          {
+            status: "PENDING",
+            statusUpdatedAtBlock: event.blockNumber,
+          },
+        ],
+        totalAmountDonatedInUsd: 0,
+        totalDonationsCount: 0,
+        uniqueDonorsCount: 0,
+        tags: ["allo-v2"],
+      };
+
+      return [
+        {
+          type: "InsertApplication",
+          application,
         },
       ];
     }

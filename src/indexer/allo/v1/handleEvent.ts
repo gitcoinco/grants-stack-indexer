@@ -476,6 +476,7 @@ export async function handleEvent(
         chainId,
         id: applicationIndex,
         projectId: projectId,
+        anchorAddress: null,
         roundId: parseAddress(event.address),
         status: "PENDING",
         metadataCid: event.params.applicationMetaPtr.pointer,
@@ -492,6 +493,7 @@ export async function handleEvent(
         totalAmountDonatedInUsd: 0,
         totalDonationsCount: 0,
         uniqueDonorsCount: 0,
+        tags: ["allo-v1"],
       };
 
       return [
