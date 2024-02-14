@@ -14,6 +14,7 @@ import {
   Round,
 } from "../../../database/schema.js";
 import { parseAddress } from "../../../address.js";
+import { PublicClient } from "viem";
 
 const addressZero =
   "0x0000000000000000000000000000000000000000" as ChecksumAddress;
@@ -30,6 +31,14 @@ const MOCK_PRICE_PROVIDER = new TestPriceProvider() as unknown as PriceProvider;
 
 function MOCK_IPFS_GET<TReturn>(_arg: string) {
   return Promise.resolve({ some: "metadata" } as TReturn);
+}
+
+function MOCK_RPC_CLIENT() {
+  return {
+    getTransaction: vi
+      .fn()
+      .mockResolvedValue({ blockNumber: 1n, from: addressTwo }),
+  } as unknown as PublicClient;
 }
 
 const MOCK_LOGGER = {
@@ -69,6 +78,7 @@ const DEFAULT_ARGS = {
     chainId: 1,
     logger: MOCK_LOGGER,
     db: MOCK_DB,
+    rpcClient: MOCK_RPC_CLIENT(),
   },
 };
 
@@ -102,6 +112,10 @@ describe("handleEvent", () => {
               anchor: addressThree,
             },
           },
+          context: {
+            ...DEFAULT_ARGS.context,
+            rpcClient: MOCK_RPC_CLIENT(),
+          },
         });
 
         expect(changesets).toHaveLength(2);
@@ -111,6 +125,7 @@ describe("handleEvent", () => {
           project: {
             chainId: 1,
             name: "Project 1",
+            createdByAddress: addressTwo,
             createdAtBlock: 1n,
             updatedAtBlock: 1n,
             id: "0x0001",
@@ -177,6 +192,10 @@ describe("handleEvent", () => {
               anchor: addressThree,
             },
           },
+          context: {
+            ...DEFAULT_ARGS.context,
+            rpcClient: MOCK_RPC_CLIENT(),
+          },
         });
 
         expect(changesets).toHaveLength(5);
@@ -186,6 +205,7 @@ describe("handleEvent", () => {
           project: {
             chainId: 1,
             name: "Project 1",
+            createdByAddress: addressTwo,
             createdAtBlock: 1n,
             updatedAtBlock: 1n,
             id: "0x0001",
@@ -350,6 +370,7 @@ describe("handleEvent", () => {
           metadataCid: null,
           registryAddress: parseAddress(addressZero),
           projectNumber: null,
+          createdByAddress: parseAddress(addressTwo),
           createdAtBlock: 1n,
           updatedAtBlock: 1n,
         };
@@ -426,6 +447,7 @@ describe("handleEvent", () => {
         metadataCid: null,
         registryAddress: parseAddress(addressZero),
         projectNumber: null,
+        createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 1n,
       };
@@ -524,6 +546,7 @@ describe("handleEvent", () => {
               application: { applicationMetadata: "application metadata" },
             } as T);
           },
+          rpcClient: MOCK_RPC_CLIENT(),
         },
         event: {
           ...DEFAULT_ARGS.event,
@@ -570,6 +593,7 @@ describe("handleEvent", () => {
             "0x0000000000000000000000000000000000000000000000000000000000000001",
           adminRole:
             "0xd866368887d58dbdd097c420fb7ec3bf9a28071e2c715e21155ba472632c67b1",
+          createdByAddress: parseAddress(addressTwo),
           createdAtBlock: 1n,
           updatedAtBlock: 1n,
           strategyAddress: parseAddress(addressTwo),
@@ -673,6 +697,7 @@ describe("handleEvent", () => {
         applicationsEndTime: new Date(),
         donationsStartTime: new Date(),
         donationsEndTime: new Date(),
+        createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 1n,
         totalAmountDonatedInUsd: 0,
@@ -803,6 +828,7 @@ describe("handleEvent", () => {
         applicationsEndTime: new Date(),
         donationsStartTime: new Date(),
         donationsEndTime: new Date(),
+        createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 1n,
         totalAmountDonatedInUsd: 0,
