@@ -5,7 +5,7 @@ import { PriceProvider } from "../../../prices/provider.js";
 import { Logger } from "pino";
 import { Database } from "../../../database/index.js";
 import { EventHandlerArgs } from "chainsauce";
-import { EventHandlerContext, Indexer } from "../.././indexer.js";
+import { Indexer } from "../.././indexer.js";
 import { Address as ChecksumAddress, Hex } from "viem";
 import { Project, Round } from "../../../database/schema.js";
 import { parseAddress } from "../../../address.js";
