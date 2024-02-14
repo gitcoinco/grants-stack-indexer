@@ -396,9 +396,14 @@ async function catchupAndWatchChain(
 
     const indexerLogger = chainLogger.child({ subsystem: "DataUpdater" });
 
+    const viemRpcClient = createPublicClient({
+      transport: http(config.chain.rpc),
+    });
+
     const eventHandlerContext: EventHandlerContext = {
       chainId: config.chain.id,
       db,
+      rpcClient: viemRpcClient,
       ipfsGet: cachedIpfsGet,
       priceProvider,
       logger: indexerLogger,
