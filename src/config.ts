@@ -257,7 +257,7 @@ const CHAINS: Chain[] = [
     tokens: [
       {
         code: "DAI",
-        address: "0x20231D192a739B289c60144b83e4878983b3240e",
+        address: "0x8db0F9eE54753B91ec1d81Bf68074Be82ED30fEb",
         decimals: 18,
         priceSource: {
           chainId: 1,
@@ -288,6 +288,21 @@ const CHAINS: Chain[] = [
       {
         address: "0xf5D111B57de221774866AC32c4435841F5c141D5",
         contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
+        fromBlock: 4738000,
+      },
+      {
+        contractName: "AlloV1/MerklePayoutStrategyFactory/V2",
+        address: "0xB5CF3fFD3BDfC6A124aa9dD96fE14118Ed8083e5",
+        fromBlock: 4738000,
+      },
+      {
+        contractName: "AlloV1/DirectPayoutStrategyFactory/V2",
+        address: "0xC2B0d8dAdB88100d8509534BB8B5778d1901037d",
+        fromBlock: 4738000,
+      },
+      {
+        contractName: "AlloV1/ProgramFactory/V1",
+        address: "0x79Ba35cb31620db1b5b101A9A13A1b0A82B5BC9e",
         fromBlock: 4738000,
       },
       // Allo V2
