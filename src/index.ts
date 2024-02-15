@@ -88,6 +88,14 @@ async function main(): Promise<void> {
 
   const databaseConnectionPool = new Pool({
     connectionString: config.databaseUrl,
+    // Maximum number of connections in the pool
+    max: 15,
+
+    // Maximum number of milliseconds a client in the pool is allowed to be idle before it is closed
+    idleTimeoutMillis: 30000,
+
+    // Maximum number of milliseconds to wait for acquiring a client from the pool
+    connectionTimeoutMillis: 2000,
   });
 
   const subscriptionStore = createPostgresSubscriptionStore({
