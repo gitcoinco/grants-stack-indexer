@@ -98,11 +98,6 @@ async function main(): Promise<void> {
     connectionTimeoutMillis: 2000,
   });
 
-  const subscriptionStore = createPostgresSubscriptionStore({
-    pool: databaseConnectionPool,
-    schema: config.databaseSchemaName,
-  });
-
   const db = new Database({
     connectionPool: databaseConnectionPool,
     schemaName: config.databaseSchemaName,
@@ -129,6 +124,13 @@ async function main(): Promise<void> {
   }
 
   await db.createSchemaIfNotExists(baseLogger);
+
+  const subscriptionStore = createPostgresSubscriptionStore({
+    pool: databaseConnectionPool,
+    schema: config.databaseSchemaName,
+  });
+
+  await subscriptionStore.init();
 
   // the chainsauce cache is used to cache events and contract reads
   const chainsauceCache = config.cacheDir
