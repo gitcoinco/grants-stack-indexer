@@ -33,26 +33,26 @@ npm install
 npm run build
 
 npm run dev
+
+# you can also pass arguments to the dev script
+
+npm run dev -- --drop-db # drop the database before indexing
+npm run dev -- --from-block=latest # start indexing from the last block
+npm run dev -- --from-block=12345 # start indexing from the 12345th block
+npm run dev -- --run-once # index and exit without watching for events
+npm run dev -- --no-cache # disable cache
+npm run dev -- --log-level=trace # set log level
 ```
 
-## Running in production:
+## Running in production
 
 ```bash
 npm install
 npm run build
-npm run start
+npm run start # this will sync to the last block and then run the http server
 ```
 
 Or use the provided `Dockerfile`.
-
-## One-shot operation
-
-To only index data without tracking new events nor starting a server, provide the `--run-once` option:
-
-```
-npm run build
-npm run start:run-once
-```
 
 # Deployment
 

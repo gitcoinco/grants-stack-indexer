@@ -1277,7 +1277,7 @@ export type Config = {
   buildTag: string | null;
   storageDir: string;
   cacheDir: string | null;
-  fromBlock: bigint;
+  fromBlock: bigint | "latest";
   toBlock: ToBlock;
   passportScorerId: number;
   logLevel: "trace" | "debug" | "info" | "warn" | "error";
@@ -1390,7 +1390,11 @@ export function getConfig(): Config {
     .default("latest")
     .parse(args["to-block"]);
 
-  const fromBlock = z.coerce.bigint().default(0n).parse(args["from-block"]);
+  const fromBlock = z
+    .literal("latest")
+    .or(z.coerce.bigint())
+    .default(0n)
+    .parse(args["from-block"]);
 
   const logLevel = z
     .union([
@@ -1401,7 +1405,7 @@ export function getConfig(): Config {
       z.literal("error"),
     ])
     .default("info")
-    .parse(process.env.LOG_LEVEL);
+    .parse(args["log-level"] ?? process.env.LOG_LEVEL);
 
   const runOnce = z.boolean().default(false).parse(args["run-once"]);
 
