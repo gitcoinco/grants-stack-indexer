@@ -44,24 +44,15 @@ npm run dev -- --no-cache # disable cache
 npm run dev -- --log-level=trace # set log level
 ```
 
-## Running in production:
+## Running in production
 
 ```bash
 npm install
 npm run build
-npm run start
+npm run start # this will sync to the last block and then run the http server
 ```
 
 Or use the provided `Dockerfile`.
-
-## One-shot operation
-
-To only index data without tracking new events nor starting a server, provide the `--run-once` option:
-
-```
-npm run build
-npm run start:run-once
-```
 
 # Deployment
 
