@@ -73,6 +73,8 @@ export type RoundRole = Selectable<RoundRoleTable>;
 export type NewRoundRole = Insertable<RoundRoleTable>;
 export type PartialRoundRole = Updateable<RoundRoleTable>;
 
+export type ProjectType = "canonical" | "linked";
+
 export type ProjectTable = {
   id: string;
   name: string;
@@ -87,6 +89,7 @@ export type ProjectTable = {
   createdAtBlock: bigint;
   updatedAtBlock: bigint;
   tags: string[];
+  projectType: ProjectType;
 };
 
 export type Project = Selectable<ProjectTable>;

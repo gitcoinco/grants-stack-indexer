@@ -117,3 +117,8 @@ export type DVMDApplicationData = {
     pointer: string;
   };
 };
+
+export type CanonicalProject = {
+  chainId: number;
+  registryAddress: string;
+};

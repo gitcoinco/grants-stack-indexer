@@ -113,6 +113,7 @@ export async function handleEvent(
             createdByAddress: parseAddress(createdBy),
             createdAtBlock: event.blockNumber,
             updatedAtBlock: event.blockNumber,
+            projectType: "canonical",
           },
         },
         {
@@ -256,6 +257,7 @@ export async function handleEvent(
             createdByAddress: parseAddress(createdBy),
             createdAtBlock: event.blockNumber,
             updatedAtBlock: event.blockNumber,
+            projectType: "canonical",
           },
         },
       ];

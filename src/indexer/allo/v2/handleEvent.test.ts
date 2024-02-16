@@ -167,6 +167,7 @@ describe("handleEvent", () => {
             projectNumber: null,
             registryAddress: addressOne,
             tags: ["allo-v2"],
+            projectType: "canonical",
           },
         });
 
@@ -249,6 +250,7 @@ describe("handleEvent", () => {
             projectNumber: null,
             registryAddress: addressOne,
             tags: ["allo-v2"],
+            projectType: "canonical",
           },
         });
 
