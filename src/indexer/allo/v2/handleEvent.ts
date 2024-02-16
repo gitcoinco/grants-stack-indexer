@@ -417,7 +417,7 @@ export async function handleEvent(
       const project = await db.getProjectByAnchor(chainId, anchorAddress)
 
       if (!project) {
-        throw new ClientError("Project not found", 404);
+        throw new Error("Project not found");
       }
 
       const encodedData = event.params.data;
@@ -426,7 +426,7 @@ export async function handleEvent(
       const round  = await db.getRoundByStrategyAddress(chainId, strategyAddress);
 
       if (!round) {
-        throw new ClientError("Round not found", 404);
+        throw new Error("Round not found");
       }
 
       // TODO: discuss how to handle differnt decode based on round.strategyName

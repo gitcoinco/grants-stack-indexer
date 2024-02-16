@@ -238,7 +238,7 @@ async function main(): Promise<void> {
       databaseConnectionPool,
       config.databaseSchemaName,
       {
-        watchPg: true,
+        watchPg: false,
         graphqlRoute: "/graphql",
         graphiql: true,
         graphiqlRoute: "/graphiql",
