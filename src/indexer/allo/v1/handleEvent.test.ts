@@ -944,6 +944,7 @@ describe("handleEvent", () => {
           strategyAddress: parseAddress(addressZero),
           strategyId: "",
           strategyName: "",
+          isReadyForPayout: false,
           projectId: addressThree,
         },
       });
