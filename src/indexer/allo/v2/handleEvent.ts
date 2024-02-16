@@ -7,13 +7,14 @@ import {
   NewApplication,
   ApplicationTable,
 } from "../../../database/schema.js";
-import { Changeset, Database } from "../../../database/index.js";
+import { Changeset } from "../../../database/index.js";
 import { parseAddress } from "../../../address.js";
 import roleGranted from "./roleGranted.js";
 import roleRevoked from "./roleRevoked.js";
 import { fetchPoolMetadata } from "./poolMetadata.js";
 import { extractStrategyFromId } from "./strategy.js";
-import { CanonicalProject, DVMDApplicationData } from "../../types.js";
+import { DVMDApplicationData } from "../../types.js";
+import { z } from "zod";
 
 function generateRoundRoles(poolId: bigint) {
   // POOL_MANAGER_ROLE = bytes32(poolId);
@@ -25,15 +26,15 @@ function generateRoundRoles(poolId: bigint) {
   return { managerRole, adminRole };
 }
 
-async function getProjectType(db: Database, profileId: Hex, metadata: JSON) {
+function getProjectType(metadata: object) {
+  const linkedProjectMetadata = z.object({
+    canonical: z.object({
+      chainId: z.string(),
+      registryAddress: z.string(),
+    }),
+  });
 
-  if (metadata.hasOwnProperty("canonical")) {
-    // Linked Profile
-    const canonical: CanonicalProject = (metadata as any)["canonical"] as CanonicalProject;
-    const project = await db.getProjectById(canonical.chainId, profileId);
-    if (!project) {
-      throw new Error("Project not found");
-    }
+  if (linkedProjectMetadata.safeParse(metadata).success) {
     return "linked";
   }
 
@@ -107,11 +108,7 @@ export async function handleEvent(
         metadata = {};
       }
 
-      const projectType = await getProjectType(
-        db,
-        profileId,
-        metadata as JSON
-      );
+      const projectType = getProjectType(metadata as object);
 
       const tx = await rpcClient.getTransaction({
         hash: event.transactionHash,
@@ -136,7 +133,7 @@ export async function handleEvent(
             createdByAddress: parseAddress(createdBy),
             createdAtBlock: event.blockNumber,
             updatedAtBlock: event.blockNumber,
-            projectType
+            projectType,
           },
         },
         {

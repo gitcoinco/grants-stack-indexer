@@ -410,6 +410,7 @@ describe("handleEvent", () => {
           createdByAddress: parseAddress(addressTwo),
           createdAtBlock: 1n,
           updatedAtBlock: 1n,
+          projectType: "canonical",
         };
         MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
 
@@ -489,6 +490,7 @@ describe("handleEvent", () => {
         createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 1n,
+        projectType: "canonical",
       };
       MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
 
