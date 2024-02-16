@@ -11,6 +11,7 @@ RUN npm ci
 COPY src src
 COPY tsconfig.json ./
 COPY .eslintrc.cjs ./
+COPY .prettierrc.json ./
 
 RUN npm run build
 RUN npm run lint

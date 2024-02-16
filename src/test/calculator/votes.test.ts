@@ -1,4 +1,8 @@
-import type { DeprecatedVote, DeprecatedRound, DeprecatedApplication } from "../../deprecatedJsonDatabase.js";
+import type {
+  DeprecatedVote,
+  DeprecatedRound,
+  DeprecatedApplication,
+} from "../../deprecatedJsonDatabase.js";
 import { describe, test, expect } from "vitest";
 import { getVotesWithCoefficients } from "../../calculator/votes.js";
 import { Chain } from "../../config.js";

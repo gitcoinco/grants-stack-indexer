@@ -26,9 +26,7 @@ function generateRoundRoles(poolId: bigint) {
 }
 
 // Decode the application data from DonationVotingMerkleDistribution
-function decodeDVMDApplicationData(
-  encodedData: Hex
-): DVMDApplicationData {
+function decodeDVMDApplicationData(encodedData: Hex): DVMDApplicationData {
   const values = decodeAbiParameters(
     [
       { name: "data", type: "bytes" },
@@ -182,7 +180,8 @@ export async function handleEvent(
       switch (strategy?.name) {
         case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
           subscribeToContract({
-            contract: "AlloV2/DonationVotingMerkleDistributionDirectTransferStrategy/V1",
+            contract:
+              "AlloV2/DonationVotingMerkleDistributionDirectTransferStrategy/V1",
             address: strategyAddress,
           });
           break;
@@ -411,9 +410,8 @@ export async function handleEvent(
     }
 
     case "Registered": {
-
       const anchorAddress = parseAddress(event.params.recipientId);
-      const project = await db.getProjectByAnchor(chainId, anchorAddress)
+      const project = await db.getProjectByAnchor(chainId, anchorAddress);
 
       if (!project) {
         throw new Error("Project not found");
@@ -422,7 +420,10 @@ export async function handleEvent(
       const encodedData = event.params.data;
 
       const strategyAddress = parseAddress(event.address);
-      const round  = await db.getRoundByStrategyAddress(chainId, strategyAddress);
+      const round = await db.getRoundByStrategyAddress(
+        chainId,
+        strategyAddress
+      );
 
       if (!round) {
         throw new Error("Round not found");

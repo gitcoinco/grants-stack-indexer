@@ -4,19 +4,17 @@ import type { Indexer } from "../../indexer.js";
 import { parseAddress } from "../../../address.js";
 import { Changeset } from "../../../database/index.js";
 
-export async function updateApplicationsStartTime ({
+export async function updateApplicationsStartTime({
   event,
   context: { chainId, db },
 }: EventHandlerArgs<
   Indexer,
   "AlloV1/RoundImplementation/V2",
   "ApplicationsStartTimeUpdated"
-  >): Promise<Changeset[]> {
+>): Promise<Changeset[]> {
   const id = parseAddress(event.address);
   const round = await db.getRoundById(chainId, id);
-  const updatedTime = new Date(
-    Number(event.params.newTime) * 1000
-  );
+  const updatedTime = new Date(Number(event.params.newTime) * 1000);
 
   if (round === null) {
     throw new Error(`Round ${id} not found`);
@@ -31,11 +29,11 @@ export async function updateApplicationsStartTime ({
         updatedAtBlock: event.blockNumber,
         applicationsStartTime: updatedTime,
       },
-    }
+    },
   ];
 }
 
-export async function updateApplicationsEndTime ({
+export async function updateApplicationsEndTime({
   event,
   context: { chainId, db },
 }: EventHandlerArgs<
@@ -45,9 +43,7 @@ export async function updateApplicationsEndTime ({
 >): Promise<Changeset[]> {
   const id = parseAddress(event.address);
   const round = await db.getRoundById(chainId, id);
-  const updatedTime = new Date(
-    Number(event.params.newTime) * 1000
-  );
+  const updatedTime = new Date(Number(event.params.newTime) * 1000);
   if (round === null) {
     throw new Error(`Round ${id} not found`);
   }
@@ -61,11 +57,11 @@ export async function updateApplicationsEndTime ({
         updatedAtBlock: event.blockNumber,
         applicationsEndTime: updatedTime,
       },
-    }
+    },
   ];
 }
 
-export async function updateDonationsStartTime ({
+export async function updateDonationsStartTime({
   event,
   context: { chainId, db },
 }: EventHandlerArgs<
@@ -75,9 +71,7 @@ export async function updateDonationsStartTime ({
 >): Promise<Changeset[]> {
   const id = parseAddress(event.address);
   const round = await db.getRoundById(chainId, id);
-  const updatedTime = new Date(
-    Number(event.params.newTime) * 1000
-  );
+  const updatedTime = new Date(Number(event.params.newTime) * 1000);
   if (round === null) {
     throw new Error(`Round ${id} not found`);
   }
@@ -91,12 +85,11 @@ export async function updateDonationsStartTime ({
         updatedAtBlock: event.blockNumber,
         donationsStartTime: updatedTime,
       },
-    }
+    },
   ];
 }
 
-
-export async function updateDonationsEndTime ({
+export async function updateDonationsEndTime({
   event,
   context: { chainId, db },
 }: EventHandlerArgs<
@@ -106,9 +99,7 @@ export async function updateDonationsEndTime ({
 >): Promise<Changeset[]> {
   const id = parseAddress(event.address);
   const round = await db.getRoundById(chainId, id);
-  const updatedTime = new Date(
-    Number(event.params.newTime) * 1000
-  );
+  const updatedTime = new Date(Number(event.params.newTime) * 1000);
   if (round === null) {
     throw new Error(`Round ${id} not found`);
   }
@@ -122,6 +113,6 @@ export async function updateDonationsEndTime ({
         updatedAtBlock: event.blockNumber,
         donationsEndTime: updatedTime,
       },
-    }
+    },
   ];
 }
