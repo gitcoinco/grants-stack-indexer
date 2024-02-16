@@ -25,11 +25,11 @@ import applicationMetaPtrUpdated from "./applicationMetaPtrUpdated.js";
 import roleGranted from "./roleGranted.js";
 import roleRevoked from "./roleRevoked.js";
 import { convertFromUSD, convertToUSD } from "../../../prices/provider.js";
-import { 
+import {
   updateApplicationsStartTime,
   updateApplicationsEndTime,
   updateDonationsStartTime,
-  updateDonationsEndTime,  
+  updateDonationsEndTime,
 } from "./timeUpdated.js";
 
 enum ApplicationStatus {
@@ -442,11 +442,11 @@ export async function handleEvent(
     case "ApplicationsEndTimeUpdated": {
       return await updateApplicationsEndTime({ ...args, event });
     }
-    
+
     case "RoundStartTimeUpdated": {
       return await updateDonationsStartTime({ ...args, event });
     }
-    
+
     case "RoundEndTimeUpdated": {
       return await updateDonationsEndTime({ ...args, event });
     }

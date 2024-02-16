@@ -4,7 +4,11 @@ import {
   aggregateContributions as aggregateContributionsPluralistic,
 } from "pluralistic";
 import { Chain } from "../config.js";
-import type { DeprecatedRound, DeprecatedApplication, DeprecatedVote } from "../deprecatedJsonDatabase.js";
+import type {
+  DeprecatedRound,
+  DeprecatedApplication,
+  DeprecatedVote,
+} from "../deprecatedJsonDatabase.js";
 import type {
   PassportScore,
   AddressToPassportScoreMap,
@@ -125,7 +129,10 @@ function passportScoreToCoefficient(
   return perc / 100;
 }
 
-export function applyVoteCap(chain: Chain, vote: DeprecatedVote): DeprecatedVote {
+export function applyVoteCap(
+  chain: Chain,
+  vote: DeprecatedVote
+): DeprecatedVote {
   const tokenConfig = chain.tokens.find(
     (t) => t.address.toLowerCase() === vote.token.toLowerCase()
   );
