@@ -516,9 +516,14 @@ async function catchupAndWatchChain(
       )
     );
 
+    const fromBlock =
+      config.fromBlock === "latest"
+        ? await rpcClient.getLastBlockNumber()
+        : config.fromBlock;
+
     for (const subscription of config.chain.subscriptions) {
       const contractName = subscription.contractName;
-      const fromBlock =
+      const subscriptionFromBlock =
         subscription.fromBlock === undefined
           ? undefined
           : BigInt(subscription.fromBlock);
@@ -526,7 +531,11 @@ async function catchupAndWatchChain(
       indexer.subscribeToContract({
         contract: contractName,
         address: subscription.address,
-        fromBlock: fromBlock,
+        fromBlock:
+          subscriptionFromBlock !== undefined &&
+          subscriptionFromBlock > fromBlock
+            ? subscriptionFromBlock
+            : fromBlock,
       });
     }
 
