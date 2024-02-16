@@ -14,7 +14,6 @@ import roleRevoked from "./roleRevoked.js";
 import { fetchPoolMetadata } from "./poolMetadata.js";
 import { extractStrategyFromId } from "./strategy.js";
 import { DVMDApplicationData } from "../../types.js";
-import ClientError from "../../../http/api/clientError.js";
 
 function generateRoundRoles(poolId: bigint) {
   // POOL_MANAGER_ROLE = bytes32(poolId);
