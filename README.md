@@ -7,9 +7,11 @@ The indexer data is used by [Grants Stack](https://github.com/gitcoinco/grants-s
 ## API
 
 Access indexed data through the GraphQL endpoint at:
+
 https://grants-stack-indexer-v2.gitcoin.co/graphql
 
 Use the GraphiQL Playground to inspect the schema:
+
 https://grants-stack-indexer-v2.gitcoin.co/graphiql
 
 Indexed chains are defined in [config.ts](src/config.ts).
