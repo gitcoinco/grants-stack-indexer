@@ -1405,7 +1405,7 @@ export function getConfig(): Config {
       z.literal("error"),
     ])
     .default("info")
-    .parse(process.env.LOG_LEVEL);
+    .parse(args["log-level"] ?? process.env.LOG_LEVEL);
 
   const runOnce = z.boolean().default(false).parse(args["run-once"]);
 
