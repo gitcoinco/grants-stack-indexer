@@ -85,6 +85,14 @@ export function extractStrategyFromId(_id: string): Strategy | null {
         name: "allov2.DonationVotingMerkleDistributionVaultStrategy",
         groups: ["allov2.DonationVotingMerkleDistributionVaultStrategy"],
       };
+
+    // DirectGrantsSimpleStrategyv1.1
+    case "0x263cb916541b6fc1fb5543a244829ccdba75264b097726e6ecc3c3cfce824bf5":
+      return {
+        id: id,
+        name: "allov2.DirectGrantsSimpleStrategy",
+        groups: ["allov2.DirectGrantsSimpleStrategy"],
+      };
   }
 
   return null;
