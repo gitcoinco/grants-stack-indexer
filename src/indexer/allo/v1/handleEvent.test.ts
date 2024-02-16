@@ -539,6 +539,7 @@ describe("handleEvent", () => {
         strategyAddress: parseAddress(addressZero),
         strategyId: "",
         strategyName: "",
+        isReadyForPayout: false,
         projectId: parseAddress(addressZero),
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
@@ -599,6 +600,7 @@ describe("handleEvent", () => {
         strategyAddress: parseAddress(addressZero),
         strategyId: "",
         strategyName: "",
+        isReadyForPayout: false,
         projectId: parseAddress(addressZero),
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
@@ -661,6 +663,7 @@ describe("handleEvent", () => {
         strategyAddress: parseAddress(addressZero),
         strategyId: "",
         strategyName: "",
+        isReadyForPayout: false,
         projectId: parseAddress(addressZero),
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
@@ -721,6 +724,7 @@ describe("handleEvent", () => {
         strategyAddress: parseAddress(addressZero),
         strategyId: "",
         strategyName: "",
+        isReadyForPayout: false,
         projectId: parseAddress(addressZero),
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);

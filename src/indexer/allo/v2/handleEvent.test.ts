@@ -83,6 +83,7 @@ const round: Round = {
   strategyAddress: parseAddress(addressZero),
   strategyId: "",
   strategyName: "",
+  isReadyForPayout: false,
   projectId: addressZero,
   createdByAddress: parseAddress(addressTwo),
 };
@@ -852,6 +853,7 @@ describe("handleEvent", () => {
         strategyAddress: parseAddress(addressZero),
         strategyId: "",
         strategyName: "",
+        isReadyForPayout: false,
         projectId: addressZero,
       };
 
