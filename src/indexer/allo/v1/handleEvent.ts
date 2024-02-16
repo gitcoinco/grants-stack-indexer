@@ -745,11 +745,18 @@ export async function handleEvent(
     }
 
     case "ReadyForPayout": {
+      const round = db.getRoundByStrategyAddress(
+        chainId,
+        parseAddress(event.address)
+      );
+
+      console.log("READYFOR_PAYOUT", round);
+
       return [
         {
-          type: "UpdateRound",
+          type: "UpdateRoundByStrategyAddress",
           chainId: chainId,
-          roundId: parseAddress(event.address),
+          strategyAddress: parseAddress(event.address),
           round: {
             isReadyForPayout: true,
           },

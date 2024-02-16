@@ -61,6 +61,12 @@ export type DataChange =
       round: PartialRound;
     }
   | {
+      type: "UpdateRoundByStrategyAddress";
+      chainId: ChainId;
+      strategyAddress: Address;
+      round: PartialRound;
+    }
+  | {
       type: "IncrementRoundDonationStats";
       chainId: ChainId;
       roundId: Address;

@@ -299,6 +299,16 @@ export class Database {
         break;
       }
 
+      case "UpdateRoundByStrategyAddress": {
+        await this.#db
+          .updateTable("rounds")
+          .set(change.round)
+          .where("chainId", "=", change.chainId)
+          .where("strategyAddress", "=", change.strategyAddress)
+          .execute();
+        break;
+      }
+
       case "InsertRoundRole": {
         await this.#db
           .insertInto("roundRoles")
