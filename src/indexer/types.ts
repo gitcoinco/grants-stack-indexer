@@ -107,3 +107,13 @@ export type DetailedVote = Vote & {
   roundStartTime?: string;
   roundEndTime?: string;
 };
+
+export type DVMDApplicationData = {
+  recipientsCounter: string;
+  anchorAddress: string;
+  recipientAddress: string;
+  metadata: {
+    protocol: number;
+    pointer: string;
+  };
+};

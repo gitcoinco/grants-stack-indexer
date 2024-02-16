@@ -440,11 +440,33 @@ export class Database {
     return project ?? null;
   }
 
+  async getProjectByAnchor(chainId: ChainId, anchorAddress: Address) {
+    const project = await this.#db
+      .selectFrom("projects")
+      .where("chainId", "=", chainId)
+      .where("anchorAddress", "=", anchorAddress)
+      .selectAll()
+      .executeTakeFirst();
+
+    return project ?? null;
+  }
+
   async getRoundById(chainId: ChainId, roundId: Address) {
     const round = await this.#db
       .selectFrom("rounds")
       .where("chainId", "=", chainId)
       .where("id", "=", roundId)
+      .selectAll()
+      .executeTakeFirst();
+
+    return round ?? null;
+  }
+
+  async getRoundByStrategyAddress(chainId: ChainId, strategyAddress: Address) {
+    const round = await this.#db
+      .selectFrom("rounds")
+      .where("chainId", "=", chainId)
+      .where("strategyAddress", "=", strategyAddress)
       .selectAll()
       .executeTakeFirst();
 

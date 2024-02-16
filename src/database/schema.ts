@@ -133,8 +133,9 @@ export type StatusSnapshot = {
 export type ApplicationTable = {
   id: string;
   chainId: ChainId;
-  roundId: Address;
+  roundId: Address | string;
   projectId: string;
+  anchorAddress: Address | null;
   status: ApplicationStatus;
   statusSnapshots: ColumnType<
     StatusSnapshot[],
@@ -149,6 +150,8 @@ export type ApplicationTable = {
   totalDonationsCount: number;
   totalAmountDonatedInUsd: number;
   uniqueDonorsCount: number;
+
+  tags: string[];
 };
 
 export type Application = Selectable<ApplicationTable>;

@@ -58,6 +58,35 @@ const MOCK_SUBSCRIBE_TO_CONTRACT: EventHandlerArgs<Indexer>["subscribeToContract
 const MOCK_UNSUBSCRIBE_FROM_CONTRACT: EventHandlerArgs<Indexer>["unsubscribeFromContract"] =
   vi.fn();
 
+const round: Round = {
+  id: "0x01",
+  chainId: 1,
+  matchAmount: 0n,
+  matchTokenAddress: parseAddress(addressZero),
+  matchAmountInUsd: 0,
+  applicationMetadataCid: "",
+  applicationMetadata: null,
+  roundMetadataCid: "",
+  roundMetadata: {},
+  applicationsStartTime: new Date(),
+  applicationsEndTime: new Date(),
+  donationsStartTime: new Date(),
+  donationsEndTime: new Date(),
+  createdAtBlock: 1n,
+  updatedAtBlock: 1n,
+  totalAmountDonatedInUsd: 0,
+  totalDonationsCount: 0,
+  uniqueDonorsCount: 0,
+  managerRole: "0x01",
+  adminRole: "0x9999",
+  tags: [],
+  strategyAddress: parseAddress(addressZero),
+  strategyId: "",
+  strategyName: "",
+  projectId: addressZero,
+  createdByAddress: parseAddress(addressTwo),
+};
+
 const DEFAULT_ARGS = {
   chainId: 1,
   event: {
@@ -691,34 +720,6 @@ describe("handleEvent", () => {
     });
 
     describe("when round already exists", () => {
-      const round: Round = {
-        id: "0x01",
-        chainId: 1,
-        matchAmount: 0n,
-        matchTokenAddress: parseAddress(addressZero),
-        matchAmountInUsd: 0,
-        applicationMetadataCid: "",
-        applicationMetadata: null,
-        roundMetadataCid: "",
-        roundMetadata: {},
-        applicationsStartTime: new Date(),
-        applicationsEndTime: new Date(),
-        donationsStartTime: new Date(),
-        donationsEndTime: new Date(),
-        createdByAddress: parseAddress(addressTwo),
-        createdAtBlock: 1n,
-        updatedAtBlock: 1n,
-        totalAmountDonatedInUsd: 0,
-        totalDonationsCount: 0,
-        uniqueDonorsCount: 0,
-        managerRole: "0x01",
-        adminRole: "0x9999",
-        tags: [],
-        strategyAddress: parseAddress(addressZero),
-        strategyId: "",
-        strategyName: "",
-        projectId: addressZero,
-      };
 
       test("should create a round manager role", async () => {
         MOCK_DB.getRoundByRole = vi
@@ -923,6 +924,102 @@ describe("handleEvent", () => {
             address: addressTwo,
           },
         });
+      });
+    });
+  });
+
+  describe("Application: Registered", () => {
+    test ("should error when project is not found", async () => {
+      MOCK_DB.getProjectByAnchor = vi.fn().mockResolvedValue(null);
+
+      const changesets = handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          contractName: "AlloV2/DonationVotingMerkleDistributionDirectTransferStrategy/V1",
+          name: "Registered",
+          params: {
+            recipientId: addressThree,
+            data: '0x00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000010000000000000000000000000084AC8A92FFC278D0322173E4B667D23D8FC7B570000000000000000000000000B8CEF765721A6DA910F14BE93E7684E9A3714123000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000003B6261666B72656961733573667A7379616961336734697277326E6C727072643563666E62676D736571623774736E7368366E72707A7664716D736D0000000000',
+            sender: addressThree,
+          },
+        },
+      });
+
+      await expect((async () => {
+        await changesets;
+      })()).rejects.toThrowError();
+    });
+
+    test ("should error when round is not found", async () => {
+      MOCK_DB.getProjectByAnchor = vi.fn().mockResolvedValue({ id: addressThree});
+      MOCK_DB.getRoundByStrategyAddress = vi.fn().mockResolvedValue(null);
+
+      const changesets = handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          contractName: "AlloV2/DonationVotingMerkleDistributionDirectTransferStrategy/V1",
+          name: "Registered",
+          params: {
+            recipientId: addressThree,
+            data: '0x00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000010000000000000000000000000084AC8A92FFC278D0322173E4B667D23D8FC7B570000000000000000000000000B8CEF765721A6DA910F14BE93E7684E9A3714123000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000003B6261666B72656961733573667A7379616961336734697277326E6C727072643563666E62676D736571623774736E7368366E72707A7664716D736D0000000000',
+            sender: addressThree,
+          },
+        },
+      });
+
+      await expect((async () => {
+        await changesets;
+      })()).rejects.toThrowError();
+    });
+
+    test("should insert a new application", async () => {
+
+      MOCK_DB.getProjectByAnchor = vi.fn().mockResolvedValue({ id: addressThree});
+      MOCK_DB.getRoundByStrategyAddress = vi.fn().mockResolvedValue(round);
+
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          contractName: "AlloV2/DonationVotingMerkleDistributionDirectTransferStrategy/V1",
+          name: "Registered",
+          params: {
+            recipientId: addressThree,
+            data: '0x00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000010000000000000000000000000084AC8A92FFC278D0322173E4B667D23D8FC7B570000000000000000000000000B8CEF765721A6DA910F14BE93E7684E9A3714123000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000003B6261666B72656961733573667A7379616961336734697277326E6C727072643563666E62676D736571623774736E7368366E72707A7664716D736D0000000000',
+            sender: addressThree,
+          },
+        },
+      });
+
+      expect(changesets[0]).toEqual({
+        type: "InsertApplication",
+        application: {
+          chainId: 1,
+          id: "0",
+          projectId: addressThree,
+          anchorAddress: addressThree,
+          roundId: round.id,
+          status: "PENDING",
+          metadataCid: "bafkreias5sfzsyaia3g4irw2nlrprd5cfnbgmseqb7tsnsh6nrpzvdqmsm",
+          metadata: {
+            some: "metadata",
+          },
+          createdAtBlock: 1n,
+          createdByAddress: addressThree,
+          statusUpdatedAtBlock: 1n,
+          statusSnapshots: [
+            {
+              status: "PENDING",
+              statusUpdatedAtBlock: 1n,
+            },
+          ],
+          totalAmountDonatedInUsd: 0,
+          totalDonationsCount: 0,
+          uniqueDonorsCount: 0,
+          tags: ["allo-v2"],
+        },
       });
     });
   });

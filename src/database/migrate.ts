@@ -176,6 +176,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("chainId", CHAIN_ID_TYPE)
     .addColumn("roundId", ADDRESS_TYPE)
     .addColumn("projectId", "text")
+    .addColumn("anchorAddress", ADDRESS_TYPE)
     .addColumn("status", ref("application_status"))
     .addColumn("statusSnapshots", "jsonb")
 
@@ -190,6 +191,8 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("totalDonationsCount", "integer")
     .addColumn("totalAmountDonatedInUSD", "real")
     .addColumn("uniqueDonorsCount", "integer")
+
+    .addColumn("tags", sql`text[]`)
 
     .addPrimaryKeyConstraint("applications_pkey", ["chainId", "roundId", "id"])
     .addForeignKeyConstraint(
