@@ -835,8 +835,9 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
-        address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
+        address: "0xA78Daa89fE9C1eC66c5cB1c5833bC8C6Cb307918",
         contractName: "AlloV1/ProjectRegistry/V2",
+        fromBlock: 7151900,
       },
       {
         address: "0xc7722909fEBf7880E15e67d563E2736D9Bb9c1Ab",
