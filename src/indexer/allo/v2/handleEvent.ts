@@ -14,6 +14,7 @@ import roleRevoked from "./roleRevoked.js";
 import { fetchPoolMetadata } from "./poolMetadata.js";
 import { extractStrategyFromId } from "./strategy.js";
 import { DVMDApplicationData } from "../../types.js";
+import { z } from "zod";
 
 function generateRoundRoles(poolId: bigint) {
   // POOL_MANAGER_ROLE = bytes32(poolId);
@@ -23,6 +24,21 @@ function generateRoundRoles(poolId: bigint) {
   const adminRawRole = encodePacked(["uint256", "string"], [poolId, "admin"]);
   const adminRole = keccak256(adminRawRole);
   return { managerRole, adminRole };
+}
+
+function getProjectType(metadata: object) {
+  const linkedProjectMetadata = z.object({
+    canonical: z.object({
+      registryAddress: z.string(),
+      chainId: z.coerce.number(),
+    }),
+  });
+
+  if (linkedProjectMetadata.safeParse(metadata).success) {
+    return "linked";
+  }
+
+  return "canonical";
 }
 
 // Decode the application data from DonationVotingMerkleDistribution
@@ -92,6 +108,8 @@ export async function handleEvent(
         metadata = {};
       }
 
+      const projectType = getProjectType(metadata as object);
+
       const tx = await rpcClient.getTransaction({
         hash: event.transactionHash,
       });
@@ -115,6 +133,7 @@ export async function handleEvent(
             createdByAddress: parseAddress(createdBy),
             createdAtBlock: event.blockNumber,
             updatedAtBlock: event.blockNumber,
+            projectType,
           },
         },
         {
@@ -373,6 +392,7 @@ export async function handleEvent(
     case "ProfileMetadataUpdated": {
       const metadataCid = event.params.metadata.pointer;
       const metadata = await ipfsGet<ProjectTable["metadata"]>(metadataCid);
+
       return [
         {
           type: "UpdateProject",

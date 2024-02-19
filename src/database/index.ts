@@ -250,6 +250,7 @@ export class Database {
           .updateTable("projects")
           .set(change.project)
           .where("id", "=", change.projectId)
+          .where("chainId", "=", change.chainId)
           .execute();
         break;
       }

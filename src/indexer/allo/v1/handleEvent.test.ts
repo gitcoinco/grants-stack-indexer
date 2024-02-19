@@ -121,6 +121,7 @@ describe("handleEvent", () => {
           projectNumber: 1,
           registryAddress: addressOne,
           tags: ["allo-v1"],
+          projectType: "canonical",
         },
       });
 
@@ -186,6 +187,7 @@ describe("handleEvent", () => {
         createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 1n,
+        projectType: "canonical",
       };
 
       MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
@@ -235,6 +237,7 @@ describe("handleEvent", () => {
         createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 1n,
+        projectType: "canonical",
       };
 
       MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
@@ -308,6 +311,7 @@ describe("handleEvent", () => {
           projectNumber: null,
           registryAddress: addressZero,
           tags: ["allo-v1", "program"],
+          projectType: "canonical",
         },
       });
     });
@@ -329,6 +333,7 @@ describe("handleEvent", () => {
         createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 1n,
+        projectType: "canonical",
       };
       MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
 
@@ -376,6 +381,7 @@ describe("handleEvent", () => {
         createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 1n,
+        projectType: "canonical",
       };
       MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
 
@@ -425,6 +431,7 @@ describe("handleEvent", () => {
         createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 1n,
+        projectType: "canonical",
       };
       MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
 
@@ -471,6 +478,7 @@ describe("handleEvent", () => {
         createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 1n,
+        projectType: "canonical",
       };
       MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
 

@@ -167,6 +167,7 @@ describe("handleEvent", () => {
             projectNumber: null,
             registryAddress: addressOne,
             tags: ["allo-v2"],
+            projectType: "canonical",
           },
         });
 
@@ -249,6 +250,7 @@ describe("handleEvent", () => {
             projectNumber: null,
             registryAddress: addressOne,
             tags: ["allo-v2"],
+            projectType: "canonical",
           },
         });
 
@@ -408,6 +410,7 @@ describe("handleEvent", () => {
           createdByAddress: parseAddress(addressTwo),
           createdAtBlock: 1n,
           updatedAtBlock: 1n,
+          projectType: "canonical",
         };
         MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
 
@@ -487,6 +490,7 @@ describe("handleEvent", () => {
         createdByAddress: parseAddress(addressTwo),
         createdAtBlock: 1n,
         updatedAtBlock: 1n,
+        projectType: "canonical",
       };
       MOCK_DB.getProjectById = vi.fn().mockResolvedValueOnce(project);
 

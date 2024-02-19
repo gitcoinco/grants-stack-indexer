@@ -13,6 +13,11 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   const schema = db.withSchema(schemaName).schema;
 
   await schema
+    .createType("project_type")
+    .asEnum(["canonical", "linked"])
+    .execute();
+
+  await schema
     .createTable("projects")
     .addColumn("id", "text")
     .addColumn("name", "text")
@@ -27,6 +32,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("createdAtBlock", BIGINT_TYPE)
     .addColumn("updatedAtBlock", BIGINT_TYPE)
     .addColumn("tags", sql`text[]`)
+    .addColumn("projectType", ref("project_type"))
 
     .addPrimaryKeyConstraint("projects_pkey", ["id", "chainId"])
     .execute();
