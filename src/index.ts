@@ -366,8 +366,6 @@ async function catchupAndWatchChain(
   const { db, priceProvider } = config;
 
   try {
-    const rpcProvider = new ethers.providers.JsonRpcProvider(config.chain.rpc);
-
     const cachedIpfsGet = async <T>(cid: string): Promise<T | undefined> => {
       const cidRegex = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[0-9A-Za-z]{50,})$/;
       if (!cidRegex.test(cid)) {
@@ -399,8 +397,6 @@ async function catchupAndWatchChain(
 
       return (await res.json()) as T;
     };
-
-    await rpcProvider.getNetwork();
 
     chainLogger.info("catching up with blockchain events");
 
