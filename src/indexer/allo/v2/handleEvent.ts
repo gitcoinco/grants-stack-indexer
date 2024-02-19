@@ -29,8 +29,8 @@ function generateRoundRoles(poolId: bigint) {
 function getProjectType(metadata: object) {
   const linkedProjectMetadata = z.object({
     canonical: z.object({
-      chainId: z.number(),
       registryAddress: z.string(),
+      chainId: z.coerce.number(),
     }),
   });
 
@@ -392,6 +392,7 @@ export async function handleEvent(
     case "ProfileMetadataUpdated": {
       const metadataCid = event.params.metadata.pointer;
       const metadata = await ipfsGet<ProjectTable["metadata"]>(metadataCid);
+
       return [
         {
           type: "UpdateProject",
