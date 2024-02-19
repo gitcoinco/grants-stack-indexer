@@ -29,7 +29,7 @@ function generateRoundRoles(poolId: bigint) {
 function getProjectType(metadata: object) {
   const linkedProjectMetadata = z.object({
     canonical: z.object({
-      chainId: z.string(),
+      chainId: z.number(),
       registryAddress: z.string(),
     }),
   });
