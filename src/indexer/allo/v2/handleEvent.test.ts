@@ -644,6 +644,7 @@ describe("handleEvent", () => {
           strategyName:
             "allov2.DonationVotingMerkleDistributionDirectTransferStrategy",
           projectId: "0x0002",
+          isReadyForPayout: false,
         },
       });
 
