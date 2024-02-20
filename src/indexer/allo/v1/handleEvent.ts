@@ -750,8 +750,6 @@ export async function handleEvent(
         parseAddress(event.address)
       );
 
-      console.log("READYFOR_PAYOUT", round);
-
       return [
         {
           type: "UpdateRoundByStrategyAddress",
