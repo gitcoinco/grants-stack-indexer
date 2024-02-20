@@ -128,7 +128,7 @@ const CHAINS: Chain[] = [
       },
       {
         contractName: "AlloV1/DirectPayoutStrategyFactory/V2",
-        address: "0x8F8d78f119Aa722453d33d6881f4D400D67D054F",
+        address: "0xd07D54b0231088Ca9BF7DA6291c911B885cBC140",
         fromBlock: 16994526,
       },
       {
@@ -1299,7 +1299,7 @@ export type Config = {
   estimatesLinearQfWorkerPoolSize: number | null;
 };
 
-const CHAIN_DATA_VERSION = "30";
+const CHAIN_DATA_VERSION = "31";
 
 export function getConfig(): Config {
   const buildTag = z

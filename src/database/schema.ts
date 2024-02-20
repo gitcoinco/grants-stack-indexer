@@ -34,6 +34,8 @@ export type RoundTable = {
   strategyId: string;
   strategyName: string;
 
+  isReadyForPayout: boolean;
+
   projectId: string;
 
   tags: string[];

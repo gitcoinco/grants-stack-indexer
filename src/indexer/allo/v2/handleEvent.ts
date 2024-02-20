@@ -294,6 +294,7 @@ export async function handleEvent(
         strategyAddress: parseAddress(strategyAddress),
         strategyId,
         strategyName: strategy?.name ?? "",
+        isReadyForPayout: false,
         createdByAddress: parseAddress(createdBy),
         createdAtBlock: event.blockNumber,
         updatedAtBlock: event.blockNumber,
