@@ -88,10 +88,10 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("roundMetadataCid", "text")
     .addColumn("roundMetadata", "jsonb")
 
-    .addColumn("applicationsStartTime", "timestamp")
-    .addColumn("applicationsEndTime", "timestamp")
-    .addColumn("donationsStartTime", "timestamp")
-    .addColumn("donationsEndTime", "timestamp")
+    .addColumn("applicationsStartTime", "timestamptz")
+    .addColumn("applicationsEndTime", "timestamptz")
+    .addColumn("donationsStartTime", "timestamptz")
+    .addColumn("donationsEndTime", "timestamptz")
 
     .addColumn("createdByAddress", ADDRESS_TYPE)
     .addColumn("createdAtBlock", BIGINT_TYPE)
@@ -258,7 +258,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("chainId", CHAIN_ID_TYPE)
     .addColumn("tokenAddress", ADDRESS_TYPE)
     .addColumn("priceInUSD", "real")
-    .addColumn("timestamp", "timestamp")
+    .addColumn("timestamp", "timestamptz")
     .addColumn("blockNumber", BIGINT_TYPE)
     .execute();
 
