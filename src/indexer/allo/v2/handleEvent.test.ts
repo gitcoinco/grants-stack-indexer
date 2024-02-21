@@ -350,6 +350,7 @@ describe("handleEvent", () => {
         project: {
           metadataCid: "CID-1",
           metadata: { some: "metadata" },
+          projectType: "canonical",
         },
       });
     });
