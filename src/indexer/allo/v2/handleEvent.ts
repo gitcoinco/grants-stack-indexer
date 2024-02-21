@@ -393,6 +393,7 @@ export async function handleEvent(
     case "ProfileMetadataUpdated": {
       const metadataCid = event.params.metadata.pointer;
       const metadata = await ipfsGet<ProjectTable["metadata"]>(metadataCid);
+      const projectType = getProjectType(metadata as object);
 
       return [
         {
@@ -402,6 +403,7 @@ export async function handleEvent(
           project: {
             metadataCid: metadataCid,
             metadata: metadata,
+            projectType,
           },
         },
       ];
