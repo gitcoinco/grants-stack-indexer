@@ -10,6 +10,8 @@ import os from "node:os";
 type ChainId = number;
 type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114;
 
+const CHAIN_DATA_VERSION = "32";
+
 export type Token = {
   code: string;
   address: string;
@@ -1298,8 +1300,6 @@ export type Config = {
   dropDb: boolean;
   estimatesLinearQfWorkerPoolSize: number | null;
 };
-
-const CHAIN_DATA_VERSION = "31";
 
 export function getConfig(): Config {
   const buildTag = z
