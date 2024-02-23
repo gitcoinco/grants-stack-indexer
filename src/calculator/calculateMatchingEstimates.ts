@@ -1,6 +1,5 @@
 import type { LinearQf } from "./linearQf/index.js";
 import { Chain } from "../config.js";
-import { Application } from "../indexer/types.js";
 import { DataProvider } from "./dataProvider/index.js";
 import { PriceProvider, PriceWithDecimals } from "../prices/provider.js";
 import { PassportProvider } from "../passport/index.js";
@@ -18,7 +17,11 @@ import {
   extractCalculationConfigFromRound,
   overrideCalculationConfig,
 } from "./calculationConfig.js";
-import { DeprecatedRound, DeprecatedVote } from "../deprecatedJsonDatabase.js";
+import {
+  DeprecatedApplication,
+  DeprecatedRound,
+  DeprecatedVote,
+} from "../deprecatedJsonDatabase.js";
 import { parseAddress } from "../address.js";
 
 export const potentialVoteSchema = z.object({
@@ -72,7 +75,7 @@ export async function calculateMatchingEstimates({
     calculationConfigOverride ?? {}
   );
 
-  const applications = await dataProvider.loadFile<Application>(
+  const applications = await dataProvider.loadFile<DeprecatedApplication>(
     `${chain.id}/rounds/${round.id}/applications.json`,
     `${chain.id}/rounds/${round.id}/applications.json`
   );
