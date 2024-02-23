@@ -30,7 +30,10 @@ const addressFour =
 const MOCK_PRICE_PROVIDER = new TestPriceProvider() as unknown as PriceProvider;
 
 function MOCK_IPFS_GET<TReturn>(_arg: string) {
-  return Promise.resolve({ some: "metadata" } as TReturn);
+  return Promise.resolve({
+    title: "my project",
+    description: "my project description",
+  } as TReturn);
 }
 
 function MOCK_RPC_CLIENT() {
@@ -162,7 +165,9 @@ describe("handleEvent", () => {
             updatedAtBlock: 1n,
             id: "0x0001",
             metadata: {
-              some: "metadata",
+              type: "project",
+              title: "my project",
+              description: "my project description",
             },
             metadataCid: "CID-1",
             projectNumber: null,
@@ -245,7 +250,9 @@ describe("handleEvent", () => {
             updatedAtBlock: 1n,
             id: "0x0001",
             metadata: {
-              some: "metadata",
+              type: "project",
+              title: "my project",
+              description: "my project description",
             },
             metadataCid: "CID-1",
             projectNumber: null,
@@ -349,7 +356,10 @@ describe("handleEvent", () => {
         projectId: "0x0001",
         project: {
           metadataCid: "CID-1",
-          metadata: { some: "metadata" },
+          metadata: {
+            title: "my project",
+            description: "my project description",
+          },
           projectType: "canonical",
         },
       });
@@ -1022,7 +1032,8 @@ describe("handleEvent", () => {
           metadataCid:
             "bafkreias5sfzsyaia3g4irw2nlrprd5cfnbgmseqb7tsnsh6nrpzvdqmsm",
           metadata: {
-            some: "metadata",
+            title: "my project",
+            description: "my project description",
           },
           createdAtBlock: 1n,
           createdByAddress: addressThree,
