@@ -156,7 +156,7 @@ export async function handleEvent(
           type: "UpdateProject",
           chainId,
           projectId,
-          project: { metadata: parsedMetadata, metadataCid },
+          project: { metadata: parsedMetadata.data, metadataCid },
         },
       ];
     }
@@ -275,7 +275,7 @@ export async function handleEvent(
             name: "",
             projectNumber: null,
             metadataCid: metadataCid,
-            metadata: parsedMetadata,
+            metadata: parsedMetadata.data,
             createdByAddress: parseAddress(createdBy),
             createdAtBlock: event.blockNumber,
             updatedAtBlock: event.blockNumber,

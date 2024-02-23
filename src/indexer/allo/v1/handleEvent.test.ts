@@ -26,8 +26,28 @@ const addressFive =
 
 const MOCK_PRICE_PROVIDER = new TestPriceProvider() as unknown as PriceProvider;
 
-function MOCK_IPFS_GET<TReturn>(_arg: string) {
-  return Promise.resolve({ some: "metadata" } as TReturn);
+// eslint-disable-next-line @typescript-eslint/require-await
+async function MOCK_IPFS_GET<TReturn>(cid: string) {
+  switch (cid) {
+    case "project-cid":
+      return {
+        title: "my project",
+        description: "my project description",
+      } as TReturn;
+
+    case "program-cid":
+      return {
+        name: "my program",
+      } as TReturn;
+
+    case "round-cid":
+      return {
+        name: "my round",
+      } as TReturn;
+
+    default:
+      throw new Error(`unexpected cid: ${cid}`);
+  }
 }
 
 function MOCK_RPC_CLIENT() {
@@ -150,7 +170,7 @@ describe("handleEvent", () => {
           params: {
             projectID: 1n,
             metaPtr: {
-              pointer: "metadatacid",
+              pointer: "project-cid",
               protocol: 0n,
             },
           },
@@ -164,8 +184,12 @@ describe("handleEvent", () => {
         projectId:
           "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
         project: {
-          metadataCid: "metadatacid",
-          metadata: { some: "metadata" },
+          metadataCid: "project-cid",
+          metadata: {
+            type: "project",
+            title: "my project",
+            description: "my project description",
+          },
         },
       });
     });
@@ -278,7 +302,7 @@ describe("handleEvent", () => {
           .fn()
           .mockResolvedValue([
             1n,
-            "metadatacid",
+            "program-cid",
           ]) as unknown as EventHandlerArgs<Indexer>["readContract"],
         event: {
           ...DEFAULT_ARGS.event,
@@ -306,8 +330,11 @@ describe("handleEvent", () => {
           updatedAtBlock: 1n,
           id: addressFour,
           name: "",
-          metadata: { some: "metadata" },
-          metadataCid: "metadatacid",
+          metadata: {
+            name: "my program",
+            type: "program",
+          },
+          metadataCid: "program-cid",
           projectNumber: null,
           registryAddress: addressZero,
           tags: ["allo-v1", "program"],
@@ -888,9 +915,9 @@ describe("handleEvent", () => {
             case "matchAmount":
               return 0n;
             case "roundMetaPtr":
-              return [0, "test-cid"];
+              return [0, "round-cid"];
             case "applicationMetaPtr":
-              return [0, "test-cid"];
+              return [0, "round-cid"];
             case "token":
               return addressZero;
             default:
@@ -928,10 +955,10 @@ describe("handleEvent", () => {
           matchTokenAddress: "0x0000000000000000000000000000000000000000",
           matchAmount: 0n,
           matchAmountInUsd: 0,
-          applicationMetadataCid: "test-cid",
-          applicationMetadata: { some: "metadata" },
-          roundMetadataCid: "test-cid",
-          roundMetadata: { some: "metadata" },
+          applicationMetadataCid: "round-cid",
+          applicationMetadata: { name: "my round" },
+          roundMetadataCid: "round-cid",
+          roundMetadata: { name: "my round" },
           applicationsStartTime: null,
           applicationsEndTime: null,
           donationsStartTime: null,
