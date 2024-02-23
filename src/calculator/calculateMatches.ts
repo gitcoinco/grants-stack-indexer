@@ -1,5 +1,4 @@
 import { Logger } from "pino";
-import { Application } from "../indexer/types.js";
 import { PassportProvider } from "../passport/index.js";
 import { DataProvider } from "./dataProvider/index.js";
 import { ResourceNotFoundError } from "./errors.js";
@@ -124,7 +123,7 @@ export const calculateMatches = async (
       all[current.id] = current;
       return all;
     },
-    {} as Record<string, Application>
+    {} as Record<string, DeprecatedApplication>
   );
 
   for (const id in results) {

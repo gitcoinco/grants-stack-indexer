@@ -14,7 +14,10 @@ import roleRevoked from "./roleRevoked.js";
 import { fetchPoolMetadata } from "./poolMetadata.js";
 import { extractStrategyFromId } from "./strategy.js";
 import { DVMDApplicationData } from "../../types.js";
-import { z } from "zod";
+import {
+  ProjectMetadata,
+  ProjectMetadataSchema,
+} from "../../projectMetadata.js";
 
 function generateRoundRoles(poolId: bigint) {
   // POOL_MANAGER_ROLE = bytes32(poolId);
@@ -26,15 +29,9 @@ function generateRoundRoles(poolId: bigint) {
   return { managerRole, adminRole };
 }
 
-function getProjectType(metadata: object) {
-  const linkedProjectMetadata = z.object({
-    canonical: z.object({
-      registryAddress: z.string(),
-      chainId: z.coerce.number(),
-    }),
-  });
-
-  if (linkedProjectMetadata.safeParse(metadata).success) {
+function getProjectTypeFromMetadata(metadata: ProjectMetadata) {
+  // if the metadata contains a canonical reference, it's a linked project
+  if ("canonical" in metadata) {
     return "linked";
   }
 
@@ -88,7 +85,7 @@ export async function handleEvent(
     event,
     subscribeToContract,
     readContract,
-    context: { db, rpcClient, ipfsGet },
+    context: { db, rpcClient, ipfsGet, logger },
   } = args;
 
   switch (event.name) {
@@ -96,31 +93,35 @@ export async function handleEvent(
     case "ProfileCreated": {
       const profileId = event.params.profileId;
       const metadataCid = event.params.metadata.pointer;
-      let metadata = await ipfsGet<ProjectTable["metadata"]>(metadataCid);
+      const metadata = await ipfsGet<ProjectTable["metadata"]>(metadataCid);
 
-      // FIXME: update this when we validate all the metadata
-      // for projects and rounds
-      if (
-        metadata === null ||
-        Array.isArray(metadata) ||
-        typeof metadata !== "object"
-      ) {
-        metadata = {};
+      const parsedMetadata = ProjectMetadataSchema.safeParse(metadata);
+
+      if (parsedMetadata.success === false) {
+        logger.warn({
+          msg: `ProfileCreated: Failed to parse metadata for profile ${profileId}`,
+          event,
+          metadataCid,
+          metadata,
+        });
+        return [];
       }
 
-      const projectType = getProjectType(metadata as object);
+      const projectType = getProjectTypeFromMetadata(parsedMetadata.data);
+      const isProgram = parsedMetadata.data.type === "program";
 
       const tx = await rpcClient.getTransaction({
         hash: event.transactionHash,
       });
 
       const createdBy = tx.from;
+      const programTags = isProgram ? ["program"] : [];
 
       const changes: Changeset[] = [
         {
           type: "InsertProject",
           project: {
-            tags: ["allo-v2"],
+            tags: ["allo-v2", ...programTags],
             chainId,
             registryAddress: parseAddress(event.address),
             id: profileId,
@@ -129,7 +130,7 @@ export async function handleEvent(
             anchorAddress: parseAddress(event.params.anchor),
             projectNumber: null,
             metadataCid: metadataCid,
-            metadata: metadata,
+            metadata: parsedMetadata.data,
             createdByAddress: parseAddress(createdBy),
             createdAtBlock: event.blockNumber,
             updatedAtBlock: event.blockNumber,
@@ -393,7 +394,19 @@ export async function handleEvent(
     case "ProfileMetadataUpdated": {
       const metadataCid = event.params.metadata.pointer;
       const metadata = await ipfsGet<ProjectTable["metadata"]>(metadataCid);
-      const projectType = getProjectType(metadata as object);
+      const parsedMetadata = ProjectMetadataSchema.safeParse(metadata);
+
+      if (!parsedMetadata.success) {
+        logger.warn({
+          msg: `ProfileMetadataUpdated: Failed to parse metadata`,
+          event,
+          metadataCid,
+          metadata,
+        });
+        return [];
+      }
+
+      const projectType = getProjectTypeFromMetadata(parsedMetadata.data);
 
       return [
         {

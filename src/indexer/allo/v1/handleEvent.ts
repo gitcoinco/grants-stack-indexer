@@ -31,6 +31,7 @@ import {
   updateDonationsStartTime,
   updateDonationsEndTime,
 } from "./timeUpdated.js";
+import { ProjectMetadataSchema } from "../../projectMetadata.js";
 
 enum ApplicationStatus {
   PENDING = 0,
@@ -137,15 +138,25 @@ export async function handleEvent(
       );
 
       const metadataCid = event.params.metaPtr.pointer;
-
       const metadata = await ipfsGet<ProjectTable["metadata"]>(metadataCid);
+      const parsedMetadata = ProjectMetadataSchema.safeParse(metadata);
+
+      if (parsedMetadata.success === false) {
+        logger.warn({
+          msg: `MetadataUpdated: Failed to parse metadata for project ${projectId}`,
+          event,
+          metadataCid,
+          metadata,
+        });
+        return [];
+      }
 
       return [
         {
           type: "UpdateProject",
           chainId,
           projectId,
-          project: { metadata, metadataCid },
+          project: { metadata: parsedMetadata.data, metadataCid },
         },
       ];
     }
@@ -229,10 +240,21 @@ export async function handleEvent(
         }),
       ]);
 
-      const programMetadataCid = metaPtrResolved[1];
+      const metadataCid = metaPtrResolved[1];
 
-      const programMetadata =
-        await ipfsGet<Project["metadata"]>(programMetadataCid);
+      const metadata = await ipfsGet<Project["metadata"]>(metadataCid);
+
+      const parsedMetadata = ProjectMetadataSchema.safeParse(metadata);
+
+      if (parsedMetadata.success === false) {
+        logger.warn({
+          msg: `ProgramCreated: Failed to parse metadata for program ${programAddress}`,
+          event,
+          metadataCid,
+          metadata,
+        });
+        return [];
+      }
 
       const tx = await rpcClient.getTransaction({
         hash: event.transactionHash,
@@ -252,8 +274,8 @@ export async function handleEvent(
             id: programAddress,
             name: "",
             projectNumber: null,
-            metadataCid: programMetadataCid,
-            metadata: programMetadata,
+            metadataCid: metadataCid,
+            metadata: parsedMetadata.data,
             createdByAddress: parseAddress(createdBy),
             createdAtBlock: event.blockNumber,
             updatedAtBlock: event.blockNumber,
