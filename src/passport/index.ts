@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
-import fastq, { queueAsPromised } from "fastq";
 import split2 from "split2";
 import { Level } from "level";
 import enhancedFetch from "make-fetch-happen";
