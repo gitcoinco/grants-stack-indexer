@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
-import fastq, { queueAsPromised } from "fastq";
 import split2 from "split2";
 import { Level } from "level";
 import enhancedFetch from "make-fetch-happen";
 import { access } from "node:fs/promises";
 import { Logger } from "pino";
+import { pipeline } from "node:stream/promises";
 
 const DEFAULT_DELAY_BETWEEN_FULL_UPDATES_MS = 1000 * 60 * 30;
 
@@ -195,11 +194,6 @@ export const createPassportProvider = (
       return;
     }
 
-    const queue: queueAsPromised<{ address: string; score: PassportScore }> =
-      fastq.promise(async ({ address, score }) => {
-        await db.put(address.toLowerCase(), score);
-      }, 1);
-
     const startTime = Date.now();
     logger.debug("updating passports...");
 
@@ -213,54 +207,28 @@ export const createPassportProvider = (
       throw new Error("Passport dump is empty");
     }
 
-    await new Promise<void>((resolve, reject) => {
-      body
-        .pipe(split2())
-        .on("data", (line: string) => {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    try {
+      return pipeline(body, split2(), async (source) => {
+        for await (const line of source) {
           const {
             passport: { address, community },
             ...rest
-          } = JSON.parse(line);
+          } = JSON.parse(line as string) as PassportScore & {
+            passport: { address: string; community: number };
+          };
 
           if (community === config.scorerId) {
-            queue
-              .push({
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                address: address.toLowerCase(),
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                score: { address, ...rest },
-              })
-              .catch((err) => {
-                logger.error({
-                  msg: "error while writing to passport dataset",
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                  err,
-                });
-              });
+            await db.put(address.toLowerCase(), { ...rest, address });
           }
-        })
-        .on("end", () => {
-          queue
-            .drained()
-            .then(() => {
-              logger.debug(
-                `processed passport dump in ${
-                  (Date.now() - startTime) / 1000
-                } seconds`
-              );
-              resolve();
-            })
-            .catch((err) => {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              logger.error({ err });
-            });
-        })
-        .on("error", (err) => {
-          logger.error({ msg: "error while reading from passport dump", err });
-          reject(err);
-        });
-    });
+        }
+      });
+    } catch (err) {
+      logger.error({ msg: "failed to process passport dump", err });
+    }
+
+    logger.debug(
+      `processed passport dump in ${(Date.now() - startTime) / 1000} seconds`
+    );
   };
 
   // EXPORTS
