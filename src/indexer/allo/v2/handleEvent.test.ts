@@ -5,7 +5,7 @@ import { TestPriceProvider } from "../../../test/utils.js";
 import { PriceProvider } from "../../../prices/provider.js";
 import { Logger } from "pino";
 import { Database } from "../../../database/index.js";
-import { EventHandlerArgs } from "chainsauce";
+import { Block, EventHandlerArgs } from "chainsauce";
 import { Indexer } from "../.././indexer.js";
 import {
   Project,
@@ -105,6 +105,7 @@ const DEFAULT_ARGS = {
   subscribeToContract: MOCK_SUBSCRIBE_TO_CONTRACT,
   unsubscribeFromContract: MOCK_UNSUBSCRIBE_FROM_CONTRACT,
   readContract: MOCK_READ_CONTRACT,
+  getBlock: () => Promise.resolve({ timestamp: 0 } as Block),
   context: {
     priceProvider: MOCK_PRICE_PROVIDER,
     ipfsGet: MOCK_IPFS_GET,
@@ -1041,7 +1042,8 @@ describe("handleEvent", () => {
           statusSnapshots: [
             {
               status: "PENDING",
-              statusUpdatedAtBlock: 1n,
+              updatedAt: new Date("1970-01-01T00:00:00.000Z"),
+              updatedAtBlock: "1",
             },
           ],
           totalAmountDonatedInUsd: 0,

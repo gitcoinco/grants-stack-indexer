@@ -132,7 +132,8 @@ export type ApplicationStatus = "PENDING" | "REJECTED" | "APPROVED";
 
 export type StatusSnapshot = {
   status: ApplicationStatus;
-  statusUpdatedAtBlock: bigint;
+  updatedAtBlock: string;
+  updatedAt: Date;
 };
 
 export type ApplicationTable = {
