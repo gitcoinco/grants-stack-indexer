@@ -8,7 +8,12 @@ import {
   ProjectTable,
 } from "../../../database/schema.js";
 import type { Indexer } from "../../indexer.js";
-import { DGApplicationData, DGTimeStampUpdatedData, DVMDApplicationData, DVMDTimeStampUpdatedData } from "../../types.js";
+import {
+  DGApplicationData,
+  DGTimeStampUpdatedData,
+  DVMDApplicationData,
+  DVMDTimeStampUpdatedData,
+} from "../../types.js";
 import { fetchPoolMetadata } from "./poolMetadata.js";
 import roleGranted from "./roleGranted.js";
 import roleRevoked from "./roleRevoked.js";
@@ -490,6 +495,29 @@ export async function handleEvent(
       ];
     }
 
+    // -- Allo V2 Core
+    case "PoolMetadataUpdated": {
+      const { pointer: metadataPointer } = event.params.metadata;
+      const { roundMetadata, applicationMetadata } = await fetchPoolMetadata(
+        ipfsGet,
+        metadataPointer
+      );
+
+      return [
+        {
+          type: "UpdateRound",
+          chainId,
+          roundId: event.params.poolId.toString(),
+          round: {
+            applicationMetadataCid: metadataPointer,
+            applicationMetadata: applicationMetadata ?? {},
+            roundMetadataCid: metadataPointer,
+            roundMetadata: roundMetadata ?? {},
+          },
+        },
+      ];
+    }
+
     // -- Allo V2 Strategies
     case "Registered": {
       const anchorAddress = parseAddress(event.params.recipientId);
@@ -596,7 +624,6 @@ export async function handleEvent(
           break;
 
         case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
-
           params = event.params as DVMDTimeStampUpdatedData;
 
           applicationsStartTime = getDateFromTimestamp(
@@ -608,9 +635,7 @@ export async function handleEvent(
           donationsStartTime = getDateFromTimestamp(
             params.allocationStartTime!
           );
-          donationsEndTime = getDateFromTimestamp(
-            params.allocationEndTime
-          );
+          donationsEndTime = getDateFromTimestamp(params.allocationEndTime);
 
           break;
 
@@ -631,7 +656,6 @@ export async function handleEvent(
           },
         },
       ];
-
     }
   }
 

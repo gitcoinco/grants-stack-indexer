@@ -19,13 +19,13 @@ export type DGApplicationData = {
 };
 
 export type DVMDTimeStampUpdatedData = {
-  registrationStartTime: bigint,
-  registrationEndTime: bigint,
-  allocationStartTime: bigint,
-  allocationEndTime: bigint
+  registrationStartTime: bigint;
+  registrationEndTime: bigint;
+  allocationStartTime: bigint;
+  allocationEndTime: bigint;
 };
 
 export type DGTimeStampUpdatedData = {
-  registrationStartTime: bigint,
-  registrationEndTime: bigint,
+  registrationStartTime: bigint;
+  registrationEndTime: bigint;
 };
