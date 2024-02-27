@@ -105,6 +105,7 @@ const DEFAULT_ARGS = {
   subscribeToContract: MOCK_SUBSCRIBE_TO_CONTRACT,
   unsubscribeFromContract: MOCK_UNSUBSCRIBE_FROM_CONTRACT,
   readContract: MOCK_READ_CONTRACT,
+  getBlock: vi.fn().mockResolvedValue({ timestamp: 0 }),
   context: {
     priceProvider: MOCK_PRICE_PROVIDER,
     ipfsGet: MOCK_IPFS_GET,

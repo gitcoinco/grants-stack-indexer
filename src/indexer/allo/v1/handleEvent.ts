@@ -1,4 +1,4 @@
-import { EventHandlerArgs } from "chainsauce";
+import { Block, EventHandlerArgs } from "chainsauce";
 import { ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
 
@@ -52,17 +52,23 @@ function fullProjectId(
   );
 }
 
-function updateApplicationStatus(
+async function updateApplicationStatus(
   application: Application,
   newStatus: Application["status"],
-  blockNumber: bigint
-): Pick<Application, "status" | "statusUpdatedAtBlock" | "statusSnapshots"> {
+  blockNumber: bigint,
+  getBlock: () => Promise<Block>
+): Promise<
+  Pick<Application, "status" | "statusUpdatedAtBlock" | "statusSnapshots">
+> {
   const statusSnapshots = [...application.statusSnapshots];
 
   if (application.status !== newStatus) {
+    const block = await getBlock();
+
     statusSnapshots.push({
       status: newStatus,
-      statusUpdatedAtBlock: blockNumber,
+      updatedAtBlock: blockNumber.toString(),
+      updatedAt: new Date(block.timestamp * 1000),
     });
   }
 
@@ -81,6 +87,7 @@ export async function handleEvent(
     event,
     subscribeToContract,
     readContract,
+    getBlock,
     context: { db, rpcClient, ipfsGet, priceProvider, logger },
   } = args;
 
@@ -496,6 +503,7 @@ export async function handleEvent(
       });
 
       const createdBy = tx.from;
+      const { timestamp } = await getBlock();
 
       const application: NewApplication = {
         chainId,
@@ -512,7 +520,8 @@ export async function handleEvent(
         statusSnapshots: [
           {
             status: "PENDING",
-            statusUpdatedAtBlock: event.blockNumber,
+            updatedAtBlock: event.blockNumber.toString(),
+            updatedAt: new Date(timestamp * 1000),
           },
         ],
         totalAmountDonatedInUsd: 0,
@@ -599,10 +608,11 @@ export async function handleEvent(
                 chainId,
                 roundId,
                 applicationId: i.toString(),
-                application: updateApplicationStatus(
+                application: await updateApplicationStatus(
                   application,
                   statusString,
-                  event.blockNumber
+                  event.blockNumber,
+                  getBlock
                 ),
               } satisfies Changeset,
             ];
@@ -816,10 +826,11 @@ export async function handleEvent(
             chainId,
             roundId,
             applicationId,
-            application: updateApplicationStatus(
+            application: await updateApplicationStatus(
               application,
               statusString,
-              event.blockNumber
+              event.blockNumber,
+              getBlock
             ),
           });
         }

@@ -73,7 +73,7 @@ export function createDeprecatedApplication(
     roundId: getAddress(application.roundId),
     statusSnapshots: application.statusSnapshots.map((snapshot) => ({
       status: snapshot.status,
-      statusUpdatedAtBlock: Number(snapshot.statusUpdatedAtBlock),
+      statusUpdatedAtBlock: Number(snapshot.updatedAtBlock),
     })),
   };
 }

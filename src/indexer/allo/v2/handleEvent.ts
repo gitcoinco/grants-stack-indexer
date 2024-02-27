@@ -85,6 +85,7 @@ export async function handleEvent(
     event,
     subscribeToContract,
     readContract,
+    getBlock,
     context: { db, rpcClient, ipfsGet, logger },
   } = args;
 
@@ -477,6 +478,8 @@ export async function handleEvent(
         Number(values.recipientsCounter) - 1
       ).toString();
 
+      const { timestamp } = await getBlock();
+
       const application: NewApplication = {
         chainId,
         id: applicationIndex,
@@ -492,7 +495,8 @@ export async function handleEvent(
         statusSnapshots: [
           {
             status: "PENDING",
-            statusUpdatedAtBlock: event.blockNumber,
+            updatedAtBlock: event.blockNumber.toString(),
+            updatedAt: new Date(timestamp * 1000),
           },
         ],
         totalAmountDonatedInUsd: 0,
