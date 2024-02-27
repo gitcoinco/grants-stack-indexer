@@ -158,12 +158,24 @@ export async function handleEvent(
         return [];
       }
 
+      let projectName = "";
+
+      if ("name" in parsedMetadata.data) {
+        projectName = parsedMetadata.data.name;
+      } else if ("title" in parsedMetadata.data) {
+        projectName = parsedMetadata.data.title;
+      }
+
       return [
         {
           type: "UpdateProject",
           chainId,
           projectId,
-          project: { metadata: parsedMetadata.data, metadataCid },
+          project: {
+            name: projectName,
+            metadata: parsedMetadata.data,
+            metadataCid,
+          },
         },
       ];
     }
