@@ -1,6 +1,5 @@
 import { EventHandlerArgs } from "chainsauce";
 import { Hex, decodeAbiParameters, encodePacked, keccak256, pad } from "viem";
-import { z } from "zod";
 import { parseAddress } from "../../../address.js";
 import { Changeset } from "../../../database/index.js";
 import {
