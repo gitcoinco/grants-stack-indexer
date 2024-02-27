@@ -17,3 +17,15 @@ export type DGApplicationData = {
     pointer: string;
   };
 };
+
+export type DVMDTimeStampUpdatedData = {
+  registrationStartTime: bigint,
+  registrationEndTime: bigint,
+  allocationStartTime: bigint,
+  allocationEndTime: bigint
+};
+
+export type DGTimeStampUpdatedData = {
+  registrationStartTime: bigint,
+  registrationEndTime: bigint,
+};
