@@ -430,6 +430,7 @@ export async function handleEvent(
           projectId: event.params.profileId,
           project: {
             name: event.params.name,
+            anchorAddress: parseAddress(event.params.anchor),
           },
         },
       ];
