@@ -185,6 +185,7 @@ describe("handleEvent", () => {
           "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
         project: {
           metadataCid: "project-cid",
+          name: "my project",
           metadata: {
             type: "project",
             title: "my project",
