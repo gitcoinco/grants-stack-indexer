@@ -632,9 +632,7 @@ export async function handleEvent(
           applicationsEndTime = getDateFromTimestamp(
             params.registrationEndTime
           );
-          donationsStartTime = getDateFromTimestamp(
-            params.allocationStartTime!
-          );
+          donationsStartTime = getDateFromTimestamp(params.allocationStartTime);
           donationsEndTime = getDateFromTimestamp(params.allocationEndTime);
 
           break;
