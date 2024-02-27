@@ -25,3 +25,9 @@ export function decodeJsonWithBigInts<T>(encodedJson: string): T {
     return value as unknown;
   }) as T;
 }
+
+export const UINT64_MAX = 18446744073709551615n;
+
+export const getDateFromTimestamp = (timestamp: bigint): Date | null => {
+  return timestamp < UINT64_MAX ? new Date(Number(timestamp) * 1000) : null;
+};

@@ -1,19 +1,19 @@
 import { EventHandlerArgs } from "chainsauce";
-import { keccak256, encodePacked, pad, decodeAbiParameters, Hex } from "viem";
-import type { Indexer } from "../../indexer.js";
-import {
-  ProjectTable,
-  NewRound,
-  NewApplication,
-  ApplicationTable,
-} from "../../../database/schema.js";
-import { Changeset } from "../../../database/index.js";
+import { Hex, decodeAbiParameters, encodePacked, keccak256, pad } from "viem";
 import { parseAddress } from "../../../address.js";
+import { Changeset } from "../../../database/index.js";
+import {
+  NewApplication,
+  NewRound,
+  ProjectTable,
+} from "../../../database/schema.js";
+import type { Indexer } from "../../indexer.js";
+import { DGApplicationData, DVMDApplicationData } from "../../types.js";
+import { fetchPoolMetadata } from "./poolMetadata.js";
 import roleGranted from "./roleGranted.js";
 import roleRevoked from "./roleRevoked.js";
-import { fetchPoolMetadata } from "./poolMetadata.js";
 import { extractStrategyFromId } from "./strategy.js";
-import { DVMDApplicationData } from "../../types.js";
+import { getDateFromTimestamp } from "../../../utils/index.js";
 import {
   ProjectMetadata,
   ProjectMetadataSchema,
@@ -71,6 +71,37 @@ function decodeDVMDApplicationData(encodedData: Hex): DVMDApplicationData {
     metadata: {
       protocol: Number(decodedData[2].protocol),
       pointer: decodedData[2].pointer,
+    },
+  };
+
+  return results;
+}
+
+function decodeDGApplicationData(encodedData: Hex) {
+  const decodedData = decodeAbiParameters(
+    [
+      { name: "recipientId", type: "address" },
+      { name: "registryAnchor", type: "address" },
+      { name: "grantAmount", type: "uint256" },
+      {
+        name: "metadata",
+        type: "tuple",
+        components: [
+          { name: "protocol", type: "uint256" },
+          { name: "pointer", type: "string" },
+        ],
+      },
+    ],
+    encodedData
+  );
+
+  const results: DGApplicationData = {
+    recipientAddress: decodedData[0],
+    anchorAddress: decodedData[1],
+    grantAmount: decodedData[2],
+    metadata: {
+      protocol: Number(decodedData[3].protocol),
+      pointer: decodedData[3].pointer,
     },
   };
 
@@ -184,18 +215,14 @@ export async function handleEvent(
         ipfsGet,
         metadataPointer
       );
-
       const poolId = event.params.poolId;
       const { managerRole, adminRole } = generateRoundRoles(poolId);
-
       const strategyAddress = event.params.strategy;
-
       const strategyId = await readContract({
         contract: "AlloV2/IStrategy/V1",
         address: strategyAddress,
         functionName: "getStrategyId",
       });
-
       const strategy = extractStrategyFromId(strategyId);
 
       switch (strategy?.name) {
@@ -206,12 +233,18 @@ export async function handleEvent(
             address: strategyAddress,
           });
           break;
+        case "allov2.DirectGrantsSimpleStrategy":
+          subscribeToContract({
+            contract: "AlloV2/DirectGrantsSimpleStrategy/V1",
+            address: strategyAddress,
+          });
+          break;
       }
 
-      let applicationsStartTime = new Date();
-      let applicationsEndTime = new Date();
-      let donationsStartTime = new Date();
-      let donationsEndTime = new Date();
+      let applicationsStartTime: Date | null = null;
+      let applicationsEndTime: Date | null = null;
+      let donationsStartTime: Date | null = null;
+      let donationsEndTime: Date | null = null;
 
       if (
         strategy !== null &&
@@ -247,16 +280,34 @@ export async function handleEvent(
             functionName: "allocationEndTime",
           }),
         ]);
-        applicationsStartTime = new Date(
-          Number(registrationStartTimeResolved) * 1000
+        applicationsStartTime = getDateFromTimestamp(
+          registrationStartTimeResolved
         );
-        applicationsEndTime = new Date(
-          Number(registrationEndTimeResolved) * 1000
+        applicationsEndTime = getDateFromTimestamp(registrationEndTimeResolved);
+        donationsStartTime = getDateFromTimestamp(allocationStartTimeResolved);
+        donationsEndTime = getDateFromTimestamp(allocationEndTimeResolved);
+      } else if (
+        strategy !== null &&
+        strategy.name === "allov2.DirectGrantsSimpleStrategy"
+      ) {
+        const contract = "AlloV2/DirectGrantsSimpleStrategy/V1";
+        const [registrationStartTimeResolved, registrationEndTimeResolved] =
+          await Promise.all([
+            await readContract({
+              contract,
+              address: strategyAddress,
+              functionName: "registrationStartTime",
+            }),
+            await readContract({
+              contract,
+              address: strategyAddress,
+              functionName: "registrationEndTime",
+            }),
+          ]);
+        applicationsStartTime = getDateFromTimestamp(
+          registrationStartTimeResolved
         );
-        donationsStartTime = new Date(
-          Number(allocationStartTimeResolved) * 1000
-        );
-        donationsEndTime = new Date(Number(allocationEndTimeResolved) * 1000);
+        applicationsEndTime = getDateFromTimestamp(registrationEndTimeResolved);
       }
 
       const tx = await rpcClient.getTransaction({
@@ -279,18 +330,10 @@ export async function handleEvent(
         applicationMetadata: applicationMetadata ?? {},
         roundMetadataCid: metadataPointer,
         roundMetadata: roundMetadata ?? {},
-        applicationsStartTime: isNaN(applicationsStartTime.getTime())
-          ? null
-          : applicationsStartTime,
-        applicationsEndTime: isNaN(applicationsEndTime.getTime())
-          ? null
-          : applicationsEndTime,
-        donationsStartTime: isNaN(donationsStartTime.getTime())
-          ? null
-          : donationsStartTime,
-        donationsEndTime: isNaN(donationsEndTime.getTime())
-          ? null
-          : donationsEndTime,
+        applicationsStartTime: applicationsStartTime,
+        applicationsEndTime: applicationsEndTime,
+        donationsStartTime: donationsStartTime,
+        donationsEndTime: donationsEndTime,
         managerRole,
         adminRole,
         strategyAddress: parseAddress(strategyAddress),
@@ -455,7 +498,6 @@ export async function handleEvent(
       }
 
       const encodedData = event.params.data;
-
       const strategyAddress = parseAddress(event.address);
       const round = await db.getRoundByStrategyAddress(
         chainId,
@@ -466,23 +508,31 @@ export async function handleEvent(
         throw new Error("Round not found");
       }
 
-      // TODO: discuss how to handle differnt decode based on round.strategyName
-      const values = decodeDVMDApplicationData(encodedData);
+      let id;
+      let values;
 
-      const metadata = await ipfsGet<ApplicationTable["metadata"]>(
-        values.metadata.pointer
-      );
+      switch (round.strategyName) {
+        case "allov2.DirectGrantsSimpleStrategy":
+          values = decodeDGApplicationData(encodedData);
+          id = event.params.recipientId;
+          break;
 
-      // -1 because the contract starts counting at 1
-      const applicationIndex = (
-        Number(values.recipientsCounter) - 1
-      ).toString();
+        case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
+          values = decodeDVMDApplicationData(encodedData);
+          id = (Number(values.recipientsCounter) - 1).toString();
+          break;
+
+        default:
+          throw new Error("Invalid strategy name");
+      }
+
+      const metadata = await ipfsGet(values.metadata.pointer);
 
       const { timestamp } = await getBlock();
 
       const application: NewApplication = {
         chainId,
-        id: applicationIndex,
+        id: id,
         projectId: project.id,
         anchorAddress,
         roundId: round.id,

@@ -7,3 +7,13 @@ export type DVMDApplicationData = {
     pointer: string;
   };
 };
+
+export type DGApplicationData = {
+  recipientAddress: string;
+  anchorAddress: string;
+  grantAmount: bigint;
+  metadata: {
+    protocol: number;
+    pointer: string;
+  };
+};

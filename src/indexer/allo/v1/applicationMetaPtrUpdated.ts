@@ -1,9 +1,9 @@
 import { EventHandlerArgs } from "chainsauce";
-
-import type { Indexer } from "../../indexer.js";
+import { parseAddress } from "../../../address.js";
 import { Changeset } from "../../../database/index.js";
 import { Round } from "../../../database/schema.js";
-import { parseAddress } from "../../../address.js";
+
+import type { Indexer } from "../../indexer.js";
 
 export default async function ({
   event,

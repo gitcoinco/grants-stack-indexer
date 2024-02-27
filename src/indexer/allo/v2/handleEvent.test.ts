@@ -85,7 +85,7 @@ const round: Round = {
   tags: [],
   strategyAddress: parseAddress(addressZero),
   strategyId: "",
-  strategyName: "",
+  strategyName: "allov2.DonationVotingMerkleDistributionDirectTransferStrategy",
   isReadyForPayout: false,
   projectId: addressZero,
   createdByAddress: parseAddress(addressTwo),
