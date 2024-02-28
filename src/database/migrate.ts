@@ -279,6 +279,16 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     "projects"
   )}(id, chain_id)|@fieldName project';
 
+  create function ${ref("applications_canonical_project")}(a ${ref(
+    "applications"
+  )} ) returns ${ref("projects")} as $$
+    select *
+    from ${ref("projects")}
+    where id = a.project_id
+    and project_type = 'canonical'
+    limit 1;
+  $$ language sql stable;
+
   comment on table ${ref("donations")} is
   E'@foreignKey ("application_id", "round_id", "chain_id") references ${ref(
     "applications"
