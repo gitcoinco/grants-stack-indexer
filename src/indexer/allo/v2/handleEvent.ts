@@ -8,7 +8,12 @@ import {
   ProjectTable,
 } from "../../../database/schema.js";
 import type { Indexer } from "../../indexer.js";
-import { DGApplicationData, DVMDApplicationData } from "../../types.js";
+import {
+  DGApplicationData,
+  DGTimeStampUpdatedData,
+  DVMDApplicationData,
+  DVMDTimeStampUpdatedData,
+} from "../../types.js";
 import { fetchPoolMetadata } from "./poolMetadata.js";
 import roleGranted from "./roleGranted.js";
 import roleRevoked from "./roleRevoked.js";
@@ -430,6 +435,7 @@ export async function handleEvent(
           projectId: event.params.profileId,
           project: {
             name: event.params.name,
+            anchorAddress: parseAddress(event.params.anchor),
           },
         },
       ];
@@ -489,6 +495,30 @@ export async function handleEvent(
       ];
     }
 
+    // -- Allo V2 Core
+    case "PoolMetadataUpdated": {
+      const { pointer: metadataPointer } = event.params.metadata;
+      const { roundMetadata, applicationMetadata } = await fetchPoolMetadata(
+        ipfsGet,
+        metadataPointer
+      );
+
+      return [
+        {
+          type: "UpdateRound",
+          chainId,
+          roundId: event.params.poolId.toString(),
+          round: {
+            applicationMetadataCid: metadataPointer,
+            applicationMetadata: applicationMetadata ?? {},
+            roundMetadataCid: metadataPointer,
+            roundMetadata: roundMetadata ?? {},
+          },
+        },
+      ];
+    }
+
+    // -- Allo V2 Strategies
     case "Registered": {
       const anchorAddress = parseAddress(event.params.recipientId);
       const project = await db.getProjectByAnchor(chainId, anchorAddress);
@@ -559,6 +589,69 @@ export async function handleEvent(
         {
           type: "InsertApplication",
           application,
+        },
+      ];
+    }
+
+    case "TimestampsUpdated": {
+      const strategyAddress = parseAddress(event.address);
+      const round = await db.getRoundByStrategyAddress(
+        chainId,
+        strategyAddress
+      );
+
+      if (!round) {
+        throw new Error("Round not found");
+      }
+
+      let applicationsStartTime: Date | null = null;
+      let applicationsEndTime: Date | null = null;
+      let donationsStartTime: Date | null = null;
+      let donationsEndTime: Date | null = null;
+      let params;
+
+      switch (round.strategyName) {
+        case "allov2.DirectGrantsSimpleStrategy":
+          params = event.params as DGTimeStampUpdatedData;
+
+          applicationsStartTime = getDateFromTimestamp(
+            params.registrationStartTime
+          );
+          applicationsEndTime = getDateFromTimestamp(
+            params.registrationEndTime
+          );
+
+          break;
+
+        case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
+          params = event.params as DVMDTimeStampUpdatedData;
+
+          applicationsStartTime = getDateFromTimestamp(
+            params.registrationStartTime
+          );
+          applicationsEndTime = getDateFromTimestamp(
+            params.registrationEndTime
+          );
+          donationsStartTime = getDateFromTimestamp(params.allocationStartTime);
+          donationsEndTime = getDateFromTimestamp(params.allocationEndTime);
+
+          break;
+
+        default:
+          throw new Error("Invalid strategy name");
+      }
+
+      return [
+        {
+          type: "UpdateRound",
+          chainId,
+          roundId: round.id,
+          round: {
+            applicationsStartTime,
+            applicationsEndTime,
+            donationsStartTime,
+            donationsEndTime,
+          },
         },
       ];
     }
