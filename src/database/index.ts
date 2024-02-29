@@ -12,6 +12,7 @@ import {
   DonationTable,
   PriceTable,
   NewDonation,
+  LegacyProjectTable,
 } from "./schema.js";
 import { migrate } from "./migrate.js";
 import { encodeJsonWithBigInts } from "../utils/index.js";
@@ -20,6 +21,7 @@ import { Logger } from "pino";
 import { LRUCache } from "lru-cache";
 import { Address } from "../address.js";
 import { ChainId } from "../types.js";
+import { Hex } from "viem";
 
 export type { DataChange as Changeset };
 
@@ -33,6 +35,7 @@ interface Tables {
   applications: ApplicationTable;
   donations: DonationTable;
   prices: PriceTable;
+  legacyProjects: LegacyProjectTable;
 }
 
 type KyselyDb = Kysely<Tables>;
@@ -413,6 +416,14 @@ export class Database {
         break;
       }
 
+      case "NewLegacyProject": {
+        await this.#db
+          .insertInto("legacyProjects")
+          .values(change.legacyProject)
+          .execute();
+        break;
+      }
+
       default:
         throw new Error(`Unknown changeset type`);
     }
@@ -567,10 +578,7 @@ export class Database {
     return application ?? null;
   }
 
-  async getApplicationsByProjectId(
-    chainId: ChainId,
-    projectId: Address,
-  ) {
+  async getApplicationsByProjectId(chainId: ChainId, projectId: Hex) {
     const applications = await this.#db
       .selectFrom("applications")
       .where("chainId", "=", chainId)
@@ -656,5 +664,15 @@ export class Database {
       .execute();
 
     return donations;
+  }
+
+  async getV2ProjectIdByV1ProjectId(v1ProjectId: string) {
+    const result = await this.#db
+      .selectFrom("legacyProjects")
+      .where("v1ProjectId", "=", v1ProjectId)
+      .select("v2ProjectId")
+      .executeTakeFirst();
+
+    return result ?? null;
   }
 }

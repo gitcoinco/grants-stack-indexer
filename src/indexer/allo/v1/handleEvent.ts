@@ -32,6 +32,7 @@ import {
 } from "./timeUpdated.js";
 import { ProjectMetadataSchema } from "../../projectMetadata.js";
 import { updateApplicationStatus } from "../application.js";
+import { DataChange } from "../../../database/changeset.js";
 
 enum ApplicationStatus {
   PENDING = 0,
@@ -469,6 +470,8 @@ export async function handleEvent(
     }
 
     case "NewProjectApplication": {
+      const actions: DataChange[] = [];
+
       const projectId =
         "project" in event.params
           ? event.params.project.toString()
@@ -515,12 +518,25 @@ export async function handleEvent(
         tags: ["allo-v1"],
       };
 
-      return [
-        {
+      actions.push({
+        type: "InsertApplication",
+        application,
+      });
+
+      const result = await db.getV2ProjectIdByV1ProjectId(projectId);
+
+      if (result !== null) {
+        const migratedApplication = { ...application };
+        migratedApplication.projectId = result.v2ProjectId;
+        migratedApplication.tags = ["allo-v2", "migrated-from-v1"];
+
+        actions.push({
           type: "InsertApplication",
-          application,
-        },
-      ];
+          application: migratedApplication,
+        });
+      }
+
+      return actions;
     }
 
     case "ProjectsMetaPtrUpdated": {
