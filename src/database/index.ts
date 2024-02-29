@@ -567,6 +567,20 @@ export class Database {
     return application ?? null;
   }
 
+  async getApplicationsByProjectId(
+    chainId: ChainId,
+    projectId: Address,
+  ) {
+    const applications = await this.#db
+      .selectFrom("applications")
+      .where("chainId", "=", chainId)
+      .where("projectId", "=", projectId)
+      .selectAll()
+      .execute();
+
+    return applications ?? null;
+  }
+
   async getLatestPriceTimestampForChain(chainId: ChainId) {
     const latestPriceTimestamp = await this.#db
       .selectFrom("prices")
