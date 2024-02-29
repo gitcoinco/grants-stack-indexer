@@ -279,6 +279,14 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
 
   // https://www.graphile.org/postgraphile/smart-tags/
   // https://www.graphile.org/postgraphile/computed-columns/
+
+  // todo: add this function
+  // SELECT a.*, l1.v1_project_id AS original_project_id
+  // FROM applications a
+  // INNER JOIN legacy_projects l1 ON a.project_id = l1.v1_project_id
+  // INNER JOIN legacy_projects l2 ON l1.v2_project_id = l2.v2_project_id
+  // WHERE l2.v2_project_id = 'your_v2_project_id';
+
   await sql`
   comment on constraint "applications_rounds_fkey" on ${ref("applications")} is
   E'@foreignFieldName applications\n@fieldName round';
@@ -296,6 +304,16 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     where id = a.project_id
     and project_type = 'canonical'
     limit 1;
+  $$ language sql stable;
+
+  create function ${ref("v1_and_v2_applications")}(a ${ref(
+    "applications"
+  )} ) returns ${ref("applications")} as $$
+    select *, l1.v1_project_id AS original_project_id
+    from ${ref("applications")}
+    inner join legacy_projects l1 on a.project_id = l1.v1_project_id
+    inner join legacy_projects l2 on l1.v2_project_id = l2.v2_project_id
+    where l2.v2_project_id = 'your_v2_project_id';
   $$ language sql stable;
 
   comment on table ${ref("donations")} is
