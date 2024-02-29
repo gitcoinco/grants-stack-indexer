@@ -299,16 +299,16 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     limit 1;
   $$ language sql stable;
 
-  create function ${ref("projects_v1_and_v2")}(a ${ref(
+  create function ${ref("projects_all_applications")}(a ${ref(
     "projects"
-  )}, project_id text) returns ${ref("applications")} as $$
+  )}, project_id text) returns setof ${ref("applications")} as $$
     select a.*
     from ${ref("applications")} a
-    inner join ${ref("legacy_projects")} l1 on a.project_id = l1.v1_project_id
     inner join ${ref(
       "legacy_projects"
-    )} l2 on l1.v2_project_id = l2.v2_project_id
-    where l1.v1_project_id = project_id;
+    )} l ON a.project_id = l.v1_project_id OR a.project_id = l.v2_project_id
+    where l.v2_project_id = project_id
+    limit 100;
   $$ language sql stable;
 
   comment on table ${ref("donations")} is
