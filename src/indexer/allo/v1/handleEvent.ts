@@ -1,4 +1,4 @@
-import { Block, EventHandlerArgs } from "chainsauce";
+import { EventHandlerArgs } from "chainsauce";
 import { ethers } from "ethers";
 import StatusesBitmap from "statuses-bitmap";
 
@@ -7,7 +7,6 @@ import { UnknownTokenError } from "../../../prices/common.js";
 import type { Indexer } from "../../indexer.js";
 import {
   ApplicationTable,
-  Application,
   ProjectTable,
   Donation,
   Round,
