@@ -133,7 +133,7 @@ export async function handleEvent(
     event,
     subscribeToContract,
     readContract,
-    // getBlock,
+    getBlock,
     context: { db, rpcClient, ipfsGet, logger },
   } = args;
 
