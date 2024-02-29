@@ -553,7 +553,7 @@ export class Database {
 
   async getApplicationById(
     chainId: ChainId,
-    roundId: Address,
+    roundId: string,
     applicationId: string
   ) {
     const application = await this.#db

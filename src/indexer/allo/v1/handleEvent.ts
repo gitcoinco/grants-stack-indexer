@@ -32,6 +32,7 @@ import {
   updateDonationsEndTime,
 } from "./timeUpdated.js";
 import { ProjectMetadataSchema } from "../../projectMetadata.js";
+import { updateApplicationStatus } from "../application.js";
 
 enum ApplicationStatus {
   PENDING = 0,
@@ -50,33 +51,6 @@ function fullProjectId(
     ["uint256", "address", "uint256"],
     [projectChainId, projectRegistryAddress, projectId]
   );
-}
-
-async function updateApplicationStatus(
-  application: Application,
-  newStatus: Application["status"],
-  blockNumber: bigint,
-  getBlock: () => Promise<Block>
-): Promise<
-  Pick<Application, "status" | "statusUpdatedAtBlock" | "statusSnapshots">
-> {
-  const statusSnapshots = [...application.statusSnapshots];
-
-  if (application.status !== newStatus) {
-    const block = await getBlock();
-
-    statusSnapshots.push({
-      status: newStatus,
-      updatedAtBlock: blockNumber.toString(),
-      updatedAt: new Date(block.timestamp * 1000),
-    });
-  }
-
-  return {
-    status: newStatus,
-    statusUpdatedAtBlock: blockNumber,
-    statusSnapshots: statusSnapshots,
-  };
 }
 
 export async function handleEvent(
