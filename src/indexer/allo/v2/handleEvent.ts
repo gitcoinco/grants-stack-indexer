@@ -3,6 +3,7 @@ import { Hex, decodeAbiParameters, encodePacked, keccak256, pad } from "viem";
 import { parseAddress } from "../../../address.js";
 import { Changeset } from "../../../database/index.js";
 import {
+  ApplicationTable,
   NewApplication,
   NewRound,
   ProjectTable,
@@ -23,6 +24,17 @@ import {
   ProjectMetadata,
   ProjectMetadataSchema,
 } from "../../projectMetadata.js";
+import StatusesBitmap from "statuses-bitmap";
+import { updateApplicationStatus } from "../application.js";
+
+enum ApplicationStatus {
+  NONE = 0,
+  PENDING,
+  APPROVED,
+  REJECTED,
+  CANCELLED,
+  IN_REVIEW,
+}
 
 function generateRoundRoles(poolId: bigint) {
   // POOL_MANAGER_ROLE = bytes32(poolId);
@@ -493,6 +505,77 @@ export async function handleEvent(
           },
         },
       ];
+    }
+
+    case "RecipientStatusUpdated": {
+      const strategyAddress = parseAddress(event.address);
+
+      const round = await db.getRoundByStrategyAddress(
+        chainId,
+        strategyAddress
+      );
+
+      if (round === null) {
+        logger.warn({
+          msg: `RecipientStatusUpdated: Round not found for strategy address`,
+          event,
+          strategyAddress,
+        });
+        return [];
+      }
+
+      const bitmap = new StatusesBitmap(256n, 4n);
+      bitmap.setRow(event.params.rowIndex, event.params.fullRow);
+      const startIndex = event.params.rowIndex * bitmap.itemsPerRow;
+
+      const indexes = [];
+
+      for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
+        indexes.push(i);
+      }
+
+      // TODO: batch update
+      return (
+        await Promise.all(
+          indexes.map(async (i) => {
+            const status = bitmap.getStatus(i);
+
+            if (status < 1 || status > 5) {
+              return [];
+            }
+
+            const statusString = ApplicationStatus[
+              status
+            ] as ApplicationTable["status"];
+            const applicationId = i.toString();
+
+            const application = await db.getApplicationById(
+              chainId,
+              round.id,
+              applicationId
+            );
+
+            if (application === null) {
+              return [];
+            }
+
+            return [
+              {
+                type: "UpdateApplication",
+                chainId,
+                roundId: round.id,
+                applicationId: i.toString(),
+                application: await updateApplicationStatus(
+                  application,
+                  statusString,
+                  event.blockNumber,
+                  getBlock
+                ),
+              } satisfies Changeset,
+            ];
+          })
+        )
+      ).flat();
     }
 
     // -- Allo V2 Core

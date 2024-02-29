@@ -102,7 +102,7 @@ export type DataChange =
   | {
       type: "UpdateApplication";
       chainId: ChainId;
-      roundId: Address;
+      roundId: string;
       applicationId: string;
       application: PartialApplication;
     }
