@@ -327,6 +327,7 @@ describe("handleEvent", () => {
         projectId: "0x0001",
         project: {
           name: "New Name",
+          anchorAddress: addressZero,
         },
       });
     });
