@@ -470,8 +470,6 @@ export async function handleEvent(
     }
 
     case "NewProjectApplication": {
-      const actions: DataChange[] = [];
-
       const projectId =
         "project" in event.params
           ? event.params.project.toString()
@@ -518,25 +516,12 @@ export async function handleEvent(
         tags: ["allo-v1"],
       };
 
-      actions.push({
-        type: "InsertApplication",
-        application,
-      });
-
-      const result = await db.getV2ProjectIdByV1ProjectId(projectId);
-
-      if (result !== null) {
-        const migratedApplication = { ...application };
-        migratedApplication.projectId = result.v2ProjectId;
-        migratedApplication.tags = ["allo-v2", "migrated-from-v1"];
-
-        actions.push({
+      return [
+        {
           type: "InsertApplication",
-          application: migratedApplication,
-        });
-      }
-
-      return actions;
+          application,
+        },
+      ];
     }
 
     case "ProjectsMetaPtrUpdated": {
