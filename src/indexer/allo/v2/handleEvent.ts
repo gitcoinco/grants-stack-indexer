@@ -6,6 +6,7 @@ import {
   keccak256,
   pad,
   parseUnits,
+  zeroAddress,
 } from "viem";
 import { parseAddress } from "../../../address.js";
 import { Changeset } from "../../../database/index.js";
@@ -36,6 +37,10 @@ import { updateApplicationStatus } from "../application.js";
 import { convertToUSD } from "../../../prices/provider.js";
 import { RoundMetadataSchema } from "../roundMetadata.js";
 import { getTokenForChain } from "../../../config.js";
+
+const ALLO_NATIVE_TOKEN = parseAddress(
+  "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+);
 
 enum ApplicationStatus {
   NONE = 0,
@@ -256,8 +261,13 @@ export async function handleEvent(
       let matchAmount = 0n;
       let matchAmountInUsd = 0;
 
-      const tokenAddress = parseAddress(event.params.token);
-      const token = getTokenForChain(chainId, tokenAddress);
+      let matchTokenAddress = parseAddress(event.params.token);
+
+      if (matchTokenAddress === ALLO_NATIVE_TOKEN) {
+        matchTokenAddress = parseAddress(zeroAddress);
+      }
+
+      const token = getTokenForChain(chainId, matchTokenAddress);
 
       switch (strategy?.name) {
         case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
@@ -330,7 +340,7 @@ export async function handleEvent(
             await convertToUSD(
               priceProvider,
               chainId,
-              tokenAddress,
+              matchTokenAddress,
               matchAmount,
               event.blockNumber
             )
@@ -368,7 +378,7 @@ export async function handleEvent(
           await convertToUSD(
             priceProvider,
             chainId,
-            tokenAddress,
+            matchTokenAddress,
             fundedAmount,
             event.blockNumber
           )
@@ -384,11 +394,11 @@ export async function handleEvent(
       const newRound: NewRound = {
         chainId,
         id: poolId.toString(),
-        tags: ["allo-v2"],
+        tags: ["allo-v2", ...(parsedMetadata.success ? ["grants-stack"] : [])],
         totalDonationsCount: 0,
         totalAmountDonatedInUsd: 0,
         uniqueDonorsCount: 0,
-        matchTokenAddress: parseAddress(event.params.token),
+        matchTokenAddress,
         matchAmount,
         matchAmountInUsd,
         fundedAmount,
