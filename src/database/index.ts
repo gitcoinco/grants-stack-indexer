@@ -301,6 +301,23 @@ export class Database {
         break;
       }
 
+      case "IncrementRoundFundedAmount": {
+        await this.#db
+          .updateTable("rounds")
+          .set((eb) => ({
+            fundedAmount: eb("fundedAmount", "+", change.fundedAmount),
+            fundedAmountInUsd: eb(
+              "fundedAmountInUsd",
+              "+",
+              change.fundedAmountInUsd
+            ),
+          }))
+          .where("chainId", "=", change.chainId)
+          .where("id", "=", change.roundId)
+          .execute();
+        break;
+      }
+
       case "UpdateRoundByStrategyAddress": {
         await this.#db
           .updateTable("rounds")
@@ -472,7 +489,7 @@ export class Database {
     return project ?? null;
   }
 
-  async getRoundById(chainId: ChainId, roundId: Address) {
+  async getRoundById(chainId: ChainId, roundId: string) {
     const round = await this.#db
       .selectFrom("rounds")
       .where("chainId", "=", chainId)

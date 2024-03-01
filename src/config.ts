@@ -4,7 +4,7 @@ import { ToBlock } from "chainsauce";
 import { z } from "zod";
 import path from "node:path";
 import abis from "./indexer/abis/index.js";
-import { Hex } from "./types.js";
+import { Address, Hex } from "./types.js";
 import os from "node:os";
 
 type ChainId = number;
@@ -1304,6 +1304,19 @@ export const getChainConfigById = (chainId: ChainId): Chain => {
     throw new Error(`Chain not configured: ${chainId}`);
   }
   return chain;
+};
+
+export const getTokenForChain = (
+  chainId: ChainId,
+  tokenAddress: Address
+): Token | null => {
+  const chain = getChainConfigById(chainId);
+
+  const token = chain.tokens.find(
+    (t) => t.address.toLowerCase() === tokenAddress.toLowerCase()
+  );
+
+  return token ?? null;
 };
 
 export type Config = {

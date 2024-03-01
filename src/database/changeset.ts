@@ -58,7 +58,7 @@ export type DataChange =
   | {
       type: "UpdateRound";
       chainId: ChainId;
-      roundId: Address | string;
+      roundId: string;
       round: PartialRound;
     }
   | {
@@ -66,6 +66,13 @@ export type DataChange =
       chainId: ChainId;
       strategyAddress: Address;
       round: PartialRound;
+    }
+  | {
+      type: "IncrementRoundFundedAmount";
+      chainId: ChainId;
+      roundId: string;
+      fundedAmount: bigint;
+      fundedAmountInUsd: number;
     }
   | {
       type: "IncrementRoundDonationStats";
