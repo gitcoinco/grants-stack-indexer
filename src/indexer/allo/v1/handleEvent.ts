@@ -238,7 +238,10 @@ export async function handleEvent(
 
       const parsedMetadata = ProjectMetadataSchema.safeParse(metadata);
 
-      if (parsedMetadata.success === false) {
+      if (
+        parsedMetadata.success === false ||
+        parsedMetadata.data.type !== "program"
+      ) {
         logger.warn({
           msg: `ProgramCreated: Failed to parse metadata for program ${programAddress}`,
           event,
@@ -264,7 +267,7 @@ export async function handleEvent(
               "0x0000000000000000000000000000000000000000"
             ),
             id: programAddress,
-            name: "",
+            name: parsedMetadata.data.name,
             projectNumber: null,
             metadataCid: metadataCid,
             metadata: parsedMetadata.data,
