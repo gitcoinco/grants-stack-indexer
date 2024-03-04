@@ -50,7 +50,7 @@ const abis = {
   "AlloV1/MerklePayoutStrategyImplementation/V2":
     MerklePayoutStrategyImplementation,
 
-  "AlloV2/AlloV1ToV2ProfileMigration":AlloV1ToV2ProfileMigration,
+  "AlloV2/AlloV1ToV2ProfileMigration": AlloV1ToV2ProfileMigration,
 
   "AlloV2/Allo/V1": AlloV2,
   "AlloV2/Registry/V1": AlloV2Registry,
