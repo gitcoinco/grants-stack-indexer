@@ -32,7 +32,6 @@ import {
 } from "./timeUpdated.js";
 import { ProjectMetadataSchema } from "../../projectMetadata.js";
 import { updateApplicationStatus } from "../application.js";
-import { DataChange } from "../../../database/changeset.js";
 
 enum ApplicationStatus {
   PENDING = 0,
