@@ -299,18 +299,6 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     limit 1;
   $$ language sql stable;
 
-  create function ${ref("projects_all_applications")}(a ${ref(
-    "projects"
-  )}, project_id text) returns setof ${ref("applications")} as $$
-    select a.*
-    from ${ref("applications")} a
-    inner join ${ref(
-      "legacy_projects"
-    )} l ON a.project_id = l.v1_project_id OR a.project_id = l.v2_project_id
-    where l.v2_project_id = project_id
-    limit 100;
-  $$ language sql stable;
-
   comment on table ${ref("donations")} is
   E'@foreignKey ("application_id", "round_id", "chain_id") references ${ref(
     "applications"
