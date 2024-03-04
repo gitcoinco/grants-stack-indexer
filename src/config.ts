@@ -772,6 +772,15 @@ const CHAINS: Chain[] = [
           address: "0x8f693ca8d21b157107184d29d398a8d082b38b76",
         },
       },
+      {
+        code: "USDGLO",
+        address: "0x4f604735c1cf31399c6e711d5962b2b3e0225ad3",
+        decimals: 18,
+        priceSource: {
+          chainId: 10,
+          address: "0x4f604735c1cf31399c6e711d5962b2b3e0225ad3",
+        },
+      },
     ],
     subscriptions: [
       {
