@@ -21,7 +21,6 @@ import { Logger } from "pino";
 import { LRUCache } from "lru-cache";
 import { Address } from "../address.js";
 import { ChainId } from "../types.js";
-import { Hex } from "viem";
 
 export type { DataChange as Changeset };
 
