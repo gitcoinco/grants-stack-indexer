@@ -279,7 +279,6 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
 
   // https://www.graphile.org/postgraphile/smart-tags/
   // https://www.graphile.org/postgraphile/computed-columns/
-
   await sql`
   comment on constraint "applications_rounds_fkey" on ${ref("applications")} is
   E'@foreignFieldName applications\n@fieldName round';
