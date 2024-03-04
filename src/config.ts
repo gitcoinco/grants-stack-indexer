@@ -236,12 +236,6 @@ const CHAINS: Chain[] = [
         address: "0xd5Fb00093Ebd30011d932cB69bb6313c550aB05f",
         fromBlock: 87162429,
       },
-      // Allo V1 -> V2 Migration
-      // {
-      //   contractName: "AlloV2/AlloV1ToV2ProfileMigration",
-      //   address: "0x",
-      //   fromBlock: 87162429,
-      // },
       // Allo V2
       {
         contractName: "AlloV2/Registry/V1",
@@ -600,6 +594,12 @@ const CHAINS: Chain[] = [
         address: "0xDF9BF58Aa1A1B73F0e214d79C652a7dd37a6074e",
         fromBlock: 123566896,
       },
+      // Allo V1 -> V2 Migration
+      // {
+      //   contractName: "AlloV2/AlloV1ToV2ProfileMigration",
+      //   address: "0x",
+      //   fromBlock: 0,
+      // },
       // Allo V2
       {
         address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
