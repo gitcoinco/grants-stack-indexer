@@ -586,7 +586,7 @@ export class Database {
       .selectAll()
       .execute();
 
-    return applications ?? null;
+    return applications;
   }
 
   async getLatestPriceTimestampForChain(chainId: ChainId) {
