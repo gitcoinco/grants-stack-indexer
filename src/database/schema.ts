@@ -196,3 +196,11 @@ export type PriceTable = {
 export type NewPrice = Insertable<PriceTable>;
 export type Price = Selectable<PriceTable>;
 export type PartialPrice = Updateable<PriceTable>;
+
+export type LegacyProjectTable = {
+  id: Generated<number>;
+  v1ProjectId: string;
+  v2ProjectId: string;
+};
+
+export type NewLegacyProject = Insertable<LegacyProjectTable>;

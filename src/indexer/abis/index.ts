@@ -24,6 +24,7 @@ import AlloV2Registry from "./allo-v2/v1/Registry.js";
 import AlloV2IStrategy from "./allo-v2/v1/IStrategy.js";
 import AlloV2DonationVotingMerkleDistributionDirectTransferStrategy from "./allo-v2/v1/DonationVotingMerkleDistributionDirectTransferStrategy.js";
 import AlloV2DirectGrantsSimpleStrategy from "./allo-v2/v1/DirectGrantsSimpleStrategy.js";
+import AlloV1ToV2ProfileMigration from "./allo-v2/AlloV1ToV2ProfileMigration.js";
 
 const abis = {
   "AlloV1/ProjectRegistry/V1": ProjectRegistryV1,
@@ -48,6 +49,8 @@ const abis = {
   "AlloV1/MerklePayoutStrategyFactory/V2": MerklePayoutStrategyFactory,
   "AlloV1/MerklePayoutStrategyImplementation/V2":
     MerklePayoutStrategyImplementation,
+
+  "AlloV2/AlloV1ToV2ProfileMigration": AlloV1ToV2ProfileMigration,
 
   "AlloV2/Allo/V1": AlloV2,
   "AlloV2/Registry/V1": AlloV2Registry,

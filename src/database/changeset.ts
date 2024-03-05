@@ -14,6 +14,7 @@ import {
   PartialApplication,
   NewDonation,
   NewPrice,
+  NewLegacyProject,
 } from "./schema.js";
 
 export type DataChange =
@@ -117,4 +118,8 @@ export type DataChange =
   | {
       type: "InsertManyPrices";
       prices: NewPrice[];
+    }
+  | {
+      type: "NewLegacyProject";
+      legacyProject: NewLegacyProject;
     };
