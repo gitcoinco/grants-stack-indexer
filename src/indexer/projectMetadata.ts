@@ -7,7 +7,7 @@ export const ProjectMetadataSchema = z.union([
       description: z.string(),
     })
     .passthrough()
-    .transform((data) => ({ type: "project", ...data })),
+    .transform((data) => ({ type: "project" as const, ...data })),
   z
     .object({
       canonical: z.object({
@@ -15,7 +15,7 @@ export const ProjectMetadataSchema = z.union([
         chainId: z.coerce.number(),
       }),
     })
-    .transform((data) => ({ type: "project", ...data })),
+    .transform((data) => ({ type: "project" as const, ...data })),
   z.object({
     type: z.literal("program"),
     name: z.string(),
@@ -24,7 +24,7 @@ export const ProjectMetadataSchema = z.union([
     .object({
       name: z.string(),
     })
-    .transform((data) => ({ type: "program", ...data })),
+    .transform((data) => ({ type: "program" as const, ...data })),
 ]);
 
 export type ProjectMetadata = z.infer<typeof ProjectMetadataSchema>;
