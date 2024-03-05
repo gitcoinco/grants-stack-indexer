@@ -10,7 +10,7 @@ import os from "node:os";
 type ChainId = number;
 type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114;
 
-const CHAIN_DATA_VERSION = "38";
+const CHAIN_DATA_VERSION = "40";
 
 export type Token = {
   code: string;
@@ -560,6 +560,15 @@ const CHAINS: Chain[] = [
         priceSource: {
           chainId: 42161,
           address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "GTC",
+        address: "0x7f9a7db853ca816b9a138aee3380ef34c437dee0",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0xde30da39c46104798bb5aa3fe8b9e0e1f348163f",
         },
       },
     ],
