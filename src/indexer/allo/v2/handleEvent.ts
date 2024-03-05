@@ -738,6 +738,21 @@ export async function handleEvent(
         },
       ];
     }
+
+    case "ProfileMigrated": {
+      const alloV1ProfileId = event.params.alloV1;
+      const alloV2ProfileId = event.params.alloV2;
+
+      return [
+        {
+          type: "NewLegacyProject",
+          legacyProject: {
+            v1ProjectId: alloV1ProfileId,
+            v2ProjectId: alloV2ProfileId,
+          },
+        },
+      ];
+    }
   }
 
   return [];

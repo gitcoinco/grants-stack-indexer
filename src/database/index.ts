@@ -12,6 +12,7 @@ import {
   DonationTable,
   PriceTable,
   NewDonation,
+  LegacyProjectTable,
 } from "./schema.js";
 import { migrate } from "./migrate.js";
 import { encodeJsonWithBigInts } from "../utils/index.js";
@@ -33,6 +34,7 @@ interface Tables {
   applications: ApplicationTable;
   donations: DonationTable;
   prices: PriceTable;
+  legacyProjects: LegacyProjectTable;
 }
 
 type KyselyDb = Kysely<Tables>;
@@ -413,6 +415,14 @@ export class Database {
         break;
       }
 
+      case "NewLegacyProject": {
+        await this.#db
+          .insertInto("legacyProjects")
+          .values(change.legacyProject)
+          .execute();
+        break;
+      }
+
       default:
         throw new Error(`Unknown changeset type`);
     }
@@ -642,5 +652,15 @@ export class Database {
       .execute();
 
     return donations;
+  }
+
+  async getV2ProjectIdByV1ProjectId(v1ProjectId: string) {
+    const result = await this.#db
+      .selectFrom("legacyProjects")
+      .where("v1ProjectId", "=", v1ProjectId)
+      .select("v2ProjectId")
+      .executeTakeFirst();
+
+    return result ?? null;
   }
 }

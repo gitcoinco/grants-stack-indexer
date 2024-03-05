@@ -268,6 +268,15 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .expression(sql`chain_id, token_address, block_number DESC`)
     .execute();
 
+  await schema
+    .createTable("legacy_projects")
+    .addColumn("id", "serial", (col) => col.primaryKey())
+    .addColumn("v1ProjectId", "text")
+    .addColumn("v2ProjectId", "text")
+    .addUniqueConstraint("unique_v1ProjectId", ["v1ProjectId"])
+    .addUniqueConstraint("unique_v2ProjectId", ["v2ProjectId"])
+    .execute();
+
   // https://www.graphile.org/postgraphile/smart-tags/
   // https://www.graphile.org/postgraphile/computed-columns/
   await sql`
