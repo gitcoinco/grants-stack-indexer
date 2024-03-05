@@ -331,7 +331,7 @@ describe("handleEvent", () => {
           createdAtBlock: 1n,
           updatedAtBlock: 1n,
           id: addressFour,
-          name: "",
+          name: "my program",
           metadata: {
             name: "my program",
             type: "program",
