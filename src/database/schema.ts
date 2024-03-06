@@ -14,6 +14,8 @@ export type RoundTable = {
   matchAmount: bigint;
   matchTokenAddress: Address;
   matchAmountInUsd: number;
+  fundedAmount: bigint;
+  fundedAmountInUsd: number;
   applicationMetadataCid: string;
   applicationMetadata: unknown | null;
   roundMetadataCid: string;

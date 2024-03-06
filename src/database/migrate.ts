@@ -83,6 +83,9 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("matchTokenAddress", ADDRESS_TYPE)
     .addColumn("matchAmountInUSD", "real")
 
+    .addColumn("fundedAmount", BIGINT_TYPE, (col) => col.defaultTo("0"))
+    .addColumn("fundedAmountInUSD", "real", (col) => col.defaultTo(0.0))
+
     .addColumn("applicationMetadataCid", "text")
     .addColumn("applicationMetadata", "jsonb")
     .addColumn("roundMetadataCid", "text")

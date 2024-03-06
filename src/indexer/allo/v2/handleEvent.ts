@@ -1,5 +1,13 @@
 import { EventHandlerArgs } from "chainsauce";
-import { Hex, decodeAbiParameters, encodePacked, keccak256, pad } from "viem";
+import {
+  Hex,
+  decodeAbiParameters,
+  encodePacked,
+  keccak256,
+  pad,
+  parseUnits,
+  zeroAddress,
+} from "viem";
 import { parseAddress } from "../../../address.js";
 import { Changeset } from "../../../database/index.js";
 import {
@@ -26,6 +34,13 @@ import {
 } from "../../projectMetadata.js";
 import StatusesBitmap from "statuses-bitmap";
 import { updateApplicationStatus } from "../application.js";
+import { convertToUSD } from "../../../prices/provider.js";
+import { RoundMetadataSchema } from "../roundMetadata.js";
+import { getTokenForChain } from "../../../config.js";
+
+const ALLO_NATIVE_TOKEN = parseAddress(
+  "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+);
 
 enum ApplicationStatus {
   NONE = 0,
@@ -134,7 +149,7 @@ export async function handleEvent(
     subscribeToContract,
     readContract,
     getBlock,
-    context: { db, rpcClient, ipfsGet, logger },
+    context: { db, rpcClient, ipfsGet, logger, priceProvider },
   } = args;
 
   switch (event.name) {
@@ -232,6 +247,8 @@ export async function handleEvent(
         ipfsGet,
         metadataPointer
       );
+      const parsedMetadata = RoundMetadataSchema.safeParse(roundMetadata);
+
       const poolId = event.params.poolId;
       const { managerRole, adminRole } = generateRoundRoles(poolId);
       const strategyAddress = event.params.strategy;
@@ -241,6 +258,16 @@ export async function handleEvent(
         functionName: "getStrategyId",
       });
       const strategy = extractStrategyFromId(strategyId);
+      let matchAmount = 0n;
+      let matchAmountInUsd = 0;
+
+      let matchTokenAddress = parseAddress(event.params.token);
+
+      if (matchTokenAddress === ALLO_NATIVE_TOKEN) {
+        matchTokenAddress = parseAddress(zeroAddress);
+      }
+
+      const token = getTokenForChain(chainId, matchTokenAddress);
 
       switch (strategy?.name) {
         case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
@@ -303,6 +330,22 @@ export async function handleEvent(
         applicationsEndTime = getDateFromTimestamp(registrationEndTimeResolved);
         donationsStartTime = getDateFromTimestamp(allocationStartTimeResolved);
         donationsEndTime = getDateFromTimestamp(allocationEndTimeResolved);
+
+        if (parsedMetadata.success && token !== null) {
+          matchAmount = parseUnits(
+            parsedMetadata.data.quadraticFundingConfig.matchingFundsAvailable.toString(),
+            token.decimals
+          );
+          matchAmountInUsd = (
+            await convertToUSD(
+              priceProvider,
+              chainId,
+              matchTokenAddress,
+              matchAmount,
+              event.blockNumber
+            )
+          ).price;
+        }
       } else if (
         strategy !== null &&
         strategy.name === "allov2.DirectGrantsSimpleStrategy"
@@ -327,6 +370,21 @@ export async function handleEvent(
         applicationsEndTime = getDateFromTimestamp(registrationEndTimeResolved);
       }
 
+      const fundedAmount = event.params.amount;
+      let fundedAmountInUsd = 0;
+
+      if (token !== null && fundedAmount > 0n) {
+        fundedAmountInUsd = (
+          await convertToUSD(
+            priceProvider,
+            chainId,
+            matchTokenAddress,
+            fundedAmount,
+            event.blockNumber
+          )
+        ).price;
+      }
+
       const tx = await rpcClient.getTransaction({
         hash: event.transactionHash,
       });
@@ -336,13 +394,15 @@ export async function handleEvent(
       const newRound: NewRound = {
         chainId,
         id: poolId.toString(),
-        tags: ["allo-v2"],
+        tags: ["allo-v2", ...(parsedMetadata.success ? ["grants-stack"] : [])],
         totalDonationsCount: 0,
         totalAmountDonatedInUsd: 0,
         uniqueDonorsCount: 0,
-        matchTokenAddress: parseAddress(event.params.token),
-        matchAmount: event.params.amount,
-        matchAmountInUsd: 0,
+        matchTokenAddress,
+        matchAmount,
+        matchAmountInUsd,
+        fundedAmount,
+        fundedAmountInUsd,
         applicationMetadataCid: metadataPointer,
         applicationMetadata: applicationMetadata ?? {},
         roundMetadataCid: metadataPointer,
@@ -429,6 +489,35 @@ export async function handleEvent(
       }
 
       return changes;
+    }
+
+    case "PoolFunded": {
+      const poolId = event.params.poolId.toString();
+      const fundedAmount = event.params.amount;
+
+      const round = await db.getRoundById(chainId, poolId);
+
+      if (round === null) {
+        return [];
+      }
+
+      const { amount: fundedAmountInUsd } = await convertToUSD(
+        priceProvider,
+        round.chainId,
+        round.matchTokenAddress,
+        fundedAmount,
+        event.blockNumber
+      );
+
+      return [
+        {
+          type: "IncrementRoundFundedAmount",
+          roundId: round.id,
+          chainId: round.chainId,
+          fundedAmount,
+          fundedAmountInUsd,
+        },
+      ];
     }
 
     case "RoleGranted": {
@@ -586,6 +675,37 @@ export async function handleEvent(
         metadataPointer
       );
 
+      const round = await db.getRoundById(
+        chainId,
+        event.params.poolId.toString()
+      );
+
+      if (round === null) {
+        return [];
+      }
+
+      let matchAmount = round.matchAmount;
+      let matchAmountInUsd = round.matchAmountInUsd;
+
+      const parsedMetadata = RoundMetadataSchema.safeParse(roundMetadata);
+      const token = getTokenForChain(chainId, round.matchTokenAddress);
+
+      if (parsedMetadata.success && token !== null) {
+        matchAmount = parseUnits(
+          parsedMetadata.data.quadraticFundingConfig.matchingFundsAvailable.toString(),
+          token.decimals
+        );
+        matchAmountInUsd = (
+          await convertToUSD(
+            priceProvider,
+            chainId,
+            round.matchTokenAddress,
+            matchAmount,
+            event.blockNumber
+          )
+        ).price;
+      }
+
       return [
         {
           type: "UpdateRound",
@@ -596,6 +716,8 @@ export async function handleEvent(
             applicationMetadata: applicationMetadata ?? {},
             roundMetadataCid: metadataPointer,
             roundMetadata: roundMetadata ?? {},
+            matchAmount,
+            matchAmountInUsd,
           },
         },
       ];
