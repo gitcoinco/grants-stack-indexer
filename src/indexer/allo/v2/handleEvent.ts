@@ -784,6 +784,7 @@ export async function handleEvent(
             updatedAt: new Date(timestamp * 1000),
           },
         ],
+        isMatchedAmountDistributed: false,
         totalAmountDonatedInUsd: 0,
         totalDonationsCount: 0,
         uniqueDonorsCount: 0,

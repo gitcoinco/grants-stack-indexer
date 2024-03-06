@@ -514,6 +514,7 @@ export async function handleEvent(
             updatedAt: new Date(timestamp * 1000),
           },
         ],
+        isMatchedAmountDistributed: false,
         totalAmountDonatedInUsd: 0,
         totalDonationsCount: 0,
         uniqueDonorsCount: 0,
@@ -827,6 +828,39 @@ export async function handleEvent(
       }
 
       return changesets;
+    }
+
+    case "FundsDistributed": {
+      if (
+        event.contractName === "AlloV1/MerklePayoutStrategyImplementation/V2"
+      ) {
+        // since we are in the Allo V1 handler we know that AlloV1/MerklePayoutStrategyImplementation/V2
+        // has a projectId field instead of a recipientId field like in Allo V2
+        if ("projectId" in event.params) {
+          const roundId = parseAddress(event.address);
+          const projectId = event.params.projectId;
+          const application = await db.getApplicationByProjectId(
+            chainId,
+            roundId,
+            projectId
+          );
+          if (application === null) {
+            return [];
+          }
+
+          return [
+            {
+              type: "UpdateApplication",
+              chainId,
+              roundId,
+              applicationId: application.id,
+              application: {
+                isMatchedAmountDistributed: true,
+              },
+            },
+          ];
+        }
+      }
     }
   }
 

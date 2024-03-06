@@ -7,7 +7,7 @@ import { Database } from "../../../database/index.js";
 import { EventHandlerArgs } from "chainsauce";
 import { Indexer } from "../.././indexer.js";
 import { Address as ChecksumAddress, Hex } from "viem";
-import { Project, Round } from "../../../database/schema.js";
+import { Project, Round, Application } from "../../../database/schema.js";
 import { parseAddress } from "../../../address.js";
 import { PublicClient } from "viem";
 
@@ -993,6 +993,68 @@ describe("handleEvent", () => {
         roundId: addressTwo,
         chainId: 1,
         round: { updatedAtBlock: 1n, matchAmount: 0n, matchAmountInUsd: 0 },
+      });
+    });
+  });
+
+  describe("FundsDistributed", () => {
+    test("should set isMatchedAmountDistributed to true in application", async () => {
+      const roundId = parseAddress(addressFour);
+
+      const application: Application = {
+        id: "app-id",
+        chainId: 1,
+        roundId: roundId,
+        projectId: "0x1234",
+        anchorAddress: parseAddress(addressZero),
+        status: "PENDING",
+        statusSnapshots: [],
+        isMatchedAmountDistributed: false,
+        metadataCid: null,
+        metadata: null,
+        createdByAddress: parseAddress(addressZero),
+        createdAtBlock: 0n,
+        statusUpdatedAtBlock: 0n,
+        totalDonationsCount: 0,
+        totalAmountDonatedInUsd: 0,
+        uniqueDonorsCount: 0,
+        tags: [],
+      };
+
+      MOCK_DB.getApplicationByProjectId = vi
+        .fn()
+        .mockResolvedValueOnce(application);
+
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: addressFour,
+          contractName: "AlloV1/MerklePayoutStrategyImplementation/V2",
+          name: "FundsDistributed",
+          params: {
+            amount: 0n,
+            grantee: addressTwo,
+            token: addressZero,
+            projectId: "0x1234",
+          },
+        },
+        context: {
+          ...DEFAULT_ARGS.context,
+          rpcClient: MOCK_RPC_CLIENT(),
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "UpdateApplication",
+        chainId: 1,
+        roundId: roundId,
+        applicationId: "app-id",
+        application: {
+          isMatchedAmountDistributed: true,
+        },
       });
     });
   });
