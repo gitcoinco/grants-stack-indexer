@@ -385,6 +385,8 @@ export async function handleEvent(
         tags: ["allo-v1"],
         totalDonationsCount: 0,
         totalAmountDonatedInUsd: 0,
+        fundedAmount: 0n,
+        fundedAmountInUsd: 0,
         uniqueDonorsCount: 0,
         matchTokenAddress,
         matchAmount: 0n,
