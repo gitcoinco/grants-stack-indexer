@@ -1045,6 +1045,10 @@ describe("handleEvent", () => {
           .mockImplementation(({ functionName, address }) => {
             if (functionName === "roundAddress" && address === addressFour) {
               return roundId;
+            } else {
+              throw new Error(
+                `read contract called with unexpected args: ${functionName}, ${address}`
+              );
             }
           }),
         context: {
