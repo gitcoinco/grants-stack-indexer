@@ -1000,6 +1000,7 @@ describe("handleEvent", () => {
   describe("FundsDistributed", () => {
     test("should set isMatchedAmountDistributed to true in application", async () => {
       const roundId = parseAddress(addressFour);
+      const payoutAddress = addressFour;
 
       const application: Application = {
         id: "app-id",
@@ -1029,7 +1030,7 @@ describe("handleEvent", () => {
         ...DEFAULT_ARGS,
         event: {
           ...DEFAULT_ARGS.event,
-          address: addressFour,
+          address: payoutAddress,
           contractName: "AlloV1/MerklePayoutStrategyImplementation/V2",
           name: "FundsDistributed",
           params: {
@@ -1039,6 +1040,13 @@ describe("handleEvent", () => {
             projectId: "0x1234",
           },
         },
+        readContract: vi
+          .fn()
+          .mockImplementation(({ functionName, address }) => {
+            if (functionName === "roundAddress" && address === addressFour) {
+              return roundId;
+            }
+          }),
         context: {
           ...DEFAULT_ARGS.context,
           rpcClient: MOCK_RPC_CLIENT(),

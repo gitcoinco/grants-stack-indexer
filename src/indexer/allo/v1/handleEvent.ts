@@ -831,19 +831,26 @@ export async function handleEvent(
     }
 
     case "FundsDistributed": {
-      if (
-        event.contractName === "AlloV1/MerklePayoutStrategyImplementation/V2"
-      ) {
+      const payoutContractName = "AlloV1/MerklePayoutStrategyImplementation/V2";
+      if (event.contractName === payoutContractName) {
         // since we are in the Allo V1 handler we know that AlloV1/MerklePayoutStrategyImplementation/V2
         // has a projectId field instead of a recipientId field like in Allo V2
         if ("projectId" in event.params) {
-          const roundId = parseAddress(event.address);
+          const payoutStrategyAddress = parseAddress(event.address);
+          const roundId = parseAddress(
+            await readContract({
+              contract: payoutContractName,
+              functionName: "roundAddress",
+              address: payoutStrategyAddress,
+            })
+          );
           const projectId = event.params.projectId;
           const application = await db.getApplicationByProjectId(
             chainId,
             roundId,
             projectId
           );
+
           if (application === null) {
             return [];
           }
