@@ -1042,15 +1042,25 @@ describe("handleEvent", () => {
         },
         readContract: vi
           .fn()
-          .mockImplementation(({ functionName, address }) => {
-            if (functionName === "roundAddress" && address === addressFour) {
-              return roundId;
-            } else {
-              throw new Error(
-                `read contract called with unexpected args: ${functionName}, ${address}`
-              );
+          .mockImplementation(
+            ({
+              functionName,
+              address,
+            }: {
+              functionName: string;
+              address: string;
+            }) => {
+              if (functionName === "roundAddress" && address === addressFour) {
+                return roundId;
+              } else {
+                throw new Error(
+                  `read contract called with unexpected args: ${functionName}, ${address}`
+                );
+              }
+
+              return "0x";
             }
-          }),
+          ),
         context: {
           ...DEFAULT_ARGS.context,
           rpcClient: MOCK_RPC_CLIENT(),
