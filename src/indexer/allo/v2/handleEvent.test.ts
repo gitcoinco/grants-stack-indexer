@@ -1053,6 +1053,7 @@ describe("handleEvent", () => {
               updatedAtBlock: "1",
             },
           ],
+          isMatchedAmountDistributed: false,
           totalAmountDonatedInUsd: 0,
           totalDonationsCount: 0,
           uniqueDonorsCount: 0,

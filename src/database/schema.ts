@@ -150,6 +150,7 @@ export type ApplicationTable = {
     StatusSnapshot[] | string,
     StatusSnapshot[] | string
   >;
+  isMatchedAmountDistributed: boolean;
   metadataCid: string | null;
   metadata: unknown | null;
   createdByAddress: Address;
