@@ -327,4 +327,3 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   E'@foreignFieldName rounds\n@fieldName project';
   `.execute(db);
 }
-
