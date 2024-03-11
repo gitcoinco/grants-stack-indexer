@@ -12,6 +12,7 @@ import { parseAddress } from "../../../address.js";
 import { Changeset } from "../../../database/index.js";
 import {
   ApplicationTable,
+  MatchingDistributionSchema,
   NewApplication,
   NewRound,
   ProjectTable,
@@ -857,6 +858,40 @@ export async function handleEvent(
             applicationsEndTime,
             donationsStartTime,
             donationsEndTime,
+          },
+        },
+      ];
+    }
+
+    case "DistributionUpdated": {
+      // FIXME: chinsauce should narrow the type based on the contract name
+      if (!("metadata" in event.params)) {
+        return [];
+      }
+
+      const strategyAddress = parseAddress(event.address);
+      const rawDistribution = await ipfsGet(event.params.metadata.pointer);
+      const distribution =
+        MatchingDistributionSchema.safeParse(rawDistribution);
+
+      if (!distribution.success) {
+        logger.error({
+          msg: "Failed to parse distribution",
+          error: distribution.error,
+          event,
+          rawDistribution,
+        });
+        return [];
+      }
+
+      return [
+        {
+          type: "UpdateRoundByStrategyAddress",
+          chainId,
+          strategyAddress,
+          round: {
+            isReadyForPayout: true,
+            matchingDistribution: distribution.data,
           },
         },
       ];

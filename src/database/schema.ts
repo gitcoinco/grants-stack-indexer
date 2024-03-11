@@ -7,6 +7,26 @@ import {
 } from "kysely";
 
 import { Address, Hex, ChainId } from "../types.js";
+import { z } from "zod";
+
+export type MatchingDistribution = z.infer<typeof MatchingDistributionSchema>;
+
+// handle ethers bigint serialization
+const BigIntSchema = z
+  .string()
+  .or(z.object({ type: z.literal("BigNumber"), amount: z.string() }));
+
+export const MatchingDistributionSchema = z.array(
+  z.object({
+    applicationId: z.string(),
+    projectPayoutAddress: z.string(),
+    projectId: z.string(),
+    projectName: z.string(),
+    contributionsCount: z.number(),
+    originalMatchAmountInToken: BigIntSchema.default("0"),
+    matchAmountInToken: BigIntSchema.default("0"),
+  })
+);
 
 export type RoundTable = {
   id: Address | string;
@@ -37,6 +57,7 @@ export type RoundTable = {
   strategyName: string;
 
   isReadyForPayout: boolean;
+  matchingDistribution: MatchingDistribution | null;
 
   projectId: string;
 
