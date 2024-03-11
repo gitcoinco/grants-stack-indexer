@@ -12,21 +12,27 @@ import { z } from "zod";
 export type MatchingDistribution = z.infer<typeof MatchingDistributionSchema>;
 
 // handle ethers bigint serialization
-const BigIntSchema = z
-  .string()
-  .or(z.object({ type: z.literal("BigNumber"), amount: z.string() }));
-
-export const MatchingDistributionSchema = z.array(
-  z.object({
-    applicationId: z.string(),
-    projectPayoutAddress: z.string(),
-    projectId: z.string(),
-    projectName: z.string(),
-    contributionsCount: z.number(),
-    originalMatchAmountInToken: BigIntSchema.default("0"),
-    matchAmountInToken: BigIntSchema.default("0"),
-  })
+const BigIntSchema = z.string().or(
+  z
+    .object({ type: z.literal("BigNumber"), hex: z.string() })
+    .transform((val) => {
+      return BigInt(val.hex).toString();
+    })
 );
+
+export const MatchingDistributionSchema = z.object({
+  matchingDistribution: z.array(
+    z.object({
+      applicationId: z.string(),
+      projectPayoutAddress: z.string(),
+      projectId: z.string(),
+      projectName: z.string(),
+      contributionsCount: z.coerce.number(),
+      originalMatchAmountInToken: BigIntSchema.default("0"),
+      matchAmountInToken: BigIntSchema.default("0"),
+    })
+  ),
+});
 
 export type RoundTable = {
   id: Address | string;
