@@ -898,41 +898,43 @@ export async function handleEvent(
     }
 
     case "FundsDistributed": {
-      if ("recipientId" in event.params) {
-        const strategyAddress = parseAddress(event.address);
-        const round = await db.getRoundByStrategyAddress(
-          chainId,
-          strategyAddress
-        );
+      if (!("recipientId" in event.params)) {
+        return [];
+      }
 
-        if (round === null) {
-          return [];
-        }
+      const strategyAddress = parseAddress(event.address);
+      const round = await db.getRoundByStrategyAddress(
+        chainId,
+        strategyAddress
+      );
 
-        const roundId = round.id;
-        const applicationId = event.params.recipientId;
-        const application = await db.getApplicationById(
+      if (round === null) {
+        return [];
+      }
+
+      const roundId = round.id;
+      const applicationId = event.params.recipientId;
+      const application = await db.getApplicationById(
+        chainId,
+        roundId,
+        applicationId
+      );
+
+      if (application === null) {
+        return [];
+      }
+
+      return [
+        {
+          type: "UpdateApplication",
           chainId,
           roundId,
-          applicationId
-        );
-
-        if (application === null) {
-          return [];
-        }
-
-        return [
-          {
-            type: "UpdateApplication",
-            chainId,
-            roundId,
-            applicationId: application.id,
-            application: {
-              distributionTransaction: event.transactionHash,
-            },
+          applicationId: application.id,
+          application: {
+            distributionTransaction: event.transactionHash,
           },
-        ];
-      }
+        },
+      ];
     }
 
     case "ProfileMigrated": {
