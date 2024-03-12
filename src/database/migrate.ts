@@ -110,7 +110,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("strategyName", "text")
 
     .addColumn("matchingDistribution", "jsonb")
-    .addColumn("readyForPayoutAtTransaction", "text")
+    .addColumn("readyForPayoutTransaction", "text")
 
     .addColumn("projectId", "text")
 
