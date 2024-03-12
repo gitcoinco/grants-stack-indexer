@@ -1067,7 +1067,7 @@ describe("handleEvent", () => {
 
   describe("FundsDistributed", () => {
     test("should set distributionTransaction in application", async () => {
-      const roundId = parseAddress(addressFour);
+      const roundId = "0x01";
       const payoutAddress = addressFour;
 
       const application: Application = {
@@ -1090,9 +1090,7 @@ describe("handleEvent", () => {
         tags: [],
       };
 
-      MOCK_DB.getApplicationByProjectId = vi
-        .fn()
-        .mockResolvedValueOnce(application);
+      MOCK_DB.getApplicationById = vi.fn().mockResolvedValueOnce(application);
 
       MOCK_DB.getRoundByStrategyAddress = vi.fn().mockResolvedValueOnce(round);
 
