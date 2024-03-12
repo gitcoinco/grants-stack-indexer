@@ -785,7 +785,7 @@ export async function handleEvent(
             updatedAt: new Date(timestamp * 1000),
           },
         ],
-        isMatchedAmountDistributed: false,
+        distributionTransaction: null,
         totalAmountDonatedInUsd: 0,
         totalDonationsCount: 0,
         uniqueDonorsCount: 0,
@@ -928,7 +928,7 @@ export async function handleEvent(
             roundId,
             applicationId: application.id,
             application: {
-              isMatchedAmountDistributed: true,
+              distributionTransaction: event.transactionHash,
             },
           },
         ];
