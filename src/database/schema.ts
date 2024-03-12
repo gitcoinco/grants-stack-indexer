@@ -62,7 +62,7 @@ export type RoundTable = {
   strategyId: string;
   strategyName: string;
 
-  isReadyForPayout: boolean;
+  readyForPayoutTransaction: string | null;
   matchingDistribution: MatchingDistribution | null;
 
   projectId: string;

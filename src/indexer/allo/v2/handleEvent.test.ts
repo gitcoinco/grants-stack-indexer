@@ -88,7 +88,7 @@ const round: Round = {
   strategyAddress: parseAddress(addressZero),
   strategyId: "",
   strategyName: "allov2.DonationVotingMerkleDistributionDirectTransferStrategy",
-  isReadyForPayout: false,
+  readyForPayoutTransaction: null,
   matchingDistribution: null,
   projectId: addressZero,
   createdByAddress: parseAddress(addressTwo),
@@ -662,7 +662,6 @@ describe("handleEvent", () => {
           strategyName:
             "allov2.DonationVotingMerkleDistributionDirectTransferStrategy",
           projectId: "0x0002",
-          isReadyForPayout: false,
         },
       });
 
@@ -874,7 +873,7 @@ describe("handleEvent", () => {
         strategyAddress: parseAddress(addressZero),
         strategyId: "",
         strategyName: "",
-        isReadyForPayout: false,
+        readyForPayoutTransaction: null,
         matchingDistribution: null,
         projectId: addressZero,
       };
