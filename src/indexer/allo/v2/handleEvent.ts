@@ -897,6 +897,44 @@ export async function handleEvent(
       ];
     }
 
+    case "FundsDistributed": {
+      if ("recipientId" in event.params) {
+        const strategyAddress = parseAddress(event.address);
+        const round = await db.getRoundByStrategyAddress(
+          chainId,
+          strategyAddress
+        );
+
+        if (round === null) {
+          return [];
+        }
+
+        const roundId = round.id;
+        const applicationId = event.params.recipientId;
+        const application = await db.getApplicationById(
+          chainId,
+          roundId,
+          applicationId
+        );
+
+        if (application === null) {
+          return [];
+        }
+
+        return [
+          {
+            type: "UpdateApplication",
+            chainId,
+            roundId,
+            applicationId: application.id,
+            application: {
+              isMatchedAmountDistributed: true,
+            },
+          },
+        ];
+      }
+    }
+
     case "ProfileMigrated": {
       const alloV1ProfileId = event.params.alloV1;
       const alloV2ProfileId = event.params.alloV2;
