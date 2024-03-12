@@ -417,7 +417,6 @@ export async function handleEvent(
         strategyName: "",
         projectId,
         createdByAddress: parseAddress(createdBy),
-        isReadyForPayout: false,
         createdAtBlock: event.blockNumber,
         updatedAtBlock: event.blockNumber,
       };
@@ -775,7 +774,7 @@ export async function handleEvent(
           chainId: chainId,
           strategyAddress: parseAddress(event.address),
           round: {
-            isReadyForPayout: true,
+            readyForPayoutTransaction: event.transactionHash,
           },
         },
       ];
