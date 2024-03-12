@@ -27,6 +27,7 @@ export const MatchingDistributionSchema = z.object({
       projectPayoutAddress: z.string(),
       projectId: z.string(),
       projectName: z.string(),
+      matchPoolPercentage: z.coerce.number(),
       contributionsCount: z.coerce.number(),
       originalMatchAmountInToken: BigIntSchema.default("0"),
       matchAmountInToken: BigIntSchema.default("0"),
