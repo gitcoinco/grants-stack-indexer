@@ -570,7 +570,7 @@ describe("handleEvent", () => {
         strategyAddress: parseAddress(addressZero),
         strategyId: "",
         strategyName: "",
-        isReadyForPayout: false,
+        readyForPayoutTransaction: null,
         matchingDistribution: null,
         projectId: parseAddress(addressZero),
       };
@@ -634,7 +634,7 @@ describe("handleEvent", () => {
         strategyAddress: parseAddress(addressZero),
         strategyId: "",
         strategyName: "",
-        isReadyForPayout: false,
+        readyForPayoutTransaction: null,
         matchingDistribution: null,
         projectId: parseAddress(addressZero),
       };
@@ -700,7 +700,7 @@ describe("handleEvent", () => {
         strategyAddress: parseAddress(addressZero),
         strategyId: "",
         strategyName: "",
-        isReadyForPayout: false,
+        readyForPayoutTransaction: null,
         matchingDistribution: null,
         projectId: parseAddress(addressZero),
       };
@@ -764,7 +764,7 @@ describe("handleEvent", () => {
         strategyAddress: parseAddress(addressZero),
         strategyId: "",
         strategyName: "",
-        isReadyForPayout: false,
+        readyForPayoutTransaction: null,
         matchingDistribution: null,
         projectId: parseAddress(addressZero),
       };
@@ -987,7 +987,6 @@ describe("handleEvent", () => {
           strategyAddress: parseAddress(addressZero),
           strategyId: "",
           strategyName: "",
-          isReadyForPayout: false,
           projectId: addressThree,
         },
       });
