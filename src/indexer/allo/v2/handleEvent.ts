@@ -784,7 +784,7 @@ export async function handleEvent(
             updatedAt: new Date(timestamp * 1000),
           },
         ],
-        isMatchedAmountDistributed: false,
+        distributionTransaction: null,
         totalAmountDonatedInUsd: 0,
         totalDonationsCount: 0,
         uniqueDonorsCount: 0,
@@ -891,6 +891,46 @@ export async function handleEvent(
           round: {
             readyForPayoutTransaction: event.transactionHash,
             matchingDistribution: distribution.data,
+          },
+        },
+      ];
+    }
+
+    case "FundsDistributed": {
+      if (!("recipientId" in event.params)) {
+        return [];
+      }
+
+      const strategyAddress = parseAddress(event.address);
+      const round = await db.getRoundByStrategyAddress(
+        chainId,
+        strategyAddress
+      );
+
+      if (round === null) {
+        return [];
+      }
+
+      const roundId = round.id;
+      const applicationId = event.params.recipientId;
+      const application = await db.getApplicationById(
+        chainId,
+        roundId,
+        applicationId
+      );
+
+      if (application === null) {
+        return [];
+      }
+
+      return [
+        {
+          type: "UpdateApplication",
+          chainId,
+          roundId,
+          applicationId: application.id,
+          application: {
+            distributionTransaction: event.transactionHash,
           },
         },
       ];

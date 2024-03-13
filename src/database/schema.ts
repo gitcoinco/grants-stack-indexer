@@ -178,7 +178,7 @@ export type ApplicationTable = {
     StatusSnapshot[] | string,
     StatusSnapshot[] | string
   >;
-  isMatchedAmountDistributed: boolean;
+  distributionTransaction: string | null;
   metadataCid: string | null;
   metadata: unknown | null;
   createdByAddress: Address;

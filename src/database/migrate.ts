@@ -191,9 +191,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("anchorAddress", ADDRESS_TYPE)
     .addColumn("status", ref("application_status"))
     .addColumn("statusSnapshots", "jsonb")
-    .addColumn("isMatchedAmountDistributed", "boolean", (col) =>
-      col.defaultTo(false).notNull()
-    )
+    .addColumn("distributionTransaction", "text")
 
     .addColumn("metadataCid", "text")
     .addColumn("metadata", "jsonb")

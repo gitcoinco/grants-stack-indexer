@@ -12,6 +12,7 @@ import {
   PendingProjectRole,
   PendingRoundRole,
   Round,
+  Application,
 } from "../../../database/schema.js";
 import { parseAddress } from "../../../address.js";
 import { PublicClient } from "viem";
@@ -1054,11 +1055,75 @@ describe("handleEvent", () => {
               updatedAtBlock: "1",
             },
           ],
-          isMatchedAmountDistributed: false,
+          distributionTransaction: null,
           totalAmountDonatedInUsd: 0,
           totalDonationsCount: 0,
           uniqueDonorsCount: 0,
           tags: ["allo-v2"],
+        },
+      });
+    });
+  });
+
+  describe("FundsDistributed", () => {
+    test("should set distributionTransaction in application", async () => {
+      const roundId = "0x01";
+      const payoutAddress = addressFour;
+
+      const application: Application = {
+        id: "app-id",
+        chainId: 1,
+        roundId: roundId,
+        projectId: "0x1234",
+        anchorAddress: parseAddress(addressZero),
+        status: "PENDING",
+        statusSnapshots: [],
+        distributionTransaction: null,
+        metadataCid: null,
+        metadata: null,
+        createdByAddress: parseAddress(addressZero),
+        createdAtBlock: 0n,
+        statusUpdatedAtBlock: 0n,
+        totalDonationsCount: 0,
+        totalAmountDonatedInUsd: 0,
+        uniqueDonorsCount: 0,
+        tags: [],
+      };
+
+      MOCK_DB.getApplicationById = vi.fn().mockResolvedValueOnce(application);
+
+      MOCK_DB.getRoundByStrategyAddress = vi.fn().mockResolvedValueOnce(round);
+
+      const changesets = await handleEvent({
+        ...DEFAULT_ARGS,
+        event: {
+          ...DEFAULT_ARGS.event,
+          address: payoutAddress,
+          contractName:
+            "AlloV2/DonationVotingMerkleDistributionDirectTransferStrategy/V1",
+          name: "FundsDistributed",
+          params: {
+            amount: 0n,
+            grantee: addressTwo,
+            token: addressZero,
+            recipientId: "0x1234",
+          },
+        },
+        context: {
+          ...DEFAULT_ARGS.context,
+          rpcClient: MOCK_RPC_CLIENT(),
+        },
+      });
+
+      expect(changesets).toHaveLength(1);
+
+      expect(changesets[0]).toEqual({
+        type: "UpdateApplication",
+        chainId: 1,
+        roundId: roundId,
+        applicationId: "app-id",
+        application: {
+          distributionTransaction: "0x",
         },
       });
     });

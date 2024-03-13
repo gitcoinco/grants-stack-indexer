@@ -1001,7 +1001,7 @@ describe("handleEvent", () => {
   });
 
   describe("FundsDistributed", () => {
-    test("should set isMatchedAmountDistributed to true in application", async () => {
+    test("should set distributionTransaction in application", async () => {
       const roundId = parseAddress(addressFour);
       const payoutAddress = addressFour;
 
@@ -1013,7 +1013,7 @@ describe("handleEvent", () => {
         anchorAddress: parseAddress(addressZero),
         status: "PENDING",
         statusSnapshots: [],
-        isMatchedAmountDistributed: false,
+        distributionTransaction: null,
         metadataCid: null,
         metadata: null,
         createdByAddress: parseAddress(addressZero),
@@ -1078,7 +1078,7 @@ describe("handleEvent", () => {
         roundId: roundId,
         applicationId: "app-id",
         application: {
-          isMatchedAmountDistributed: true,
+          distributionTransaction: "0x",
         },
       });
     });
