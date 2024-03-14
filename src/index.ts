@@ -42,7 +42,6 @@ import { decodeJsonWithBigInts } from "./utils/index.js";
 import { Block } from "chainsauce/dist/cache.js";
 import { createPublicClient, http } from "viem";
 import { IndexerEvents } from "chainsauce/dist/indexer.js";
-import { ContractSubscriptionPruner } from "./contractSubscriptionPruner.js";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
 
