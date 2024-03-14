@@ -28,7 +28,7 @@ export function extractCalculationConfigFromRound(
 
   let matchingCapAmount: bigint | undefined = undefined;
 
-  if (round.metadata?.quadraticFundingConfig?.matchingCap !== undefined) {
+  if (round.metadata?.quadraticFundingConfig?.matchingCapAmount !== undefined) {
     // round.metadata.quadraticFundingConfig.matchingCapAmount is a percentage,
     // from 0 to 100, and can have decimals
     const capPercentage =
