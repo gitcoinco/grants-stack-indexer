@@ -259,6 +259,15 @@ const CHAINS: Chain[] = [
     tokens: [
       {
         code: "DAI",
+        address: "0x8db0F9eE54753B91ec1d81Bf68074Be82ED30fEb",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        },
+      },
+      {
+        code: "DAI",
         address: "0xa9dd7983B57E1865024d27110bAB098B66087e8F",
         decimals: 18,
         priceSource: {
