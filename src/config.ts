@@ -267,6 +267,15 @@ const CHAINS: Chain[] = [
         },
       },
       {
+        code: "DAI",
+        address: "0xa9dd7983B57E1865024d27110bAB098B66087e8F",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        },
+      },
+      {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
