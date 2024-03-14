@@ -554,14 +554,6 @@ async function catchupAndWatchChain(
       });
 
       indexer.watch();
-
-      const contractSubscriptionPruner = new ContractSubscriptionPruner({
-        client: rpcClient,
-        logger: chainLogger,
-        indexer,
-      });
-
-      contractSubscriptionPruner.start();
     }
 
     return db;
