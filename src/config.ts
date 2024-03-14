@@ -1,11 +1,11 @@
-import { ToBlock } from "chainsauce";
 import "dotenv/config";
-import os from "node:os";
-import path from "node:path";
 import { parseArgs } from "node:util";
+import { ToBlock } from "chainsauce";
 import { z } from "zod";
+import path from "node:path";
 import abis from "./indexer/abis/index.js";
 import { Address, Hex } from "./types.js";
+import os from "node:os";
 
 type ChainId = number;
 type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114;
