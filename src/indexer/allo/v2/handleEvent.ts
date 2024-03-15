@@ -14,6 +14,7 @@ import {
   ApplicationTable,
   MatchingDistributionSchema,
   NewApplication,
+  NewDonation,
   NewRound,
   ProjectTable,
 } from "../../../database/schema.js";
@@ -949,6 +950,72 @@ export async function handleEvent(
           },
         },
       ];
+    }
+
+    case "Allocated": {
+      const strategyAddress = parseAddress(event.address);
+      const round = await db.getRoundByStrategyAddress(
+        chainId,
+        strategyAddress
+      );
+
+      switch (round?.strategyName) {
+        case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy": {
+          const recipientId = parseAddress(event.params.recipientId);
+          const amount = event.params.amount;
+          const token = parseAddress(event.params.token);
+          const sender = parseAddress(event.params.sender);
+          const origin = sender; // origin not found? parseAddress(event.params.origin);
+
+          const application = await db.getApplicationById(
+            chainId,
+            round.id,
+            recipientId
+          );
+
+          if (application === null) {
+            return [];
+          }
+
+          const donation: NewDonation = {
+            id: "?", // todo
+            chainId,
+            roundId: round.id,
+            applicationId: application.id,
+            donorAddress: origin,
+            recipientAddress: recipientId, // Q: recipientAddress (where to get from?) or Anchor?
+            projectId: application.projectId,
+            transactionHash: event.transactionHash,
+            blockNumber: event.blockNumber,
+            tokenAddress: token,
+            amount: amount,
+            amountInUsd: (
+              await convertToUSD(
+                priceProvider,
+                chainId,
+                token,
+                amount,
+                event.blockNumber
+              )
+            ).price,
+            amountInRoundMatchToken: 0n, // what to do here?
+          };
+
+          // todo: do we need to update the uniqueContributors here too?
+          console.log(donation);
+
+          return [
+            {
+              type: "InsertDonation",
+              donation,
+            },
+          ];
+        }
+        case "allov2.DirectGrantsSimpleStrategy": {
+          // TODO: handle direct grants
+          return [];
+        }
+      }
     }
   }
 
