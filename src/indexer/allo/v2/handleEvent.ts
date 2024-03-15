@@ -970,7 +970,6 @@ export async function handleEvent(
           const recipientId = parseAddress(event.params.recipientId);
           const amount = event.params.amount;
           const token = parseAddress(event.params.token);
-          const sender = parseAddress(event.params.sender);
           const origin = parseAddress(event.params.origin);
 
           const application = await db.getApplicationById(
