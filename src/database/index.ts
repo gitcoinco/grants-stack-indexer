@@ -526,7 +526,10 @@ export class Database {
     return round ?? null;
   }
 
-  async getRoundMatchTokenAddressById(chainId: ChainId, roundId: Address) {
+  async getRoundMatchTokenAddressById(
+    chainId: ChainId,
+    roundId: Address | string
+  ) {
     const cacheKey = `${chainId}-${roundId}`;
     const cachedRoundMatchTokenAddress =
       this.#roundMatchTokenCache.get(cacheKey);
