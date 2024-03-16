@@ -972,7 +972,7 @@ export async function handleEvent(
           const token = parseAddress(event.params.token);
           const origin = parseAddress(event.params.origin);
 
-          const application = await db.getApplicationById(
+          const application = await db.getApplicationByAnchorAddress(
             chainId,
             round.id,
             recipientId
@@ -1028,7 +1028,6 @@ export async function handleEvent(
               throw err;
             }
           }
-
           const parsedMetadata = ApplicationMetadataSchema.safeParse(
             application.metadata
           );

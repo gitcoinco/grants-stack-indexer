@@ -466,8 +466,8 @@ async function catchupAndWatchChain(
                 err,
               });
             });
-          } else if(args.event.name === "Allocated") {
-            handleAlloV2Event(args)
+        } else if (args.event.name === "Allocated") {
+          handleAlloV2Event(args)
             .then((changesets) => db.applyChanges(changesets))
             .catch((err: unknown) => {
               indexerLogger.warn({

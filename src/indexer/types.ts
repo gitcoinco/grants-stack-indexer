@@ -29,4 +29,3 @@ export type DGTimeStampUpdatedData = {
   registrationStartTime: bigint;
   registrationEndTime: bigint;
 };
-

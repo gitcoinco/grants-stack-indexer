@@ -613,6 +613,22 @@ export class Database {
     return application ?? null;
   }
 
+  async getApplicationByAnchorAddress(
+    chainId: ChainId,
+    roundId: string,
+    anchorAddress: Address
+  ) {
+    const application = await this.#db
+      .selectFrom("applications")
+      .where("chainId", "=", chainId)
+      .where("roundId", "=", roundId)
+      .where("anchorAddress", "=", anchorAddress)
+      .selectAll()
+      .executeTakeFirst();
+
+    return application ?? null;
+  }
+
   async getLatestPriceTimestampForChain(chainId: ChainId) {
     const latestPriceTimestamp = await this.#db
       .selectFrom("prices")
