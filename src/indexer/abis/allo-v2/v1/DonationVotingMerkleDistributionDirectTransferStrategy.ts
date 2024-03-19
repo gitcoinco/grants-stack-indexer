@@ -219,37 +219,6 @@ export default [
       {
         indexed: true,
         internalType: "address",
-        name: "recipientId",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "amount",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "token",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "sender",
-        type: "address",
-      },
-    ],
-    name: "Allocated",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
         name: "sender",
         type: "address",
       },

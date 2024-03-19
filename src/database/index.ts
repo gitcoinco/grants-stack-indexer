@@ -526,7 +526,10 @@ export class Database {
     return round ?? null;
   }
 
-  async getRoundMatchTokenAddressById(chainId: ChainId, roundId: Address) {
+  async getRoundMatchTokenAddressById(
+    chainId: ChainId,
+    roundId: Address | string
+  ) {
     const cacheKey = `${chainId}-${roundId}`;
     const cachedRoundMatchTokenAddress =
       this.#roundMatchTokenCache.get(cacheKey);
@@ -604,6 +607,22 @@ export class Database {
       .where("chainId", "=", chainId)
       .where("roundId", "=", roundId)
       .where("projectId", "=", projectId)
+      .selectAll()
+      .executeTakeFirst();
+
+    return application ?? null;
+  }
+
+  async getApplicationByAnchorAddress(
+    chainId: ChainId,
+    roundId: string,
+    anchorAddress: Address
+  ) {
+    const application = await this.#db
+      .selectFrom("applications")
+      .where("chainId", "=", chainId)
+      .where("roundId", "=", roundId)
+      .where("anchorAddress", "=", anchorAddress)
       .selectAll()
       .executeTakeFirst();
 

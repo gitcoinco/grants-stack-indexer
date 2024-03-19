@@ -12,6 +12,7 @@ import { parseAddress } from "../../../address.js";
 import { Changeset } from "../../../database/index.js";
 import {
   ApplicationTable,
+  Donation,
   MatchingDistributionSchema,
   NewApplication,
   NewRound,
@@ -35,9 +36,12 @@ import {
 } from "../../projectMetadata.js";
 import StatusesBitmap from "statuses-bitmap";
 import { updateApplicationStatus } from "../application.js";
-import { convertToUSD } from "../../../prices/provider.js";
+import { convertFromUSD, convertToUSD } from "../../../prices/provider.js";
 import { RoundMetadataSchema } from "../roundMetadata.js";
 import { getTokenForChain } from "../../../config.js";
+import { ethers } from "ethers";
+import { UnknownTokenError } from "../../../prices/common.js";
+import { ApplicationMetadataSchema } from "../../applicationMetadata.js";
 
 const ALLO_NATIVE_TOKEN = parseAddress(
   "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
@@ -949,6 +953,119 @@ export async function handleEvent(
           },
         },
       ];
+    }
+
+    case "Allocated": {
+      const strategyAddress = parseAddress(event.address);
+      const round = await db.getRoundByStrategyAddress(
+        chainId,
+        strategyAddress
+      );
+
+      switch (round?.strategyName) {
+        case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy": {
+          if (!("origin" in event.params)) {
+            return [];
+          }
+          const recipientId = parseAddress(event.params.recipientId);
+          const amount = event.params.amount;
+          const token = parseAddress(event.params.token);
+          const origin = parseAddress(event.params.origin);
+
+          const application = await db.getApplicationByAnchorAddress(
+            chainId,
+            round.id,
+            recipientId
+          );
+
+          const roundMatchTokenAddress = await db.getRoundMatchTokenAddressById(
+            chainId,
+            round.id
+          );
+
+          if (application === null || roundMatchTokenAddress === null) {
+            return [];
+          }
+
+          const donationId = ethers.utils.solidityKeccak256(
+            ["string"],
+            [`${event.blockNumber}-${event.logIndex}`]
+          );
+
+          const amountInUsd = (
+            await convertToUSD(
+              priceProvider,
+              chainId,
+              token,
+              event.params.amount,
+              event.blockNumber
+            )
+          ).amount;
+
+          let amountInRoundMatchToken: bigint | null = null;
+          try {
+            amountInRoundMatchToken =
+              roundMatchTokenAddress === token
+                ? event.params.amount
+                : (
+                    await convertFromUSD(
+                      priceProvider,
+                      chainId,
+                      roundMatchTokenAddress,
+                      amountInUsd,
+                      event.blockNumber
+                    )
+                  ).amount;
+          } catch (err) {
+            if (err instanceof UnknownTokenError) {
+              logger.error({
+                msg: `Skipping event ${event.name} on chain ${chainId} due to unknown token ${roundMatchTokenAddress}`,
+                err,
+                event,
+              });
+              return [];
+            } else {
+              throw err;
+            }
+          }
+          const parsedMetadata = ApplicationMetadataSchema.safeParse(
+            application.metadata
+          );
+
+          if (parsedMetadata.success === false) {
+            logger.warn({
+              msg: `Application: Failed to parse metadata for application ${application.id}`,
+              event,
+            });
+            return [];
+          }
+
+          const donation: Donation = {
+            id: donationId,
+            chainId,
+            roundId: round.id,
+            applicationId: application.id,
+            donorAddress: origin,
+            recipientAddress: parseAddress(
+              parsedMetadata.data.application.recipient
+            ),
+            projectId: application.projectId,
+            transactionHash: event.transactionHash,
+            blockNumber: event.blockNumber,
+            tokenAddress: token,
+            amount: amount,
+            amountInUsd,
+            amountInRoundMatchToken,
+          };
+
+          return [
+            {
+              type: "InsertDonation",
+              donation,
+            },
+          ];
+        }
+      }
     }
   }
 

@@ -466,6 +466,15 @@ async function catchupAndWatchChain(
                 err,
               });
             });
+        } else if (args.event.name === "Allocated") {
+          handleAlloV2Event(args)
+            .then((changesets) => db.applyChanges(changesets))
+            .catch((err: unknown) => {
+              indexerLogger.warn({
+                msg: "error while processing allocation",
+                err,
+              });
+            });
         } else {
           const handler = args.event.contractName.startsWith("AlloV1")
             ? handleAlloV1Event

@@ -198,7 +198,7 @@ export type PartialApplication = Updateable<ApplicationTable>;
 export type DonationTable = {
   id: string;
   chainId: ChainId;
-  roundId: Address;
+  roundId: Address | string;
   applicationId: string;
   donorAddress: Address;
   recipientAddress: Address;
