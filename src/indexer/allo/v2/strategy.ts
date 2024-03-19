@@ -70,6 +70,8 @@ export function extractStrategyFromId(_id: string): Strategy | null {
     case "0x2f46bf157821dc41daa51479e94783bb0c8699eac63bf75ec450508ab03867ce":
     // DonationVotingMerkleDistributionDirectTransferStrategyv2.0
     case "0x2f0250d534b2d59b8b5cfa5eb0d0848a59ccbf5de2eaf72d2ba4bfe73dce7c6b":
+    // DonationVotingMerkleDistributionDirectTransferStrategyv2.0
+    case "0x9fa6890423649187b1f0e8bf4265f0305ce99523c3d11aa36b35a54617bb0ec0":
       return {
         id: id,
         name: "allov2.DonationVotingMerkleDistributionDirectTransferStrategy",
@@ -90,6 +92,8 @@ export function extractStrategyFromId(_id: string): Strategy | null {
 
     // DirectGrantsSimpleStrategyv1.1
     case "0x263cb916541b6fc1fb5543a244829ccdba75264b097726e6ecc3c3cfce824bf5":
+    // DirectGrantsSimpleStrategyv2.1
+    case "0x53fb9d3bce0956ca2db5bb1441f5ca23050cb1973b33789e04a5978acfd9ca93":
       return {
         id: id,
         name: "allov2.DirectGrantsSimpleStrategy",

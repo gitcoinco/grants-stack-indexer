@@ -112,6 +112,11 @@ export default [
   },
   {
     inputs: [],
+    name: "NON_ZERO_VALUE",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "NOT_APPROVED_STRATEGY",
     type: "error",
   },
@@ -429,15 +434,15 @@ export default [
     inputs: [
       {
         indexed: false,
-        internalType: "uint128",
+        internalType: "uint64",
         name: "registrationStartTime",
-        type: "uint128",
+        type: "uint64",
       },
       {
         indexed: false,
-        internalType: "uint128",
+        internalType: "uint64",
         name: "registrationEndTime",
-        type: "uint128",
+        type: "uint64",
       },
       {
         indexed: false,
@@ -922,9 +927,9 @@ export default [
     name: "registrationEndTime",
     outputs: [
       {
-        internalType: "uint128",
+        internalType: "uint64",
         name: "",
-        type: "uint128",
+        type: "uint64",
       },
     ],
     stateMutability: "view",
@@ -935,9 +940,9 @@ export default [
     name: "registrationStartTime",
     outputs: [
       {
-        internalType: "uint128",
+        internalType: "uint64",
         name: "",
-        type: "uint128",
+        type: "uint64",
       },
     ],
     stateMutability: "view",
@@ -985,6 +990,11 @@ export default [
         internalType: "enum IStrategy.Status",
         name: "_status",
         type: "uint8",
+      },
+      {
+        internalType: "bytes32",
+        name: "milestonesHash",
+        type: "bytes32",
       },
     ],
     name: "reviewSetMilestones",
@@ -1122,14 +1132,14 @@ export default [
   {
     inputs: [
       {
-        internalType: "uint128",
+        internalType: "uint64",
         name: "_registrationStartTime",
-        type: "uint128",
+        type: "uint64",
       },
       {
-        internalType: "uint128",
+        internalType: "uint64",
         name: "_registrationEndTime",
-        type: "uint128",
+        type: "uint64",
       },
     ],
     name: "updatePoolTimestamps",
