@@ -75,6 +75,15 @@ const CHAINS: Chain[] = [
           address: "0x0000000000000000000000000000000000000000",
         },
       },
+      {
+        code: "ETH",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
     ],
     subscriptions: [
       {
@@ -173,6 +182,15 @@ const CHAINS: Chain[] = [
           address: "0x0000000000000000000000000000000000000000",
         },
       },
+      {
+        code: "ETH",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 10,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
     ],
     subscriptions: [
       {
@@ -246,6 +264,15 @@ const CHAINS: Chain[] = [
       {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "ETH",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
         decimals: 18,
         priceSource: {
           chainId: 1,
@@ -348,6 +375,15 @@ const CHAINS: Chain[] = [
         },
       },
       {
+        code: "FTM",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
         code: "GcV",
         address: "0x83791638da5EB2fAa432aff1c65fbA47c5D29510",
         decimals: 18,
@@ -409,6 +445,15 @@ const CHAINS: Chain[] = [
         },
       },
       {
+        code: "ETH",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
         code: "DAI",
         address: "0x5fbdb2315678afecb367f032d93f642f64180aa3",
         decimals: 18,
@@ -446,6 +491,15 @@ const CHAINS: Chain[] = [
       {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "ETH",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
         decimals: 18,
         priceSource: {
           chainId: 1,
@@ -549,6 +603,15 @@ const CHAINS: Chain[] = [
         },
       },
       {
+        code: "ETH",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 42161,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
         code: "GTC",
         address: "0x7f9a7db853ca816b9a138aee3380ef34c437dee0",
         decimals: 18,
@@ -626,6 +689,15 @@ const CHAINS: Chain[] = [
         },
       },
       {
+        code: "MATIC",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0",
+        },
+      },
+      {
         code: "USDC",
         address: "0x9999f7Fea5938fD3b1E26A12c3f2fb024e194f97",
         decimals: 6,
@@ -690,6 +762,15 @@ const CHAINS: Chain[] = [
       {
         code: "MATIC",
         address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0",
+        },
+      },
+      {
+        code: "MATIC",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
         decimals: 18,
         priceSource: {
           chainId: 1,
@@ -794,6 +875,15 @@ const CHAINS: Chain[] = [
           address: "0x0000000000000000000000000000000000000000",
         },
       },
+      {
+        code: "ETH",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
     ],
     subscriptions: [
       {
@@ -850,6 +940,15 @@ const CHAINS: Chain[] = [
       {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "ETH",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
         decimals: 18,
         priceSource: {
           chainId: 1,
@@ -953,6 +1052,15 @@ const CHAINS: Chain[] = [
         },
       },
       {
+        code: "ETH",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
         code: "TEST",
         address: "0x8fd03Cd97Da068CC242Ab7551Dc4100DD405E8c7",
         decimals: 18,
@@ -1005,6 +1113,15 @@ const CHAINS: Chain[] = [
       {
         code: "AVAX",
         address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 43114,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "AVAX",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
         decimals: 18,
         priceSource: {
           chainId: 43114,
@@ -1072,6 +1189,15 @@ const CHAINS: Chain[] = [
         },
       },
       {
+        code: "AVAX",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 43114,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
         code: "USDC",
         address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
         decimals: 6,
@@ -1123,6 +1249,15 @@ const CHAINS: Chain[] = [
         },
       },
       {
+        code: "ETH",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
         code: "MTK",
         address: "0xc2332031de487f430fae3290c05465d907785eda",
         decimals: 18,
@@ -1166,6 +1301,15 @@ const CHAINS: Chain[] = [
       {
         code: "ETH",
         address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "ETH",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
         decimals: 18,
         priceSource: {
           chainId: 1,
