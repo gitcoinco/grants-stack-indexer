@@ -425,6 +425,17 @@ const CHAINS: Chain[] = [
         address: "0x4d1f64c7920262c8F78e989C9E7Bf48b7eC02Eb5",
         fromBlock: 65169115,
       },
+      // Allo V2
+      {
+        address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+        contractName: "AlloV2/Registry/V1",
+        fromBlock: 146489425,
+      },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+        fromBlock: 146498081,
+      },
     ],
   },
   {
@@ -923,8 +934,8 @@ const CHAINS: Chain[] = [
         fromBlock: 6083365,
       },
       {
-        contractName: "AlloV2/Allo/V1",
         address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+        contractName: "AlloV2/Allo/V1",
         fromBlock: 6084909,
       },
     ],
@@ -1032,6 +1043,17 @@ const CHAINS: Chain[] = [
         address: "0x68a14AF71BFa0FE09fC937033f6Ea5153c0e75e4",
         fromBlock: 20907048,
       },
+      // Allo V2 - not deployed yet
+      // {
+      //   address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+      //   contractName: "AlloV2/Registry/V1",
+      //   fromBlock: 20907048,
+      // },
+      // {
+      //   contractName: "AlloV2/Allo/V1",
+      //   address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+      //   fromBlock: 20907048,
+      // },
     ],
   },
   {
@@ -1100,6 +1122,17 @@ const CHAINS: Chain[] = [
         address: "0x6D341814Be4E2316142D9190E390b494F1dECFAf",
         fromBlock: 14412765,
       },
+      // Allo V2 - not deployed yet
+      // {
+      //   address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+      //   contractName: "AlloV2/Registry/V1",
+      //   fromBlock: 14412765,
+      // },
+      // {
+      //   contractName: "AlloV2/Allo/V1",
+      //   address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+      //   fromBlock: 14412765,
+      // },
     ],
   },
   {
@@ -1169,6 +1202,17 @@ const CHAINS: Chain[] = [
         address: "0xd07D54b0231088Ca9BF7DA6291c911B885cBC140",
         fromBlock: 34540051,
       },
+      // Allo V2
+      {
+        address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+        contractName: "AlloV2/Registry/V1",
+        fromBlock: 34540051,
+      },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+        fromBlock: 34540051,
+      },
     ],
   },
   {
@@ -1226,6 +1270,17 @@ const CHAINS: Chain[] = [
       {
         contractName: "AlloV1/ProgramFactory/V1",
         address: "0x862D7F621409cF572f179367DdF1B7144AcE1c76",
+        fromBlock: 25380385,
+      },
+      // Allo V2
+      {
+        address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+        contractName: "AlloV2/Registry/V1",
+        fromBlock: 25380385,
+      },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
         fromBlock: 25380385,
       },
     ],
@@ -1288,6 +1343,17 @@ const CHAINS: Chain[] = [
         address: "0xd07D54b0231088Ca9BF7DA6291c911B885cBC140",
         fromBlock: 2774478,
       },
+      // Allo V2 not deployed yet to scroll sepolia - was not on our list.
+      // {
+      //   address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+      //   contractName: "AlloV2/Registry/V1",
+      //   fromBlock: 2774478,
+      // },
+      // {
+      //   contractName: "AlloV2/Allo/V1",
+      //   address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+      //   fromBlock: 2774478,
+      // },
     ],
   },
   {
@@ -1345,6 +1411,17 @@ const CHAINS: Chain[] = [
       {
         contractName: "AlloV1/ProgramFactory/V1",
         address: "0x545B282A50EaeA01A619914d44105437036CbB36",
+        fromBlock: 2683205,
+      },
+      // Allo V2
+      {
+        address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+        contractName: "AlloV2/Registry/V1",
+        fromBlock: 2683205,
+      },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
         fromBlock: 2683205,
       },
     ],
