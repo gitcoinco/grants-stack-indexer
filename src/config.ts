@@ -41,38 +41,6 @@ const rpcUrl = z.string().url();
 
 const CHAINS: Chain[] = [
   {
-    id: 5,
-    name: "goerli",
-    rpc: rpcUrl
-      .default("https://rpc.ankr.com/eth_goerli")
-      .parse(process.env.GOERLI_RPC_URL),
-    pricesFromTimestamp: Date.UTC(2023, 11, 1, 0, 0, 0),
-    tokens: [
-      {
-        code: "ETH",
-        address: "0x0000000000000000000000000000000000000000",
-        decimals: 18,
-        priceSource: {
-          chainId: 1,
-          address: "0x0000000000000000000000000000000000000000",
-        },
-      },
-    ],
-    subscriptions: [
-      // Allo V2
-      {
-        contractName: "AlloV2/Registry/V1",
-        address: "0x4AAcca72145e1dF2aeC137E1f3C5E3D75DB8b5f3",
-        fromBlock: 9975287,
-      },
-      {
-        contractName: "AlloV2/Allo/V1",
-        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
-        fromBlock: 9975490,
-      },
-    ],
-  },
-  {
     id: 1,
     name: "mainnet",
     rpc: rpcUrl
@@ -637,62 +605,6 @@ const CHAINS: Chain[] = [
         contractName: "AlloV2/Allo/V1",
         address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
         fromBlock: 146498081,
-      },
-    ],
-  },
-  {
-    id: 421613,
-    name: "arbitrum-goerli",
-    rpc: rpcUrl
-      .default("https://arb-goerli.g.alchemy.com/v2/")
-      .parse(process.env.ARBITRUM_GOERLI_RPC_URL),
-    pricesFromTimestamp: Date.UTC(2023, 7, 1, 0, 0, 0),
-    tokens: [
-      {
-        code: "USDC",
-        address: "0xfd064A18f3BF249cf1f87FC203E90D8f650f2d63",
-        decimals: 6,
-        priceSource: {
-          chainId: 42161,
-          address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-        },
-      },
-      {
-        code: "ARB",
-        address: "0xB50721BCf8d664c30412Cfbc6cf7a15145234ad1",
-        decimals: 18,
-        priceSource: {
-          chainId: 42161,
-          address: "0x912ce59144191c1204e64559fe8253a0e49e6548",
-        },
-      },
-      {
-        code: "ETH",
-        address: "0x0000000000000000000000000000000000000000",
-        decimals: 18,
-        priceSource: {
-          chainId: 42161,
-          address: "0x0000000000000000000000000000000000000000",
-        },
-      },
-    ],
-    subscriptions: [
-      {
-        contractName: "AlloV1/ProjectRegistry/V2",
-        address: "0x0CD135777dEaB6D0Bb150bDB0592aC9Baa4d0871",
-      },
-      {
-        contractName: "AlloV1/RoundFactory/V2",
-        address: "0xdf25423c9ec15347197Aa5D3a41c2ebE27587D59",
-      },
-      {
-        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
-        address: "0x0BFA0AAF5f2D81f859e85C8E82A3fc5b624fc6E8",
-      },
-      {
-        contractName: "AlloV1/ProgramFactory/V1",
-        address: "0xd39b40aC9279EeeB86FBbDeb2C9acDF16e16cF89",
-        fromBlock: 0,
       },
     ],
   },
