@@ -294,11 +294,6 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     "projects"
   )}(id)|@fieldName project';
 
-  comment on table ${ref("donations")} is
-  E'@foreignKey ("application_id", "chain_id") references ${ref(
-    "applications"
-  )}(id, chain_id)|@fieldNme application';
-
   create function ${ref("applications_canonical_project")}(a ${ref(
     "applications"
   )} ) returns ${ref("projects")} as $$
@@ -310,14 +305,12 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   $$ language sql stable;
 
   comment on table ${ref("donations")} is
-  E'@foreignKey ("application_id", "round_id", "chain_id") references ${ref(
-    "applications"
-  )}(id, round_id, chain_id)|@fieldName application|@foreignFieldName donations';
-
-  comment on table ${ref("donations")} is
   E'@foreignKey ("round_id", "chain_id") references ${ref(
     "rounds"
-  )}(id, chain_id)|@fieldName round|@foreignFieldName donations';
+  )}(id, chain_id)|@fieldName round|@foreignFieldName donations\n@foreignKey ("application_id", "round_id", "chain_id") references ${ref(
+    "applications"
+  )}(id, round_id, chain_id)|@fieldName application|@foreignFieldName donations
+  ';
 
   comment on constraint "round_roles_rounds_fkey" on ${ref("round_roles")} is
   E'@foreignFieldName roles\n@fieldName round';
