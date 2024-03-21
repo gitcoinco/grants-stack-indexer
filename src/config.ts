@@ -1413,6 +1413,21 @@ const CHAINS: Chain[] = [
         address: "0x545B282A50EaeA01A619914d44105437036CbB36",
         fromBlock: 2683205,
       },
+      {
+        contractName: "AlloV1/DirectPayoutStrategyFactory/V2",
+        address: "0xc7722909fEBf7880E15e67d563E2736D9Bb9c1Ab",
+        fromBlock: 2683205,
+      },
+      {
+        contractName: "AlloV1/MerklePayoutStrategyFactory/V2",
+        address: "0x7ac74Be34b1A27E48a2525259719F877a57B2Aa4",
+        fromBlock: 2683205,
+      },
+      {
+        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
+        address: "0x5b55728e41154562ee80027C1247B13382692e5C",
+        fromBlock: 2683205,
+      },
       // Allo V2
       {
         address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
