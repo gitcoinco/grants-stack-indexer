@@ -1020,7 +1020,7 @@ export async function handleEvent(
                   ).amount;
           } catch (err) {
             if (err instanceof UnknownTokenError) {
-              logger.error({
+              logger.warn({
                 msg: `Skipping event ${event.name} on chain ${chainId} due to unknown token ${roundMatchTokenAddress}`,
                 err,
                 event,

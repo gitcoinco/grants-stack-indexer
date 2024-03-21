@@ -29,7 +29,7 @@ export default async function handleEvent(
       const programAddress = parseAddress(event.address);
       const project = await db.getProjectById(chainId, programAddress);
       if (project === null) {
-        logger.error({
+        logger.warn({
           msg: `Program/Project ${programAddress} not found`,
           event,
         });
@@ -71,7 +71,7 @@ export default async function handleEvent(
         }
 
         default: {
-          logger.error({
+          logger.warn({
             msg: `Unknown role ${role} for program ${programAddress}`,
             event,
           });
@@ -85,7 +85,7 @@ export default async function handleEvent(
       const roundAddress = parseAddress(event.address);
       const round = await db.getRoundById(chainId, roundAddress);
       if (round === null) {
-        logger.error({
+        logger.warn({
           msg: `Round ${chainId}/${roundAddress} not found`,
           event,
         });
@@ -127,7 +127,7 @@ export default async function handleEvent(
         }
 
         default: {
-          logger.error({
+          logger.warn({
             msg: `Unknown role ${role} for round ${roundAddress}`,
             event,
           });
