@@ -164,7 +164,7 @@ export async function handleEvent(
       const project = await db.getProjectById(chainId, projectId);
 
       if (project === null) {
-        logger.error({
+        logger.warn({
           msg: `Project ${chainId}/${projectId} not found`,
           event,
         });
@@ -195,7 +195,7 @@ export async function handleEvent(
       const project = await db.getProjectById(chainId, projectId);
 
       if (project === null) {
-        logger.error({
+        logger.warn({
           msg: `Project ${chainId}/${projectId} not found`,
           event,
         });
@@ -687,7 +687,7 @@ export async function handleEvent(
               ).amount;
       } catch (err) {
         if (err instanceof UnknownTokenError) {
-          logger.error({
+          logger.warn({
             msg: `Skipping event ${event.name} on chain ${chainId} due to unknown token ${roundMatchTokenAddress}`,
             err,
             event,
@@ -794,7 +794,7 @@ export async function handleEvent(
         MatchingDistributionSchema.safeParse(rawDistribution);
 
       if (!distribution.success) {
-        logger.error({
+        logger.warn({
           msg: "Failed to parse distribution",
           error: distribution.error,
           event,

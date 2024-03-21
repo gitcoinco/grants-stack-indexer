@@ -570,6 +570,7 @@ async function catchupAndWatchChain(
       msg: `error during initial catch up with chain ${config.chain.id}`,
       err,
     });
+    Sentry.captureException(err);
     throw err;
   }
 }

@@ -878,7 +878,7 @@ export async function handleEvent(
         MatchingDistributionSchema.safeParse(rawDistribution);
 
       if (!distribution.success) {
-        logger.error({
+        logger.warn({
           msg: "Failed to parse distribution",
           error: distribution.error,
           event,
