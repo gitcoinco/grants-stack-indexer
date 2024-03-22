@@ -985,7 +985,7 @@ export async function handleEvent(
 
           const roundMatchTokenAddress = round.matchTokenAddress;
 
-          if (application === null || round === null) {
+          if (application === null) {
             return [];
           }
 
