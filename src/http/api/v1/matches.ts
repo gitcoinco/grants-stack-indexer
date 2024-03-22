@@ -105,7 +105,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     useOverrides: boolean
   ) {
     const chainId = Number(req.params.chainId);
-    const roundId = safeParseAddress(req.params.roundId);
+    const roundId = req.params.roundId;
 
     if (roundId === null) {
       throw new ClientError("Invalid round id", 400);
