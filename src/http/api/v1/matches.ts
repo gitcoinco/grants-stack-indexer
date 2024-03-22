@@ -7,7 +7,6 @@ import multer from "multer";
 import ClientError from "../clientError.js";
 
 import { HttpApiConfig } from "../../app.js";
-import { safeParseAddress } from "../../../address.js";
 import {
   LinearQfCalculatorResult,
   LinearQfCalculatorArgs,
@@ -25,7 +24,6 @@ import {
 } from "../../../calculator/calculateMatchingEstimates.js";
 import { linearQFWithAggregates } from "pluralistic";
 import { DeprecatedRound } from "../../../deprecatedJsonDatabase.js";
-import { getAddress } from "viem";
 
 function createLinearQf(
   config: HttpApiConfig["calculator"]["esimatesLinearQfImplementation"]
@@ -137,7 +135,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     }
 
     const matches = await calculateMatches({
-      roundId: getAddress(roundId),
+      roundId: roundId,
       coefficientOverrides: overrides,
       chain: chainConfig,
       calculationConfigOverride: {

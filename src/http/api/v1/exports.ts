@@ -13,7 +13,6 @@ import { Round } from "../../../database/schema.js";
 import { getVotesWithCoefficients } from "../../../calculator/votes.js";
 import ClientError from "../clientError.js";
 import { HttpApiConfig } from "../../app.js";
-import { safeParseAddress } from "../../../address.js";
 import { extractCalculationConfigFromRound } from "../../../calculator/calculationConfig.js";
 
 export const createHandler = (config: HttpApiConfig): express.Router => {
@@ -251,7 +250,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     "/chains/:chainId/rounds/:roundId/exports/:exportName",
     async (req, res) => {
       const chainId = Number(req.params.chainId);
-      const roundId = safeParseAddress(req.params.roundId);
+      const roundId = req.params.roundId;
       const exportName = req.params.exportName;
       let body = "";
 
