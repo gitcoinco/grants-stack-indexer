@@ -289,10 +289,26 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   comment on constraint "applications_rounds_fkey" on ${ref("applications")} is
   E'@foreignFieldName applications\n@fieldName round';
 
-  comment on table ${ref("applications")} is
-  E'@foreignKey ("project_id") references ${ref(
+  create function ${ref("applications_project")}(a ${ref(
+    "applications"
+  )} ) returns ${ref("projects")} as $$
+    select *
+    from ${ref("projects")}
+    where id = a.project_id
+    and (chain_id = a.chain_id or true)
+    order by
+      case when chain_id = a.chain_id then 0 else 1 end,
+      id
+    limit 1;
+  $$ language sql stable;
+
+  create function ${ref("projects_applications")}(p ${ref(
     "projects"
-  )}(id)|@fieldName project';
+  )} ) returns setof ${ref("applications")} as $$
+    select *
+    from ${ref("applications")}
+    where project_id = p.id;
+  $$ language sql stable;
 
   comment on table ${ref("donations")} is
   E'@foreignKey ("application_id", "chain_id") references ${ref(
