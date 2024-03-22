@@ -129,10 +129,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       overrides = await parseCoefficientOverridesCsv(buf);
     }
 
-    console.log("shit ******************************", {shit: config.chains});
-
     const chainConfig = config.chains.find((c) => c.id === chainId);
-    console.log("chainConfig ******************************", chainConfig);
     if (chainConfig === undefined) {
       throw new Error(`Chain ${chainId} not configured`);
     }
