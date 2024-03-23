@@ -962,11 +962,16 @@ export async function handleEvent(
         strategyAddress
       );
 
-      switch (round?.strategyName) {
+      if (round === null) {
+        return [];
+      }
+
+      switch (round.strategyName) {
         case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy": {
           if (!("origin" in event.params)) {
             return [];
           }
+
           const recipientId = parseAddress(event.params.recipientId);
           const amount = event.params.amount;
           const token = parseAddress(event.params.token);
@@ -978,12 +983,9 @@ export async function handleEvent(
             recipientId
           );
 
-          const roundMatchTokenAddress = await db.getRoundMatchTokenAddressById(
-            chainId,
-            round.id
-          );
+          const roundMatchTokenAddress = round.matchTokenAddress;
 
-          if (application === null || roundMatchTokenAddress === null) {
+          if (application === null) {
             return [];
           }
 
@@ -1064,6 +1066,15 @@ export async function handleEvent(
               donation,
             },
           ];
+        }
+
+        default: {
+          logger.warn({
+            msg: `Unsupported strategy ${round.strategyName}`,
+            event,
+          });
+
+          return [];
         }
       }
     }
