@@ -878,7 +878,7 @@ export async function handleEvent(
         MatchingDistributionSchema.safeParse(rawDistribution);
 
       if (!distribution.success) {
-        logger.error({
+        logger.warn({
           msg: "Failed to parse distribution",
           error: distribution.error,
           event,
@@ -1020,7 +1020,7 @@ export async function handleEvent(
                   ).amount;
           } catch (err) {
             if (err instanceof UnknownTokenError) {
-              logger.error({
+              logger.warn({
                 msg: `Skipping event ${event.name} on chain ${chainId} due to unknown token ${roundMatchTokenAddress}`,
                 err,
                 event,

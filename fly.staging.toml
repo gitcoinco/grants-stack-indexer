@@ -13,6 +13,7 @@ kill_timeout = 5
   STORAGE_DIR = "/mnt/indexer"
   INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-testnet,pgn-mainnet,arbitrum,polygon-mumbai,polygon,sepolia,avalanche,avalanche-fuji,scroll,scroll-sepolia,base,zksync-era-mainnet"
   ENABLE_RESOURCE_MONITOR = "true"
+  NODE_OPTIONS="--max-old-space-size=7168"
   # BUILD_TAG = # set in deploy github action
 
 [processes]
