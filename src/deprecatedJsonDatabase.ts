@@ -70,7 +70,7 @@ export function createDeprecatedApplication(
     metadata: application.metadata as DeprecatedApplication["metadata"],
     createdAtBlock: Number(application.createdAtBlock),
     statusUpdatedAtBlock: Number(application.statusUpdatedAtBlock),
-    roundId: getAddress(application.roundId),
+    roundId: application.roundId,
     statusSnapshots: application.statusSnapshots.map((snapshot) => ({
       status: snapshot.status,
       statusUpdatedAtBlock: Number(snapshot.updatedAtBlock),

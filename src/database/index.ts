@@ -563,7 +563,7 @@ export class Database {
     return rounds;
   }
 
-  async getAllRoundApplications(chainId: ChainId, roundId: Address) {
+  async getAllRoundApplications(chainId: ChainId, roundId: string) {
     return await this.#db
       .selectFrom("applications")
       .where("chainId", "=", chainId)
@@ -572,7 +572,7 @@ export class Database {
       .execute();
   }
 
-  async getAllRoundDonations(chainId: ChainId, roundId: Address) {
+  async getAllRoundDonations(chainId: ChainId, roundId: string) {
     return await this.#db
       .selectFrom("donations")
       .where("chainId", "=", chainId)

@@ -5,7 +5,6 @@ import { Changeset } from "../../../database/index.js";
 import { NewRound, Round } from "../../../database/schema.js";
 
 import { PriceProvider, convertToUSD } from "../../../prices/provider.js";
-import { parseAddress } from "../../../address.js";
 
 export async function updateRoundMatchAmount(args: {
   round: Round | NewRound;
@@ -43,7 +42,7 @@ export default async function ({
   "AlloV1/RoundImplementation/V2",
   "MatchAmountUpdated"
 >) {
-  const id = parseAddress(event.address);
+  const id = event.address;
   const matchAmount = event.params.newAmount;
 
   const round = await db.getRoundById(chainId, id);

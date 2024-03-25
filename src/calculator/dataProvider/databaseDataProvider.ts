@@ -105,7 +105,7 @@ export class DatabaseDataProvider implements DataProvider {
       segments[3] === "applications.json"
     ) {
       const chainId = Number(segments[0]);
-      const roundId = parseAddress(segments[2]);
+      const roundId = segments[2];
 
       const applications = await this.#db.getAllRoundApplications(
         chainId,
@@ -126,7 +126,7 @@ export class DatabaseDataProvider implements DataProvider {
       segments[3] === "votes.json"
     ) {
       const chainId = Number(segments[0]);
-      const roundId = parseAddress(segments[2]);
+      const roundId = segments[2];
 
       const donations = await this.#db.getAllRoundDonations(chainId, roundId);
 
