@@ -349,7 +349,7 @@ export async function handleEvent(
               matchAmount,
               event.blockNumber
             )
-          ).price;
+          ).amount;
         }
       } else if (
         strategy !== null &&
@@ -707,7 +707,7 @@ export async function handleEvent(
             matchAmount,
             event.blockNumber
           )
-        ).price;
+        ).amount;
       }
 
       return [
