@@ -878,7 +878,7 @@ export async function handleEvent(
         MatchingDistributionSchema.safeParse(rawDistribution);
 
       if (!distribution.success) {
-        logger.error({
+        logger.warn({
           msg: "Failed to parse distribution",
           error: distribution.error,
           event,
@@ -962,11 +962,16 @@ export async function handleEvent(
         strategyAddress
       );
 
-      switch (round?.strategyName) {
+      if (round === null) {
+        return [];
+      }
+
+      switch (round.strategyName) {
         case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy": {
           if (!("origin" in event.params)) {
             return [];
           }
+
           const recipientId = parseAddress(event.params.recipientId);
           const amount = event.params.amount;
           const token = parseAddress(event.params.token);
@@ -978,12 +983,9 @@ export async function handleEvent(
             recipientId
           );
 
-          const roundMatchTokenAddress = await db.getRoundMatchTokenAddressById(
-            chainId,
-            round.id
-          );
+          const roundMatchTokenAddress = round.matchTokenAddress;
 
-          if (application === null || roundMatchTokenAddress === null) {
+          if (application === null) {
             return [];
           }
 
@@ -1018,7 +1020,7 @@ export async function handleEvent(
                   ).amount;
           } catch (err) {
             if (err instanceof UnknownTokenError) {
-              logger.error({
+              logger.warn({
                 msg: `Skipping event ${event.name} on chain ${chainId} due to unknown token ${roundMatchTokenAddress}`,
                 err,
                 event,
@@ -1064,6 +1066,15 @@ export async function handleEvent(
               donation,
             },
           ];
+        }
+
+        default: {
+          logger.warn({
+            msg: `Unsupported strategy ${round.strategyName}`,
+            event,
+          });
+
+          return [];
         }
       }
     }
