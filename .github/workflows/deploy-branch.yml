@@ -18,7 +18,7 @@ jobs:
         run: |
           echo "DEPLOYMENT_ENVIRONMENT=production" >> $GITHUB_ENV
           echo "DEPLOYMENT_URL=https://indexer-v2.fly.dev" >> $GITHUB_ENV
-        if: ${{ github.ref == 'refs/heads/main' }}
+        if: ${{ github.ref == 'refs/heads/decouple-indexer-and-web' }}
 
       - name: Build and test
         run: |
