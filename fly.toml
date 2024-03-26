@@ -1,0 +1,64 @@
+# fly.toml app configuration file generated for indexer-v2 on 2024-03-26T14:50:51+07:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'indexer-v2'
+primary_region = 'den'
+kill_signal = 'SIGINT'
+kill_timeout = '5s'
+
+[experimental]
+  auto_rollback = true
+
+[build]
+
+[deploy]
+  wait_timeout = "60m"
+
+[env]
+  DEPLOYMENT_ENVIRONMENT = 'production'
+  ENABLE_RESOURCE_MONITOR = 'true'
+  INDEXED_CHAINS = 'scroll'
+  LOG_LEVEL = 'debug'
+  NODE_OPTIONS = '--max-old-space-size=4096'
+  PORT = '8080'
+  STORAGE_DIR = '/mnt/indexer'
+
+[processes]
+  indexer = 'npm start -- --indexer --http'
+  web = 'npm start -- --http --http-wait-for-sync=false'
+
+[[mounts]]
+  source = 'indexer_staging'
+  destination = '/mnt/indexer'
+  initial_size = "50gb"
+  processes = ["indexer", "web"]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['web']
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+[checks]
+  [checks.http]
+    grace_period = "30s"
+    interval = "15s"
+    method = "get"
+    path = '/api/v1/status'
+    port = 8080 
+    timeout = "10s"
+    type = "http"
+    processes = ['web', 'indexer']
+
+[[vm]]
+  memory = '4gb'
+  cpu_kind = 'performance'
+  cpus = 2
