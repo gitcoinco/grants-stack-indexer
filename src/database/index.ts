@@ -51,7 +51,11 @@ export class Database {
 
   readonly databaseSchemaName: string;
 
-  constructor(options: { connectionPool: Pool; schemaName: string }) {
+  constructor(options: {
+    statsUpdaterEnabled: boolean;
+    connectionPool: Pool;
+    schemaName: string;
+  }) {
     const dialect = new PostgresDialect({
       pool: options.connectionPool,
     });
@@ -66,7 +70,10 @@ export class Database {
     this.databaseSchemaName = options.schemaName;
 
     this.scheduleDonationQueueFlush();
-    this.scheduleStatsUpdate();
+
+    if (options.statsUpdaterEnabled) {
+      this.scheduleStatsUpdate();
+    }
   }
 
   private scheduleStatsUpdate() {
