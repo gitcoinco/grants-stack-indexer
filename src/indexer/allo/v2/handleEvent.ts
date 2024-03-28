@@ -843,6 +843,83 @@ export async function handleEvent(
       ];
     }
 
+    case "UpdatedRegistration": {
+      const anchorAddress = parseAddress(event.params.recipientId);
+      const project = await db.getProjectByAnchor(chainId, anchorAddress);
+
+      if (!project) {
+        throw new Error("Project not found");
+      }
+
+      const encodedData = event.params.data;
+      const strategyAddress = parseAddress(event.address);
+      const round = await db.getRoundByStrategyAddress(
+        chainId,
+        strategyAddress
+      );
+
+      if (!round) {
+        throw new Error("Round not found");
+      }
+
+      let id;
+      let values;
+
+      switch (round.strategyName) {
+        case "allov2.DirectGrantsSimpleStrategy":
+          values = decodeDGApplicationData(encodedData);
+          id = event.params.recipientId;
+          break;
+
+        case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
+          values = decodeDVMDApplicationData(encodedData);
+          id = (Number(values.recipientsCounter) - 1).toString();
+          break;
+
+        default:
+          throw new Error("Invalid strategy name");
+      }
+
+      const metadata = await ipfsGet(values.metadata.pointer);
+
+      const statusString = ApplicationStatus[event.params.status] as ApplicationTable["status"];
+
+      const application = await db.getApplicationById(
+        chainId,
+        round.id,
+        id
+      );
+
+      if (application === null) {
+        return [];
+      }
+
+      const statusUpdates = await updateApplicationStatus(
+        application,
+        statusString,
+        event.blockNumber,
+        getBlock
+      );
+
+      return [
+        {
+          type: "UpdateApplication",
+          chainId,
+          roundId: round.id,
+          applicationId: id,
+          application: {
+            metadataCid: values.metadata.pointer,
+            metadata: metadata ?? null,
+            distributionTransaction: null,
+            totalAmountDonatedInUsd: 0,
+            totalDonationsCount: 0,
+            uniqueDonorsCount: 0,
+            ...statusUpdates,
+          },
+        },
+      ];
+    }
+
     case "TimestampsUpdated": {
       const strategyAddress = parseAddress(event.address);
       const round = await db.getRoundByStrategyAddress(
