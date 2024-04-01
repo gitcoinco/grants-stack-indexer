@@ -223,7 +223,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("id", "serial", (col) => col.primaryKey())
     .addColumn("chainId", CHAIN_ID_TYPE)
     .addColumn("applicationId", "text")
-    .addColumn("roundId", ADDRESS_TYPE)
+    .addColumn("roundId", "text")
     .addColumn("amount", BIGINT_TYPE)
     .addColumn("tokenAddress", ADDRESS_TYPE)
     .addColumn("amountInUSD", "real")
