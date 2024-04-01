@@ -36,7 +36,7 @@ interface Tables {
   donations: DonationTable;
   prices: PriceTable;
   legacyProjects: LegacyProjectTable;
-  applicationPayouts: ApplicationPayout;
+  applicationsPayouts: ApplicationPayout;
 }
 
 type KyselyDb = Kysely<Tables>;
@@ -444,7 +444,7 @@ export class Database {
 
       case "InsertApplicationPayout": {
         await this.#db
-          .insertInto("applicationPayouts")
+          .insertInto("applicationsPayouts")
           .values(change.payout)
           .execute();
         break;
