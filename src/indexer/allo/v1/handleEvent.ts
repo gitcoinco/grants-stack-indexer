@@ -865,6 +865,69 @@ export async function handleEvent(
       return changesets;
     }
 
+    case "PayoutMade": {
+      const payoutStrategyAddress = parseAddress(event.address);
+      const roundId = parseAddress(
+        await readContract({
+          contract: "AlloV1/DirectPayoutStrategyImplementation/V2",
+          functionName: "roundAddress",
+          address: payoutStrategyAddress,
+        })
+      );
+      const applicationId = event.params.applicationIndex;
+      const amount = event.params.amount;
+      const roundMatchTokenAddress = await db.getRoundMatchTokenAddressById(
+        chainId,
+        roundId
+      );
+
+      if (!roundMatchTokenAddress) {
+        logger.warn({
+          msg: "No round match token address found",
+          chainId,
+          roundId,
+          event,
+        });
+        return [];
+      }
+
+      const amountInUsd = (
+        await convertToUSD(
+          priceProvider,
+          chainId,
+          parseAddress(event.params.token),
+          amount,
+          event.blockNumber
+        )
+      ).amount;
+
+      const amountInRoundMatchToken = (
+        await convertFromUSD(
+          priceProvider,
+          chainId,
+          roundMatchTokenAddress,
+          amountInUsd,
+          event.blockNumber
+        )
+      ).amount;
+
+      return [
+        {
+          type: "InsertApplicationPayout",
+          payout: {
+            amount: event.params.amount,
+            applicationId: applicationId.toString(),
+            roundId,
+            chainId,
+            tokenAddress: parseAddress(event.params.token),
+            amountInRoundMatchToken,
+            amountInUsd,
+            transactionHash: event.transactionHash,
+          },
+        },
+      ];
+    }
+
     case "FundsDistributed": {
       const payoutContractName = "AlloV1/MerklePayoutStrategyImplementation/V2";
       if (event.contractName === payoutContractName) {
