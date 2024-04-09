@@ -1460,11 +1460,11 @@ const CHAINS: Chain[] = [
     tokens: [
       {
         code: "SEI",
-        address: "",
-        decimals: 18,
+        address: "0x26841a0A5D958B128209F4ea9a1DD7E61558c330",
+        decimals: 6,
         priceSource: {
           chainId: 1,
-          address: "0x",
+          address: "0x26841a0A5D958B128209F4ea9a1DD7E61558c330",
         },
       },
     ],
