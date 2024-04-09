@@ -1450,6 +1450,38 @@ const CHAINS: Chain[] = [
       },
     ],
   },
+  {
+    id: 713715,
+    name: "sei-devnet",
+    rpc: rpcUrl
+      .default("https://evm-rpc-arctic-1.sei-apis.com")
+      .parse(process.env.SEI_DEVNET_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "SEI",
+        address: "",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x",
+        },
+      },
+    ],
+    subscriptions: [
+      // Allo V2
+      {
+        contractName: "AlloV2/Registry/V1",
+        address: "0xCcA86119655C0e9A2e1598e351F9F4F5187F6a2a",
+        fromBlock: 14570265,
+      },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0x5B47c6aFE27b0F5C8319366C6b8FbC0E02104b98",
+        fromBlock: 14570265,
+      },
+    ],
+  },
 ];
 
 export const getDecimalsForToken = (
