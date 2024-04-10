@@ -8,7 +8,7 @@ import { Address, Hex } from "./types.js";
 import os from "node:os";
 
 type ChainId = number;
-type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114;
+type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114 | 713715;
 
 const CHAIN_DATA_VERSION = "59";
 
@@ -1460,10 +1460,28 @@ const CHAINS: Chain[] = [
     tokens: [
       {
         code: "SEI",
-        address: "0x26841a0A5D958B128209F4ea9a1DD7E61558c330",
-        decimals: 6,
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
         priceSource: {
-          chainId: 1,
+          chainId: 713715,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "SEI",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 713715,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "WSEI",
+        address: "0x26841a0A5D958B128209F4ea9a1DD7E61558c330",
+        decimals: 18,
+        priceSource: {
+          chainId: 713715,
           address: "0x26841a0A5D958B128209F4ea9a1DD7E61558c330",
         },
       },
