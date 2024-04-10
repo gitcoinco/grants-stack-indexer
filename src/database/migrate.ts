@@ -219,6 +219,26 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .execute();
 
   await schema
+    .createTable("applications_payouts")
+    .addColumn("id", "serial", (col) => col.primaryKey())
+    .addColumn("chainId", CHAIN_ID_TYPE)
+    .addColumn("applicationId", "text")
+    .addColumn("roundId", "text")
+    .addColumn("amount", BIGINT_TYPE)
+    .addColumn("tokenAddress", ADDRESS_TYPE)
+    .addColumn("amountInUSD", "real")
+    .addColumn("amountInRoundMatchToken", "text")
+    .addColumn("transactionHash", "text")
+    .addForeignKeyConstraint(
+      "applications_payouts_applications_fkey",
+      ["chainId", "roundId", "applicationId"],
+      "applications",
+      ["chainId", "roundId", "id"],
+      (cb) => cb.onDelete("cascade")
+    )
+    .execute();
+
+  await schema
     .createTable("donations")
 
     .addColumn("id", "text")

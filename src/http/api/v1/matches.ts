@@ -24,6 +24,7 @@ import {
 } from "../../../calculator/calculateMatchingEstimates.js";
 import { linearQFWithAggregates } from "pluralistic";
 import { DeprecatedRound } from "../../../deprecatedJsonDatabase.js";
+import { getAddress } from "viem";
 
 function createLinearQf(
   config: HttpApiConfig["calculator"]["esimatesLinearQfImplementation"]
@@ -103,7 +104,9 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     useOverrides: boolean
   ) {
     const chainId = Number(req.params.chainId);
-    const roundId = req.params.roundId;
+    const roundId = req.params.roundId.startsWith("0x")
+      ? getAddress(req.params.roundId)
+      : req.params.roundId;
 
     if (roundId === null) {
       throw new ClientError("Invalid round id", 400);
@@ -178,7 +181,10 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     okStatusCode: number
   ) {
     const chainId = Number(req.params.chainId);
-    const roundId = req.params.roundId;
+    const roundId = req.params.roundId.startsWith("0x")
+      ? getAddress(req.params.roundId)
+      : req.params.roundId;
+
     const potentialVotes = estimateRequestBody
       .parse(req.body)
       .potentialVotes.map((vote) => ({

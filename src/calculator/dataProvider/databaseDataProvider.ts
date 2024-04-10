@@ -12,6 +12,14 @@ import { parseAddress } from "../../address.js";
 import { FileNotFoundError } from "../errors.js";
 import { z } from "zod";
 
+function parseRoundId(id: string): string {
+  if (id.startsWith("0x")) {
+    return parseAddress(id);
+  }
+
+  return id;
+}
+
 export class DatabaseDataProvider implements DataProvider {
   #db: Database;
 
@@ -105,7 +113,7 @@ export class DatabaseDataProvider implements DataProvider {
       segments[3] === "applications.json"
     ) {
       const chainId = Number(segments[0]);
-      const roundId = segments[2];
+      const roundId = parseRoundId(segments[2]);
 
       const applications = await this.#db.getAllRoundApplications(
         chainId,
@@ -126,7 +134,7 @@ export class DatabaseDataProvider implements DataProvider {
       segments[3] === "votes.json"
     ) {
       const chainId = Number(segments[0]);
-      const roundId = segments[2];
+      const roundId = parseRoundId(segments[2]);
 
       const donations = await this.#db.getAllRoundDonations(chainId, roundId);
 

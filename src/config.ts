@@ -10,7 +10,7 @@ import os from "node:os";
 type ChainId = number;
 type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114;
 
-const CHAIN_DATA_VERSION = "57";
+const CHAIN_DATA_VERSION = "59";
 
 export type Token = {
   code: string;
@@ -189,6 +189,15 @@ const CHAINS: Chain[] = [
         priceSource: {
           chainId: 10,
           address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "OP",
+        address: "0x4200000000000000000000000000000000000042",
+        decimals: 18,
+        priceSource: {
+          chainId: 10,
+          address: "0x4200000000000000000000000000000000000042",
         },
       },
     ],

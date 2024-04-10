@@ -235,3 +235,17 @@ export type LegacyProjectTable = {
 };
 
 export type NewLegacyProject = Insertable<LegacyProjectTable>;
+
+export type ApplicationPayout = {
+  id: Generated<number>;
+  chainId: ChainId;
+  roundId: string;
+  applicationId: string;
+  amount: bigint;
+  tokenAddress: Address;
+  amountInUsd: number;
+  amountInRoundMatchToken: bigint;
+  transactionHash: Hex;
+};
+
+export type NewApplicationPayout = Insertable<ApplicationPayout>;
