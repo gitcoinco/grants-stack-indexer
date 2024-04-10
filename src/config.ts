@@ -10,7 +10,7 @@ import os from "node:os";
 type ChainId = number;
 type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114 | 713715;
 
-const CHAIN_DATA_VERSION = "59";
+const CHAIN_DATA_VERSION = "60";
 
 export type Token = {
   code: string;
@@ -1490,13 +1490,13 @@ const CHAINS: Chain[] = [
       // Allo V2
       {
         contractName: "AlloV2/Registry/V1",
-        address: "0xCcA86119655C0e9A2e1598e351F9F4F5187F6a2a",
-        fromBlock: 14570265,
+        address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+        fromBlock: 14660337,
       },
       {
         contractName: "AlloV2/Allo/V1",
-        address: "0x5B47c6aFE27b0F5C8319366C6b8FbC0E02104b98",
-        fromBlock: 14570265,
+        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+        fromBlock: 14661917,
       },
     ],
   },
