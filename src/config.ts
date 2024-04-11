@@ -1103,7 +1103,7 @@ const CHAINS: Chain[] = [
     ],
     subscriptions: [
       {
-        address: "0xb0F4882184EB6,e3ed120c5181651D50719329788",
+        address: "0xb0F4882184EB6e3ed120c5181651D50719329788",
         contractName: "AlloV1/ProjectRegistry/V2",
       },
       {
@@ -1131,17 +1131,16 @@ const CHAINS: Chain[] = [
         address: "0x6D341814Be4E2316142D9190E390b494F1dECFAf",
         fromBlock: 14412765,
       },
-      // Allo V2 - not deployed yet
-      // {
-      //   address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
-      //   contractName: "AlloV2/Registry/V1",
-      //   fromBlock: 14412765,
-      // },
-      // {
-      //   contractName: "AlloV2/Allo/V1",
-      //   address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
-      //   fromBlock: 14412765,
-      // },
+      {
+        address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+        contractName: "AlloV2/Registry/V1",
+        fromBlock: 14412765,
+      },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+        fromBlock: 14412765,
+      },
     ],
   },
   {
