@@ -11,6 +11,7 @@ const platforms: { [key: number]: string } = {
   10: "optimistic-ethereum",
   42161: "arbitrum-one",
   43114: "avalanche",
+  713715: "sei-network",
 };
 
 const nativeTokens: { [key: number]: string } = {
