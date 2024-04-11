@@ -1503,6 +1503,8 @@ export type Config = {
   passportScorerId: number;
   logLevel: "trace" | "debug" | "info" | "warn" | "error";
   httpServerWaitForSync: boolean;
+  httpServerEnabled: boolean;
+  indexerEnabled: boolean;
   ipfsGateway: string;
   coingeckoApiKey: string | null;
   coingeckoApiUrl: string;
@@ -1588,6 +1590,12 @@ export function getConfig(): Config {
       "http-wait-for-sync": {
         type: "string",
       },
+      http: {
+        type: "boolean",
+      },
+      indexer: {
+        type: "boolean",
+      },
     },
   });
 
@@ -1638,14 +1646,15 @@ export function getConfig(): Config {
     .default(null)
     .parse(process.env.SENTRY_DSN);
 
-  const hostname = os.hostname();
-
   const databaseUrl = z.string().url().parse(process.env.DATABASE_URL);
 
-  const sqlSafeHostname = hostname.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
-  const databaseSchemaName = `chain_data_${sqlSafeHostname}_${CHAIN_DATA_VERSION}`;
+  const databaseSchemaName = `chain_data_${CHAIN_DATA_VERSION}`;
 
   const dropDb = z.boolean().default(false).parse(args["drop-db"]);
+
+  const parseBoolean = z
+    .boolean()
+    .or(z.enum(["true", "false"]).transform((value) => value === "true"));
 
   const estimatesLinearQfWorkerPoolSize = z.coerce
     .number()
@@ -1658,6 +1667,14 @@ export function getConfig(): Config {
     .default("true")
     .transform((value) => value === "true")
     .parse(args["http-wait-for-sync"] ?? process.env.HTTP_SERVER_WAIT_FOR_SYNC);
+
+  const httpServerEnabled = parseBoolean
+    .default(false)
+    .parse(args["http"] ?? process.env.HTTP_ENABLED);
+
+  const indexerEnabled = parseBoolean
+    .default(false)
+    .parse(args["indexer"] ?? process.env.INDEXER_ENABLED);
 
   return {
     buildTag: buildTag,
@@ -1680,6 +1697,8 @@ export function getConfig(): Config {
     dropDb,
     databaseSchemaName,
     httpServerWaitForSync,
+    httpServerEnabled,
+    indexerEnabled,
     hostname: os.hostname(),
     estimatesLinearQfWorkerPoolSize,
   };
