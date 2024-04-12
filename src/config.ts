@@ -1651,15 +1651,21 @@ export function getConfig(): Config {
 
   const chains = z
     .string()
-    .parse(process.env.INDEXED_CHAINS)
-    .split(",")
-    .map((chainName) => {
-      const c = CHAINS.find((chain) => chain.name === chainName);
-      if (c === undefined) {
-        throw new Error(`Chain ${chainName} not configured`);
+    .or(z.literal("all"))
+    .transform((value) => {
+      if (value === "all") {
+        return CHAINS;
       }
-      return c;
-    });
+
+      return value.split(",").map((chainName) => {
+        const c = CHAINS.find((chain) => chain.name === chainName);
+        if (c === undefined) {
+          throw new Error(`Chain ${chainName} not configured`);
+        }
+        return c;
+      });
+    })
+    .parse(process.env.INDEXED_CHAINS);
 
   const toBlock = z
     .literal("latest")

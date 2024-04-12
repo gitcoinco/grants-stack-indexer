@@ -19,7 +19,7 @@ kill_timeout = '5s'
 [env]
   DEPLOYMENT_ENVIRONMENT = 'production'
   ENABLE_RESOURCE_MONITOR = 'true'
-  INDEXED_CHAINS = 'scroll'
+  INDEXED_CHAINS = 'all'
   LOG_LEVEL = 'debug'
   NODE_OPTIONS = '--max-old-space-size=4096'
   PORT = '8080'
