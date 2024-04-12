@@ -8,9 +8,9 @@ import { Address, Hex } from "./types.js";
 import os from "node:os";
 
 type ChainId = number;
-type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114;
+type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114 | 713715;
 
-const CHAIN_DATA_VERSION = "59";
+const CHAIN_DATA_VERSION = "60";
 
 export type Token = {
   code: string;
@@ -1066,85 +1066,6 @@ const CHAINS: Chain[] = [
     ],
   },
   {
-    id: 280,
-    name: "zksync-era-testnet",
-    rpc: rpcUrl
-      .default("https://testnet.era.zksync.dev")
-      .parse(process.env.ZKSYNC_TESTNET_RPC_URL),
-    pricesFromTimestamp: Date.UTC(2023, 12, 1, 0, 0, 0),
-    tokens: [
-      {
-        code: "ETH",
-        address: "0x0000000000000000000000000000000000000000",
-        decimals: 18,
-        priceSource: {
-          chainId: 1,
-          address: "0x0000000000000000000000000000000000000000",
-        },
-      },
-      {
-        code: "ETH",
-        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-        decimals: 18,
-        priceSource: {
-          chainId: 1,
-          address: "0x0000000000000000000000000000000000000000",
-        },
-      },
-      {
-        code: "TEST",
-        address: "0x8fd03Cd97Da068CC242Ab7551Dc4100DD405E8c7",
-        decimals: 18,
-        priceSource: {
-          chainId: 1,
-          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-        },
-      },
-    ],
-    subscriptions: [
-      {
-        address: "0xb0F4882184EB6,e3ed120c5181651D50719329788",
-        contractName: "AlloV1/ProjectRegistry/V2",
-      },
-      {
-        address: "0x0Bb6e2dfEaef0Db5809B3979717E99e053Cbae72",
-        contractName: "AlloV1/RoundFactory/V2",
-        fromBlock: 14410000,
-      },
-      {
-        address: "0x8c28F21D2d8C53eedC58bF9cdCfb7DCF7d809d97",
-        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
-        fromBlock: 14410000,
-      },
-      {
-        contractName: "AlloV1/MerklePayoutStrategyFactory/V2",
-        address: "0xbA160C13F8F626e3232078aDFD6eD2f2B2289563",
-        fromBlock: 14410000,
-      },
-      {
-        contractName: "AlloV1/DirectPayoutStrategyFactory/V2",
-        address: "0x4170665B31bC10009f8a69CeaACf3265C3d66797",
-        fromBlock: 14410000,
-      },
-      {
-        contractName: "AlloV1/ProgramFactory/V1",
-        address: "0x6D341814Be4E2316142D9190E390b494F1dECFAf",
-        fromBlock: 14412765,
-      },
-      // Allo V2 - not deployed yet
-      // {
-      //   address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
-      //   contractName: "AlloV2/Registry/V1",
-      //   fromBlock: 14412765,
-      // },
-      // {
-      //   contractName: "AlloV2/Allo/V1",
-      //   address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
-      //   fromBlock: 14412765,
-      // },
-    ],
-  },
-  {
     id: 43114,
     name: "avalanche",
     rpc: rpcUrl
@@ -1450,6 +1371,56 @@ const CHAINS: Chain[] = [
       },
     ],
   },
+  {
+    id: 713715,
+    name: "sei-devnet",
+    rpc: rpcUrl
+      .default("https://evm-rpc-arctic-1.sei-apis.com")
+      .parse(process.env.SEI_DEVNET_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "SEI",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 713715,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "SEI",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 713715,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "WSEI",
+        address: "0x26841a0A5D958B128209F4ea9a1DD7E61558c330",
+        decimals: 18,
+        priceSource: {
+          chainId: 713715,
+          address: "0x26841a0A5D958B128209F4ea9a1DD7E61558c330",
+        },
+      },
+    ],
+    subscriptions: [
+      // Allo V2
+      {
+        contractName: "AlloV2/Registry/V1",
+        address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+        fromBlock: 14660337,
+      },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+        fromBlock: 14661917,
+      },
+    ],
+  },
 ];
 
 export const getDecimalsForToken = (
@@ -1601,15 +1572,21 @@ export function getConfig(): Config {
 
   const chains = z
     .string()
-    .parse(process.env.INDEXED_CHAINS)
-    .split(",")
-    .map((chainName) => {
-      const c = CHAINS.find((chain) => chain.name === chainName);
-      if (c === undefined) {
-        throw new Error(`Chain ${chainName} not configured`);
+    .or(z.literal("all"))
+    .transform((value) => {
+      if (value === "all") {
+        return CHAINS;
       }
-      return c;
-    });
+
+      return value.split(",").map((chainName) => {
+        const c = CHAINS.find((chain) => chain.name === chainName);
+        if (c === undefined) {
+          throw new Error(`Chain ${chainName} not configured`);
+        }
+        return c;
+      });
+    })
+    .parse(process.env.INDEXED_CHAINS);
 
   const toBlock = z
     .literal("latest")
