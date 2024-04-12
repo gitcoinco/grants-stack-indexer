@@ -8,9 +8,9 @@ import { Address, Hex } from "./types.js";
 import os from "node:os";
 
 type ChainId = number;
-type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114;
+type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114 | 713715;
 
-const CHAIN_DATA_VERSION = "59";
+const CHAIN_DATA_VERSION = "60";
 
 export type Token = {
   code: string;
@@ -1449,6 +1449,56 @@ const CHAINS: Chain[] = [
       },
     ],
   },
+  {
+    id: 713715,
+    name: "sei-devnet",
+    rpc: rpcUrl
+      .default("https://evm-rpc-arctic-1.sei-apis.com")
+      .parse(process.env.SEI_DEVNET_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "SEI",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 713715,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "SEI",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 713715,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "WSEI",
+        address: "0x26841a0A5D958B128209F4ea9a1DD7E61558c330",
+        decimals: 18,
+        priceSource: {
+          chainId: 713715,
+          address: "0x26841a0A5D958B128209F4ea9a1DD7E61558c330",
+        },
+      },
+    ],
+    subscriptions: [
+      // Allo V2
+      {
+        contractName: "AlloV2/Registry/V1",
+        address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+        fromBlock: 14660337,
+      },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+        fromBlock: 14661917,
+      },
+    ],
+  },
 ];
 
 export const getDecimalsForToken = (
@@ -1600,15 +1650,21 @@ export function getConfig(): Config {
 
   const chains = z
     .string()
-    .parse(process.env.INDEXED_CHAINS)
-    .split(",")
-    .map((chainName) => {
-      const c = CHAINS.find((chain) => chain.name === chainName);
-      if (c === undefined) {
-        throw new Error(`Chain ${chainName} not configured`);
+    .or(z.literal("all"))
+    .transform((value) => {
+      if (value === "all") {
+        return CHAINS;
       }
-      return c;
-    });
+
+      return value.split(",").map((chainName) => {
+        const c = CHAINS.find((chain) => chain.name === chainName);
+        if (c === undefined) {
+          throw new Error(`Chain ${chainName} not configured`);
+        }
+        return c;
+      });
+    })
+    .parse(process.env.INDEXED_CHAINS);
 
   const toBlock = z
     .literal("latest")
