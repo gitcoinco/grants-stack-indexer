@@ -1052,17 +1052,16 @@ const CHAINS: Chain[] = [
         address: "0x68a14AF71BFa0FE09fC937033f6Ea5153c0e75e4",
         fromBlock: 20907048,
       },
-      // Allo V2 - not deployed yet
-      // {
-      //   address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
-      //   contractName: "AlloV2/Registry/V1",
-      //   fromBlock: 20907048,
-      // },
-      // {
-      //   contractName: "AlloV2/Allo/V1",
-      //   address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
-      //   fromBlock: 20907048,
-      // },
+      {
+        contractName: "AlloV2/Registry/V1",
+        address: "0xaa376Ef759c1f5A8b0B5a1e2FEC5C23f3bF30246",
+        fromBlock: 31154341,
+      },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0x9D1D1BF2835935C291C0f5228c86d5C4e235A249",
+        fromBlock: 31154408,
+      },
     ],
   },
   {
