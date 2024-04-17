@@ -1068,7 +1068,7 @@ const CHAINS: Chain[] = [
     id: 280,
     name: "zksync-era-testnet",
     rpc: rpcUrl
-      .default("https://testnet.era.zksync.dev")
+      .default("https://sepolia.era.zksync.dev")
       .parse(process.env.ZKSYNC_TESTNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2023, 12, 1, 0, 0, 0),
     tokens: [
