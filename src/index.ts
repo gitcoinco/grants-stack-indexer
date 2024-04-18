@@ -16,10 +16,9 @@ import { throttle } from "throttle-debounce";
 import * as pg from "pg";
 const { Pool, types } = pg.default;
 
-import { postgraphile, makePluginHook } from "postgraphile";
+import { postgraphile } from "postgraphile";
 import ConnectionFilterPlugin from "postgraphile-plugin-connection-filter";
 import PgSimplifyInflectorPlugin from "@graphile-contrib/pg-simplify-inflector";
-import GraphilePro from "@graphile/pro";
 
 import { createPassportProvider, PassportProvider } from "./passport/index.js";
 
@@ -263,8 +262,6 @@ async function main(): Promise<void> {
       ...(config.httpServerWaitForSync ? [indexChainsPromise] : []),
     ]);
 
-    const pluginHook = makePluginHook([GraphilePro.default]);
-
     // TODO: use read only connection, use separate pool?
     const graphqlHandler = postgraphile(
       databaseConnectionPool,
@@ -278,7 +275,6 @@ async function main(): Promise<void> {
         disableDefaultMutations: true,
         dynamicJson: true,
         bodySizeLimit: "100kb", // response body limit
-        pluginHook,
         // disableQueryLog: false,
         // allowExplain: (req) => {
         //   return true;
@@ -310,8 +306,10 @@ async function main(): Promise<void> {
           ],
         },
 
-        defaultPaginationCap: 1000,
-        graphqlDepthLimit: 4,
+        // TODO: buy pro version?
+        // defaultPaginationCap: 1000,
+        // readOnlyConnection: true,
+        // graphqlDepthLimit: 2
       }
     );
 
