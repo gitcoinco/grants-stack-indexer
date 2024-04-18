@@ -181,6 +181,7 @@ async function main(): Promise<void> {
   }
 
   async function indexChains(isFirstRun = false) {
+    console.log("acquiring");
     const lock = await db.acquireWriteLock();
 
     if (lock !== null) {
