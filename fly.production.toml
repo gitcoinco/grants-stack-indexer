@@ -51,7 +51,7 @@ kill_timeout = '5s'
     port = 8080 
     timeout = "10s"
     type = "http"
-    processes = ['web', 'indexer_green']
+    processes = ['web', 'indexer']
 
 [[vm]]
   memory = '4gb'
