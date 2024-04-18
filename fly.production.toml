@@ -19,6 +19,7 @@ kill_timeout = '5s'
   NODE_OPTIONS = '--max-old-space-size=4096'
   PORT = '8080'
   STORAGE_DIR = '/mnt/indexer'
+  ESTIMATES_LINEARQF_WORKER_POOL_SIZE=10
 
 [processes]
   indexer = 'npm start -- --indexer --http'
