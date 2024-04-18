@@ -217,7 +217,9 @@ async function main(): Promise<void> {
             void chain.stop();
           }
 
-          void indexChains();
+          setTimeout(() => {
+            void indexChains();
+          }, 0);
         });
       }
 
