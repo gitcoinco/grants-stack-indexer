@@ -16,9 +16,9 @@ jobs:
 
       - name: Set variables for production
         run: |
-          echo "DEPLOYMENT_ENVIRONMENT=staging" >> $GITHUB_ENV
+          echo "DEPLOYMENT_ENVIRONMENT=indexer-v2" >> $GITHUB_ENV
           echo "GIT_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")" >> $GITHUB_ENV
-          echo "FLY_APP_NAME=indexer-staging" >> $GITHUB_ENV
+          echo "FLY_APP_NAME=indexer-v2" >> $GITHUB_ENV
         if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and test
