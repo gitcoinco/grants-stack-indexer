@@ -34,7 +34,7 @@ jobs:
 
       - name: Deploy Indexer
         run: |
-          flyctl -c fly.${{ env.DEPLOYMENT_ENVIRONMENT }}.toml deploy --wait-timeout=7200 --env BUILD_TAG=`git rev-parse --short HEAD` --image registry.fly.io/$FLY_APP_NAME:deployment-$GIT_SHA_SHORT --process-groups=indexer 
+          flyctl -c fly.${{ env.DEPLOYMENT_ENVIRONMENT }}.toml deploy --wait-timeout=7200 --env BUILD_TAG=`git rev-parse --short HEAD` --image registry.fly.io/$FLY_APP_NAME:deployment-$GIT_SHA_SHORT --process-groups=indexer
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
