@@ -85,9 +85,8 @@ export class Database {
   }
 
   async acquireWriteLock() {
-    console.log("acquiring 2");
     const client = await this.#connectionPool.connect();
-    console.log("acquiring 3");
+
     // generate lock id based on schema
     const lockId = this.databaseSchemaName.split("").reduce((acc, char) => {
       return acc + char.charCodeAt(0);
