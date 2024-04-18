@@ -108,8 +108,9 @@ export class Database {
       }
     } catch (error) {
       this.#logger.error({ error }, "Failed to acquire write lock");
-      client.release();
     }
+
+    client.release();
 
     return null;
   }
