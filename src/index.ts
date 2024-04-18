@@ -240,11 +240,11 @@ async function main(): Promise<void> {
   });
 
   if (config.indexerEnabled) {
-    indexChainsPromise = indexChains();
+    indexChainsPromise = indexChains(true);
   }
 
   if (config.runOnce && indexChainsPromise) {
-    await indexChains();
+    await indexChainsPromise;
     baseLogger.info("exiting");
     return;
   }
