@@ -46,21 +46,26 @@ const UPDATE_STATS_EVERY_MS = 60_000;
 
 export class Database {
   #db: KyselyDb;
+  #connectionPool: Pool;
   #roundMatchTokenCache = new LRUCache<string, Address>({ max: 500 });
   #donationQueue: NewDonation[] = [];
   #donationBatchTimeout: ReturnType<typeof setTimeout> | null = null;
   #statsTimeout: ReturnType<typeof setTimeout> | null = null;
+  #logger: Logger;
 
   readonly databaseSchemaName: string;
 
   constructor(options: {
     statsUpdaterEnabled: boolean;
+    logger: Logger;
     connectionPool: Pool;
     schemaName: string;
   }) {
     const dialect = new PostgresDialect({
       pool: options.connectionPool,
     });
+
+    this.#connectionPool = options.connectionPool;
 
     this.#db = new Kysely<Tables>({
       dialect,
@@ -69,6 +74,7 @@ export class Database {
 
     this.#db = this.#db.withSchema(options.schemaName);
 
+    this.#logger = options.logger;
     this.databaseSchemaName = options.schemaName;
 
     this.scheduleDonationQueueFlush();
@@ -76,6 +82,36 @@ export class Database {
     if (options.statsUpdaterEnabled) {
       this.scheduleStatsUpdate();
     }
+  }
+
+  async acquireWriteLock() {
+    const client = await this.#connectionPool.connect();
+    // generate lock id based on schema
+    const lockId = this.databaseSchemaName.split("").reduce((acc, char) => {
+      return acc + char.charCodeAt(0);
+    }, 0);
+
+    try {
+      const result = await client.query(
+        `SELECT pg_try_advisory_lock(${lockId}) as lock`
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (result.rows[0].lock === true) {
+        return {
+          release: async () => {
+            await client.query(`SELECT pg_advisory_unlock(${lockId})`);
+            client.release();
+          },
+          client,
+        };
+      }
+    } catch (error) {
+      this.#logger.error({ error }, "Failed to acquire write lock");
+      client.release();
+    }
+
+    return null;
   }
 
   private scheduleStatsUpdate() {

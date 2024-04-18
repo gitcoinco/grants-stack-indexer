@@ -1,8 +1,3 @@
-# fly.toml app configuration file generated for indexer-v2 on 2024-03-26T14:50:51+07:00
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
-
 app = 'indexer-v2'
 primary_region = 'den'
 kill_signal = 'SIGINT'
@@ -19,7 +14,7 @@ kill_timeout = '5s'
 [env]
   DEPLOYMENT_ENVIRONMENT = 'production'
   ENABLE_RESOURCE_MONITOR = 'true'
-  INDEXED_CHAINS = 'all'
+  INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-testnet,pgn-mainnet,arbitrum,polygon,sepolia,avalanche,avalanche-fuji,scroll,scroll-sepolia,base,zksync-era-mainnet"
   LOG_LEVEL = 'debug'
   NODE_OPTIONS = '--max-old-space-size=4096'
   PORT = '8080'
@@ -56,7 +51,7 @@ kill_timeout = '5s'
     port = 8080 
     timeout = "10s"
     type = "http"
-    processes = ['web', 'indexer']
+    processes = ['web', 'indexer_green']
 
 [[vm]]
   memory = '4gb'

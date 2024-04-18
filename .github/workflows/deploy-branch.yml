@@ -16,28 +16,29 @@ jobs:
 
       - name: Set variables for production
         run: |
-          echo "DEPLOYMENT_ENVIRONMENT=production" >> $GITHUB_ENV
-          echo "DEPLOYMENT_URL=https://indexer-v2.fly.dev" >> $GITHUB_ENV
+          echo "DEPLOYMENT_ENVIRONMENT=staging" >> $GITHUB_ENV
+          echo "GIT_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")" >> $GITHUB_ENV
+          echo "FLY_APP_NAME=indexer-staging" >> $GITHUB_ENV
         if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and test
         run: |
-          flyctl -c fly.${{ env.DEPLOYMENT_ENVIRONMENT }}.toml deploy --remote-only --build-only
+          flyctl -c fly.${{ env.DEPLOYMENT_ENVIRONMENT }}.toml deploy --remote-only --build-only --push --image-label deployment-$GIT_SHA_SHORT
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy Indexer
         run: |
-          flyctl -c fly.${{ env.DEPLOYMENT_ENVIRONMENT }}.toml deploy --process-groups=indexer --remote-only --wait-timeout=7200 --env BUILD_TAG=`git rev-parse --short HEAD`
+          flyctl -c fly.${{ env.DEPLOYMENT_ENVIRONMENT }}.toml deploy --process-groups=indexer --wait-timeout=7200 --env BUILD_TAG=`git rev-parse --short HEAD` --image registry.fly.io/$FLY_APP_NAME:deployment-$GIT_SHA_SHORT
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
-      - name: Deploy HTTP
+      - name: Deploy Web
         run: |
-          flyctl -c fly.${{ env.DEPLOYMENT_ENVIRONMENT }}.toml deploy --process-groups=web --remote-only --wait-timeout=7200 --env BUILD_TAG=`git rev-parse --short HEAD`
+          flyctl -c fly.${{ env.DEPLOYMENT_ENVIRONMENT }}.toml deploy --process-groups=web --wait-timeout=7200 --env BUILD_TAG=`git rev-parse --short HEAD` --image registry.fly.io/$FLY_APP_NAME:deployment-$GIT_SHA_SHORT
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Smoke test
         run: |
-          curl --silent --show-error --fail-with-body ${{ env.DEPLOYMENT_URL }}/api/v1/status
+          curl --silent --show-error --fail-with-body https://${{ env.FLY_APP_NAME }}.fly.dev/api/v1/status

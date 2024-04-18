@@ -1,0 +1,54 @@
+app = "indexer-staging"
+primary_region = "den"
+kill_signal = "SIGINT"
+kill_timeout = 5
+
+[experimental]
+  auto_rollback = true
+
+[env]
+  PORT = "8080"
+  DEPLOYMENT_ENVIRONMENT = "staging"
+  LOG_LEVEL = "debug"
+  STORAGE_DIR = "/mnt/indexer"
+  INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-testnet,pgn-mainnet,arbitrum,polygon,sepolia,avalanche,avalanche-fuji,scroll,scroll-sepolia,base,zksync-era-mainnet,sei-devnet"
+  ENABLE_RESOURCE_MONITOR = "true"
+  NODE_OPTIONS="--max-old-space-size=7168"
+
+[processes]
+  web = "npm start -- --indexer --http"
+
+[mounts]
+  source="indexer_staging"
+  destination="/mnt/indexer"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 8080
+  processes = ["web"]
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  [[services.tcp_checks]]
+    interval = "30s"
+    timeout = "10s"
+    grace_period = "1m"
+
+  [[services.http_checks]]
+    interval = "60s"
+    grace_period = "1m"
+    timeout = "5s"
+    method = "get"
+    path = "/api/v1/status"
+    protocol = "http"

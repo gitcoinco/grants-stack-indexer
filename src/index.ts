@@ -98,6 +98,7 @@ async function main(): Promise<void> {
   });
 
   const db = new Database({
+    logger: baseLogger.child({ subsystem: "Database" }),
     statsUpdaterEnabled: config.indexerEnabled,
     connectionPool: databaseConnectionPool,
     schemaName: config.databaseSchemaName,
@@ -117,20 +118,6 @@ async function main(): Promise<void> {
         ")"
     ),
   });
-
-  if (config.dropDb) {
-    baseLogger.info("dropping schema");
-    await db.dropSchemaIfExists();
-  }
-
-  await db.createSchemaIfNotExists(baseLogger);
-
-  const subscriptionStore = createPostgresSubscriptionStore({
-    pool: databaseConnectionPool,
-    schema: config.databaseSchemaName,
-  });
-
-  await subscriptionStore.init();
 
   // the chainsauce cache is used to cache events and contract reads
   const chainsauceCache = config.cacheDir
@@ -193,134 +180,168 @@ async function main(): Promise<void> {
     });
   }
 
-  if (config.runOnce && config.indexerEnabled) {
-    await Promise.all(
-      config.chains.map(async (chain) =>
-        catchupAndWatchChain({
-          chainsauceCache,
-          chain,
-          db,
-          subscriptionStore,
-          baseLogger,
-          priceProvider,
-          ...config,
-        })
-      )
-    );
-    baseLogger.info("exiting");
-  } else {
-    // Promises will be resolved once the initial catchup is done. Afterwards, services
-    // will still be in listen-and-update mode.
-    let chains: Promise<void>[] = [];
+  async function indexChains(isFirstRun = false) {
+    const lock = await db.acquireWriteLock();
 
-    if (config.indexerEnabled) {
-      chains = config.chains.map((chain) =>
-        catchupAndWatchChain({
-          chainsauceCache,
-          chain,
-          db,
-          subscriptionStore,
-          baseLogger,
-          priceProvider,
-          ...config,
-        })
-      );
-    }
+    if (lock !== null) {
+      baseLogger.info("acquired write lock");
 
-    if (config.httpServerEnabled) {
-      const [passportProvider] = await Promise.all([
-        catchupAndWatchPassport({
-          ...config,
-          baseLogger,
-          runOnce: config.runOnce,
-        }),
-        ...(config.httpServerWaitForSync ? chains : []),
-      ]);
-
-      // TODO: use read only connection, use separate pool?
-      const graphqlHandler = postgraphile(
-        databaseConnectionPool,
-        config.databaseSchemaName,
-        {
-          watchPg: false,
-          graphqlRoute: "/graphql",
-          graphiql: true,
-          graphiqlRoute: "/graphiql",
-          enhanceGraphiql: true,
-          disableDefaultMutations: true,
-          dynamicJson: true,
-          bodySizeLimit: "100kb", // response body limit
-          // disableQueryLog: false,
-          // allowExplain: (req) => {
-          //   return true;
-          // },
-          appendPlugins: [
-            PgSimplifyInflectorPlugin.default,
-            ConnectionFilterPlugin,
-          ],
-          legacyRelations: "omit",
-          setofFunctionsContainNulls: false,
-          exportGqlSchemaPath: "./schema.graphql",
-          simpleCollections: "only",
-          graphileBuildOptions: {
-            pgOmitListSuffix: true,
-            pgShortPk: true,
-            connectionFilterRelations: true,
-            connectionFilterUseListInflectors: true,
-            connectionFilterAllowedOperators: [
-              "isNull",
-              "equalTo",
-              "notEqualTo",
-              "lessThan",
-              "lessThanOrEqualTo",
-              "greaterThan",
-              "greaterThanOrEqualTo",
-              "in",
-              "notIn",
-              "contains",
-            ],
-          },
-
-          // TODO: buy pro version?
-          // defaultPaginationCap: 1000,
-          // readOnlyConnection: true,
-          // graphqlDepthLimit: 2
+      if (isFirstRun) {
+        if (config.dropDb) {
+          baseLogger.info("dropping schema");
+          await db.dropSchemaIfExists();
         }
+
+        await db.createSchemaIfNotExists(baseLogger);
+        await subscriptionStore.init();
+      }
+
+      const chains = config.chains.map((chain) =>
+        catchupAndWatchChain({
+          chainsauceCache,
+          chain,
+          db,
+          subscriptionStore,
+          baseLogger,
+          priceProvider,
+          ...config,
+        })
       );
 
-      const httpApi = createHttpApi({
-        db,
-        priceProvider,
-        passportProvider: passportProvider,
-        dataProvider: new CachedDataProvider({
-          dataProvider: new DatabaseDataProvider(db),
-          cache: new TTLCache({
-            max: 10,
-            ttl: 1000 * 60 * 1, // 1 minute
-          }),
-        }),
-        port: config.apiHttpPort,
-        logger: baseLogger.child({ subsystem: "HttpApi" }),
-        buildTag: config.buildTag,
-        chains: config.chains,
-        hostname: config.hostname,
-        graphqlHandler: graphqlHandler,
-        enableSentry: config.sentryDsn !== null,
-        calculator: {
-          esimatesLinearQfImplementation:
-            config.estimatesLinearQfWorkerPoolSize === null
-              ? {
-                  type: "in-thread",
-                }
-              : {
-                  type: "worker-pool",
-                  workerPoolSize: config.estimatesLinearQfWorkerPoolSize,
-                },
-        },
-      });
+      if (!config.runOnce) {
+        lock.client.on("end", async () => {
+          baseLogger.info("lost write lock, stopping chains");
 
-      await httpApi.start();
+          for await (const chain of chains) {
+            void chain.stop();
+          }
+
+          void indexChains();
+        });
+      }
+
+      return Promise.all(chains);
     }
+
+    if (config.runOnce) {
+      return null;
+    }
+
+    await new Promise((r) => setTimeout(r, 5000));
+
+    return indexChains();
+  }
+
+  let indexChainsPromise;
+
+  const subscriptionStore = createPostgresSubscriptionStore({
+    pool: databaseConnectionPool,
+    schema: config.databaseSchemaName,
+  });
+
+  if (config.indexerEnabled) {
+    indexChainsPromise = indexChains();
+  }
+
+  if (config.runOnce && indexChainsPromise) {
+    await indexChains();
+    baseLogger.info("exiting");
+    return;
+  }
+
+  if (config.httpServerEnabled) {
+    const [passportProvider] = await Promise.all([
+      catchupAndWatchPassport({
+        ...config,
+        baseLogger,
+        runOnce: config.runOnce,
+      }),
+      ...(config.httpServerWaitForSync ? [indexChainsPromise] : []),
+    ]);
+
+    // TODO: use read only connection, use separate pool?
+    const graphqlHandler = postgraphile(
+      databaseConnectionPool,
+      config.databaseSchemaName,
+      {
+        watchPg: false,
+        graphqlRoute: "/graphql",
+        graphiql: true,
+        graphiqlRoute: "/graphiql",
+        enhanceGraphiql: true,
+        disableDefaultMutations: true,
+        dynamicJson: true,
+        bodySizeLimit: "100kb", // response body limit
+        // disableQueryLog: false,
+        // allowExplain: (req) => {
+        //   return true;
+        // },
+        appendPlugins: [
+          PgSimplifyInflectorPlugin.default,
+          ConnectionFilterPlugin,
+        ],
+        legacyRelations: "omit",
+        setofFunctionsContainNulls: false,
+        exportGqlSchemaPath: "./schema.graphql",
+        simpleCollections: "only",
+        graphileBuildOptions: {
+          pgOmitListSuffix: true,
+          pgShortPk: true,
+          connectionFilterRelations: true,
+          connectionFilterUseListInflectors: true,
+          connectionFilterAllowedOperators: [
+            "isNull",
+            "equalTo",
+            "notEqualTo",
+            "lessThan",
+            "lessThanOrEqualTo",
+            "greaterThan",
+            "greaterThanOrEqualTo",
+            "in",
+            "notIn",
+            "contains",
+          ],
+        },
+
+        // TODO: buy pro version?
+        // defaultPaginationCap: 1000,
+        // readOnlyConnection: true,
+        // graphqlDepthLimit: 2
+      }
+    );
+
+    const httpApi = createHttpApi({
+      db,
+      priceProvider,
+      passportProvider: passportProvider,
+      dataProvider: new CachedDataProvider({
+        dataProvider: new DatabaseDataProvider(db),
+        cache: new TTLCache({
+          max: 10,
+          ttl: 1000 * 60 * 1, // 1 minute
+        }),
+      }),
+      port: config.apiHttpPort,
+      logger: baseLogger.child({ subsystem: "HttpApi" }),
+      buildTag: config.buildTag,
+      chains: config.chains,
+      hostname: config.hostname,
+      graphqlHandler: graphqlHandler,
+      enableSentry: config.sentryDsn !== null,
+      calculator: {
+        esimatesLinearQfImplementation:
+          config.estimatesLinearQfWorkerPoolSize === null
+            ? {
+                type: "in-thread",
+              }
+            : {
+                type: "worker-pool",
+                workerPoolSize: config.estimatesLinearQfWorkerPoolSize,
+              },
+      },
+    });
+
+    await httpApi.start();
   }
 }
 
@@ -569,6 +590,8 @@ async function catchupAndWatchChain(
 
       indexer.watch();
     }
+
+    return indexer;
   } catch (err) {
     chainLogger.error({
       msg: `error during initial catch up with chain ${config.chain.id}`,
