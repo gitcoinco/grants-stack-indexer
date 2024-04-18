@@ -181,7 +181,7 @@ async function main(): Promise<void> {
   }
 
   async function indexChains(isFirstRun = false) {
-    baseLogger.info("attempting to acquire write lock");
+    baseLogger.debug("attempting to acquire write lock");
     const lock = await db.acquireWriteLock();
 
     if (lock !== null) {
@@ -228,9 +228,9 @@ async function main(): Promise<void> {
       return null;
     }
 
-    await new Promise((r) => setTimeout(r, 5000));
-
-    return indexChains();
+    setTimeout(() => {
+      void indexChains();
+    }, 5000);
   }
 
   let indexChainsPromise;
