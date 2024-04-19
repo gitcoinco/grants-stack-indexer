@@ -14,7 +14,7 @@ kill_timeout = '5s'
 [env]
   DEPLOYMENT_ENVIRONMENT = 'production'
   ENABLE_RESOURCE_MONITOR = 'false'
-  INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-testnet,pgn-mainnet,arbitrum,polygon,sepolia,avalanche,avalanche-fuji,scroll,scroll-sepolia,base,zksync-era-mainnet"
+  INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-testnet,pgn-mainnet,arbitrum,polygon,sepolia,avalanche,avalanche-fuji,scroll,scroll-sepolia,base,zksync-era-mainnet,zksync-era-testnet"
   LOG_LEVEL = 'debug'
   NODE_OPTIONS = '--max-old-space-size=4096'
   PORT = '8080'
