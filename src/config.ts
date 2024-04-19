@@ -1065,7 +1065,7 @@ const CHAINS: Chain[] = [
     ],
   },
   {
-    id: 280,
+    id: 300,
     name: "zksync-era-testnet",
     rpc: rpcUrl
       .default("https://sepolia.era.zksync.dev")
