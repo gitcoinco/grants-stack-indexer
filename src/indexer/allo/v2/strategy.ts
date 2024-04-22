@@ -99,6 +99,14 @@ export function extractStrategyFromId(_id: string): Strategy | null {
         name: "allov2.DirectGrantsSimpleStrategy",
         groups: ["allov2.DirectGrantsSimpleStrategy"],
       };
+
+    // DirectGrantsLiteStrategyv1.0
+    case "0x103732a8e473467a510d4128ee11065262bdd978f0d9dad89ba68f2c56127e27":
+      return {
+        id: id,
+        name: "allov2.DirectGrantsLiteStrategy",
+        groups: ["allov2.DirectGrantsLiteStrategy"],
+      };
   }
 
   return null;
