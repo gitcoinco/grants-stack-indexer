@@ -768,7 +768,7 @@ export async function handleEvent(
           break;
 
         case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
-        case "alloV2.DirectGrantsLiteStrategy":
+        case "allov2.DirectGrantsLiteStrategy":
           values = decodeDVMDApplicationData(encodedData);
           id = (Number(values.recipientsCounter) - 1).toString();
           break;
