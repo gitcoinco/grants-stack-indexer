@@ -1081,6 +1081,56 @@ export async function handleEvent(
           ];
         }
 
+        case "allov2.DirectGrantsLiteStrategy": {
+
+          const recipientId = parseAddress(event.params.recipientId);
+          const amount = event.params.amount;
+          const tokenAddress = parseAddress(event.params.token);
+          const roundId = round.id;
+          const application = await db.getApplicationByAnchorAddress(
+            chainId,
+            roundId,
+            recipientId
+          );
+
+          const amountInUsd = (
+            await convertToUSD(
+              priceProvider,
+              chainId,
+              tokenAddress,
+              amount,
+              event.blockNumber
+            )
+          ).amount;
+    
+          const amountInRoundMatchToken = (
+            await convertFromUSD(
+              priceProvider,
+              chainId,
+              tokenAddress,
+              amountInUsd,
+              event.blockNumber
+            )
+          ).amount;
+
+          return [
+            {
+              type: "InsertApplicationPayout",
+              payout: {
+                amount,
+                applicationId: application?.id!,
+                roundId,
+                chainId,
+                tokenAddress,
+                amountInRoundMatchToken,
+                amountInUsd,
+                transactionHash: event.transactionHash,
+              },
+            },
+          ];
+
+        }
+
         default: {
           logger.warn({
             msg: `Unsupported strategy ${round.strategyName}`,
