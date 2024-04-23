@@ -1,8 +1,8 @@
-## Application Overview
+# Application Overview
 
 The application is deployed as **indexer-v2** on Fly under the [Gitcoin organization](https://fly.io/dashboard/gtc). If you do not have access to this dashboard, please request permission.
 
-## Fly CLI Installation
+# Fly CLI Installation
 
 Before deploying or managing the application, ensure you have the Fly CLI installed. Follow these steps to install the Fly CLI:
 
@@ -10,7 +10,7 @@ Before deploying or managing the application, ensure you have the Fly CLI instal
 2. Install the CLI following the instructions for your operating system.
 3. Once installed, run `flyctl auth login` to authenticate with your Fly account.
 
-## Fly CLI Usage
+# Fly CLI Usage
 
 ⚠️ Always run Fly commands with an explicit config option, for example:
 
@@ -18,7 +18,7 @@ Before deploying or managing the application, ensure you have the Fly CLI instal
 fly -c fly.production.toml status
 ```
 
-## Components and Architecture
+# Components and Architecture
 
 The [application](../fly.production.toml) contains two main components organized into separate process groups:
 
@@ -31,7 +31,7 @@ The [application](../fly.production.toml) contains two main components organized
 - **Scalability**: The web service can scale horizontally across multiple instances to accommodate increased traffic without affecting the indexer.
 - **Consistency**: The indexer, as a single writer, ensures data consistency and integrity, critical for the database's health and performance.
 
-## Deployment Process
+# Deployment Process
 
 Check the [Github Workflow](../.github/workflows/deploy-branch.yml) to understand how the deployment works.
 
@@ -52,6 +52,54 @@ Check the [Github Workflow](../.github/workflows/deploy-branch.yml) to understan
   - If updating from v50 to v51, two v50 instances may run; one indexes while the other remains idle.
   - Deploying v51 will stop an instance of v50 and start v51, maintaining continuous indexing and high availability.
 
-### Fly Auto-Scaling
+# Operational Tasks
+
+## Logs
+
+Logs are shipped to [Datadog](https://app.datadoghq.eu/logs).
+
+You can also check the latest logs with the [Fly logs](https://fly.io/docs/flyctl/logs/) command.
+
+## Scaling
+
+### Fly Web Auto-Scaling
 
 There are a couple of web instances provisioned, the stopped ones are on stand-by. Fly automatically starts and stops machines based on load.
+
+### Horizontal Scaling
+
+Use the `scale` command to scale up and down the number of machines:
+
+
+```
+flyctl -c fly.production.toml scale web=5
+```
+
+### Vertical Scaling
+
+Show the current CPU and RAM configuration of the machines:
+
+```
+flyctl -c fly.production.toml scale show
+```
+
+Check the available VM size presets:
+
+```
+flyctl platform vm-sizes
+```
+
+Change the VM size:
+
+
+```
+flyctl -c fly.production.toml scale vm performance-1x
+```
+
+Change memory:
+
+```
+flyctl -c fly.production.toml scale memory 2048
+```
+
+
