@@ -1,5 +1,3 @@
-# Application Overview
-
 The application is deployed as **indexer-v2** on Fly under the [Gitcoin organization](https://fly.io/dashboard/gtc). If you do not have access to this dashboard, please request permission.
 
 # Fly CLI Installation
