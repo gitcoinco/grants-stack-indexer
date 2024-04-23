@@ -101,3 +101,6 @@ flyctl -c fly.production.toml scale memory 2048
 ```
 
 
+# Monitoring Performance
+
+Fly hosts a Grafana dashboard [here](https://fly-metrics.net/d/fly-app/fly-app?orgId=179263&var-app=indexer-v2) with LB and instance level metrics.
