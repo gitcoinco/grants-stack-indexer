@@ -12,7 +12,7 @@ Before deploying or managing the application, ensure you have the Fly CLI instal
 
 ## Fly CLI Usage
 
-:warn: Always run Fly commands with an explicit config option, for example:
+⚠️ Always run Fly commands with an explicit config option, for example:
 
 ```
 fly -c fly.production.toml status
