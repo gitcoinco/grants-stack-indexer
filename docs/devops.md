@@ -23,11 +23,7 @@ The [application](../fly.production.toml) contains two main components organized
 - **web**: Handles client requests and must scale horizontally to manage varying loads effectively.
 - **indexer**: Responsible for updating and maintaining the database. Only one active instance runs due to its role as the sole writer to prevent data conflicts.
 
-### Why Separate Process Groups?
-
-- **Decoupling**: Separating the indexer and web processes allows each to be scaled and managed according to its specific needs.
-- **Scalability**: The web service can scale horizontally across multiple instances to accommodate increased traffic without affecting the indexer.
-- **Consistency**: The indexer, as a single writer, ensures data consistency and integrity, critical for the database's health and performance.
+Run `fly -c fly.production.toml status` too see an overview of the deployment.
 
 # Deployment Process
 
