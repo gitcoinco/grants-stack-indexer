@@ -25,7 +25,7 @@ export async function convertFromUSD(
   token: Address,
   amountInUSD: number,
   blockNumber: bigint | "latest"
-): Promise<{ amount: bigint; price: number; timestamp: Date }> {
+): Promise<{ amount: bigint; price: number }> {
   const closestPrice = await priceProvider.getUSDConversionRate(
     chainId,
     token,
@@ -39,7 +39,6 @@ export async function convertFromUSD(
       tokenPriceDecimals: 8,
       tokenDecimals: closestPrice.tokenDecimals,
     }),
-    timestamp: closestPrice.timestamp,
     price: 1 / closestPrice.priceInUsd, // price is the token price in USD, we return the inverse
   };
 }
@@ -50,7 +49,7 @@ export async function convertToUSD(
   token: Address,
   amount: bigint,
   blockNumber: bigint | "latest"
-): Promise<{ amount: number; price: number; timestamp: Date }> {
+): Promise<{ amount: number; price: number }> {
   const closestPrice = await priceProvider.getUSDConversionRate(
     chainId,
     token,
@@ -64,7 +63,6 @@ export async function convertToUSD(
       tokenPrice: closestPrice.priceInUsd,
       tokenPriceDecimals: 8,
     }),
-    timestamp: closestPrice.timestamp,
     price: closestPrice.priceInUsd,
   };
 }

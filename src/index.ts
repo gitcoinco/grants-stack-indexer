@@ -92,7 +92,6 @@ async function main(): Promise<void> {
 
     // Maximum number of milliseconds a client in the pool is allowed to be idle before it is closed
     idleTimeoutMillis: 30_000,
-    keepAlive: true,
 
     // Maximum number of milliseconds to wait for acquiring a client from the pool
     connectionTimeoutMillis: 5_000,

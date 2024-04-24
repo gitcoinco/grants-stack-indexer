@@ -252,8 +252,6 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("blockNumber", BIGINT_TYPE)
     .addColumn("tokenAddress", ADDRESS_TYPE)
 
-    .addColumn("timestamp", "timestamptz")
-
     .addColumn("amount", BIGINT_TYPE)
     .addColumn("amountInUSD", "real")
     .addColumn("amountInRoundMatchToken", BIGINT_TYPE)
