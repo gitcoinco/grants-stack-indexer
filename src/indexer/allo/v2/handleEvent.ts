@@ -1082,7 +1082,6 @@ export async function handleEvent(
         }
 
         case "allov2.DirectGrantsLiteStrategy": {
-
           const recipientId = parseAddress(event.params.recipientId);
           const amount = event.params.amount;
           const tokenAddress = parseAddress(event.params.token);
@@ -1102,7 +1101,7 @@ export async function handleEvent(
               event.blockNumber
             )
           ).amount;
-    
+
           const amountInRoundMatchToken = (
             await convertFromUSD(
               priceProvider,
@@ -1128,7 +1127,6 @@ export async function handleEvent(
               },
             },
           ];
-
         }
 
         default: {
