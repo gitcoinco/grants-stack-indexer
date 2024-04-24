@@ -46,9 +46,9 @@ import { IndexerEvents } from "chainsauce/dist/indexer.js";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
 
-function createPgPool(url: string): pg.Pool {
-  return new Pool({
-    connectionString: url,
+function createPgPool(args: { url: string; logger: Logger }): pg.Pool {
+  const pool = new Pool({
+    connectionString: args.url,
     max: 15,
 
     // Maximum number of milliseconds a client in the pool is allowed to be idle before it is closed
@@ -58,6 +58,12 @@ function createPgPool(url: string): pg.Pool {
     // Maximum number of milliseconds to wait for acquiring a client from the pool
     connectionTimeoutMillis: 5_000,
   });
+
+  pool.on("error", (err) => {
+    args.logger.error({ err, url: args.url }, "Postgres pool error");
+  });
+
+  return pool;
 }
 
 async function main(): Promise<void> {
@@ -100,14 +106,20 @@ async function main(): Promise<void> {
     await fs.mkdir(config.cacheDir, { recursive: true });
   }
 
-  const databaseConnectionPool = createPgPool(config.databaseUrl);
+  const databaseConnectionPool = createPgPool({
+    url: config.databaseUrl,
+    logger: baseLogger,
+  });
 
   const readOnlyDatabaseUrl = new URL(config.databaseUrl);
   readOnlyDatabaseUrl.port = "5433";
 
   const readOnlyDatabaseConnectionPool =
     process.env.FLY_PROCESS_GROUP === "web"
-      ? createPgPool(readOnlyDatabaseUrl.toString())
+      ? createPgPool({
+          url: readOnlyDatabaseUrl.toString(),
+          logger: baseLogger,
+        })
       : databaseConnectionPool;
 
   const db = new Database({
