@@ -49,9 +49,22 @@ export const createHttpApi = (config: HttpApiConfig): HttpApi => {
 
   app.set("trust proxy", true);
   app.use(cors());
-  // @ts-expect-error Something wrong with pino-http typings
-  app.use(createHttpLogger({ logger: config.logger }));
   app.use(express.json());
+  app.use(
+    // @ts-expect-error Something wrong with pino-http typings
+    createHttpLogger({
+      logger: config.logger,
+      serializers: {
+        // @ts-expect-error Something wrong with pino-http typings
+        req(req) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+          req.body = req.raw.body;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+          return req;
+        },
+      },
+    })
+  );
 
   const api = createApiHandler(config);
 
