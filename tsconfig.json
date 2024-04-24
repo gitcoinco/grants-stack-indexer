@@ -14,7 +14,10 @@
     "rootDir": "./",
     "resolveJsonModule": true,
     "declaration": false,
-    "sourceMap": true
+    "sourceMap": true,
+    "paths": {
+      "@/*": ["src/*"],
+    }
   },
   "exclude": ["node_modules", "dist"]
 }

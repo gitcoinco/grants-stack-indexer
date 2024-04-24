@@ -506,11 +506,19 @@ async function catchupAndWatchChain(
               });
             });
         } else {
-          const handler = args.event.contractName.startsWith("AlloV1")
-            ? handleAlloV1Event
-            : handleAlloV2Event;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          const module = await import(
+            `./indexe/handlers/${args.event.contractName}/${args.event.name}`
+          );
 
-          const changesets = await handler(args);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          const changesets = module.default(args);
+
+          // const handler = args.event.contractName.startsWith("AlloV1")
+          //   ? handleAlloV1Event
+          //   : handleAlloV2Event;
+
+          // const changesets = await handler(args);
 
           for (const changeset of changesets) {
             await db.applyChange(changeset);

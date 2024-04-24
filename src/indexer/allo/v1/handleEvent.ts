@@ -67,50 +67,6 @@ export async function handleEvent(
 
   switch (event.name) {
     // -- PROJECTS
-    case "ProjectCreated": {
-      const projectId = fullProjectId(
-        chainId,
-        Number(event.params.projectID),
-        event.address
-      );
-
-      const tx = await rpcClient.getTransaction({
-        hash: event.transactionHash,
-      });
-
-      const createdBy = tx.from;
-
-      return [
-        {
-          type: "InsertProject",
-          project: {
-            tags: ["allo-v1"],
-            chainId,
-            registryAddress: parseAddress(event.address),
-            id: projectId,
-            name: "",
-            projectNumber: Number(event.params.projectID),
-            metadataCid: null,
-            metadata: null,
-            createdByAddress: parseAddress(createdBy),
-            createdAtBlock: event.blockNumber,
-            updatedAtBlock: event.blockNumber,
-            projectType: "canonical",
-          },
-        },
-        {
-          type: "InsertProjectRole",
-          projectRole: {
-            chainId,
-            projectId,
-            address: parseAddress(event.params.owner),
-            role: "owner",
-            createdAtBlock: event.blockNumber,
-          },
-        },
-      ];
-    }
-
     case "MetadataUpdated": {
       const projectId = fullProjectId(
         chainId,
