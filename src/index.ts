@@ -63,6 +63,12 @@ function createPgPool(args: { url: string; logger: Logger }): pg.Pool {
     args.logger.error({ err, url: args.url }, "Postgres pool error");
   });
 
+  pool.on("connect", (client) => {
+    client.on("error", (err) => {
+      args.logger.error({ err, url: args.url }, "Postgres client error");
+    });
+  });
+
   return pool;
 }
 
