@@ -994,15 +994,15 @@ export async function handleEvent(
             [`${event.blockNumber}-${event.logIndex}`]
           );
 
-          const conversionToUSD = await convertToUSD(
-            priceProvider,
-            chainId,
-            token,
-            event.params.amount,
-            event.blockNumber
-          );
-
-          const amountInUsd = conversionToUSD.amount;
+          const amountInUsd = (
+            await convertToUSD(
+              priceProvider,
+              chainId,
+              token,
+              event.params.amount,
+              event.blockNumber
+            )
+          ).amount;
 
           let amountInRoundMatchToken: bigint | null = null;
           try {
@@ -1058,7 +1058,6 @@ export async function handleEvent(
             amount: amount,
             amountInUsd,
             amountInRoundMatchToken,
-            timestamp: conversionToUSD.timestamp,
           };
 
           return [
