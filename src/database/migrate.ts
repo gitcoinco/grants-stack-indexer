@@ -10,22 +10,14 @@ const PENDING_ROLE_TYPE = "text";
 export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   const ref = (name: string) => sql.table(`${schemaName}.${name}`);
 
-  const cacheSchema = db.withSchema("cache").schema;
-  const chainDataSchema = db.withSchema(schemaName).schema;
+  const schema = db.withSchema(schemaName).schema;
 
-  await cacheSchema
-    .createTable("blocks")
-    .addColumn("number", BIGINT_TYPE)
-    .addColumn("timestamp", "timestamptz")
-    .ifNotExists()
-    .execute();
-
-  await chainDataSchema
+  await schema
     .createType("project_type")
     .asEnum(["canonical", "linked"])
     .execute();
 
-  await chainDataSchema
+  await schema
     .createTable("projects")
     .addColumn("id", "text")
     .addColumn("name", "text")
@@ -45,7 +37,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addPrimaryKeyConstraint("projects_pkey", ["id", "chainId"])
     .execute();
 
-  await chainDataSchema
+  await schema
     .createTable("pending_project_roles")
     .addColumn("id", "serial", (col) => col.primaryKey())
     .addColumn("chainId", CHAIN_ID_TYPE)
@@ -54,12 +46,12 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("createdAtBlock", BIGINT_TYPE)
     .execute();
 
-  await chainDataSchema
+  await schema
     .createType("project_role_name")
     .asEnum(["owner", "member"])
     .execute();
 
-  await chainDataSchema
+  await schema
     .createTable("project_roles")
     .addColumn("chainId", CHAIN_ID_TYPE)
     .addColumn("projectId", "text")
@@ -80,7 +72,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     )
     .execute();
 
-  await chainDataSchema
+  await schema
     .createTable("rounds")
     .addColumn("id", "text")
     .addColumn("chainId", CHAIN_ID_TYPE)
@@ -138,19 +130,19 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addPrimaryKeyConstraint("rounds_pkey", ["id", "chainId"])
     .execute();
 
-  await chainDataSchema
+  await schema
     .createIndex("idx_rounds_manager_role")
     .on("rounds")
     .columns(["managerRole"])
     .execute();
 
-  await chainDataSchema
+  await schema
     .createIndex("idx_rounds_admin_role")
     .on("rounds")
     .columns(["adminRole"])
     .execute();
 
-  await chainDataSchema
+  await schema
     .createTable("pending_round_roles")
     .addColumn("id", "serial", (col) => col.primaryKey())
     .addColumn("chainId", CHAIN_ID_TYPE)
@@ -159,12 +151,12 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("createdAtBlock", BIGINT_TYPE)
     .execute();
 
-  await chainDataSchema
+  await schema
     .createType("round_role_name")
     .asEnum(["admin", "manager"])
     .execute();
 
-  await chainDataSchema
+  await schema
     .createTable("round_roles")
     .addColumn("chainId", CHAIN_ID_TYPE)
     .addColumn("roundId", "text")
@@ -185,12 +177,12 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     )
     .execute();
 
-  await chainDataSchema
+  await schema
     .createType("application_status")
     .asEnum(["PENDING", "APPROVED", "REJECTED", "CANCELLED", "IN_REVIEW"])
     .execute();
 
-  await chainDataSchema
+  await schema
     .createTable("applications")
     .addColumn("id", "text")
     .addColumn("chainId", CHAIN_ID_TYPE)
@@ -226,7 +218,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
 
     .execute();
 
-  await chainDataSchema
+  await schema
     .createTable("applications_payouts")
     .addColumn("id", "serial", (col) => col.primaryKey())
     .addColumn("chainId", CHAIN_ID_TYPE)
@@ -246,7 +238,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     )
     .execute();
 
-  await chainDataSchema
+  await schema
     .createTable("donations")
 
     .addColumn("id", "text")
@@ -270,25 +262,25 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
 
     .execute();
 
-  await chainDataSchema
+  await schema
     .createIndex("idx_donations_donor_chain")
     .on("donations")
     .columns(["donorAddress"])
     .execute();
 
-  await chainDataSchema
+  await schema
     .createIndex("idx_donations_chain_round")
     .on("donations")
     .columns(["chainId", "roundId"])
     .execute();
 
-  await chainDataSchema
+  await schema
     .createIndex("idx_donations_chain_round_app")
     .on("donations")
     .columns(["chainId", "roundId", "applicationId"])
     .execute();
 
-  await chainDataSchema
+  await schema
     .createTable("prices")
     .addColumn("id", "serial", (cb) => cb.primaryKey())
     .addColumn("chainId", CHAIN_ID_TYPE)
@@ -304,7 +296,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .expression(sql`chain_id, token_address, block_number DESC`)
     .execute();
 
-  await chainDataSchema
+  await schema
     .createTable("legacy_projects")
     .addColumn("id", "serial", (col) => col.primaryKey())
     .addColumn("v1ProjectId", "text")
