@@ -13,8 +13,11 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   const cacheSchema = db.withSchema("cache").schema;
   const chainDataSchema = db.withSchema(schemaName).schema;
 
+  await db.schema.createSchema("cache").ifNotExists().execute();
+
   await cacheSchema
     .createTable("blocks")
+    .addColumn("chainId", CHAIN_ID_TYPE)
     .addColumn("number", BIGINT_TYPE)
     .addColumn("timestamp", "timestamptz")
     .ifNotExists()
