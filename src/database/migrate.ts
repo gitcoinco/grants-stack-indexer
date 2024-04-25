@@ -229,6 +229,8 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("amountInUSD", "real")
     .addColumn("amountInRoundMatchToken", "text")
     .addColumn("transactionHash", "text")
+    .addColumn("timestamp", "timestamptz")
+    .addColumn("sender", ADDRESS_TYPE)
     .addForeignKeyConstraint(
       "applications_payouts_applications_fkey",
       ["chainId", "roundId", "applicationId"],
