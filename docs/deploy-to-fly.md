@@ -1,6 +1,6 @@
 # Deploy to Fly
 
-We use Fly.io at deploy the indexer. This guide will walk you through the process of setting up and deploying your own indexer on Fly.io.
+We use Fly.io to deploy the indexer. This guide will walk you through the process of setting up and deploying your own indexer on Fly.io.
 
 ## Getting Started
 
