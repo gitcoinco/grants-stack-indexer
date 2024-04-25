@@ -123,8 +123,6 @@ export const createHttpApi = (config: HttpApiConfig): HttpApi => {
 
 function staticJsonDataHandler(dataProvider: DataProvider) {
   return async (req: express.Request, res: express.Response) => {
-    console.log(req.params);
-
     if (
       typeof req.params &&
       "0" in req.params &&

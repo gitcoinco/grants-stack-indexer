@@ -308,7 +308,7 @@ async function main(): Promise<void> {
         dynamicJson: true,
         bodySizeLimit: "100kb", // response body limit
         pluginHook,
-        // disableQueryLog: false,
+        disableQueryLog: true,
         // allowExplain: (req) => {
         //   return true;
         // },
