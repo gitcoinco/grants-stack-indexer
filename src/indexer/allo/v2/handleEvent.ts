@@ -1114,7 +1114,9 @@ export async function handleEvent(
           ).amount;
 
           const timestamp = getDateFromTimestamp(
-            BigInt(await blockTimestampInMs(chainId, event.blockNumber))
+            BigInt(
+              (await blockTimestampInMs(chainId, event.blockNumber)) / 1000
+            )
           );
 
           return [
