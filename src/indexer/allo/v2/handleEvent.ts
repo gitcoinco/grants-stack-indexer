@@ -154,7 +154,7 @@ export async function handleEvent(
     subscribeToContract,
     readContract,
     getBlock,
-    context: { db, rpcClient, ipfsGet, logger, priceProvider },
+    context: { db, rpcClient, ipfsGet, logger, priceProvider, blockTimestampInMs },
   } = args;
 
   switch (event.name) {
@@ -1082,6 +1082,7 @@ export async function handleEvent(
         }
 
         case "allov2.DirectGrantsLiteStrategy": {
+          
           const recipientId = parseAddress(event.params.recipientId);
           const amount = event.params.amount;
           const tokenAddress = parseAddress(event.params.token);
@@ -1112,6 +1113,10 @@ export async function handleEvent(
             )
           ).amount;
 
+          const timestamp = getDateFromTimestamp(
+            BigInt(await blockTimestampInMs(chainId, event.blockNumber))
+          );
+
           return [
             {
               type: "InsertApplicationPayout",
@@ -1124,6 +1129,8 @@ export async function handleEvent(
                 amountInRoundMatchToken,
                 amountInUsd,
                 transactionHash: event.transactionHash,
+                sender: parseAddress(event.params.sender),
+                timestamp,
               },
             },
           ];

@@ -124,39 +124,44 @@ async function main(): Promise<void> {
     ? createSqliteCache(path.join(config.cacheDir, "chainsauceCache.db"))
     : null;
 
+  const blockTimestampInMs = async (chainId: number, blockNumber: bigint) => {
+
+    const cachedBlock = await chainsauceCache?.getBlockByNumber({
+      chainId: chainId,
+      blockNumber,
+    });
+
+    if (cachedBlock) {
+      return cachedBlock.timestamp * 1000;
+    }
+
+    const chain = getChainConfigById(chainId);
+    const client = createPublicClient({
+      transport: http(chain.rpc),
+    });
+
+    const block = await client.getBlock({ blockNumber });
+    const timestamp = Number(block.timestamp);
+
+    const chainsauceBlock: Block = {
+      chainId: chainId,
+      blockNumber: BigInt(block.number),
+      timestamp: timestamp,
+      blockHash: block.hash,
+    };
+
+    await chainsauceCache?.insertBlock(chainsauceBlock);
+
+    return timestamp * 1000;
+  }
+  
   const priceProvider = createPriceProvider({
     db,
     coingeckoApiUrl: config.coingeckoApiUrl,
     coingeckoApiKey: config.coingeckoApiKey,
     logger: baseLogger.child({ subsystem: "PriceProvider" }),
     getBlockTimestampInMs: async (chainId, blockNumber) => {
-      const cachedBlock = await chainsauceCache?.getBlockByNumber({
-        chainId,
-        blockNumber,
-      });
-
-      if (cachedBlock) {
-        return cachedBlock.timestamp * 1000;
-      }
-
-      const chain = getChainConfigById(chainId);
-      const client = createPublicClient({
-        transport: http(chain.rpc),
-      });
-
-      const block = await client.getBlock({ blockNumber });
-      const timestamp = Number(block.timestamp);
-
-      const chainsauceBlock: Block = {
-        chainId,
-        blockNumber: BigInt(block.number),
-        timestamp: timestamp,
-        blockHash: block.hash,
-      };
-
-      await chainsauceCache?.insertBlock(chainsauceBlock);
-
-      return timestamp * 1000;
+      return blockTimestampInMs(chainId, blockNumber);
     },
     fetch: (url, options) => {
       return fetch(url, {
@@ -205,6 +210,7 @@ async function main(): Promise<void> {
           subscriptionStore,
           baseLogger,
           priceProvider,
+          blockTimestampInMs,
           ...config,
         })
       );
@@ -383,6 +389,7 @@ async function catchupAndWatchChain(
     chainsauceCache: Cache | null;
     subscriptionStore: SubscriptionStore;
     priceProvider: PriceProvider;
+    blockTimestampInMs: (chainId: number, blockNumber: bigint) => Promise<number>;
     db: Database;
     chain: Chain;
     baseLogger: Logger;
@@ -392,7 +399,7 @@ async function catchupAndWatchChain(
     chain: config.chain.id,
   });
 
-  const { db, priceProvider } = config;
+  const { db, priceProvider, blockTimestampInMs } = config;
 
   try {
     const cachedIpfsGet = async <T>(cid: string): Promise<T | undefined> => {
@@ -441,6 +448,7 @@ async function catchupAndWatchChain(
       rpcClient: viemRpcClient,
       ipfsGet: cachedIpfsGet,
       priceProvider,
+      blockTimestampInMs: blockTimestampInMs,
       logger: indexerLogger,
     };
 

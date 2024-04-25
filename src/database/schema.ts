@@ -246,6 +246,8 @@ export type ApplicationPayout = {
   amountInUsd: number;
   amountInRoundMatchToken: bigint;
   transactionHash: Hex;
+  sender: Address;
+  timestamp: Date | null;
 };
 
 export type NewApplicationPayout = Insertable<ApplicationPayout>;
