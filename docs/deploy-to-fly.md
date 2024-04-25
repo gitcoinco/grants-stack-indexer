@@ -10,7 +10,7 @@ Clone the repository and tweak the `fly.toml`.
 Once you're happy with the configuration, run the following command, it will provision an app and deploy it:
 
 ```sh
-fly launch
+fly launch --copy-config
 ```
 
 The first run might take a while, run `fly logs` to see what's going on.
