@@ -668,6 +668,7 @@ export async function handleEvent(
         amount: event.params.amount,
         amountInUsd: amountInUsd,
         amountInRoundMatchToken,
+        timestamp: conversionToUSD.timestamp,
       };
 
       return [

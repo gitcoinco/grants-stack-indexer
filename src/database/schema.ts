@@ -209,6 +209,7 @@ export type DonationTable = {
   amount: bigint;
   amountInUsd: number;
   amountInRoundMatchToken: bigint;
+  timestamp: Date;
 };
 
 export type NewDonation = Insertable<DonationTable>;
