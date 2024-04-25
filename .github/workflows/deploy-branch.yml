@@ -21,26 +21,26 @@ jobs:
 
       - name: Set variables for production
         run: |
-          echo "DEPLOYMENT_ENVIRONMENT=production" >> $GITHUB_ENV
+          echo "FLY_CONFIG=fly.toml" >> $GITHUB_ENV
           echo "GIT_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")" >> $GITHUB_ENV
           echo "FLY_APP_NAME=indexer-v2" >> $GITHUB_ENV
         if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and test
         run: |
-          flyctl -c fly.${{ env.DEPLOYMENT_ENVIRONMENT }}.toml deploy --remote-only --build-only --push --image-label deployment-$GIT_SHA_SHORT
+          flyctl -c ${{ env.FLY_CONFIG }} deploy --remote-only --build-only --push --image-label deployment-$GIT_SHA_SHORT
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy Indexer
         run: |
-          flyctl -c fly.${{ env.DEPLOYMENT_ENVIRONMENT }}.toml deploy --wait-timeout=7200 --env BUILD_TAG=`git rev-parse --short HEAD` --image registry.fly.io/$FLY_APP_NAME:deployment-$GIT_SHA_SHORT --process-groups=indexer
+          flyctl -c ${{ env.FLY_CONFIG }} deploy --wait-timeout=7200 --env BUILD_TAG=`git rev-parse --short HEAD` --image registry.fly.io/$FLY_APP_NAME:deployment-$GIT_SHA_SHORT --process-groups=indexer
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy HTTP
         run: |
-          flyctl -c fly.${{ env.DEPLOYMENT_ENVIRONMENT }}.toml deploy --wait-timeout=7200 --env BUILD_TAG=`git rev-parse --short HEAD` --image registry.fly.io/$FLY_APP_NAME:deployment-$GIT_SHA_SHORT --process-groups=web
+          flyctl -c ${{ env.FLY_CONFIG }}  deploy --wait-timeout=7200 --env BUILD_TAG=`git rev-parse --short HEAD` --image registry.fly.io/$FLY_APP_NAME:deployment-$GIT_SHA_SHORT --process-groups=web
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
