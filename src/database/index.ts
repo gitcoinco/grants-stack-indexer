@@ -122,7 +122,6 @@ export class Database {
     }
 
     this.#statsTimeout = setTimeout(async () => {
-      this.#statsTimeout = null;
       try {
         await this.updateStats();
       } catch (error) {
@@ -189,7 +188,6 @@ export class Database {
     }
 
     this.#donationBatchTimeout = setTimeout(async () => {
-      this.#donationBatchTimeout = null;
       try {
         await this.flushDonationQueue();
       } catch (error) {
