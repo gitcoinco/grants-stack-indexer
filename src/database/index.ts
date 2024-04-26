@@ -22,7 +22,6 @@ import { Logger } from "pino";
 import { LRUCache } from "lru-cache";
 import { Address } from "../address.js";
 import { ChainId } from "../types.js";
-import { warn } from "node:console";
 
 export type { DataChange as Changeset };
 
