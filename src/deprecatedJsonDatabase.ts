@@ -63,6 +63,7 @@ export function createDeprecatedApplication(
   return {
     id: application.id,
     projectId: application.projectId,
+    anchorAddress: application.anchorAddress,
     status: application.status,
     amountUSD: application.totalAmountDonatedInUsd,
     votes: application.totalDonationsCount,
@@ -153,6 +154,7 @@ export type DeprecatedApplication = {
   amountUSD: number;
   votes: number;
   uniqueContributors: number;
+  anchorAddress: string | null;
   metadata: {
     application: {
       project: {
