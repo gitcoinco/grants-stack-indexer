@@ -22,6 +22,7 @@ import { Logger } from "pino";
 import { LRUCache } from "lru-cache";
 import { Address } from "../address.js";
 import { ChainId } from "../types.js";
+import { warn } from "node:console";
 
 export type { DataChange as Changeset };
 
@@ -121,9 +122,13 @@ export class Database {
       clearTimeout(this.#statsTimeout);
     }
 
-    this.#statsTimeout = setTimeout(() => {
+    this.#statsTimeout = setTimeout(async () => {
       this.#statsTimeout = null;
-      void this.updateStats();
+      try {
+        await this.updateStats();
+      } catch (error) {
+        this.#logger.error({ error }, "Failed to update stats");
+      }
       this.scheduleStatsUpdate();
     }, UPDATE_STATS_EVERY_MS);
   }
@@ -184,34 +189,36 @@ export class Database {
       clearTimeout(this.#donationBatchTimeout);
     }
 
-    this.#donationBatchTimeout = setTimeout(() => {
+    this.#donationBatchTimeout = setTimeout(async () => {
       this.#donationBatchTimeout = null;
-      void this.flushDonationQueue();
+      try {
+        await this.flushDonationQueue();
+      } catch (error) {
+        this.#logger.error({ error }, "Failed to flush donation queue");
+      }
       this.scheduleDonationQueueFlush();
     }, FLUSH_DONATION_BATCH_EVERY_MS);
   }
 
   private async flushDonationQueue() {
-    const donations = this.#donationQueue.splice(0, this.#donationQueue.length);
-
-    if (donations.length === 0) {
-      return;
-    }
-
     // chunk donations into batches of 1k to void hitting the 65k parameter limit
     // https://github.com/brianc/node-postgres/issues/1463
     const chunkSize = 1_000;
-    const chunks = [];
 
-    for (let i = 0; i < donations.length; i += chunkSize) {
-      chunks.push(donations.slice(i, i + chunkSize));
-    }
+    while (this.#donationQueue.length > 0) {
+      const chunk = this.#donationQueue.splice(0, chunkSize);
 
-    for (const chunk of chunks) {
-      await this.applyChange({
-        type: "InsertManyDonations",
-        donations: chunk,
-      });
+      try {
+        await this.applyChange({
+          type: "InsertManyDonations",
+          donations: chunk,
+        });
+      } catch (error) {
+        // If insertion fails, prepend the chunk back to the beginning of the queue
+        // to avoid losing data
+        this.#donationQueue.unshift(...chunk);
+        throw error; // rethrow the error to caller
+      }
     }
   }
 
