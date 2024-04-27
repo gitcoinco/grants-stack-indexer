@@ -117,16 +117,13 @@ async function main(): Promise<void> {
     logger: baseLogger,
   });
 
-  const readOnlyDatabaseUrl = new URL(config.databaseUrl);
-  readOnlyDatabaseUrl.port = "5433";
-
   const readOnlyDatabaseConnectionPool =
-    process.env.FLY_PROCESS_GROUP === "web"
-      ? createPgPool({
-          url: readOnlyDatabaseUrl.toString(),
+    config.readOnlyDatabaseUrl === config.databaseUrl
+      ? databaseConnectionPool
+      : createPgPool({
+          url: config.readOnlyDatabaseUrl,
           logger: baseLogger,
-        })
-      : databaseConnectionPool;
+        });
 
   const db = new Database({
     logger: baseLogger.child({ subsystem: "Database" }),
