@@ -16,9 +16,10 @@ import { throttle } from "throttle-debounce";
 import * as pg from "pg";
 const { Pool, types } = pg.default;
 
-import { postgraphile } from "postgraphile";
+import { postgraphile, makePluginHook } from "postgraphile";
 import ConnectionFilterPlugin from "postgraphile-plugin-connection-filter";
 import PgSimplifyInflectorPlugin from "@graphile-contrib/pg-simplify-inflector";
+import GraphilePro from "@graphile/pro";
 
 import { createPassportProvider, PassportProvider } from "./passport/index.js";
 
@@ -44,6 +45,32 @@ import { createPublicClient, http } from "viem";
 import { IndexerEvents } from "chainsauce/dist/indexer.js";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
+
+function createPgPool(args: { url: string; logger: Logger }): pg.Pool {
+  const pool = new Pool({
+    connectionString: args.url,
+    max: 15,
+
+    // Maximum number of milliseconds a client in the pool is allowed to be idle before it is closed
+    idleTimeoutMillis: 30_000,
+    keepAlive: true,
+
+    // Maximum number of milliseconds to wait for acquiring a client from the pool
+    connectionTimeoutMillis: 5_000,
+  });
+
+  pool.on("error", (err) => {
+    args.logger.error({ err, url: args.url }, "Postgres pool error");
+  });
+
+  pool.on("connect", (client) => {
+    client.on("error", (err) => {
+      args.logger.error({ err, url: args.url }, "Postgres client error");
+    });
+  });
+
+  return pool;
+}
 
 async function main(): Promise<void> {
   const config = getConfig();
@@ -85,17 +112,18 @@ async function main(): Promise<void> {
     await fs.mkdir(config.cacheDir, { recursive: true });
   }
 
-  const databaseConnectionPool = new Pool({
-    connectionString: config.databaseUrl,
-    // Maximum number of connections in the pool
-    max: 15,
-
-    // Maximum number of milliseconds a client in the pool is allowed to be idle before it is closed
-    idleTimeoutMillis: 30_000,
-
-    // Maximum number of milliseconds to wait for acquiring a client from the pool
-    connectionTimeoutMillis: 5_000,
+  const databaseConnectionPool = createPgPool({
+    url: config.databaseUrl,
+    logger: baseLogger,
   });
+
+  const readOnlyDatabaseConnectionPool =
+    config.readOnlyDatabaseUrl === config.databaseUrl
+      ? databaseConnectionPool
+      : createPgPool({
+          url: config.readOnlyDatabaseUrl,
+          logger: baseLogger,
+        });
 
   const db = new Database({
     logger: baseLogger.child({ subsystem: "Database" }),
@@ -262,9 +290,10 @@ async function main(): Promise<void> {
       ...(config.httpServerWaitForSync ? [indexChainsPromise] : []),
     ]);
 
-    // TODO: use read only connection, use separate pool?
+    const pluginHook = makePluginHook([GraphilePro.default]);
+
     const graphqlHandler = postgraphile(
-      databaseConnectionPool,
+      readOnlyDatabaseConnectionPool,
       config.databaseSchemaName,
       {
         watchPg: false,
@@ -275,7 +304,8 @@ async function main(): Promise<void> {
         disableDefaultMutations: true,
         dynamicJson: true,
         bodySizeLimit: "100kb", // response body limit
-        // disableQueryLog: false,
+        pluginHook,
+        disableQueryLog: true,
         // allowExplain: (req) => {
         //   return true;
         // },
@@ -305,11 +335,9 @@ async function main(): Promise<void> {
             "contains",
           ],
         },
-
-        // TODO: buy pro version?
-        // defaultPaginationCap: 1000,
-        // readOnlyConnection: true,
-        // graphqlDepthLimit: 2
+        defaultPaginationCap: -1,
+        graphqlCostLimit: -1,
+        graphqlDepthLimit: 4,
       }
     );
 
