@@ -91,17 +91,17 @@ flyctl scale memory 2048
 Increase volume size:
 ```bash
 # to get the ids of the indexer machines
-flyctl -c fly.production.toml status
+flyctl -c fly.toml status
 
 # Check the volumes
-flyctl -c fly.production.toml volumes list
+flyctl -c fly.toml volumes list
 
 # You will see each one is attached to a machine,
 # so you will know the volumes attached to indexer machines.
 # Use the volume ID as needed from above.
 
 # To increase the volume size
-flyctl -c fly.production.toml volumes extend ADD_HERE_A_VOLUME_ID -s 5 # to extend it to 5GB
+flyctl -c fly.toml volumes extend ADD_HERE_A_VOLUME_ID -s 5 # to extend it to 5GB
 ```
 
 # Monitoring Performance
