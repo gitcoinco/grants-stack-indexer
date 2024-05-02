@@ -154,7 +154,14 @@ export async function handleEvent(
     subscribeToContract,
     readContract,
     getBlock,
-    context: { db, rpcClient, ipfsGet, logger, priceProvider, blockTimestampInMs },
+    context: {
+      db,
+      rpcClient,
+      ipfsGet,
+      logger,
+      priceProvider,
+      blockTimestampInMs,
+    },
   } = args;
 
   switch (event.name) {
@@ -1083,7 +1090,6 @@ export async function handleEvent(
         }
 
         case "allov2.DirectGrantsLiteStrategy": {
-          
           const recipientId = parseAddress(event.params.recipientId);
           const amount = event.params.amount;
           const tokenAddress = parseAddress(event.params.token);

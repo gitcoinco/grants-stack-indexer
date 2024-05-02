@@ -153,7 +153,6 @@ async function main(): Promise<void> {
     : null;
 
   const blockTimestampInMs = async (chainId: number, blockNumber: bigint) => {
-
     const cachedBlock = await chainsauceCache?.getBlockByNumber({
       chainId: chainId,
       blockNumber,
@@ -181,8 +180,8 @@ async function main(): Promise<void> {
     await chainsauceCache?.insertBlock(chainsauceBlock);
 
     return timestamp * 1000;
-  }
-  
+  };
+
   const priceProvider = createPriceProvider({
     db,
     coingeckoApiUrl: config.coingeckoApiUrl,
@@ -417,7 +416,10 @@ async function catchupAndWatchChain(
     chainsauceCache: Cache | null;
     subscriptionStore: SubscriptionStore;
     priceProvider: PriceProvider;
-    blockTimestampInMs: (chainId: number, blockNumber: bigint) => Promise<number>;
+    blockTimestampInMs: (
+      chainId: number,
+      blockNumber: bigint
+    ) => Promise<number>;
     db: Database;
     chain: Chain;
     baseLogger: Logger;
