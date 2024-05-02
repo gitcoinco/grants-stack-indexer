@@ -45,6 +45,10 @@ function MOCK_RPC_CLIENT() {
   } as unknown as PublicClient;
 }
 
+function MOCK_BLOCK_TIMESTAMP_IN_MS() {
+  return vi.fn().mockResolvedValue(0);
+}
+
 const MOCK_LOGGER = {
   debug: () => {},
   info: () => {},
@@ -117,6 +121,7 @@ const DEFAULT_ARGS = {
     logger: MOCK_LOGGER,
     db: MOCK_DB,
     rpcClient: MOCK_RPC_CLIENT(),
+    blockTimestampInMs: MOCK_BLOCK_TIMESTAMP_IN_MS(),
   },
 };
 
@@ -153,6 +158,7 @@ describe("handleEvent", () => {
           context: {
             ...DEFAULT_ARGS.context,
             rpcClient: MOCK_RPC_CLIENT(),
+            blockTimestampInMs: MOCK_BLOCK_TIMESTAMP_IN_MS(),
           },
         });
 
@@ -238,6 +244,7 @@ describe("handleEvent", () => {
           context: {
             ...DEFAULT_ARGS.context,
             rpcClient: MOCK_RPC_CLIENT(),
+            blockTimestampInMs: MOCK_BLOCK_TIMESTAMP_IN_MS(),
           },
         });
 
