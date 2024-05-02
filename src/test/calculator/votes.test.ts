@@ -31,6 +31,7 @@ const applications: DeprecatedApplication[] = [
   {
     id: "application-id-1",
     projectId: "project-id-1",
+    anchorAddress: "0x1234",
     roundId: "0x1234",
     status: "APPROVED",
     amountUSD: 0,

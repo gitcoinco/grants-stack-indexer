@@ -10,7 +10,7 @@ import os from "node:os";
 type ChainId = number;
 type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114 | 713715;
 
-const CHAIN_DATA_VERSION = "65";
+const CHAIN_DATA_VERSION = "64";
 
 export type Token = {
   code: string;
@@ -1561,6 +1561,7 @@ export type Config = {
   apiHttpPort: number;
   sentryDsn: string | null;
   databaseUrl: string;
+  readOnlyDatabaseUrl: string;
   databaseSchemaName: string;
   hostname: string;
   deploymentEnvironment: "local" | "development" | "staging" | "production";
@@ -1701,6 +1702,11 @@ export function getConfig(): Config {
     .parse(process.env.SENTRY_DSN);
 
   const databaseUrl = z.string().url().parse(process.env.DATABASE_URL);
+  const readOnlyDatabaseUrl = z
+    .string()
+    .url()
+    .default(databaseUrl)
+    .parse(process.env.READ_ONLY_DATABASE_URL);
 
   const databaseSchemaName = `chain_data_${CHAIN_DATA_VERSION}`;
 
@@ -1748,6 +1754,7 @@ export function getConfig(): Config {
     deploymentEnvironment,
     enableResourceMonitor,
     databaseUrl,
+    readOnlyDatabaseUrl,
     dropDb,
     databaseSchemaName,
     httpServerWaitForSync,
