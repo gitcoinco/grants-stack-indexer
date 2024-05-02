@@ -8,7 +8,7 @@ import { Address, Hex } from "./types.js";
 import os from "node:os";
 
 type ChainId = number;
-type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114 | 713715;
+type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114 | 713715 | 42;
 
 const CHAIN_DATA_VERSION = "64";
 
@@ -1495,6 +1495,71 @@ const CHAINS: Chain[] = [
         contractName: "AlloV2/Allo/V1",
         address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
         fromBlock: 14661917,
+      },
+    ],
+  },
+  // todo: check the LYX and LYXt addresses
+  {
+    id: 42,
+    name: "lukso-mainnet",
+    rpc: rpcUrl
+      .default("https://42.rpc.thirdweb.com")
+      .parse(process.env.LUKSO_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
+    tokens: [
+      {
+        address: "0xA8b919680258d369114910511cc87595aec0be6D",
+        code: "LYX",
+        decimals: 18,
+        priceSource: {
+          chainId: 42,
+          address: "0xA8b919680258d369114910511cc87595aec0be6D",
+        },
+      },
+    ],
+    subscriptions: [
+      // Allo V2
+      {
+        contractName: "AlloV2/Registry/V1",
+        address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+        fromBlock: 2400000,
+      },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+        fromBlock: 2400000,
+      },
+    ],
+  },
+  {
+    id: 4201,
+    name: "lukso-testnet",
+    rpc: rpcUrl
+      .default("https://4201.rpc.thirdweb.com")
+      .parse(process.env.LUKSO_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
+    tokens: [
+      {
+        address: "0xA8b919680258d369114910511cc87595aec0be6D",
+        code: "LYXt",
+        decimals: 18,
+        priceSource: {
+          chainId: 42,
+          address: "0xA8b919680258d369114910511cc87595aec0be6D",
+        },
+      },
+    ],
+    subscriptions: [
+      // Allo V2
+      {
+        contractName: "AlloV2/Registry/V1",
+        address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+        fromBlock: 2500000,
+      },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+        fromBlock: 2500000,
       },
     ],
   },
