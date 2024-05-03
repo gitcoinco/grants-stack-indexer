@@ -8,7 +8,15 @@ import { Address, Hex } from "./types.js";
 import os from "node:os";
 
 type ChainId = number;
-type CoingeckoSupportedChainId = 1 | 10 | 250 | 42161 | 43114 | 713715 | 42;
+type CoingeckoSupportedChainId =
+  | 1
+  | 10
+  | 250
+  | 42161
+  | 43114
+  | 713715
+  | 42
+  | 42220;
 
 const CHAIN_DATA_VERSION = "64";
 
@@ -1065,7 +1073,7 @@ const CHAINS: Chain[] = [
     ],
   },
   {
-    id: 280,
+    id: 300,
     name: "zksync-era-testnet",
     rpc: rpcUrl
       .default("https://sepolia.era.zksync.dev")
@@ -1498,22 +1506,39 @@ const CHAINS: Chain[] = [
       },
     ],
   },
-  // todo: check the LYX and LYXt addresses
   {
     id: 42,
     name: "lukso-mainnet",
     rpc: rpcUrl
       .default("https://42.rpc.thirdweb.com")
-      .parse(process.env.LUKSO_RPC_URL),
+      .parse(process.env.LUKSO_MAINNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
     tokens: [
       {
-        address: "0xA8b919680258d369114910511cc87595aec0be6D",
         code: "LYX",
+        address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
         priceSource: {
           chainId: 42,
-          address: "0xA8b919680258d369114910511cc87595aec0be6D",
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "LYX",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 42,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        address: "0x2db41674f2b882889e5e1bd09a3f3613952bc472",
+        code: "WLYX",
+        decimals: 18,
+        priceSource: {
+          chainId: 42,
+          address: "0x2db41674f2b882889e5e1bd09a3f3613952bc472",
         },
       },
     ],
@@ -1536,16 +1561,25 @@ const CHAINS: Chain[] = [
     name: "lukso-testnet",
     rpc: rpcUrl
       .default("https://4201.rpc.thirdweb.com")
-      .parse(process.env.LUKSO_RPC_URL),
+      .parse(process.env.LUKSO_TESTNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
     tokens: [
       {
-        address: "0xA8b919680258d369114910511cc87595aec0be6D",
-        code: "LYXt",
+        code: "LYX",
+        address: "0x0000000000000000000000000000000000000000",
         decimals: 18,
         priceSource: {
           chainId: 42,
-          address: "0xA8b919680258d369114910511cc87595aec0be6D",
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "LYX",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 42,
+          address: "0x0000000000000000000000000000000000000000",
         },
       },
     ],
@@ -1568,9 +1602,28 @@ const CHAINS: Chain[] = [
     name: "celo-mainnet",
     rpc: rpcUrl
       .default("https://forno.celo.org")
-      .parse(process.env.CELO_MAINET_RPC_URL),
+      .parse(process.env.CELO_MAINNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
-    tokens: [],
+    tokens: [
+      {
+        code: "CELO",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 42220,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "CELO",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 42220,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+    ],
     subscriptions: [
       // Allo V2
       {
@@ -1592,7 +1645,26 @@ const CHAINS: Chain[] = [
       .default("https://alfajores-forno.celo-testnet.org")
       .parse(process.env.CELO_TESTNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
-    tokens: [],
+    tokens: [
+      {
+        code: "CELO",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 42220,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "CELO",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 42220,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+    ],
     subscriptions: [
       // Allo V2
       {
