@@ -56,9 +56,11 @@ Or use the provided `Dockerfile`.
 
 # Deployment
 
+Check out this guide to [deploy your own indexer on Fly.io](./docs/deploy-to-fly.md).
+
 We're currently continuously deploying the `main` branch into Fly.
 
 There are a few things to consider when it comes to deploying your changes:
 
 - Deployments resume indexing from the last indexed block, which means that your changes will only apply to new blocks, and migrations are not applied
-- If you need to change the database schema or change an event handler retroactively, you need to increment the `CHAIN_DATA_VERSION` constant found in [src/config.ts](https://github.com/gitcoinco/grants-stack-indexer/blob/main/src/config.ts#L1286C7-L1286C25), on deployment this will automatically create a new schema in Postgres and reindex all events. Note that deployments that reindex will take longer.
+- If you need to change the database schema or change an event handler retroactively, you need to increment the `CHAIN_DATA_VERSION` constant found in [src/config.ts](https://github.com/gitcoinco/grants-stack-indexer/blob/main/src/config.ts), on deployment this will automatically create a new schema in Postgres and reindex all events. Note that deployments that reindex will take longer.

@@ -8,22 +8,14 @@ Before deploying or managing the application, ensure you have the Fly CLI instal
 2. Install the CLI following the instructions for your operating system.
 3. Once installed, run `flyctl auth login` to authenticate with your Fly account.
 
-# Fly CLI Usage
-
-⚠️ Always run Fly commands with an explicit config option, for example:
-
-```
-fly -c fly.production.toml status
-```
-
 # Components and Architecture
 
-The [application](../fly.production.toml) contains two main components organized into separate process groups:
+The [application](../fly.toml) contains two main components organized into separate process groups:
 
 - **web**: Handles client requests and must scale horizontally to manage varying loads effectively.
 - **indexer**: Responsible for updating and maintaining the database. Only one active instance runs due to its role as the sole writer to prevent data conflicts.
 
-Run `fly -c fly.production.toml status` too see an overview of the deployment.
+Run `fly status` too see an overview of the deployment.
 
 # Deployment Process
 
@@ -66,7 +58,7 @@ Use the `scale` command to scale up and down the number of machines:
 
 
 ```
-flyctl -c fly.production.toml scale web=5
+flyctl scale web=5
 ```
 
 ### Vertical Scaling
@@ -74,7 +66,7 @@ flyctl -c fly.production.toml scale web=5
 Show the current CPU and RAM configuration of the machines:
 
 ```
-flyctl -c fly.production.toml scale show
+flyctl scale show
 ```
 
 Check the available VM size presets:
@@ -87,15 +79,30 @@ Change the VM size:
 
 
 ```
-flyctl -c fly.production.toml scale vm performance-1x
+flyctl scale vm performance-1x
 ```
 
 Change memory:
 
 ```
-flyctl -c fly.production.toml scale memory 2048
+flyctl scale memory 2048
 ```
 
+Increase volume size:
+```bash
+# to get the ids of the indexer machines
+flyctl -c fly.toml status
+
+# Check the volumes
+flyctl -c fly.toml volumes list
+
+# You will see each one is attached to a machine,
+# so you will know the volumes attached to indexer machines.
+# Use the volume ID as needed from above.
+
+# To increase the volume size
+flyctl -c fly.toml volumes extend ADD_HERE_A_VOLUME_ID -s 5 # to extend it to 5GB
+```
 
 # Monitoring Performance
 
