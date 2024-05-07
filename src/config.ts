@@ -18,7 +18,7 @@ type CoingeckoSupportedChainId =
   | 42
   | 42220;
 
-const CHAIN_DATA_VERSION = "64";
+const CHAIN_DATA_VERSION = "67";
 
 export type Token = {
   code: string;
@@ -1551,7 +1551,7 @@ const CHAINS: Chain[] = [
       },
       {
         contractName: "AlloV2/Allo/V1",
-        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+        address: "0xB087535DB0df98fC4327136e897A5985E5Cfbd66",
         fromBlock: 2400000,
       },
     ],
