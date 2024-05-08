@@ -44,6 +44,32 @@ Check the [Github Workflow](../.github/workflows/deploy-branch.yml) to understan
 
 Logs are shipped to [Datadog](https://app.datadoghq.eu/logs).
 
+Here are some examples of queries you can run on Datadog.
+
+All logs for app `indexer-v2`:
+
+```
+@fly.app.name:indexer-v2
+```
+
+All logs for app `indexer-v2` and instance `17816e3ea42e48`:
+
+```
+@fly.app.name:indexer-v2 @fly.app.instance:17816e3ea42e48
+```
+
+All errors:
+
+```
+@fly.app.name:indexer-v2 status:error
+```
+
+All logs for chain 1:
+
+```
+@fly.app.name:indexer-v2 @chain:1
+```
+
 You can also check the latest logs with the [Fly logs](https://fly.io/docs/flyctl/logs/) command.
 
 ## Scaling
