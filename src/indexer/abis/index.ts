@@ -25,6 +25,7 @@ import AlloV2IStrategy from "./allo-v2/v1/IStrategy.js";
 import AlloV2DonationVotingMerkleDistributionDirectTransferStrategy from "./allo-v2/v1/DonationVotingMerkleDistributionDirectTransferStrategy.js";
 import AlloV2DirectGrantsSimpleStrategy from "./allo-v2/v1/DirectGrantsSimpleStrategy.js";
 import AlloV1ToV2ProfileMigration from "./allo-v2/AlloV1ToV2ProfileMigration.js";
+import AlloV2DirectGrantsLiteStrategy from "./allo-v2/v1/DirectGrantsLiteStrategy.js";
 
 const abis = {
   "AlloV1/ProjectRegistry/V1": ProjectRegistryV1,
@@ -58,6 +59,7 @@ const abis = {
   "AlloV2/DonationVotingMerkleDistributionDirectTransferStrategy/V1":
     AlloV2DonationVotingMerkleDistributionDirectTransferStrategy,
   "AlloV2/DirectGrantsSimpleStrategy/V1": AlloV2DirectGrantsSimpleStrategy,
+  "AlloV2/DirectGrantsLiteStrategy/V1": AlloV2DirectGrantsLiteStrategy,
 } as const;
 
 export default abis;

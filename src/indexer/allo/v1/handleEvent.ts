@@ -33,6 +33,7 @@ import {
 } from "./timeUpdated.js";
 import { ProjectMetadataSchema } from "../../projectMetadata.js";
 import { updateApplicationStatus } from "../application.js";
+import { getDateFromTimestamp } from "../../../utils/index.js";
 
 enum ApplicationStatus {
   PENDING = 0,
@@ -62,7 +63,14 @@ export async function handleEvent(
     subscribeToContract,
     readContract,
     getBlock,
-    context: { db, rpcClient, ipfsGet, priceProvider, logger },
+    context: {
+      db,
+      rpcClient,
+      ipfsGet,
+      priceProvider,
+      blockTimestampInMs,
+      logger,
+    },
   } = args;
 
   switch (event.name) {
@@ -912,6 +920,9 @@ export async function handleEvent(
         )
       ).amount;
 
+      const timestamp = getDateFromTimestamp(
+        BigInt((await blockTimestampInMs(chainId, event.blockNumber)) / 1000)
+      );
       return [
         {
           type: "InsertApplicationPayout",
@@ -924,6 +935,8 @@ export async function handleEvent(
             amountInRoundMatchToken,
             amountInUsd,
             transactionHash: event.transactionHash,
+            sender: parseAddress(event.params.vault),
+            timestamp: timestamp,
           },
         },
       ];

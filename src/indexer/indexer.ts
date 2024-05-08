@@ -12,6 +12,7 @@ export interface EventHandlerContext {
   rpcClient: PublicClient;
   ipfsGet: <T>(cid: string) => Promise<T | undefined>;
   priceProvider: PriceProvider;
+  blockTimestampInMs: (chainId: number, blockNumber: bigint) => Promise<number>;
   logger: Logger;
 }
 

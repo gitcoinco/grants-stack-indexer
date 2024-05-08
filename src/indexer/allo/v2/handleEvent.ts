@@ -154,7 +154,14 @@ export async function handleEvent(
     subscribeToContract,
     readContract,
     getBlock,
-    context: { db, rpcClient, ipfsGet, logger, priceProvider },
+    context: {
+      db,
+      rpcClient,
+      ipfsGet,
+      logger,
+      priceProvider,
+      blockTimestampInMs,
+    },
   } = args;
 
   switch (event.name) {
@@ -288,6 +295,12 @@ export async function handleEvent(
             address: strategyAddress,
           });
           break;
+        case "allov2.DirectGrantsLiteStrategy":
+          subscribeToContract({
+            contract: "AlloV2/DirectGrantsLiteStrategy/V1",
+            address: strategyAddress,
+          });
+          break;
       }
 
       let applicationsStartTime: Date | null = null;
@@ -353,9 +366,14 @@ export async function handleEvent(
         }
       } else if (
         strategy !== null &&
-        strategy.name === "allov2.DirectGrantsSimpleStrategy"
+        (strategy.name === "allov2.DirectGrantsSimpleStrategy" ||
+          strategy.name === "allov2.DirectGrantsLiteStrategy")
       ) {
-        const contract = "AlloV2/DirectGrantsSimpleStrategy/V1";
+        // const contract = "AlloV2/DirectGrantsSimpleStrategy/V1";
+        const contract =
+          strategy.name === "allov2.DirectGrantsSimpleStrategy"
+            ? "AlloV2/DirectGrantsSimpleStrategy/V1"
+            : "AlloV2/DirectGrantsLiteStrategy/V1";
         const [registrationStartTimeResolved, registrationEndTimeResolved] =
           await Promise.all([
             await readContract({
@@ -757,6 +775,7 @@ export async function handleEvent(
           break;
 
         case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
+        case "allov2.DirectGrantsLiteStrategy":
           values = decodeDVMDApplicationData(encodedData);
           id = (Number(values.recipientsCounter) - 1).toString();
           break;
@@ -822,6 +841,7 @@ export async function handleEvent(
 
       switch (round.strategyName) {
         case "allov2.DirectGrantsSimpleStrategy":
+        case "allov2.DirectGrantsLiteStrategy":
           params = event.params as DGTimeStampUpdatedData;
 
           applicationsStartTime = getDateFromTimestamp(
@@ -1065,6 +1085,62 @@ export async function handleEvent(
             {
               type: "InsertDonation",
               donation,
+            },
+          ];
+        }
+
+        case "allov2.DirectGrantsLiteStrategy": {
+          const recipientId = parseAddress(event.params.recipientId);
+          const amount = event.params.amount;
+          const tokenAddress = parseAddress(event.params.token);
+          const roundId = round.id;
+          const application = await db.getApplicationByAnchorAddress(
+            chainId,
+            roundId,
+            recipientId
+          );
+
+          const amountInUsd = (
+            await convertToUSD(
+              priceProvider,
+              chainId,
+              tokenAddress,
+              amount,
+              event.blockNumber
+            )
+          ).amount;
+
+          const amountInRoundMatchToken = (
+            await convertFromUSD(
+              priceProvider,
+              chainId,
+              tokenAddress,
+              amountInUsd,
+              event.blockNumber
+            )
+          ).amount;
+
+          const timestamp = getDateFromTimestamp(
+            BigInt(
+              (await blockTimestampInMs(chainId, event.blockNumber)) / 1000
+            )
+          );
+
+          return [
+            {
+              type: "InsertApplicationPayout",
+              payout: {
+                amount,
+                applicationId: application?.id!,
+                roundId,
+                chainId,
+                tokenAddress,
+                amountInRoundMatchToken,
+                amountInUsd,
+                transactionHash: event.transactionHash,
+                sender: parseAddress(event.params.sender),
+                timestamp,
+              },
             },
           ];
         }
