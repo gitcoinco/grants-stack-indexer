@@ -1623,6 +1623,15 @@ const CHAINS: Chain[] = [
           address: "0x0000000000000000000000000000000000000000",
         },
       },
+      {
+        code: "CUSD",
+        address: "0x765de816845861e75a25fca122bb6898b8b1282a",
+        decimals: 18,
+        priceSource: {
+          chainId: 42220,
+          address: "0x765de816845861e75a25fca122bb6898b8b1282a",
+        },
+      },
     ],
     subscriptions: [
       // Allo V2
