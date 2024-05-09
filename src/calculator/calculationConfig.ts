@@ -47,7 +47,7 @@ export function extractCalculationConfigFromRound(
       ? undefined
       : typeof sybilDefense === "boolean"
       ? sybilDefense
-      : sybilDefense === "passport" || sybilDefense === "passport-mbds"
+      : sybilDefense === "passport"
       ? true
       : false;
 
