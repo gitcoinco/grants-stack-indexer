@@ -104,7 +104,7 @@ export type DeprecatedRound = {
     name: string;
     quadraticFundingConfig?: {
       matchingFundsAvailable?: number;
-      sybilDefense?: boolean;
+      sybilDefense?: SybilDefense | boolean;
       matchingCap?: boolean;
       matchingCapAmount?: number;
       minDonationThreshold?: boolean;
@@ -118,6 +118,8 @@ export type DeprecatedRound = {
   createdAtBlock: number;
   updatedAtBlock: number;
 };
+
+export type SybilDefense = "passport" | "passport-mbds" | "none";
 
 export type DeprecatedProject = {
   id: string;

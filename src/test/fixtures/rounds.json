@@ -11,7 +11,7 @@
     "matchAmount": "10000",
     "metadata": {
       "quadraticFundingConfig": {
-        "sybilDefense": true
+        "sybilDefense": "passport"
       }
     }
   },
