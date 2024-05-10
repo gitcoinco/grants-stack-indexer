@@ -182,6 +182,10 @@ export class Database {
       .execute(this.#db);
   }
 
+  public donationQueueLength() {
+    return this.#donationQueue.length;
+  }
+
   private scheduleDonationQueueFlush() {
     if (this.#donationBatchTimeout !== null) {
       clearTimeout(this.#donationBatchTimeout);
@@ -439,6 +443,7 @@ export class Database {
         await this.#db
           .insertInto("donations")
           .values(change.donations)
+          .onConflict((c) => c.column("id").doNothing())
           .execute();
         break;
       }

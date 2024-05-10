@@ -581,8 +581,10 @@ async function catchupAndWatchChain(
             return sub.toBlock === "latest" || sub.toBlock < targetBlock;
           });
 
+          const donationQueueLength = db.donationQueueLength();
+
           indexerLogger.info(
-            `${currentBlock}/${targetBlock} indexed (${progressPercentage}%) (pending events: ${pendingEventsCount}) (contracts: ${activeSubscriptions.length})`
+            `${currentBlock}/${targetBlock} indexed (${progressPercentage}%) (pending events: ${pendingEventsCount}) (pending donations: ${donationQueueLength}) (contracts: ${activeSubscriptions.length})`
           );
         }
       )
