@@ -295,7 +295,9 @@ async function main(): Promise<void> {
       ...(config.httpServerWaitForSync ? [indexChainsPromise] : []),
     ]);
 
-    const pluginHook = makePluginHook([GraphilePro.default]);
+    const pluginHook = process.env.GRAPHILE_LICENSE
+      ? makePluginHook([GraphilePro.default])
+      : undefined;
 
     const graphqlHandler = postgraphile(
       readOnlyDatabaseConnectionPool,
