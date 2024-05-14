@@ -86,6 +86,18 @@ async function main(): Promise<void> {
     });
   }
 
+  const pinoTransport = config.pinoPretty
+    ? {
+        transport: {
+          target: "pino-pretty",
+          options: {
+            colorize: true,
+            singleLine: true,
+          },
+        },
+      }
+    : {};
+
   const baseLogger = pino({
     level: config.logLevel,
     formatters: {
@@ -94,6 +106,7 @@ async function main(): Promise<void> {
         return { level };
       },
     },
+    ...pinoTransport,
   }).child({
     service: `indexer-${config.deploymentEnvironment}`,
   });
@@ -214,6 +227,7 @@ async function main(): Promise<void> {
 
   async function indexChains(isFirstRun = false) {
     baseLogger.debug("attempting to acquire write lock");
+
     const lock = await db.acquireWriteLock();
 
     if (lock !== null) {

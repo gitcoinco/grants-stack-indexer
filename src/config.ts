@@ -1754,6 +1754,7 @@ export type Config = {
   readOnlyDatabaseUrl: string;
   databaseSchemaName: string;
   hostname: string;
+  pinoPretty: boolean;
   deploymentEnvironment: "local" | "development" | "staging" | "production";
   enableResourceMonitor: boolean;
   dropDb: boolean;
@@ -1772,6 +1773,12 @@ export function getConfig(): Config {
     .parse(process.env.ENABLE_RESOURCE_MONITOR);
 
   const apiHttpPort = z.coerce.number().parse(process.env.PORT);
+
+  const pinoPretty = z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true")
+    .parse(process.env.PINO_PRETTY);
 
   const deploymentEnvironment = z
     .union([
@@ -1941,6 +1948,7 @@ export function getConfig(): Config {
     ipfsGateway,
     passportScorerId,
     apiHttpPort,
+    pinoPretty,
     deploymentEnvironment,
     enableResourceMonitor,
     databaseUrl,
