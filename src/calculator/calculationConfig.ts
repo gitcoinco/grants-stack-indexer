@@ -40,10 +40,16 @@ export function extractCalculationConfigFromRound(
     matchingCapAmount = (matchAmount * scaledCapPercentage) / 10000n;
   }
 
+  const sybilDefense = round?.metadata?.quadraticFundingConfig?.sybilDefense;
+
   const enablePassport =
-    round?.metadata?.quadraticFundingConfig?.sybilDefense === undefined
+    sybilDefense === undefined
       ? undefined
-      : Boolean(round?.metadata?.quadraticFundingConfig?.sybilDefense);
+      : typeof sybilDefense === "boolean"
+      ? sybilDefense
+      : sybilDefense === "passport"
+      ? true
+      : false;
 
   const minimumAmountUSD =
     round.metadata?.quadraticFundingConfig?.minDonationThresholdAmount ===
