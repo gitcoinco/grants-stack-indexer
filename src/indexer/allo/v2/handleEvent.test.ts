@@ -1097,7 +1097,9 @@ describe("handleEvent", () => {
         tags: [],
       };
 
-      MOCK_DB.getApplicationById = vi.fn().mockResolvedValueOnce(application);
+      MOCK_DB.getApplicationByAnchorAddress = vi
+        .fn()
+        .mockResolvedValueOnce(application);
 
       MOCK_DB.getRoundByStrategyAddress = vi.fn().mockResolvedValueOnce(round);
 
