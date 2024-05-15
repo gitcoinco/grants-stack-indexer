@@ -1100,26 +1100,36 @@ export async function handleEvent(
             recipientId
           );
 
-          const amountInUsd = (
-            await convertToUSD(
-              priceProvider,
-              chainId,
-              tokenAddress,
-              amount,
-              event.blockNumber
-            )
-          ).amount;
+          let amountInUsd = 0;
+          let amountInRoundMatchToken = 0n;
 
-          const amountInRoundMatchToken = (
-            await convertFromUSD(
-              priceProvider,
-              chainId,
-              tokenAddress,
-              amountInUsd,
-              event.blockNumber
-            )
-          ).amount;
+          try {
+            amountInUsd = (
+              await convertToUSD(
+                priceProvider,
+                chainId,
+                tokenAddress,
+                amount,
+                event.blockNumber
+              )
+            ).amount;
 
+            amountInRoundMatchToken = (
+              await convertFromUSD(
+                priceProvider,
+                chainId,
+                tokenAddress,
+                amountInUsd,
+                event.blockNumber
+              )
+            ).amount;
+          } catch (error) {
+            logger.warn({
+              msg: "Token not found: Failed to convert amount to USD",
+              error,
+              event,
+            });
+          }
           const timestamp = getDateFromTimestamp(
             BigInt(
               (await blockTimestampInMs(chainId, event.blockNumber)) / 1000
