@@ -1082,7 +1082,7 @@ describe("handleEvent", () => {
         chainId: 1,
         roundId: roundId,
         projectId: "0x1234",
-        anchorAddress: parseAddress(addressZero),
+        anchorAddress: parseAddress(addressTwo),
         status: "PENDING",
         statusSnapshots: [],
         distributionTransaction: null,
@@ -1115,7 +1115,7 @@ describe("handleEvent", () => {
             amount: 0n,
             grantee: addressTwo,
             token: addressZero,
-            recipientId: "0x1234",
+            recipientId: parseAddress(addressTwo),
           },
         },
         context: {
