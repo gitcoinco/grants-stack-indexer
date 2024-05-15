@@ -12,6 +12,7 @@ kill_timeout = '5s'
   wait_timeout = '1h0m0s'
 
 [env]
+  PINO_PRETTY = 'true'
   DEPLOYMENT_ENVIRONMENT = 'production'
   ENABLE_RESOURCE_MONITOR = 'false'
   ESTIMATES_LINEARQF_WORKER_POOL_SIZE = '10'
