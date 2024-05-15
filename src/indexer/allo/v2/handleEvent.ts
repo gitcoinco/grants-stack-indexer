@@ -936,11 +936,11 @@ export async function handleEvent(
       }
 
       const roundId = round.id;
-      const applicationId = event.params.recipientId;
-      const application = await db.getApplicationById(
+      const anchorAddress = parseAddress(event.params.recipientId);
+      const application = await db.getApplicationByAnchorAddress(
         chainId,
         roundId,
-        applicationId
+        anchorAddress
       );
 
       if (application === null) {
