@@ -5,7 +5,7 @@
 When deploying changes to the indexer, it's important to clarify the results you want to achieve:
 
 1. **Applying Changes to New Blocks Only**:
-    - If you want your changes to apply only to new blocks, simply deploy your changes. The indexer will resume indexing from the last indexed block without affecting previously indexed data. Migrations will not be applied retroactively.
+    - If you want your changes to apply only to new blocks, or your changes don't affect the data itself (e.g. API changes), simply deploy your changes. The indexer will resume indexing from the last indexed block without affecting previously indexed data. Migrations will not be applied.
 
 2. **Changing Database Schema or Event Handlers Retroactively**:
     - If you need to change the database schema or modify event handlers for previously indexed blocks, you must increment the `CHAIN_DATA_VERSION` constant in `src/config.ts`.
