@@ -9,7 +9,7 @@ kill_timeout = '5s'
 [build]
 
 [deploy]
-  wait_timeout = '1h0m0s'
+  wait_timeout = '6h0m0s'
 
 [env]
   PINO_PRETTY = 'true'
