@@ -19,3 +19,4 @@ When deploying changes to the indexer, it's important to clarify the results you
 ### Important Notes
 
 - **Reindexing Time**: Deployments involving reindexing will take significantly longer. Plan accordingly to minimize downtime or performance impact.
+- **Reindexing Monitoring:** Make sure that you monitor reindexing progress through DataDog.
