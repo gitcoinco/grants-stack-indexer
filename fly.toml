@@ -15,6 +15,7 @@ kill_timeout = '5s'
   PINO_PRETTY = 'true'
   DEPLOYMENT_ENVIRONMENT = 'production'
   ENABLE_RESOURCE_MONITOR = 'true'
+  ESTIMATES_LINEARQF_WORKER_POOL_SIZE = '10'
   INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-testnet,pgn-mainnet,arbitrum,polygon,sepolia,avalanche,avalanche-fuji,scroll,scroll-sepolia,base,zksync-era-mainnet"
   LOG_LEVEL = 'debug'
   NODE_OPTIONS = '--max-old-space-size=4096'
