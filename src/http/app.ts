@@ -11,8 +11,8 @@ import { createHandler as createApiHandler } from "./api/v1/index.js";
 import { PriceProvider } from "../prices/provider.js";
 import { PassportProvider } from "../passport/index.js";
 import { DataProvider } from "../calculator/dataProvider/index.js";
-import { Chain } from "../config.js";
 import { Database } from "../database/index.js";
+import { TChain } from "@gitcoin/gitcoin-chain-data";
 
 type AsyncRequestHandler = (
   req: express.Request,
@@ -30,7 +30,7 @@ export interface HttpApiConfig {
   passportProvider: PassportProvider;
   graphqlHandler?: AsyncRequestHandler;
   hostname: string;
-  chains: Chain[];
+  chains: TChain[];
   enableSentry: boolean;
   calculator: {
     esimatesLinearQfImplementation:

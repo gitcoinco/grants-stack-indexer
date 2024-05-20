@@ -1,5 +1,4 @@
 import type { LinearQf } from "./linearQf/index.js";
-import { Chain } from "../config.js";
 import { DataProvider } from "./dataProvider/index.js";
 import { PriceProvider, PriceWithDecimals } from "../prices/provider.js";
 import { PassportProvider } from "../passport/index.js";
@@ -23,6 +22,7 @@ import {
   DeprecatedVote,
 } from "../deprecatedJsonDatabase.js";
 import { parseAddress } from "../address.js";
+import { TChain } from "@gitcoin/gitcoin-chain-data";
 
 export const potentialVoteSchema = z.object({
   projectId: z.string(),
@@ -57,7 +57,7 @@ export async function calculateMatchingEstimates({
   proportionalMatchOptions,
   linearQfImpl,
 }: {
-  chain: Chain;
+  chain: TChain;
   round: DeprecatedRound;
   dataProvider: DataProvider;
   priceProvider: PriceProvider;

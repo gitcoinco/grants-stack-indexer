@@ -1,5 +1,4 @@
 import { Logger } from "pino";
-import { Token, getChainConfigById } from "../config.js";
 import { UnknownTokenError } from "./common.js";
 import { convertTokenToFiat, convertFiatToToken } from "../tokenMath.js";
 import { Database } from "../database/index.js";
@@ -8,6 +7,8 @@ import { Address, ChainId, FetchInterface } from "../types.js";
 import { LRUCache } from "lru-cache";
 import { fetchPricesForRange } from "./coinGecko.js";
 import { parseAddress } from "../address.js";
+import { TToken } from "@gitcoin/gitcoin-chain-data";
+import { chainById } from "../config.js";
 
 export type PriceWithDecimals = Omit<Price, "id"> & { tokenDecimals: number };
 
@@ -104,7 +105,7 @@ export function createPriceProvider(
     tokenAddress: Address,
     blockNumber: bigint | "latest"
   ): Promise<PriceWithDecimals> {
-    const chain = getChainConfigById(chainId);
+    const chain = chainById(chainId);
 
     const token = chain.tokens.find(
       (t) => t.address.toLowerCase() === tokenAddress.toLowerCase()
@@ -169,7 +170,7 @@ export function createPriceProvider(
 
   async function fetchPriceForToken(
     chainId: ChainId,
-    token: Token,
+    token: TToken,
     blockNumber: bigint
   ): Promise<PriceWithDecimals | null> {
     const blockTimestampInMs = await config.getBlockTimestampInMs(
@@ -181,8 +182,8 @@ export function createPriceProvider(
     const twoHoursInMs = 2 * 60 * 60 * 1000;
 
     const prices = await fetchPricesForRange({
-      chainId: token.priceSource.chainId,
-      tokenAddress: parseAddress(token.priceSource.address),
+      chainId: token.priceSource?.chainId!,
+      tokenAddress: parseAddress(token.priceSource?.address ?? token.address),
       startTimestampInMs: blockTimestampInMs - twoHoursInMs,
       endTimestampInMs: blockTimestampInMs,
       coingeckoApiUrl: config.coingeckoApiUrl,

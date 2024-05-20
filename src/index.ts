@@ -26,7 +26,8 @@ import { createPassportProvider, PassportProvider } from "./passport/index.js";
 import { createResourceMonitor } from "./resourceMonitor.js";
 import diskstats from "diskstats";
 
-import { Chain, getConfig, Config, getChainConfigById } from "./config.js";
+import { getConfig, Config, chainById } from "./config.js";
+import { TChain } from "@gitcoin/gitcoin-chain-data";
 import { createPriceProvider, PriceProvider } from "./prices/provider.js";
 import { createHttpApi } from "./http/app.js";
 import { DatabaseDataProvider } from "./calculator/dataProvider/databaseDataProvider.js";
@@ -150,13 +151,12 @@ async function main(): Promise<void> {
     buildTag: config.buildTag,
     deploymentEnvironment: config.deploymentEnvironment,
     chains: config.chains.map(
-      (c) =>
-        c.name +
-        " (rpc: " +
-        c.rpc.slice(0, 25) +
-        "..." +
-        c.rpc.slice(-5, -1) +
-        ")"
+      (c) => c.name +
+      " (rpc: " +
+      c.rpc.public.slice(0, 25) +
+      "..." +
+      c.rpc.public.slice(-5, -1) +
+      ")"
     ),
   });
 
@@ -175,7 +175,7 @@ async function main(): Promise<void> {
       return cachedBlock.timestamp * 1000;
     }
 
-    const chain = getChainConfigById(chainId);
+    const chain = chainById(chainId);
     const client = createPublicClient({
       transport: http(chain.rpc),
     });
@@ -437,7 +437,7 @@ async function catchupAndWatchChain(
       blockNumber: bigint
     ) => Promise<number>;
     db: Database;
-    chain: Chain;
+    chain: TChain;
     baseLogger: Logger;
   }
 ) {
@@ -619,7 +619,7 @@ async function catchupAndWatchChain(
           : BigInt(subscription.fromBlock);
 
       indexer.subscribeToContract({
-        contract: contractName,
+        contract: contractName as ContractName,
         address: subscription.address,
         fromBlock:
           subscriptionFromBlock !== undefined &&

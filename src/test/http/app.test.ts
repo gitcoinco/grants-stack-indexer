@@ -8,7 +8,7 @@ import { AugmentedResult } from "../../calculator/calculateMatches.js";
 import { PriceProvider } from "../../prices/provider.js";
 import { pino } from "pino";
 import { PotentialVote } from "../../calculator/calculateMatchingEstimates.js";
-import { Chain } from "../../config.js";
+import { TChain } from "@gitcoin/gitcoin-chain-data";
 import { constants } from "ethers";
 import {
   TestPriceProvider,
@@ -21,17 +21,33 @@ import { Database } from "../../database/index.js";
 // Typed version of supertest's Response
 type Response<T> = Omit<SupertestResponse, "body"> & { body: T };
 
-const MOCK_CHAINS = [
+const MOCK_CHAINS: TChain[] = [
   {
     id: 1,
+    name: "mainnet",
+    type: "mainnet",
+    blockExplorer: "https://etherscan.io/",
+    icon: "https://ipfs.io/ipfs/QmdPgVsrQAYJyDmrs17QTawu95z4gbaKGAwmBu73JFZc2f",
+    rpc: "https://mainnet.infura.io/v3/",
+    pricesFromTimestamp: 1667354777,
+    maxGetLogsRange: 0,
     tokens: [
       {
         code: "ETH",
+        icon: "https://ipfs.io/ipfs/QmdPgVsrQAYJyDmrs17QTawu95z4gbaKGAwmBu73JFZc2f",
         address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        canVote: true,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+        redstoneTokenId: "ETH",
       },
     ],
+    subscriptions: []
   },
-] as Chain[];
+];
 
 const DUMMY_LOGGER = pino({ level: "silent" });
 

@@ -4,7 +4,7 @@ import type {
   DeprecatedApplication,
 } from "../../deprecatedJsonDatabase.js";
 import { test as baseTest } from "vitest";
-import { Chain } from "../../config.js";
+import { TChain } from "@gitcoin/gitcoin-chain-data";
 import type { PassportScore } from "../../passport/index.js";
 import type { PassportProvider } from "../../passport/index.js";
 import { AddressToPassportScoreMap } from "../../passport/index.js";
@@ -122,7 +122,7 @@ const chain = {
       address: "0x1234",
     },
   ],
-} as unknown as Chain;
+} as unknown as TChain;
 
 function generateVoteAndScore(id: number, amount: bigint, rawScore: string) {
   const vote: DeprecatedVote = {
@@ -179,7 +179,7 @@ function generateData() {
 export const test = baseTest.extend<{
   round: DeprecatedRound;
   applications: DeprecatedApplication[];
-  chain: Chain;
+  chain: TChain;
   data: {
     votes: DeprecatedVote[];
     scores: PassportScore[];
