@@ -448,38 +448,57 @@ async function catchupAndWatchChain(
   const { db, priceProvider, blockTimestampInMs } = config;
 
   try {
-    const cachedIpfsGet = async <T>(cid: string): Promise<T | undefined> => {
+    async function cachedIpfsGet<T>(cid: string): Promise<T | undefined> {
       const cidRegex = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[0-9A-Za-z]{50,})$/;
       if (!cidRegex.test(cid)) {
         chainLogger.warn(`Invalid IPFS CID: ${cid}`);
         return undefined;
       }
 
-      const url = `${config.ipfsGateway}/ipfs/${cid}`;
+      const gatewayList: string[] = [];
+      if (
+        typeof config.ipfsGateway === "string" &&
+        config.ipfsGateway.includes(",")
+      ) {
+        gatewayList.push(...config.ipfsGateway.split(","));
+      } else if (typeof config.ipfsGateway === "string") {
+        gatewayList.push(config.ipfsGateway);
+      } else {
+        // Handle invalid configuration format (optional)
+        chainLogger.error("Invalid IPFS Gateway configuration format");
+        return undefined;
+      }
 
-      // chainLogger.trace(`Fetching ${url}`);
+      for (const gateway of gatewayList) {
+        const url = `${gateway}/ipfs/${cid}`;
 
-      const res = await fetch(url, {
-        timeout: 2000,
-        onRetry(cause) {
-          chainLogger.debug({
-            msg: "Retrying IPFS request",
-            url: url,
-            err: cause,
+        try {
+          const res = await fetch(url, {
+            timeout: 2000,
+            onRetry(cause) {
+              chainLogger.debug({
+                msg: "Retrying IPFS request",
+                url: url,
+                err: cause,
+              });
+            },
+            retry: { retries: 3, minTimeout: 2000, maxTimeout: 60 * 10000 },
+            // IPFS data is immutable, we can rely entirely on the cache when present
+            cache: "force-cache",
+            cachePath:
+              config.cacheDir !== null
+                ? path.join(config.cacheDir, "ipfs")
+                : undefined,
           });
-        },
-        retry: { retries: 3, minTimeout: 2000, maxTimeout: 60 * 10000 },
-        // IPFS data is immutable, we can rely entirely on the cache when present
-        cache: "force-cache",
-        cachePath:
-          config.cacheDir !== null
-            ? path.join(config.cacheDir, "ipfs")
-            : undefined,
-      });
 
-      return (await res.json()) as T;
-    };
+          return (await res.json()) as T;
+        } catch (error) {
+          chainLogger.error(`Failed to fetch data from ${gateway}:`, error);
+        }
+      }
 
+      throw new Error("Failed to fetch data from any gateway");
+    }
     chainLogger.info("catching up with blockchain events");
 
     const indexerLogger = chainLogger.child({ subsystem: "DataUpdater" });
