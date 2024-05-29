@@ -1,54 +1,66 @@
-app = "indexer-staging"
-primary_region = "den"
-kill_signal = "SIGINT"
-kill_timeout = 5
+# fly.toml app configuration file generated for indexer-v2-staging on 2024-05-21T18:42:41+05:30
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'indexer-v2-staging'
+primary_region = 'den'
+kill_signal = 'SIGINT'
+kill_timeout = '5s'
 
 [experimental]
   auto_rollback = true
 
+[build]
+
+[deploy]
+  wait_timeout = '6h0m0s'
+
 [env]
-  PORT = "8080"
-  DEPLOYMENT_ENVIRONMENT = "staging"
-  LOG_LEVEL = "debug"
-  STORAGE_DIR = "/mnt/indexer"
-  INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-testnet,pgn-mainnet,arbitrum,polygon,sepolia,avalanche,avalanche-fuji,scroll,scroll-sepolia,base,zksync-era-mainnet,sei-devnet,lukso-mainnet,lukso-testnet,celo-mainnet,celo-testnet"
-  ENABLE_RESOURCE_MONITOR = "true"
-  NODE_OPTIONS="--max-old-space-size=7168"
+  DEPLOYMENT_ENVIRONMENT = 'production'
+  ENABLE_RESOURCE_MONITOR = 'false'
+  ESTIMATES_LINEARQF_WORKER_POOL_SIZE = '10'
+  INDEXED_CHAINS = 'sepolia'
+  LOG_LEVEL = 'debug'
+  NODE_OPTIONS = '--max-old-space-size=4096'
+  PASSPORT_SCORER_ID = '335'
+  PINO_PRETTY = 'true'
+  PORT = '8080'
+  STORAGE_DIR = '/mnt/indexer'
 
 [processes]
-  web = "npm start -- --indexer --http"
+  indexer = 'npm start -- --indexer --http'
+  web = 'npm start -- --http --http-wait-for-sync=false'
 
-[mounts]
-  source="indexer_staging"
-  destination="/mnt/indexer"
+[[mounts]]
+  source = 'indexer_staging'
+  destination = '/mnt/indexer'
+  initial_size = '50gb'
+  processes = ['indexer', 'web']
 
-[[services]]
-  protocol = "tcp"
+[http_service]
   internal_port = 8080
-  processes = ["web"]
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 2
+  processes = ['web']
 
-  [[services.ports]]
-    port = 80
-    handlers = ["http"]
-    force_https = true
-  [[services.ports]]
-    port = 443
-    handlers = ["tls", "http"]
+  [http_service.concurrency]
+    type = 'requests'
+    hard_limit = 250
+    soft_limit = 200
 
-  [services.concurrency]
-    type = "connections"
-    hard_limit = 25
-    soft_limit = 20
+[checks]
+  [checks.http]
+    port = 8080
+    type = 'http'
+    interval = '15s'
+    timeout = '10s'
+    grace_period = '30s'
+    method = 'get'
+    path = '/api/v1/status'
+    processes = ['web', 'indexer']
 
-  [[services.tcp_checks]]
-    interval = "30s"
-    timeout = "10s"
-    grace_period = "1m"
-
-  [[services.http_checks]]
-    interval = "60s"
-    grace_period = "1m"
-    timeout = "5s"
-    method = "get"
-    path = "/api/v1/status"
-    protocol = "http"
+[[vm]]
+  size = 'performance-2x'

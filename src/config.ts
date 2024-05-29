@@ -140,7 +140,7 @@ const CHAINS: Chain[] = [
     id: 10,
     name: "optimism",
     rpc: rpcUrl
-      .default("https://opt-mainnet.g.alchemy.com/v2/")
+      .default("https://optimism-rpc.publicnode.com")
       .parse(process.env.OPTIMISM_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
