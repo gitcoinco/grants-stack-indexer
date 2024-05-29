@@ -12,6 +12,7 @@ const platforms: { [key: number]: string } = {
   42161: "arbitrum-one",
   43114: "avalanche",
   713715: "sei-network",
+  1329: "sei-network",
   42: "lukso",
   42220: "celo",
 };
@@ -23,6 +24,7 @@ const nativeTokens: { [key: number]: string } = {
   42161: "ethereum",
   43114: "avalanche-2",
   713715: "sei-network",
+  1329: "sei-network",
   42: "lukso-token",
   42220: "celo",
 };
