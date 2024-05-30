@@ -4,11 +4,7 @@ import { ToBlock } from "chainsauce";
 import { z } from "zod";
 import path from "node:path";
 import os from "node:os";
-import {
-  TChain,
-  getChainById,
-  getChains,
-} from "@gitcoin/gitcoin-chain-data";
+import { TChain, getChainById, getChains } from "@gitcoin/gitcoin-chain-data";
 
 const CHAIN_DATA_VERSION = "66";
 const CHAINS: TChain[] = getChains();
@@ -285,6 +281,7 @@ const rpcUrls: { [key: number]: string | undefined } = {
   80001: process.env.POLYGON_MUMBAI_RPC_URL,
   534351: process.env.SCROLL_SEPOLIA_RPC_URL,
   534352: process.env.SCROLL_RPC_URL,
+  1329: process.env.SEI_MAINNET_RPC_URL,
   713715: process.env.SEI_DEVNET_RPC_URL,
   11155111: process.env.SEPOLIA_RPC_URL,
 };

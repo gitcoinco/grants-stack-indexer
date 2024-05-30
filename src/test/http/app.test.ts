@@ -45,7 +45,7 @@ const MOCK_CHAINS: TChain[] = [
         redstoneTokenId: "ETH",
       },
     ],
-    subscriptions: []
+    subscriptions: [],
   },
 ];
 

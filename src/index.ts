@@ -35,7 +35,7 @@ import { CachedDataProvider } from "./calculator/dataProvider/cachedDataProvider
 import { ethers } from "ethers";
 import TTLCache from "@isaacs/ttlcache";
 
-import abis from "./indexer/abis/index.js";
+import abis, { ContractName } from "./indexer/abis/index.js";
 import type { EventHandlerContext } from "./indexer/indexer.js";
 import { handleEvent as handleAlloV1Event } from "./indexer/allo/v1/handleEvent.js";
 import { handleEvent as handleAlloV2Event } from "./indexer/allo/v2/handleEvent.js";
@@ -151,12 +151,13 @@ async function main(): Promise<void> {
     buildTag: config.buildTag,
     deploymentEnvironment: config.deploymentEnvironment,
     chains: config.chains.map(
-      (c) => c.name +
-      " (rpc: " +
-      c.rpc.public.slice(0, 25) +
-      "..." +
-      c.rpc.public.slice(-5, -1) +
-      ")"
+      (c) =>
+        c.name +
+        " (rpc: " +
+        c.rpc.slice(0, 25) +
+        "..." +
+        c.rpc.slice(-5, -1) +
+        ")"
     ),
   });
 

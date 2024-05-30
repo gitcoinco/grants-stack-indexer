@@ -25,7 +25,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@gitcoin/gitcoin-chain-data": "^1.0.3-t1",
+    "@gitcoin/gitcoin-chain-data": "^1.0.4",
     "@graphile-contrib/pg-simplify-inflector": "^6.1.0",
     "@graphile/pro": "^1.0.4",
     "@isaacs/ttlcache": "^1.4.1",
@@ -99,5 +99,8 @@
     "tsx": "^3.12.7",
     "typescript": "^5.2.2",
     "vitest": "0.34.5"
+  },
+  "volta": {
+    "node": "20.14.0"
   }
 }
