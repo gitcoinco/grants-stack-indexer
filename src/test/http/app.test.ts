@@ -26,11 +26,17 @@ const MOCK_CHAINS: TChain[] = [
     id: 1,
     name: "mainnet",
     type: "mainnet",
+    prettyName: "Ethereum",
     blockExplorer: "https://etherscan.io/",
     icon: "https://ipfs.io/ipfs/QmdPgVsrQAYJyDmrs17QTawu95z4gbaKGAwmBu73JFZc2f",
     rpc: "https://mainnet.infura.io/v3/",
     pricesFromTimestamp: 1667354777,
     maxGetLogsRange: 0,
+    contracts: {
+      multiRoundCheckout: "0x",
+      directGrants: "0x",
+      quadraticFunding: "0x",
+    },
     tokens: [
       {
         code: "ETH",
