@@ -15,6 +15,7 @@ type CoingeckoSupportedChainId =
   | 42161
   | 43114
   | 713715
+  | 1329
   | 42
   | 42220;
 
@@ -140,7 +141,7 @@ const CHAINS: Chain[] = [
     id: 10,
     name: "optimism",
     rpc: rpcUrl
-      .default("https://opt-mainnet.g.alchemy.com/v2/")
+      .default("https://optimism-rpc.publicnode.com")
       .parse(process.env.OPTIMISM_RPC_URL),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
@@ -1098,46 +1099,8 @@ const CHAINS: Chain[] = [
           address: "0x0000000000000000000000000000000000000000",
         },
       },
-      {
-        code: "TEST",
-        address: "0x8fd03Cd97Da068CC242Ab7551Dc4100DD405E8c7",
-        decimals: 18,
-        priceSource: {
-          chainId: 1,
-          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-        },
-      },
     ],
     subscriptions: [
-      {
-        address: "0xb0F4882184EB6e3ed120c5181651D50719329788",
-        contractName: "AlloV1/ProjectRegistry/V2",
-      },
-      {
-        address: "0x0Bb6e2dfEaef0Db5809B3979717E99e053Cbae72",
-        contractName: "AlloV1/RoundFactory/V2",
-        fromBlock: 14410000,
-      },
-      {
-        address: "0x8c28F21D2d8C53eedC58bF9cdCfb7DCF7d809d97",
-        contractName: "AlloV1/QuadraticFundingVotingStrategyFactory/V2",
-        fromBlock: 14410000,
-      },
-      {
-        contractName: "AlloV1/MerklePayoutStrategyFactory/V2",
-        address: "0xbA160C13F8F626e3232078aDFD6eD2f2B2289563",
-        fromBlock: 14410000,
-      },
-      {
-        contractName: "AlloV1/DirectPayoutStrategyFactory/V2",
-        address: "0x4170665B31bC10009f8a69CeaACf3265C3d66797",
-        fromBlock: 14410000,
-      },
-      {
-        contractName: "AlloV1/ProgramFactory/V1",
-        address: "0x6D341814Be4E2316142D9190E390b494F1dECFAf",
-        fromBlock: 14412765,
-      },
       {
         contractName: "AlloV2/Registry/V1",
         address: "0xaa376Ef759c1f5A8b0B5a1e2FEC5C23f3bF30246",
@@ -1503,6 +1466,47 @@ const CHAINS: Chain[] = [
         contractName: "AlloV2/Allo/V1",
         address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
         fromBlock: 14661917,
+      },
+    ],
+  },
+  {
+    id: 1329,
+    name: "sei-mainnet",
+    rpc: rpcUrl
+      .default("https://evm-rpc.sei-apis.com")
+      .parse(process.env.SEI_MAINNET_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "SEI",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1329,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "SEI",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 1329,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+    ],
+    subscriptions: [
+      // Allo V2
+      {
+        contractName: "AlloV2/Registry/V1",
+        address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+        fromBlock: 78000000,
+      },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+        fromBlock: 78000000,
       },
     ],
   },
