@@ -14,6 +14,8 @@ import {
   NewDonation,
   LegacyProjectTable,
   ApplicationPayout,
+  ContributionTable,
+  MessageTable,
 } from "./schema.js";
 import { migrate } from "./migrate.js";
 import { encodeJsonWithBigInts } from "../utils/index.js";
@@ -37,6 +39,8 @@ interface Tables {
   prices: PriceTable;
   legacyProjects: LegacyProjectTable;
   applicationsPayouts: ApplicationPayout;
+  contributions: ContributionTable;
+  messages: MessageTable;
 }
 
 type KyselyDb = Kysely<Tables>;
@@ -504,6 +508,19 @@ export class Database {
         break;
       }
 
+      case "InsertContribution": {
+        await this.#db
+          .insertInto("contributions")
+          .values(change.contribution)
+          .execute();
+        break;
+      }
+
+      case "InsertMessage": {
+        await this.#db.insertInto("messages").values(change.message).execute();
+        break;
+      }
+
       default:
         throw new Error(`Unknown changeset type`);
     }
@@ -621,6 +638,20 @@ export class Database {
     const rounds = await this.#db
       .selectFrom("rounds")
       .where("chainId", "=", chainId)
+      .selectAll()
+      .execute();
+
+    return rounds;
+  }
+
+  async getRoundsByStrategyNameAndChainId(
+    chainId: ChainId,
+    strategyName: string
+  ) {
+    const rounds = await this.#db
+      .selectFrom("rounds")
+      .where("chainId", "=", chainId)
+      .where("strategyName", "=", strategyName)
       .selectAll()
       .execute();
 

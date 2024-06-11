@@ -307,6 +307,38 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addUniqueConstraint("unique_v2ProjectId", ["v2ProjectId"])
     .execute();
 
+  await schema
+    .createTable("contributions")
+    .addColumn("id", "text")
+    .addColumn("roundId", "text")
+    .addColumn("chainId", CHAIN_ID_TYPE)
+    .addColumn("maciId", ADDRESS_TYPE)
+    .addColumn("stateIndex", BIGINT_TYPE)
+    .addColumn("contributorAddress", ADDRESS_TYPE)
+    .addColumn("voiceCreditBalance", BIGINT_TYPE)
+    .addColumn("transactionHash", "text")
+    .addColumn("timestamp", "timestamptz")
+    .addPrimaryKeyConstraint("contributions_pkey", ["id"])
+    .execute();
+
+  await schema
+    .createTable("messages")
+    .addColumn("messageId", ADDRESS_TYPE) // Unique identifier for each message
+    .addColumn("contributionId", "text") // Foreign key to contributions table
+    .addColumn("chainId", CHAIN_ID_TYPE)
+    .addColumn("pollId", ADDRESS_TYPE)
+    .addColumn("maciId", ADDRESS_TYPE)
+    .addColumn("message", "jsonb")
+    .addColumn("createdByAddress", ADDRESS_TYPE)
+    .addPrimaryKeyConstraint("messages_pkey", ["messageId"])
+    .addForeignKeyConstraint(
+      "messages_contribution_fkey",
+      ["contributionId"],
+      "contributions",
+      ["id"]
+    )
+    .execute();
+
   // https://www.graphile.org/postgraphile/smart-tags/
   // https://www.graphile.org/postgraphile/computed-columns/
   await sql`

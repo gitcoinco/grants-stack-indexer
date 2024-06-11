@@ -16,6 +16,8 @@ import {
   NewPrice,
   NewLegacyProject,
   NewApplicationPayout,
+  NewContribution,
+  NewMessage,
 } from "./schema.js";
 
 export type DataChange =
@@ -134,4 +136,12 @@ export type DataChange =
   | {
       type: "InsertApplicationPayout";
       payout: NewApplicationPayout;
+    }
+  | {
+      type: "InsertContribution";
+      contribution: NewContribution;
+    }
+  | {
+      type: "InsertMessage";
+      message: NewMessage;
     };

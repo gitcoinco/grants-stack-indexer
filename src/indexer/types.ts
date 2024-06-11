@@ -18,6 +18,15 @@ export type DGApplicationData = {
   };
 };
 
+export type MACIApplicationData = {
+  anchorAddress: string;
+  recipientAddress: string;
+  metadata: {
+    protocol: number;
+    pointer: string;
+  };
+};
+
 export type DVMDTimeStampUpdatedData = {
   registrationStartTime: bigint;
   registrationEndTime: bigint;

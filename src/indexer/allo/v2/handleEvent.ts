@@ -2,9 +2,11 @@ import { EventHandlerArgs } from "chainsauce";
 import {
   Hex,
   decodeAbiParameters,
+  encodeAbiParameters,
   encodePacked,
   keccak256,
   pad,
+  parseAbiParameters,
   parseUnits,
   zeroAddress,
 } from "viem";
@@ -24,6 +26,7 @@ import {
   DGTimeStampUpdatedData,
   DVMDApplicationData,
   DVMDTimeStampUpdatedData,
+  MACIApplicationData,
 } from "../../types.js";
 import { fetchPoolMetadata } from "./poolMetadata.js";
 import roleGranted from "./roleGranted.js";
@@ -42,6 +45,7 @@ import { getTokenForChain } from "../../../config.js";
 import { ethers } from "ethers";
 import { UnknownTokenError } from "../../../prices/common.js";
 import { ApplicationMetadataSchema } from "../../applicationMetadata.js";
+import { randomUUID } from "crypto";
 
 const ALLO_NATIVE_TOKEN = parseAddress(
   "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
@@ -144,6 +148,68 @@ function decodeDGApplicationData(encodedData: Hex) {
 
   return results;
 }
+
+// Decode the application data from MACIQF
+function decodeMACIApplicationData(encodedData: Hex): MACIApplicationData {
+  const decodedData = decodeAbiParameters(
+    [
+      { name: "registryAnchor", type: "address" },
+      { name: "recipientAddress", type: "address" },
+      {
+        name: "metadata",
+        type: "tuple",
+        components: [
+          { name: "protocol", type: "uint256" },
+          { name: "pointer", type: "string" },
+        ],
+      },
+    ],
+    encodedData
+  );
+
+  const results: MACIApplicationData = {
+    anchorAddress: decodedData[0],
+    recipientAddress: decodedData[1],
+    metadata: {
+      protocol: Number(decodedData[2].protocol),
+      pointer: decodedData[2].pointer,
+    },
+  };
+
+  return results;
+}
+
+type ParamsWithRowIndex = {
+  rowIndex: bigint;
+  fullRow: bigint;
+  sender: `0x${string}`;
+};
+
+type ParamsWithoutRowIndex = {
+  recipientId: `0x${string}`;
+  status: number;
+  sender: `0x${string}`;
+};
+
+type EventParams = ParamsWithRowIndex | ParamsWithoutRowIndex;
+
+const isParamsWithRowIndexAndFullRow = (
+  params: EventParams
+): params is ParamsWithRowIndex => {
+  return (
+    (params as ParamsWithRowIndex).rowIndex !== undefined &&
+    (params as ParamsWithRowIndex).fullRow !== undefined
+  );
+};
+
+const isParamsWithRecipientIdAndStatus = (
+  params: EventParams
+): params is ParamsWithoutRowIndex => {
+  return (
+    (params as ParamsWithoutRowIndex).recipientId !== undefined &&
+    (params as ParamsWithoutRowIndex).status !== undefined
+  );
+};
 
 export async function handleEvent(
   args: EventHandlerArgs<Indexer>
@@ -300,6 +366,11 @@ export async function handleEvent(
             contract: "AlloV2/DirectGrantsLiteStrategy/V1",
             address: strategyAddress,
           });
+        case "allov2.MACIQF":
+          subscribeToContract({
+            contract: "AlloV2/MACIQF/V1",
+            address: strategyAddress,
+          });
           break;
       }
 
@@ -391,8 +462,81 @@ export async function handleEvent(
           registrationStartTimeResolved
         );
         applicationsEndTime = getDateFromTimestamp(registrationEndTimeResolved);
-      }
+      } else if (strategy !== null && strategy.name === "allov2.MACIQF") {
+        const contract = "AlloV2/MACIQF/V1";
+        const [
+          registrationStartTimeResolved,
+          registrationEndTimeResolved,
+          allocationStartTimeResolved,
+          allocationEndTimeResolved,
+          PollContractsAddresses,
+          maciAddress,
+        ] = await Promise.all([
+          await readContract({
+            contract,
+            address: strategyAddress,
+            functionName: "registrationStartTime",
+          }),
+          await readContract({
+            contract,
+            address: strategyAddress,
+            functionName: "registrationEndTime",
+          }),
+          await readContract({
+            contract,
+            address: strategyAddress,
+            functionName: "allocationStartTime",
+          }),
+          await readContract({
+            contract,
+            address: strategyAddress,
+            functionName: "allocationEndTime",
+          }),
+          await readContract({
+            contract,
+            address: strategyAddress,
+            functionName: "_pollContracts",
+          }),
+          await readContract({
+            contract,
+            address: strategyAddress,
+            functionName: "_maci",
+          }),
+        ]);
 
+        subscribeToContract({
+          contract: "AlloV2/MACIPoll/V1",
+          address: PollContractsAddresses[0],
+        });
+
+        subscribeToContract({
+          contract: "AlloV2/MACI/V1",
+          address: maciAddress,
+        });
+
+        applicationsStartTime = getDateFromTimestamp(
+          registrationStartTimeResolved
+        );
+        applicationsEndTime = getDateFromTimestamp(registrationEndTimeResolved);
+        donationsStartTime = getDateFromTimestamp(allocationStartTimeResolved);
+        donationsEndTime = getDateFromTimestamp(allocationEndTimeResolved);
+        if (parsedMetadata.success && token !== null) {
+          matchAmount = BigInt(
+            parsedMetadata.data.quadraticFundingConfig.matchingFundsAvailable *
+              10 ** 18
+          );
+
+          matchAmountInUsd = (
+            await convertToUSD(
+              priceProvider,
+              chainId,
+              matchTokenAddress,
+              matchAmount,
+              event.blockNumber
+            )
+          ).amount;
+        }
+      }
       const fundedAmount = event.params.amount;
       let fundedAmountInUsd = 0;
 
@@ -635,58 +779,118 @@ export async function handleEvent(
         return [];
       }
 
-      const bitmap = new StatusesBitmap(256n, 4n);
-      bitmap.setRow(event.params.rowIndex, event.params.fullRow);
-      const startIndex = event.params.rowIndex * bitmap.itemsPerRow;
+      switch (round.strategyName) {
+        case "allov2.MACIQF": {
+          let rec;
+          let stat;
+          if (isParamsWithRecipientIdAndStatus(event.params)) {
+            rec = event.params.sender;
+            stat = event.params.status;
+          }
+          const recipient = rec;
+          const status = stat;
 
-      const indexes = [];
+          const statusString = ApplicationStatus[
+            status ?? 0
+          ] as ApplicationTable["status"];
+          const applicationId = recipient?.toString().toLowerCase() ?? "";
 
-      for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
-        indexes.push(i);
-      }
+          const application = await db.getApplicationById(
+            chainId,
+            round.id,
+            applicationId
+          );
 
-      // TODO: batch update
-      return (
-        await Promise.all(
-          indexes.map(async (i) => {
-            const status = bitmap.getStatus(i);
+          if (application === null) {
+            logger.warn({
+              msg: `applicationStatusUpdated: application not found for this round`,
+              event,
+              strategyAddress,
+            });
+            return [];
+          }
 
-            if (status < 1 || status > 5) {
-              return [];
-            }
-
-            const statusString = ApplicationStatus[
-              status
-            ] as ApplicationTable["status"];
-            const applicationId = i.toString();
-
-            const application = await db.getApplicationById(
+          return [
+            {
+              type: "UpdateApplication",
               chainId,
-              round.id,
-              applicationId
-            );
+              roundId: round.id,
+              applicationId: applicationId,
+              application: await updateApplicationStatus(
+                application,
+                statusString,
+                event.blockNumber,
+                getBlock
+              ),
+            } satisfies Changeset,
+          ];
+        }
 
-            if (application === null) {
-              return [];
-            }
+        case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy": {
+          const bitmap = new StatusesBitmap(256n, 4n);
+          let rowIndex: bigint = 0n;
+          let fullRow: bigint = 0n;
+          if (isParamsWithRowIndexAndFullRow(event.params)) {
+            rowIndex = event.params.rowIndex;
+            fullRow = event.params.fullRow;
+          }
 
-            return [
-              {
-                type: "UpdateApplication",
-                chainId,
-                roundId: round.id,
-                applicationId: i.toString(),
-                application: await updateApplicationStatus(
-                  application,
-                  statusString,
-                  event.blockNumber,
-                  getBlock
-                ),
-              } satisfies Changeset,
-            ];
-          })
-        )
-      ).flat();
+          bitmap.setRow(rowIndex, fullRow);
+          const startIndex = rowIndex * bitmap.itemsPerRow;
+
+          const indexes = [];
+
+          for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
+            indexes.push(i);
+          }
+
+          // TODO: batch update
+          return (
+            await Promise.all(
+              indexes.map(async (i) => {
+                const status = bitmap.getStatus(i);
+
+                if (status < 1 || status > 5) {
+                  return [];
+                }
+
+                const statusString = ApplicationStatus[
+                  status
+                ] as ApplicationTable["status"];
+                const applicationId = i.toString();
+
+                const application = await db.getApplicationById(
+                  chainId,
+                  round.id,
+                  applicationId
+                );
+
+                if (application === null) {
+                  return [];
+                }
+
+                return [
+                  {
+                    type: "UpdateApplication",
+                    chainId,
+                    roundId: round.id,
+                    applicationId: i.toString(),
+                    application: await updateApplicationStatus(
+                      application,
+                      statusString,
+                      event.blockNumber,
+                      getBlock
+                    ),
+                  } satisfies Changeset,
+                ];
+              })
+            )
+          ).flat();
+        }
+
+        default:
+          return [];
+      }
     }
 
     // -- Allo V2 Core
@@ -778,6 +982,11 @@ export async function handleEvent(
         case "allov2.DirectGrantsLiteStrategy":
           values = decodeDVMDApplicationData(encodedData);
           id = (Number(values.recipientsCounter) - 1).toString();
+          break;
+
+        case "allov2.MACIQF":
+          values = decodeMACIApplicationData(encodedData);
+          id = event.params.recipientId?.toString()?.toLowerCase();
           break;
 
         default:
@@ -1155,6 +1364,85 @@ export async function handleEvent(
           ];
         }
 
+        case "allov2.MACIQF": {
+          if (!("origin" in event.params)) {
+            return [];
+          }
+
+          const recipientId = parseAddress(event.params.recipientId);
+          const amount = event.params.amount;
+          const token = parseAddress(event.params.token);
+          const origin = parseAddress(event.params.origin);
+
+          const roundMatchTokenAddress = round.matchTokenAddress;
+
+          const donationId = ethers.utils.solidityKeccak256(
+            ["string"],
+            [`${event.blockNumber}-${event.logIndex}`]
+          );
+
+          const conversionToUSD = await convertToUSD(
+            priceProvider,
+            chainId,
+            token,
+            event.params.amount,
+            event.blockNumber
+          );
+
+          const amountInUsd = conversionToUSD.amount;
+
+          let amountInRoundMatchToken: bigint | null = null;
+          try {
+            amountInRoundMatchToken =
+              roundMatchTokenAddress === token
+                ? event.params.amount
+                : (
+                    await convertFromUSD(
+                      priceProvider,
+                      chainId,
+                      roundMatchTokenAddress,
+                      amountInUsd,
+                      event.blockNumber
+                    )
+                  ).amount;
+          } catch (err) {
+            if (err instanceof UnknownTokenError) {
+              logger.warn({
+                msg: `Skipping event ${event.name} on chain ${chainId} due to unknown token ${roundMatchTokenAddress}`,
+                err,
+                event,
+              });
+              return [];
+            } else {
+              throw err;
+            }
+          }
+
+          const donation: Donation = {
+            id: donationId,
+            chainId,
+            roundId: round.id,
+            applicationId: "undefined",
+            donorAddress: origin,
+            recipientAddress: zeroAddress as any,
+            projectId: "undefined",
+            transactionHash: event.transactionHash,
+            blockNumber: event.blockNumber,
+            tokenAddress: token,
+            amount: amount,
+            amountInUsd,
+            amountInRoundMatchToken,
+            timestamp: conversionToUSD.timestamp,
+          };
+
+          return [
+            {
+              type: "InsertDonation",
+              donation,
+            },
+          ];
+        }
+
         default: {
           logger.warn({
             msg: `Unsupported strategy ${round.strategyName}`,
@@ -1164,6 +1452,143 @@ export async function handleEvent(
           return [];
         }
       }
+    }
+
+    case "SignUp": {
+      const maciAddress = parseAddress(event.address);
+
+      const stateIndex = event.params._stateIndex;
+
+      const voiceCreditBalance = event.params._voiceCreditBalance;
+      const txHash = event.transactionHash;
+
+      const TxInfo = await rpcClient.getTransaction({
+        hash: event.transactionHash,
+      });
+
+      // Search for the round ID that matches the MACI address from
+      // all the MACI strategies in a chain
+      const maciStrategies = await db.getRoundsByStrategyNameAndChainId(
+        chainId,
+        "allov2.MACIQF"
+      );
+
+      let roundID;
+
+      for (const strategy of maciStrategies) {
+        const maciId = await readContract({
+          contract: "AlloV2/MACIQF/V1",
+          address: strategy.strategyAddress,
+          functionName: "_maci",
+        });
+        if (maciId.toLowerCase() === maciAddress.toLowerCase()) {
+          roundID = strategy.id;
+          break;
+        }
+      }
+
+      const createdBy = parseAddress(TxInfo.from);
+
+      const types = "uint256, address, address";
+
+      const bytes = encodeAbiParameters(parseAbiParameters(types), [
+        BigInt(chainId),
+        maciAddress,
+        createdBy,
+      ]);
+
+      // Create a unique ID for the contribution
+      const id = ethers.utils.solidityKeccak256(["bytes"], [bytes]);
+
+      const { timestamp } = await getBlock();
+
+      if (roundID === undefined) {
+        return [];
+      }
+
+      return [
+        {
+          type: "InsertContribution",
+          contribution: {
+            id: id,
+            roundId: roundID,
+            chainId: chainId,
+            voiceCreditBalance: voiceCreditBalance,
+            maciId: maciAddress,
+            stateIndex: stateIndex,
+            contributorAddress: createdBy,
+            transactionHash: txHash,
+            timestamp: new Date(timestamp * 1000),
+          },
+        },
+      ];
+    }
+
+    case "PublishMessage": {
+      const PollAddress = parseAddress(event.address);
+
+      const [extContracts] = await Promise.all([
+        await readContract({
+          contract: "AlloV2/MACIPoll/V1",
+          address: PollAddress,
+          functionName: "extContracts",
+        }),
+      ]);
+
+      const maciAddress = extContracts[0];
+
+      const TxInfo = await rpcClient.getTransaction({
+        hash: event.transactionHash,
+      });
+
+      const createdBy = parseAddress(TxInfo.from);
+
+      const types = "uint256, address, address";
+
+      const bytes = encodeAbiParameters(parseAbiParameters(types), [
+        BigInt(chainId),
+        maciAddress,
+        createdBy,
+      ]);
+
+      const message = {
+        msgType: BigInt(event.params._message.msgType).toString(),
+        data: event.params._message.data.map((x: any) => BigInt(x).toString()),
+      };
+
+      const id = ethers.utils.solidityKeccak256(["bytes"], [bytes]);
+
+      const { timestamp } = await getBlock();
+      const uuid = randomUUID();
+
+      const uuidTypes = "string, string, string";
+      const uuidBytes = encodeAbiParameters(parseAbiParameters(uuidTypes), [
+        uuid,
+        id,
+        timestamp.toString(),
+      ]);
+
+      // Create a unique ID for the message
+      const uuidId = ethers.utils.solidityKeccak256(["bytes"], [uuidBytes]);
+
+      logger.info({
+        msg: `data: ${message.data}`,
+      });
+
+      return [
+        {
+          type: "InsertMessage",
+          message: {
+            messageId: uuidId,
+            contributionId: id,
+            message: JSON.stringify(message),
+            chainId: chainId,
+            pollId: PollAddress,
+            maciId: maciAddress,
+            createdByAddress: createdBy,
+          },
+        },
+      ];
     }
   }
 
