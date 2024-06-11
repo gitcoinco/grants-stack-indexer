@@ -784,7 +784,7 @@ export async function handleEvent(
           let rec;
           let stat;
           if (isParamsWithRecipientIdAndStatus(event.params)) {
-            rec = event.params.sender;
+            rec = event.params.recipientId;
             stat = event.params.status;
           }
           const recipient = rec;
