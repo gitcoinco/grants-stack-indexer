@@ -671,6 +671,7 @@ describe("handleEvent", () => {
           strategyName:
             "allov2.DonationVotingMerkleDistributionDirectTransferStrategy",
           projectId: "0x0002",
+          totalDistributed: 0n,
         },
       });
 
@@ -1114,7 +1115,7 @@ describe("handleEvent", () => {
             "AlloV2/DonationVotingMerkleDistributionDirectTransferStrategy/V1",
           name: "FundsDistributed",
           params: {
-            amount: 0n,
+            amount: 10n,
             grantee: addressTwo,
             token: addressZero,
             recipientId: parseAddress(addressTwo),
@@ -1126,7 +1127,7 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(changesets).toHaveLength(1);
+      expect(changesets).toHaveLength(2);
 
       expect(changesets[0]).toEqual({
         type: "UpdateApplication",
@@ -1136,6 +1137,13 @@ describe("handleEvent", () => {
         application: {
           distributionTransaction: "0x",
         },
+      });
+
+      expect(changesets[1]).toEqual({
+        type: "IncrementRoundTotalDistributed",
+        chainId: 1,
+        roundId: roundId,
+        amount: 10n,
       });
     });
   });

@@ -997,6 +997,7 @@ describe("handleEvent", () => {
           strategyId: "",
           strategyName: "",
           projectId: addressThree,
+          totalDistributed: 0n,
         },
       });
 
@@ -1011,6 +1012,41 @@ describe("handleEvent", () => {
 
   describe("FundsDistributed", () => {
     test("should set distributionTransaction in application", async () => {
+      const round: Round = {
+        id: parseAddress(addressFour),
+        chainId: 1,
+        matchAmount: 0n,
+        matchTokenAddress: parseAddress(addressZero),
+        matchAmountInUsd: 0,
+        fundedAmount: 0n,
+        fundedAmountInUsd: 0,
+        applicationMetadataCid: "",
+        applicationMetadata: null,
+        roundMetadataCid: "",
+        roundMetadata: {},
+        applicationsStartTime: null,
+        applicationsEndTime: null,
+        donationsStartTime: null,
+        donationsEndTime: null,
+        createdByAddress: parseAddress(addressTwo),
+        createdAtBlock: 1n,
+        updatedAtBlock: 2n,
+        totalAmountDonatedInUsd: 0,
+        totalDonationsCount: 0,
+        uniqueDonorsCount: 0,
+        tags: [],
+        managerRole: "",
+        adminRole: "",
+        strategyAddress: parseAddress(addressZero),
+        strategyId: "",
+        strategyName: "",
+        readyForPayoutTransaction: null,
+        matchingDistribution: null,
+        projectId: parseAddress(addressZero),
+        totalDistributed: 0n,
+      };
+      MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
+
       const roundId = parseAddress(addressFour);
       const payoutAddress = addressFour;
 
@@ -1046,7 +1082,7 @@ describe("handleEvent", () => {
           contractName: "AlloV1/MerklePayoutStrategyImplementation/V2",
           name: "FundsDistributed",
           params: {
-            amount: 0n,
+            amount: 10n,
             grantee: addressTwo,
             token: addressZero,
             projectId: "0x1234",
@@ -1069,8 +1105,6 @@ describe("handleEvent", () => {
                   `read contract called with unexpected args: ${functionName}, ${address}`
                 );
               }
-
-              return "0x";
             }
           ),
         context: {
@@ -1079,7 +1113,7 @@ describe("handleEvent", () => {
         },
       });
 
-      expect(changesets).toHaveLength(1);
+      expect(changesets).toHaveLength(2);
 
       expect(changesets[0]).toEqual({
         type: "UpdateApplication",
@@ -1089,6 +1123,13 @@ describe("handleEvent", () => {
         application: {
           distributionTransaction: "0x",
         },
+      });
+
+      expect(changesets[1]).toEqual({
+        type: "IncrementRoundTotalDistributed",
+        chainId: 1,
+        roundId: roundId,
+        amount: 10n,
       });
     });
   });
