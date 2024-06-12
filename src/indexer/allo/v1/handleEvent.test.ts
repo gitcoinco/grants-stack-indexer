@@ -578,6 +578,7 @@ describe("handleEvent", () => {
         readyForPayoutTransaction: null,
         matchingDistribution: null,
         projectId: parseAddress(addressZero),
+        totalDistributed: 0n,
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
 
@@ -642,6 +643,7 @@ describe("handleEvent", () => {
         readyForPayoutTransaction: null,
         matchingDistribution: null,
         projectId: parseAddress(addressZero),
+        totalDistributed: 0n,
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
 
@@ -708,6 +710,7 @@ describe("handleEvent", () => {
         readyForPayoutTransaction: null,
         matchingDistribution: null,
         projectId: parseAddress(addressZero),
+        totalDistributed: 0n,
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
 
@@ -772,6 +775,7 @@ describe("handleEvent", () => {
         readyForPayoutTransaction: null,
         matchingDistribution: null,
         projectId: parseAddress(addressZero),
+        totalDistributed: 0n,
       };
       MOCK_DB.getRoundById = vi.fn().mockResolvedValueOnce(round);
 

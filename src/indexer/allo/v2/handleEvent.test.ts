@@ -97,6 +97,7 @@ const round: Round = {
   matchingDistribution: null,
   projectId: addressZero,
   createdByAddress: parseAddress(addressTwo),
+  totalDistributed: 0n,
 };
 
 const DEFAULT_ARGS = {
@@ -884,6 +885,7 @@ describe("handleEvent", () => {
         readyForPayoutTransaction: null,
         matchingDistribution: null,
         projectId: addressZero,
+        totalDistributed: 0n,
       };
 
       test("should delete a round manager role", async () => {

@@ -17,6 +17,7 @@ import {
   NewApplication,
   NewRound,
   ProjectTable,
+  ProjectType,
 } from "../../../database/schema.js";
 import type { Indexer } from "../../indexer.js";
 import {
@@ -173,18 +174,22 @@ export async function handleEvent(
 
       const parsedMetadata = ProjectMetadataSchema.safeParse(metadata);
 
-      if (parsedMetadata.success === false) {
+      let projectType: ProjectType = "canonical";
+      let isProgram = false;
+      let metadataValue = null;
+
+      if (parsedMetadata.success) {
+        projectType = getProjectTypeFromMetadata(parsedMetadata.data);
+        isProgram = parsedMetadata.data.type === "program";
+        metadataValue = parsedMetadata.data;
+      } else {
         logger.warn({
           msg: `ProfileCreated: Failed to parse metadata for profile ${profileId}`,
           event,
           metadataCid,
           metadata,
         });
-        return [];
       }
-
-      const projectType = getProjectTypeFromMetadata(parsedMetadata.data);
-      const isProgram = parsedMetadata.data.type === "program";
 
       const tx = await rpcClient.getTransaction({
         hash: event.transactionHash,
@@ -206,7 +211,7 @@ export async function handleEvent(
             anchorAddress: parseAddress(event.params.anchor),
             projectNumber: null,
             metadataCid: metadataCid,
-            metadata: parsedMetadata.data,
+            metadata: metadataValue,
             createdByAddress: parseAddress(createdBy),
             createdAtBlock: event.blockNumber,
             updatedAtBlock: event.blockNumber,
@@ -264,6 +269,7 @@ export async function handleEvent(
       const poolId = event.params.poolId;
       const { managerRole, adminRole } = generateRoundRoles(poolId);
       const strategyAddress = event.params.strategy;
+
       const strategyId = await readContract({
         contract: "AlloV2/IStrategy/V1",
         address: strategyAddress,
@@ -298,6 +304,13 @@ export async function handleEvent(
         case "allov2.DirectGrantsLiteStrategy":
           subscribeToContract({
             contract: "AlloV2/DirectGrantsLiteStrategy/V1",
+            address: strategyAddress,
+          });
+          break;
+
+        case "allov2.EasyRPGFStrategy":
+          subscribeToContract({
+            contract: "AlloV2/EasyRPGFStrategy/V1",
             address: strategyAddress,
           });
           break;
@@ -429,7 +442,7 @@ export async function handleEvent(
         applicationMetadataCid: metadataPointer,
         applicationMetadata: applicationMetadata ?? {},
         roundMetadataCid: metadataPointer,
-        roundMetadata: roundMetadata ?? {},
+        roundMetadata: roundMetadata ?? null,
         applicationsStartTime: applicationsStartTime,
         applicationsEndTime: applicationsEndTime,
         donationsStartTime: donationsStartTime,
@@ -443,6 +456,7 @@ export async function handleEvent(
         createdAtBlock: event.blockNumber,
         updatedAtBlock: event.blockNumber,
         projectId: event.params.profileId,
+        totalDistributed: 0n,
       };
 
       const changes: Changeset[] = [
@@ -956,6 +970,33 @@ export async function handleEvent(
           application: {
             distributionTransaction: event.transactionHash,
           },
+        },
+        {
+          type: "IncrementRoundTotalDistributed",
+          chainId,
+          roundId: round.id,
+          amount: BigInt(event.params.amount),
+        },
+      ];
+    }
+
+    case "Distributed": {
+      const strategyAddress = parseAddress(event.address);
+      const round = await db.getRoundByStrategyAddress(
+        chainId,
+        strategyAddress
+      );
+
+      if (round === null) {
+        return [];
+      }
+
+      return [
+        {
+          type: "IncrementRoundTotalDistributed",
+          chainId,
+          roundId: round.id,
+          amount: BigInt(event.params.amount),
         },
       ];
     }

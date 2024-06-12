@@ -82,6 +82,12 @@ export type DataChange =
       amountInUsd: number;
     }
   | {
+      type: "IncrementRoundTotalDistributed";
+      chainId: ChainId;
+      roundId: string;
+      amount: bigint;
+    }
+  | {
       type: "IncrementApplicationDonationStats";
       chainId: ChainId;
       roundId: Address;
