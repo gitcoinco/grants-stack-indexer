@@ -372,8 +372,8 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   returns setof ${ref("projects")} as $$
     select *
     from ${ref("projects")}
-    where name @@ to_tsquery(search_term)
-    order by ts_rank_cd(name, to_tsquery(search_term)) desc;
+    where to_tsvector(name) @@ to_tsquery(search_term)
+    order by ts_rank_cd(to_tsvector(name), to_tsquery(search_term)) desc;
   $$ language sql stable;
   `.execute(db);
 }
