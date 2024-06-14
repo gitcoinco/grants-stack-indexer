@@ -368,7 +368,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   comment on constraint "rounds_projects_fkey" on ${ref("rounds")} is
   E'@foreignFieldName rounds\n@fieldName project';
 
-  create function search_projects(search_term text)
+  create function ${ref("search_projects")}(search_term text)
   returns setof ${ref("projects")} as $$
     select *
     from ${ref("projects")}
