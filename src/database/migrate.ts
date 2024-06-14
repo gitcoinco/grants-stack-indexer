@@ -367,5 +367,13 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
 
   comment on constraint "rounds_projects_fkey" on ${ref("rounds")} is
   E'@foreignFieldName rounds\n@fieldName project';
+
+  create function search_projects(search_term text)
+  returns setof ${ref("projects")} as $$
+    select *
+    from ${ref("projects")}
+    where name @@ to_tsquery(search_term)
+    order by ts_rank_cd(name, to_tsquery(search_term)) desc;
+  $$ language sql stable;
   `.execute(db);
 }
