@@ -1,6 +1,6 @@
 import {
   createIndexer,
-  createSqliteCache,
+  createPostgresCache,
   createPostgresSubscriptionStore,
   createHttpRpcClient,
   SubscriptionStore,
@@ -161,9 +161,10 @@ async function main(): Promise<void> {
   });
 
   // the chainsauce cache is used to cache events and contract reads
-  const chainsauceCache = config.cacheDir
-    ? createSqliteCache(path.join(config.cacheDir, "chainsauceCache.db"))
-    : null;
+  const chainsauceCache = createPostgresCache({
+    connectionPool: databaseConnectionPool,
+    schemaName: "chainsauce_cache",
+  });
 
   const blockTimestampInMs = async (chainId: number, blockNumber: bigint) => {
     const cachedBlock = await chainsauceCache?.getBlockByNumber({
