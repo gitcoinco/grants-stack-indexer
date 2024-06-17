@@ -3,7 +3,6 @@ import {
   Contribution,
   aggregateContributions as aggregateContributionsPluralistic,
 } from "pluralistic";
-import { Chain } from "../config.js";
 import type {
   DeprecatedRound,
   DeprecatedApplication,
@@ -16,6 +15,7 @@ import type {
 import { ProportionalMatchOptions } from "./options.js";
 import { defaultProportionalMatchOptions } from "./options.js";
 import { CoefficientOverrides } from "./coefficientOverrides.js";
+import { TChain } from "@gitcoin/gitcoin-chain-data";
 
 export type VoteWithCoefficient = DeprecatedVote & {
   coefficient: number;
@@ -23,7 +23,7 @@ export type VoteWithCoefficient = DeprecatedVote & {
 };
 
 interface GetVotesWithCoefficientsArgs {
-  chain: Chain;
+  chain: TChain;
   round: DeprecatedRound;
   applications: Array<DeprecatedApplication>;
   votes: Array<DeprecatedVote>;
@@ -130,7 +130,7 @@ function passportScoreToCoefficient(
 }
 
 export function applyVoteCap(
-  chain: Chain,
+  chain: TChain,
   vote: DeprecatedVote
 ): DeprecatedVote {
   const tokenConfig = chain.tokens.find(
@@ -219,7 +219,7 @@ export function mergeAggregatedContributions(
 }
 
 interface AggregatedContributionsConfig {
-  chain: Chain;
+  chain: TChain;
   round: DeprecatedRound;
   applications: DeprecatedApplication[];
   votes: DeprecatedVote[];

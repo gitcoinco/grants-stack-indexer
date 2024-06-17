@@ -7,7 +7,6 @@ import { aggregateContributions } from "./votes.js";
 import { Calculation, linearQFWithAggregates } from "pluralistic";
 import { ProportionalMatchOptions } from "./options.js";
 import { CoefficientOverrides } from "./coefficientOverrides.js";
-import { Chain } from "../config.js";
 import {
   CalculationConfig,
   extractCalculationConfigFromRound,
@@ -20,12 +19,13 @@ import {
   DeprecatedRound,
   DeprecatedVote,
 } from "../deprecatedJsonDatabase.js";
+import { TChain } from "@gitcoin/gitcoin-chain-data";
 
 export type CalculateMatchesConfig = {
   roundId: string;
   calculationConfigOverride?: Partial<CalculationConfig>;
   coefficientOverrides: CoefficientOverrides;
-  chain: Chain;
+  chain: TChain;
   proportionalMatch?: ProportionalMatchOptions;
   deps: {
     passportProvider: PassportProvider;

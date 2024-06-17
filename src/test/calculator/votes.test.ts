@@ -5,7 +5,7 @@ import type {
 } from "../../deprecatedJsonDatabase.js";
 import { describe, test, expect } from "vitest";
 import { getVotesWithCoefficients } from "../../calculator/votes.js";
-import { Chain } from "../../config.js";
+import { TChain } from "@gitcoin/gitcoin-chain-data";
 
 const round: DeprecatedRound = {
   id: "0x1234",
@@ -111,7 +111,7 @@ const MOCK_CHAIN = {
       address: "0x1234",
     },
   ],
-} as unknown as Chain;
+} as unknown as TChain;
 
 describe("getVotesWithCoefficients", () => {
   describe("should take voteAmountCap into conisderation", () => {

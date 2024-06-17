@@ -26,7 +26,8 @@ import { createPassportProvider, PassportProvider } from "./passport/index.js";
 import { createResourceMonitor } from "./resourceMonitor.js";
 import diskstats from "diskstats";
 
-import { Chain, getConfig, Config, getChainConfigById } from "./config.js";
+import { getConfig, Config, chainById } from "./config.js";
+import { TChain } from "@gitcoin/gitcoin-chain-data";
 import { createPriceProvider, PriceProvider } from "./prices/provider.js";
 import { createHttpApi } from "./http/app.js";
 import { DatabaseDataProvider } from "./calculator/dataProvider/databaseDataProvider.js";
@@ -34,7 +35,7 @@ import { CachedDataProvider } from "./calculator/dataProvider/cachedDataProvider
 import { ethers } from "ethers";
 import TTLCache from "@isaacs/ttlcache";
 
-import abis from "./indexer/abis/index.js";
+import abis, { ContractName } from "./indexer/abis/index.js";
 import type { EventHandlerContext } from "./indexer/indexer.js";
 import { handleEvent as handleAlloV1Event } from "./indexer/allo/v1/handleEvent.js";
 import { handleEvent as handleAlloV2Event } from "./indexer/allo/v2/handleEvent.js";
@@ -175,7 +176,7 @@ async function main(): Promise<void> {
       return cachedBlock.timestamp * 1000;
     }
 
-    const chain = getChainConfigById(chainId);
+    const chain = chainById(chainId);
     const client = createPublicClient({
       transport: http(chain.rpc),
     });
@@ -437,7 +438,7 @@ async function catchupAndWatchChain(
       blockNumber: bigint
     ) => Promise<number>;
     db: Database;
-    chain: Chain;
+    chain: TChain;
     baseLogger: Logger;
   }
 ) {
@@ -619,7 +620,7 @@ async function catchupAndWatchChain(
           : BigInt(subscription.fromBlock);
 
       indexer.subscribeToContract({
-        contract: contractName,
+        contract: contractName as ContractName,
         address: subscription.address,
         fromBlock:
           subscriptionFromBlock !== undefined &&

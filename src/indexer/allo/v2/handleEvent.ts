@@ -38,10 +38,10 @@ import StatusesBitmap from "statuses-bitmap";
 import { updateApplicationStatus } from "../application.js";
 import { convertFromUSD, convertToUSD } from "../../../prices/provider.js";
 import { RoundMetadataSchema } from "../roundMetadata.js";
-import { getTokenForChain } from "../../../config.js";
 import { ethers } from "ethers";
 import { UnknownTokenError } from "../../../prices/common.js";
 import { ApplicationMetadataSchema } from "../../applicationMetadata.js";
+import { getTokenByChainIdAndAddress } from "@gitcoin/gitcoin-chain-data";
 
 const ALLO_NATIVE_TOKEN = parseAddress(
   "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
@@ -279,7 +279,7 @@ export async function handleEvent(
         matchTokenAddress = parseAddress(zeroAddress);
       }
 
-      const token = getTokenForChain(chainId, matchTokenAddress);
+      const token = getTokenByChainIdAndAddress(chainId, matchTokenAddress);
 
       switch (strategy?.name) {
         case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
@@ -710,7 +710,10 @@ export async function handleEvent(
       let matchAmountInUsd = round.matchAmountInUsd;
 
       const parsedMetadata = RoundMetadataSchema.safeParse(roundMetadata);
-      const token = getTokenForChain(chainId, round.matchTokenAddress);
+      const token = getTokenByChainIdAndAddress(
+        chainId,
+        round.matchTokenAddress
+      );
 
       if (parsedMetadata.success && token !== null) {
         matchAmount = parseUnits(
