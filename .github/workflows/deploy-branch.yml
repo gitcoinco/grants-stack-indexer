@@ -36,13 +36,13 @@ jobs:
         run: |
           flyctl -c ${{ env.FLY_CONFIG }} deploy --wait-timeout=7200 --env BUILD_TAG=`git rev-parse --short HEAD` --image registry.fly.io/$FLY_APP_NAME:deployment-$GIT_SHA_SHORT --process-groups=indexer
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_PRODUCTION }}
 
       - name: Deploy HTTP
         run: |
           flyctl -c ${{ env.FLY_CONFIG }}  deploy --wait-timeout=7200 --env BUILD_TAG=`git rev-parse --short HEAD` --image registry.fly.io/$FLY_APP_NAME:deployment-$GIT_SHA_SHORT --process-groups=web
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_PRODUCTION }}
 
       - name: Smoke test
         run: |
