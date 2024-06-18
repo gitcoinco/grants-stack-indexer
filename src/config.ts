@@ -44,7 +44,6 @@ export type Chain = {
   tokens: Token[];
   subscriptions: Subscription[];
   maxGetLogsRange?: number;
-  noCache?: boolean;
 };
 
 const rpcUrl = z.string().url();
@@ -1477,8 +1476,6 @@ const CHAINS: Chain[] = [
       .default("https://evm-rpc.sei-apis.com")
       .parse(process.env.SEI_MAINNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
-    maxGetLogsRange: 8000,
-    noCache: true,
     tokens: [
       {
         code: "SEI",

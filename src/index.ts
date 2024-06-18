@@ -520,7 +520,7 @@ async function catchupAndWatchChain(
       },
       context: eventHandlerContext,
       subscriptionStore: config.subscriptionStore,
-      cache: config.chain.noCache ? null : config.chainsauceCache,
+      cache: config.chainsauceCache,
       logLevel: "trace",
       logger: (level, msg, data) => {
         if (level === "error") {
