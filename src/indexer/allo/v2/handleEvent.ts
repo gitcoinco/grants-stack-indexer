@@ -366,6 +366,7 @@ export async function handleEvent(
             contract: "AlloV2/DirectGrantsLiteStrategy/V1",
             address: strategyAddress,
           });
+          break;
         case "allov2.MACIQF":
           subscribeToContract({
             contract: "AlloV2/MACIQF/V1",
@@ -1369,7 +1370,6 @@ export async function handleEvent(
             return [];
           }
 
-          const recipientId = parseAddress(event.params.recipientId);
           const amount = event.params.amount;
           const token = parseAddress(event.params.token);
           const origin = parseAddress(event.params.origin);
@@ -1424,7 +1424,7 @@ export async function handleEvent(
             roundId: round.id,
             applicationId: "undefined",
             donorAddress: origin,
-            recipientAddress: zeroAddress as any,
+            recipientAddress: parseAddress(zeroAddress),
             projectId: "undefined",
             transactionHash: event.transactionHash,
             blockNumber: event.blockNumber,
@@ -1553,7 +1553,7 @@ export async function handleEvent(
 
       const message = {
         msgType: BigInt(event.params._message.msgType).toString(),
-        data: event.params._message.data.map((x: any) => BigInt(x).toString()),
+        data: event.params._message.data.map((x) => BigInt(x).toString()),
       };
 
       const id = ethers.utils.solidityKeccak256(["bytes"], [bytes]);
@@ -1570,10 +1570,6 @@ export async function handleEvent(
 
       // Create a unique ID for the message
       const uuidId = ethers.utils.solidityKeccak256(["bytes"], [uuidBytes]);
-
-      logger.info({
-        msg: `data: ${message.data}`,
-      });
 
       return [
         {
