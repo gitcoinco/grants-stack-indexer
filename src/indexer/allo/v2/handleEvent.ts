@@ -435,6 +435,12 @@ export async function handleEvent(
             )
           ).amount;
         }
+      } else {
+        logger.warn({
+          msg: `Unsupported strategy ${strategy?.name}`,
+          event,
+        });
+        throw new Error("Unsupported strategy");
       }
       const fundedAmount = event.params.amount;
       let fundedAmountInUsd = 0;
