@@ -772,14 +772,54 @@ export async function handleEvent(
         strategyAddress
       );
 
-      if (!round) {
+      if (!round || !strategyAddress) {
         throw new Error("Round not found");
       }
 
-      const applicationsStartTime: Date | null = null;
-      const applicationsEndTime: Date | null = null;
-      const donationsStartTime: Date | null = null;
-      const donationsEndTime: Date | null = null;
+      if (round.strategyName !== "allov2.MACIQF") {
+        throw new Error("Invalid strategy name");
+      }
+
+      let applicationsStartTime: Date | null = null;
+      let applicationsEndTime: Date | null = null;
+      let donationsStartTime: Date | null = null;
+      let donationsEndTime: Date | null = null;
+
+      const contract = "AlloV2/MACIQF/V1";
+      const [
+        registrationStartTimeResolved,
+        registrationEndTimeResolved,
+        allocationStartTimeResolved,
+        allocationEndTimeResolved,
+      ] = await Promise.all([
+        await readContract({
+          contract,
+          address: strategyAddress,
+          functionName: "registrationStartTime",
+        }),
+        await readContract({
+          contract,
+          address: strategyAddress,
+          functionName: "registrationEndTime",
+        }),
+        await readContract({
+          contract,
+          address: strategyAddress,
+          functionName: "allocationStartTime",
+        }),
+        await readContract({
+          contract,
+          address: strategyAddress,
+          functionName: "allocationEndTime",
+        }),
+      ]);
+
+      applicationsStartTime = getDateFromTimestamp(
+        registrationStartTimeResolved
+      );
+      applicationsEndTime = getDateFromTimestamp(registrationEndTimeResolved);
+      donationsStartTime = getDateFromTimestamp(allocationStartTimeResolved);
+      donationsEndTime = getDateFromTimestamp(allocationEndTimeResolved);
 
       return [
         {
