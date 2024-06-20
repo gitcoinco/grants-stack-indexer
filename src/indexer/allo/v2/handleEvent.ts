@@ -21,13 +21,7 @@ import {
   ProjectTable,
 } from "../../../database/schema.js";
 import type { Indexer } from "../../indexer.js";
-import {
-  DGApplicationData,
-  DGTimeStampUpdatedData,
-  DVMDApplicationData,
-  DVMDTimeStampUpdatedData,
-  MACIApplicationData,
-} from "../../types.js";
+import { MACIApplicationData } from "../../types.js";
 import { fetchPoolMetadata } from "./poolMetadata.js";
 import roleGranted from "./roleGranted.js";
 import roleRevoked from "./roleRevoked.js";
@@ -37,14 +31,12 @@ import {
   ProjectMetadata,
   ProjectMetadataSchema,
 } from "../../projectMetadata.js";
-import StatusesBitmap from "statuses-bitmap";
 import { updateApplicationStatus } from "../application.js";
 import { convertFromUSD, convertToUSD } from "../../../prices/provider.js";
 import { RoundMetadataSchema } from "../roundMetadata.js";
 import { getTokenForChain } from "../../../config.js";
 import { ethers } from "ethers";
 import { UnknownTokenError } from "../../../prices/common.js";
-import { ApplicationMetadataSchema } from "../../applicationMetadata.js";
 import { randomUUID } from "crypto";
 
 const ALLO_NATIVE_TOKEN = parseAddress(
@@ -77,76 +69,6 @@ function getProjectTypeFromMetadata(metadata: ProjectMetadata) {
   }
 
   return "canonical";
-}
-
-// Decode the application data from DonationVotingMerkleDistribution
-function decodeDVMDApplicationData(encodedData: Hex): DVMDApplicationData {
-  const values = decodeAbiParameters(
-    [
-      { name: "data", type: "bytes" },
-      { name: "recipientsCounter", type: "uint256" },
-    ],
-    encodedData
-  );
-
-  const decodedData = decodeAbiParameters(
-    [
-      { name: "registryAnchor", type: "address" },
-      { name: "recipientAddress", type: "address" },
-      {
-        name: "metadata",
-        type: "tuple",
-        components: [
-          { name: "protocol", type: "uint256" },
-          { name: "pointer", type: "string" },
-        ],
-      },
-    ],
-    values[0]
-  );
-
-  const results: DVMDApplicationData = {
-    recipientsCounter: values[1].toString(),
-    anchorAddress: decodedData[0],
-    recipientAddress: decodedData[1],
-    metadata: {
-      protocol: Number(decodedData[2].protocol),
-      pointer: decodedData[2].pointer,
-    },
-  };
-
-  return results;
-}
-
-function decodeDGApplicationData(encodedData: Hex) {
-  const decodedData = decodeAbiParameters(
-    [
-      { name: "recipientId", type: "address" },
-      { name: "registryAnchor", type: "address" },
-      { name: "grantAmount", type: "uint256" },
-      {
-        name: "metadata",
-        type: "tuple",
-        components: [
-          { name: "protocol", type: "uint256" },
-          { name: "pointer", type: "string" },
-        ],
-      },
-    ],
-    encodedData
-  );
-
-  const results: DGApplicationData = {
-    recipientAddress: decodedData[0],
-    anchorAddress: decodedData[1],
-    grantAmount: decodedData[2],
-    metadata: {
-      protocol: Number(decodedData[3].protocol),
-      pointer: decodedData[3].pointer,
-    },
-  };
-
-  return results;
 }
 
 // Decode the application data from MACIQF
@@ -193,15 +115,6 @@ type ParamsWithoutRowIndex = {
 
 type EventParams = ParamsWithRowIndex | ParamsWithoutRowIndex;
 
-const isParamsWithRowIndexAndFullRow = (
-  params: EventParams
-): params is ParamsWithRowIndex => {
-  return (
-    (params as ParamsWithRowIndex).rowIndex !== undefined &&
-    (params as ParamsWithRowIndex).fullRow !== undefined
-  );
-};
-
 const isParamsWithRecipientIdAndStatus = (
   params: EventParams
 ): params is ParamsWithoutRowIndex => {
@@ -220,14 +133,7 @@ export async function handleEvent(
     subscribeToContract,
     readContract,
     getBlock,
-    context: {
-      db,
-      rpcClient,
-      ipfsGet,
-      logger,
-      priceProvider,
-      blockTimestampInMs,
-    },
+    context: { db, rpcClient, ipfsGet, logger, priceProvider },
   } = args;
 
   switch (event.name) {
@@ -436,10 +342,6 @@ export async function handleEvent(
           ).amount;
         }
       } else {
-        logger.warn({
-          msg: `Unsupported strategy ${strategy?.name}`,
-          event,
-        });
         throw new Error("Unsupported strategy");
       }
       const fundedAmount = event.params.amount;
@@ -874,12 +776,10 @@ export async function handleEvent(
         throw new Error("Round not found");
       }
 
-      let applicationsStartTime: Date | null = null;
-      let applicationsEndTime: Date | null = null;
-      let donationsStartTime: Date | null = null;
-      let donationsEndTime: Date | null = null;
-      let params;
-
+      const applicationsStartTime: Date | null = null;
+      const applicationsEndTime: Date | null = null;
+      const donationsStartTime: Date | null = null;
+      const donationsEndTime: Date | null = null;
 
       return [
         {
