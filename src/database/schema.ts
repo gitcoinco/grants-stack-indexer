@@ -285,3 +285,14 @@ export type MACIMessage = {
   msgType: string;
   data: string[];
 };
+
+export type VoteOptionIndexTable = {
+  id: string;
+  chainId: ChainId;
+  roundId: Address | string;
+  optionIndex: number;
+  recipientId: Hex;
+};
+
+export type VoteOptionIndex = Selectable<VoteOptionIndexTable>;
+export type NewVoteOptionIndex = Insertable<VoteOptionIndexTable>;

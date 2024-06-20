@@ -8,7 +8,7 @@ export function extractStrategyFromId(_id: string): Strategy | null {
   const id = _id.toLowerCase();
   /* eslint-disable no-fallthrough */
   switch (id) {
-    case "0x02ce039501668fadbe8b9ef4030e619cf4eefbc3d70415b61ebdfd3c5d467ad2":
+    case "0x9b167da08fc4d96c2bda5fa376d9c734f55bc41f7b5de98280322597dfb097ed":
       return {
         id: id,
         name: "allov2.MACIQF",

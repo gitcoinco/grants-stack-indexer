@@ -18,6 +18,7 @@ import {
   NewApplicationPayout,
   NewContribution,
   NewMessage,
+  NewVoteOptionIndex,
 } from "./schema.js";
 
 export type DataChange =
@@ -144,4 +145,8 @@ export type DataChange =
   | {
       type: "InsertMessage";
       message: NewMessage;
+    }
+  | {
+      type: "InsertVoteOptionIndex";
+      voteOptionIndex: NewVoteOptionIndex;
     };
