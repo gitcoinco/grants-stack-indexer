@@ -1026,6 +1026,50 @@ export async function handleEvent(
       }
     }
 
+    case "RecipientVotingOptionAdded": {
+      const strategyAddress = parseAddress(event.address);
+      const round = await db.getRoundByStrategyAddress(
+        chainId,
+        strategyAddress
+      );
+
+      if (round === null) {
+        return [];
+      }
+      const recipientId = parseAddress(event.params.recipientId);
+      const optionIndex = Number(event.params.recipientIndex);
+      const id = ethers.utils.solidityKeccak256(
+        ["string"],
+        [`${event.blockNumber}-${round.id}-${chainId}-${recipientId}`]
+      );
+
+      switch (round.strategyName) {
+        case "allov2.MACIQF": {
+          return [
+            {
+              type: "InsertVoteOptionIndex",
+              voteOptionIndex: {
+                chainId,
+                id,
+                roundId: round.id,
+                recipientId,
+                optionIndex,
+              },
+            },
+          ];
+        }
+
+        default: {
+          logger.warn({
+            msg: `Unsupported strategy ${round.strategyName}`,
+            event,
+          });
+
+          return [];
+        }
+      }
+    }
+
     case "SignUp": {
       const maciAddress = parseAddress(event.address);
 

@@ -339,6 +339,22 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     )
     .execute();
 
+  await schema
+    .createTable("votingIndexOptions")
+    .addColumn("id", "text") // Unique identifier for each vote option index
+    .addColumn("chainId", CHAIN_ID_TYPE) // Chain ID
+    .addColumn("roundId", ADDRESS_TYPE) // Foreign key to the rounds table
+    .addColumn("optionIndex", "integer") // Option index number
+    .addColumn("recipientId", ADDRESS_TYPE) // Recipient ID
+    .addPrimaryKeyConstraint("vote_option_index_pkey", ["id"])
+    .addForeignKeyConstraint(
+      "vote_option_index_round_fkey",
+      ["chainId", "roundId"],
+      "rounds",
+      ["chainId", "id"]
+    )
+    .execute();
+
   // https://www.graphile.org/postgraphile/smart-tags/
   // https://www.graphile.org/postgraphile/computed-columns/
   await sql`

@@ -16,6 +16,7 @@ import {
   ApplicationPayout,
   ContributionTable,
   MessageTable,
+  VoteOptionIndexTable,
 } from "./schema.js";
 import { migrate } from "./migrate.js";
 import { encodeJsonWithBigInts } from "../utils/index.js";
@@ -41,6 +42,7 @@ interface Tables {
   applicationsPayouts: ApplicationPayout;
   contributions: ContributionTable;
   messages: MessageTable;
+  votingIndexOptions: VoteOptionIndexTable;
 }
 
 type KyselyDb = Kysely<Tables>;
@@ -518,6 +520,14 @@ export class Database {
 
       case "InsertMessage": {
         await this.#db.insertInto("messages").values(change.message).execute();
+        break;
+      }
+
+      case "InsertVoteOptionIndex": {
+        await this.#db
+          .insertInto("votingIndexOptions")
+          .values(change.voteOptionIndex)
+          .execute();
         break;
       }
 
