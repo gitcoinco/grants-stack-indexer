@@ -36,7 +36,6 @@ import TTLCache from "@isaacs/ttlcache";
 
 import abis from "./indexer/abis/index.js";
 import type { EventHandlerContext } from "./indexer/indexer.js";
-import { handleEvent as handleAlloV1Event } from "./indexer/allo/v1/handleEvent.js";
 import { handleEvent as handleAlloV2Event } from "./indexer/allo/v2/handleEvent.js";
 import { Database } from "./database/index.js";
 import { decodeJsonWithBigInts } from "./utils/index.js";
@@ -541,16 +540,7 @@ async function catchupAndWatchChain(
       try {
         // console.time(args.event.name);
         // do not await donation inserts as they are write only
-        if (args.event.name === "Voted") {
-          handleAlloV1Event(args)
-            .then((changesets) => db.applyChanges(changesets))
-            .catch((err: unknown) => {
-              indexerLogger.warn({
-                msg: "error while processing vote",
-                err,
-              });
-            });
-        } else if (args.event.name === "Allocated") {
+        if (args.event.name === "Allocated") {
           handleAlloV2Event(args)
             .then((changesets) => db.applyChanges(changesets))
             .catch((err: unknown) => {
@@ -560,9 +550,7 @@ async function catchupAndWatchChain(
               });
             });
         } else {
-          const handler = args.event.contractName.startsWith("AlloV1")
-            ? handleAlloV1Event
-            : handleAlloV2Event;
+          const handler = handleAlloV2Event;
 
           const changesets = await handler(args);
 

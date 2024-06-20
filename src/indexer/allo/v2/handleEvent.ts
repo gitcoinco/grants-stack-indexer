@@ -348,25 +348,6 @@ export async function handleEvent(
       const token = getTokenForChain(chainId, matchTokenAddress);
 
       switch (strategy?.name) {
-        case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
-          subscribeToContract({
-            contract:
-              "AlloV2/DonationVotingMerkleDistributionDirectTransferStrategy/V1",
-            address: strategyAddress,
-          });
-          break;
-        case "allov2.DirectGrantsSimpleStrategy":
-          subscribeToContract({
-            contract: "AlloV2/DirectGrantsSimpleStrategy/V1",
-            address: strategyAddress,
-          });
-          break;
-        case "allov2.DirectGrantsLiteStrategy":
-          subscribeToContract({
-            contract: "AlloV2/DirectGrantsLiteStrategy/V1",
-            address: strategyAddress,
-          });
-          break;
         case "allov2.MACIQF":
           subscribeToContract({
             contract: "AlloV2/MACIQF/V1",
@@ -380,90 +361,7 @@ export async function handleEvent(
       let donationsStartTime: Date | null = null;
       let donationsEndTime: Date | null = null;
 
-      if (
-        strategy !== null &&
-        strategy.name ===
-          "allov2.DonationVotingMerkleDistributionDirectTransferStrategy"
-      ) {
-        const contract =
-          "AlloV2/DonationVotingMerkleDistributionDirectTransferStrategy/V1";
-        const [
-          registrationStartTimeResolved,
-          registrationEndTimeResolved,
-          allocationStartTimeResolved,
-          allocationEndTimeResolved,
-        ] = await Promise.all([
-          await readContract({
-            contract,
-            address: strategyAddress,
-            functionName: "registrationStartTime",
-          }),
-          await readContract({
-            contract,
-            address: strategyAddress,
-            functionName: "registrationEndTime",
-          }),
-          await readContract({
-            contract,
-            address: strategyAddress,
-            functionName: "allocationStartTime",
-          }),
-          await readContract({
-            contract,
-            address: strategyAddress,
-            functionName: "allocationEndTime",
-          }),
-        ]);
-        applicationsStartTime = getDateFromTimestamp(
-          registrationStartTimeResolved
-        );
-        applicationsEndTime = getDateFromTimestamp(registrationEndTimeResolved);
-        donationsStartTime = getDateFromTimestamp(allocationStartTimeResolved);
-        donationsEndTime = getDateFromTimestamp(allocationEndTimeResolved);
-
-        if (parsedMetadata.success && token !== null) {
-          matchAmount = parseUnits(
-            parsedMetadata.data.quadraticFundingConfig.matchingFundsAvailable.toString(),
-            token.decimals
-          );
-          matchAmountInUsd = (
-            await convertToUSD(
-              priceProvider,
-              chainId,
-              matchTokenAddress,
-              matchAmount,
-              event.blockNumber
-            )
-          ).amount;
-        }
-      } else if (
-        strategy !== null &&
-        (strategy.name === "allov2.DirectGrantsSimpleStrategy" ||
-          strategy.name === "allov2.DirectGrantsLiteStrategy")
-      ) {
-        // const contract = "AlloV2/DirectGrantsSimpleStrategy/V1";
-        const contract =
-          strategy.name === "allov2.DirectGrantsSimpleStrategy"
-            ? "AlloV2/DirectGrantsSimpleStrategy/V1"
-            : "AlloV2/DirectGrantsLiteStrategy/V1";
-        const [registrationStartTimeResolved, registrationEndTimeResolved] =
-          await Promise.all([
-            await readContract({
-              contract,
-              address: strategyAddress,
-              functionName: "registrationStartTime",
-            }),
-            await readContract({
-              contract,
-              address: strategyAddress,
-              functionName: "registrationEndTime",
-            }),
-          ]);
-        applicationsStartTime = getDateFromTimestamp(
-          registrationStartTimeResolved
-        );
-        applicationsEndTime = getDateFromTimestamp(registrationEndTimeResolved);
-      } else if (strategy !== null && strategy.name === "allov2.MACIQF") {
+      if (strategy !== null && strategy.name === "allov2.MACIQF") {
         const contract = "AlloV2/MACIQF/V1";
         const [
           registrationStartTimeResolved,
@@ -827,68 +725,6 @@ export async function handleEvent(
           ];
         }
 
-        case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy": {
-          const bitmap = new StatusesBitmap(256n, 4n);
-          let rowIndex: bigint = 0n;
-          let fullRow: bigint = 0n;
-          if (isParamsWithRowIndexAndFullRow(event.params)) {
-            rowIndex = event.params.rowIndex;
-            fullRow = event.params.fullRow;
-          }
-
-          bitmap.setRow(rowIndex, fullRow);
-          const startIndex = rowIndex * bitmap.itemsPerRow;
-
-          const indexes = [];
-
-          for (let i = startIndex; i < startIndex + bitmap.itemsPerRow; i++) {
-            indexes.push(i);
-          }
-
-          // TODO: batch update
-          return (
-            await Promise.all(
-              indexes.map(async (i) => {
-                const status = bitmap.getStatus(i);
-
-                if (status < 1 || status > 5) {
-                  return [];
-                }
-
-                const statusString = ApplicationStatus[
-                  status
-                ] as ApplicationTable["status"];
-                const applicationId = i.toString();
-
-                const application = await db.getApplicationById(
-                  chainId,
-                  round.id,
-                  applicationId
-                );
-
-                if (application === null) {
-                  return [];
-                }
-
-                return [
-                  {
-                    type: "UpdateApplication",
-                    chainId,
-                    roundId: round.id,
-                    applicationId: i.toString(),
-                    application: await updateApplicationStatus(
-                      application,
-                      statusString,
-                      event.blockNumber,
-                      getBlock
-                    ),
-                  } satisfies Changeset,
-                ];
-              })
-            )
-          ).flat();
-        }
-
         default:
           return [];
       }
@@ -974,17 +810,6 @@ export async function handleEvent(
       let values;
 
       switch (round.strategyName) {
-        case "allov2.DirectGrantsSimpleStrategy":
-          values = decodeDGApplicationData(encodedData);
-          id = event.params.recipientId;
-          break;
-
-        case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
-        case "allov2.DirectGrantsLiteStrategy":
-          values = decodeDVMDApplicationData(encodedData);
-          id = (Number(values.recipientsCounter) - 1).toString();
-          break;
-
         case "allov2.MACIQF":
           values = decodeMACIApplicationData(encodedData);
           id = event.params.recipientId?.toString()?.toLowerCase();
@@ -1049,37 +874,6 @@ export async function handleEvent(
       let donationsEndTime: Date | null = null;
       let params;
 
-      switch (round.strategyName) {
-        case "allov2.DirectGrantsSimpleStrategy":
-        case "allov2.DirectGrantsLiteStrategy":
-          params = event.params as DGTimeStampUpdatedData;
-
-          applicationsStartTime = getDateFromTimestamp(
-            params.registrationStartTime
-          );
-          applicationsEndTime = getDateFromTimestamp(
-            params.registrationEndTime
-          );
-
-          break;
-
-        case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
-          params = event.params as DVMDTimeStampUpdatedData;
-
-          applicationsStartTime = getDateFromTimestamp(
-            params.registrationStartTime
-          );
-          applicationsEndTime = getDateFromTimestamp(
-            params.registrationEndTime
-          );
-          donationsStartTime = getDateFromTimestamp(params.allocationStartTime);
-          donationsEndTime = getDateFromTimestamp(params.allocationEndTime);
-
-          break;
-
-        default:
-          throw new Error("Invalid strategy name");
-      }
 
       return [
         {
@@ -1197,174 +991,6 @@ export async function handleEvent(
       }
 
       switch (round.strategyName) {
-        case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy": {
-          if (!("origin" in event.params)) {
-            return [];
-          }
-
-          const recipientId = parseAddress(event.params.recipientId);
-          const amount = event.params.amount;
-          const token = parseAddress(event.params.token);
-          const origin = parseAddress(event.params.origin);
-
-          const application = await db.getApplicationByAnchorAddress(
-            chainId,
-            round.id,
-            recipientId
-          );
-
-          const roundMatchTokenAddress = round.matchTokenAddress;
-
-          if (application === null) {
-            return [];
-          }
-
-          const donationId = ethers.utils.solidityKeccak256(
-            ["string"],
-            [`${event.blockNumber}-${event.logIndex}`]
-          );
-
-          const conversionToUSD = await convertToUSD(
-            priceProvider,
-            chainId,
-            token,
-            event.params.amount,
-            event.blockNumber
-          );
-
-          const amountInUsd = conversionToUSD.amount;
-
-          let amountInRoundMatchToken: bigint | null = null;
-          try {
-            amountInRoundMatchToken =
-              roundMatchTokenAddress === token
-                ? event.params.amount
-                : (
-                    await convertFromUSD(
-                      priceProvider,
-                      chainId,
-                      roundMatchTokenAddress,
-                      amountInUsd,
-                      event.blockNumber
-                    )
-                  ).amount;
-          } catch (err) {
-            if (err instanceof UnknownTokenError) {
-              logger.warn({
-                msg: `Skipping event ${event.name} on chain ${chainId} due to unknown token ${roundMatchTokenAddress}`,
-                err,
-                event,
-              });
-              return [];
-            } else {
-              throw err;
-            }
-          }
-          const parsedMetadata = ApplicationMetadataSchema.safeParse(
-            application.metadata
-          );
-
-          if (parsedMetadata.success === false) {
-            logger.warn({
-              msg: `Application: Failed to parse metadata for application ${application.id}`,
-              event,
-            });
-            return [];
-          }
-
-          const donation: Donation = {
-            id: donationId,
-            chainId,
-            roundId: round.id,
-            applicationId: application.id,
-            donorAddress: origin,
-            recipientAddress: parseAddress(
-              parsedMetadata.data.application.recipient
-            ),
-            projectId: application.projectId,
-            transactionHash: event.transactionHash,
-            blockNumber: event.blockNumber,
-            tokenAddress: token,
-            amount: amount,
-            amountInUsd,
-            amountInRoundMatchToken,
-            timestamp: conversionToUSD.timestamp,
-          };
-
-          return [
-            {
-              type: "InsertDonation",
-              donation,
-            },
-          ];
-        }
-
-        case "allov2.DirectGrantsLiteStrategy": {
-          const recipientId = parseAddress(event.params.recipientId);
-          const amount = event.params.amount;
-          const tokenAddress = parseAddress(event.params.token);
-          const roundId = round.id;
-          const application = await db.getApplicationByAnchorAddress(
-            chainId,
-            roundId,
-            recipientId
-          );
-
-          let amountInUsd = 0;
-          let amountInRoundMatchToken = 0n;
-
-          try {
-            amountInUsd = (
-              await convertToUSD(
-                priceProvider,
-                chainId,
-                tokenAddress,
-                amount,
-                event.blockNumber
-              )
-            ).amount;
-
-            amountInRoundMatchToken = (
-              await convertFromUSD(
-                priceProvider,
-                chainId,
-                tokenAddress,
-                amountInUsd,
-                event.blockNumber
-              )
-            ).amount;
-          } catch (error) {
-            logger.warn({
-              msg: "Token not found: Failed to convert amount to USD",
-              error,
-              event,
-            });
-          }
-          const timestamp = getDateFromTimestamp(
-            BigInt(
-              (await blockTimestampInMs(chainId, event.blockNumber)) / 1000
-            )
-          );
-
-          return [
-            {
-              type: "InsertApplicationPayout",
-              payout: {
-                amount,
-                applicationId: application?.id!,
-                roundId,
-                chainId,
-                tokenAddress,
-                amountInRoundMatchToken,
-                amountInUsd,
-                transactionHash: event.transactionHash,
-                sender: parseAddress(event.params.sender),
-                timestamp,
-              },
-            },
-          ];
-        }
-
         case "allov2.MACIQF": {
           if (!("origin" in event.params)) {
             return [];

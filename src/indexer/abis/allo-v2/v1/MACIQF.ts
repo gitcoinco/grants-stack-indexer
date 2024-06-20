@@ -294,7 +294,7 @@ export default [
   },
   {
     inputs: [],
-    name: "UserNotVerified",
+    name: "UserAlreadySignedUp",
     type: "error",
   },
   {
@@ -742,9 +742,24 @@ export default [
         type: "bool",
       },
       {
+        internalType: "bool",
+        name: "tallyVerified",
+        type: "bool",
+      },
+      {
+        internalType: "enum IStrategy.Status",
+        name: "status",
+        type: "uint8",
+      },
+      {
         internalType: "address",
         name: "recipientAddress",
         type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "totalVotesReceived",
+        type: "uint256",
       },
       {
         components: [
@@ -764,19 +779,9 @@ export default [
         type: "tuple",
       },
       {
-        internalType: "uint256",
-        name: "totalVotesReceived",
-        type: "uint256",
-      },
-      {
         internalType: "bool",
-        name: "tallyVerified",
+        name: "acceptedOnce",
         type: "bool",
-      },
-      {
-        internalType: "enum IStrategy.Status",
-        name: "status",
-        type: "uint8",
       },
     ],
     stateMutability: "view",
@@ -879,6 +884,19 @@ export default [
   },
   {
     inputs: [],
+    name: "allowlistVerifier",
+    outputs: [
+      {
+        internalType: "contract IAlowlistVerifier",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
     name: "alpha",
     outputs: [
       {
@@ -940,6 +958,30 @@ export default [
         internalType: "uint256",
         name: "",
         type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    name: "contributorInfo",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "voiceCredits",
+        type: "uint256",
+      },
+      {
+        internalType: "bool",
+        name: "signedUp",
+        type: "bool",
       },
     ],
     stateMutability: "view",
@@ -1102,9 +1144,24 @@ export default [
             type: "bool",
           },
           {
+            internalType: "bool",
+            name: "tallyVerified",
+            type: "bool",
+          },
+          {
+            internalType: "enum IStrategy.Status",
+            name: "status",
+            type: "uint8",
+          },
+          {
             internalType: "address",
             name: "recipientAddress",
             type: "address",
+          },
+          {
+            internalType: "uint256",
+            name: "totalVotesReceived",
+            type: "uint256",
           },
           {
             components: [
@@ -1124,19 +1181,9 @@ export default [
             type: "tuple",
           },
           {
-            internalType: "uint256",
-            name: "totalVotesReceived",
-            type: "uint256",
-          },
-          {
             internalType: "bool",
-            name: "tallyVerified",
+            name: "acceptedOnce",
             type: "bool",
-          },
-          {
-            internalType: "enum IStrategy.Status",
-            name: "status",
-            type: "uint8",
           },
         ],
         internalType: "struct MACIQFBase.Recipient",
@@ -1346,7 +1393,7 @@ export default [
   },
   {
     inputs: [],
-    name: "maxContributionAmountForNonZupass",
+    name: "maxContributionAllowlisted",
     outputs: [
       {
         internalType: "uint256",
@@ -1359,7 +1406,7 @@ export default [
   },
   {
     inputs: [],
-    name: "maxContributionAmountForZupass",
+    name: "maxContributionNotAllowlisted",
     outputs: [
       {
         internalType: "uint256",
@@ -1437,25 +1484,6 @@ export default [
   {
     inputs: [
       {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    name: "recipientToVoteIndex",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
         internalType: "uint256",
         name: "",
         type: "uint256",
@@ -1487,7 +1515,7 @@ export default [
     ],
     name: "register",
     outputs: [],
-    stateMutability: "view",
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -1693,19 +1721,6 @@ export default [
       },
     ],
     stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "zupassVerifier",
-    outputs: [
-      {
-        internalType: "contract IZuPassVerifier",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
     type: "function",
   },
   {
