@@ -470,6 +470,18 @@ export class Database {
         break;
       }
 
+      case "IncrementRoundTotalDistributed": {
+        await this.#db
+          .updateTable("rounds")
+          .set((eb) => ({
+            totalDistributed: eb("totalDistributed", "+", change.amount),
+          }))
+          .where("chainId", "=", change.chainId)
+          .where("id", "=", change.roundId)
+          .execute();
+        break;
+      }
+
       case "IncrementApplicationDonationStats": {
         await this.#db
           .updateTable("applications")

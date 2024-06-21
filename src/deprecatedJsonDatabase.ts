@@ -99,7 +99,7 @@ export type DeprecatedRound = {
   uniqueContributors: number;
   applicationMetaPtr: string;
   applicationMetadata: unknown | null;
-  metaPtr: string;
+  metaPtr: string | null;
   metadata: {
     name: string;
     quadraticFundingConfig?: {

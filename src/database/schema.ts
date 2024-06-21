@@ -45,7 +45,7 @@ export type RoundTable = {
   fundedAmountInUsd: number;
   applicationMetadataCid: string;
   applicationMetadata: unknown | null;
-  roundMetadataCid: string;
+  roundMetadataCid: string | null;
   roundMetadata: unknown;
   applicationsStartTime: Date | null;
   applicationsEndTime: Date | null;
@@ -56,6 +56,7 @@ export type RoundTable = {
   updatedAtBlock: bigint;
   totalAmountDonatedInUsd: number;
   totalDonationsCount: number;
+  totalDistributed: bigint;
   uniqueDonorsCount: number;
   managerRole: string;
   adminRole: string;

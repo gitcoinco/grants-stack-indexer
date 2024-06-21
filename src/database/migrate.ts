@@ -38,6 +38,13 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .execute();
 
   await schema
+    .createIndex("idx_projects_metadata_not_null")
+    .on("projects")
+    .columns(["metadata"])
+    .where(sql.ref("metadata"), "is not", null)
+    .execute();
+
+  await schema
     .createTable("pending_project_roles")
     .addColumn("id", "serial", (col) => col.primaryKey())
     .addColumn("chainId", CHAIN_ID_TYPE)
@@ -126,6 +133,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addColumn("totalAmountDonatedInUSD", "real")
     .addColumn("totalDonationsCount", "integer")
     .addColumn("uniqueDonorsCount", "integer")
+    .addColumn("totalDistributed", BIGINT_TYPE, (col) => col.defaultTo("0"))
 
     .addPrimaryKeyConstraint("rounds_pkey", ["id", "chainId"])
     .execute();
@@ -140,6 +148,13 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .createIndex("idx_rounds_admin_role")
     .on("rounds")
     .columns(["adminRole"])
+    .execute();
+
+  await schema
+    .createIndex("idx_rounds_round_metadata_not_null")
+    .on("rounds")
+    .columns(["roundMetadata"])
+    .where(sql.ref("round_metadata"), "is not", null)
     .execute();
 
   await schema

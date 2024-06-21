@@ -427,6 +427,7 @@ export async function handleEvent(
         createdByAddress: parseAddress(createdBy),
         createdAtBlock: event.blockNumber,
         updatedAtBlock: event.blockNumber,
+        totalDistributed: 0n,
       };
 
       const insertRoundChangeset: Changeset = {
@@ -978,6 +979,11 @@ export async function handleEvent(
             return [];
           }
 
+          const round = await db.getRoundById(chainId, application.roundId);
+          if (round === null) {
+            return [];
+          }
+
           return [
             {
               type: "UpdateApplication",
@@ -987,6 +993,12 @@ export async function handleEvent(
               application: {
                 distributionTransaction: event.transactionHash,
               },
+            },
+            {
+              type: "IncrementRoundTotalDistributed",
+              chainId,
+              roundId: round.id,
+              amount: BigInt(event.params.amount),
             },
           ];
         }
