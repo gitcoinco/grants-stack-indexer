@@ -687,7 +687,7 @@ export default [
   },
   {
     inputs: [],
-    name: "_maci",
+    name: "maci",
     outputs: [
       {
         internalType: "address",
@@ -700,7 +700,7 @@ export default [
   },
   {
     inputs: [],
-    name: "_pollContracts",
+    name: "pollContracts",
     outputs: [
       {
         internalType: "address",
@@ -734,7 +734,7 @@ export default [
         type: "address",
       },
     ],
-    name: "_recipients",
+    name: "recipients",
     outputs: [
       {
         internalType: "bool",

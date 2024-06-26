@@ -55,6 +55,8 @@ export const calculateMatches = async (
     deps: { passportProvider, dataProvider, priceProvider },
   } = params;
 
+  console.log("calculateMatches", params);
+
   const applications = await dataProvider.loadFile<DeprecatedApplication>(
     "applications",
     `${chain.id}/rounds/${roundId}/applications.json`

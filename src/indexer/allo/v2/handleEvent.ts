@@ -300,12 +300,12 @@ export async function handleEvent(
           await readContract({
             contract,
             address: strategyAddress,
-            functionName: "_pollContracts",
+            functionName: "pollContracts",
           }),
           await readContract({
             contract,
             address: strategyAddress,
-            functionName: "_maci",
+            functionName: "maci",
           }),
         ]);
 
@@ -1095,7 +1095,7 @@ export async function handleEvent(
         const maciId = await readContract({
           contract: "AlloV2/MACIQF/V1",
           address: strategy.strategyAddress,
-          functionName: "_maci",
+          functionName: "maci",
         });
         if (maciId.toLowerCase() === maciAddress.toLowerCase()) {
           roundID = strategy.id;
