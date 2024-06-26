@@ -1,3 +1,18 @@
+export enum ApplicationStatus {
+  NONE = 0,
+  PENDING,
+  APPROVED,
+  REJECTED,
+  CANCELLED,
+  IN_REVIEW,
+}
+
+export type Strategy = {
+  id: string;
+  name: string | null;
+  groups: string[];
+};
+
 export type DVMDApplicationData = {
   recipientsCounter: string;
   anchorAddress: string;

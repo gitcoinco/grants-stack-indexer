@@ -1,8 +1,4 @@
-type Strategy = {
-  id: string;
-  name: string | null;
-  groups: string[];
-};
+import { Strategy } from "../../types.js";
 
 export function extractStrategyFromId(_id: string): Strategy | null {
   const id = _id.toLowerCase();
@@ -15,7 +11,7 @@ export function extractStrategyFromId(_id: string): Strategy | null {
       return {
         id: id,
         name: "allov2.MACIQF",
-        groups: ["allov2.MACIQF"], 
+        groups: ["allov2.MACIQF"],
       };
   }
 
