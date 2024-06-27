@@ -1,5 +1,6 @@
 import { EventHandlerArgs } from "chainsauce";
 import {
+  Address,
   Hex,
   decodeAbiParameters,
   encodeAbiParameters,
@@ -21,7 +22,7 @@ import {
   ProjectTable,
 } from "../../../database/schema.js";
 import type { Indexer } from "../../indexer.js";
-import { MACIApplicationData } from "../../types.js";
+import { ApplicationStatus, MACIApplicationData } from "../../types.js";
 import { fetchPoolMetadata } from "./poolMetadata.js";
 import roleGranted from "./roleGranted.js";
 import roleRevoked from "./roleRevoked.js";
@@ -42,15 +43,6 @@ import { randomUUID } from "crypto";
 const ALLO_NATIVE_TOKEN = parseAddress(
   "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
 );
-
-enum ApplicationStatus {
-  NONE = 0,
-  PENDING,
-  APPROVED,
-  REJECTED,
-  CANCELLED,
-  IN_REVIEW,
-}
 
 function generateRoundRoles(poolId: bigint) {
   // POOL_MANAGER_ROLE = bytes32(poolId);
@@ -300,12 +292,12 @@ export async function handleEvent(
           await readContract({
             contract,
             address: strategyAddress,
-            functionName: "_pollContracts",
+            functionName: "pollContracts",
           }),
           await readContract({
             contract,
             address: strategyAddress,
-            functionName: "_maci",
+            functionName: "maci",
           }),
         ]);
 
@@ -571,7 +563,6 @@ export async function handleEvent(
 
     case "RecipientStatusUpdated": {
       const strategyAddress = parseAddress(event.address);
-
       const round = await db.getRoundByStrategyAddress(
         chainId,
         strategyAddress
@@ -588,20 +579,21 @@ export async function handleEvent(
 
       switch (round.strategyName) {
         case "allov2.MACIQF": {
-          let rec;
-          let stat;
+          let rec: Address | undefined;
+          let stat: number | undefined;
+
           if (isParamsWithRecipientIdAndStatus(event.params)) {
             rec = event.params.recipientId;
             stat = event.params.status;
           }
+
           const recipient = rec;
           const status = stat;
-
           const statusString = ApplicationStatus[
             status ?? 0
           ] as ApplicationTable["status"];
-          const applicationId = recipient?.toString().toLowerCase() ?? "";
 
+          const applicationId = recipient?.toString().toLowerCase() ?? "";
           const application = await db.getApplicationById(
             chainId,
             round.id,
@@ -620,7 +612,7 @@ export async function handleEvent(
           return [
             {
               type: "UpdateApplication",
-              chainId,
+              chainId: chainId,
               roundId: round.id,
               applicationId: applicationId,
               application: await updateApplicationStatus(
@@ -695,6 +687,61 @@ export async function handleEvent(
     }
 
     // -- Allo V2 Strategies
+    case "UpdatedRegistration": {
+      const strategyAddress = parseAddress(event.address);
+      const round = await db.getRoundByStrategyAddress(
+        chainId,
+        strategyAddress
+      );
+
+      if (!round) {
+        throw new Error("Round not found");
+      }
+
+      const application = await db.getApplicationByAnchorAddress(
+        chainId,
+        round.id,
+        parseAddress(event.params.recipientId)
+      );
+
+      if (!application) {
+        throw new Error("Application not found");
+      }
+
+      const encodedData = event.params.data;
+      const values = decodeMACIApplicationData(encodedData);
+
+      const metadata = await ipfsGet(values.metadata.pointer);
+
+      const status = event.params.status;
+      const statusString = ApplicationStatus[
+        status
+      ] as ApplicationTable["status"];
+      const statusSnapshots = application.statusSnapshots ?? [];
+      const statusUpdatedAtBlock = event.blockNumber;
+      const statusSnapshot = {
+        status: statusString,
+        updatedAtBlock: statusUpdatedAtBlock.toString(),
+        updatedAt: new Date((await getBlock()).timestamp * 1000),
+      };
+
+      return [
+        {
+          type: "UpdateApplication",
+          chainId,
+          roundId: round.id,
+          applicationId: application.id,
+          application: {
+            status: statusString,
+            statusUpdatedAtBlock,
+            statusSnapshots: [...statusSnapshots, statusSnapshot],
+            metadataCid: values.metadata.pointer,
+            metadata: metadata ?? null,
+          },
+        },
+      ];
+    }
+
     case "Registered": {
       const anchorAddress = parseAddress(event.params.recipientId);
       const project = await db.getProjectByAnchor(chainId, anchorAddress);
@@ -1072,12 +1119,9 @@ export async function handleEvent(
 
     case "SignUp": {
       const maciAddress = parseAddress(event.address);
-
       const stateIndex = event.params._stateIndex;
-
       const voiceCreditBalance = event.params._voiceCreditBalance;
       const txHash = event.transactionHash;
-
       const TxInfo = await rpcClient.getTransaction({
         hash: event.transactionHash,
       });
@@ -1095,7 +1139,7 @@ export async function handleEvent(
         const maciId = await readContract({
           contract: "AlloV2/MACIQF/V1",
           address: strategy.strategyAddress,
-          functionName: "_maci",
+          functionName: "maci",
         });
         if (maciId.toLowerCase() === maciAddress.toLowerCase()) {
           roundID = strategy.id;
@@ -1104,10 +1148,8 @@ export async function handleEvent(
       }
 
       const createdBy = parseAddress(TxInfo.from);
-
-      const types = "uint256, address, address";
-
-      const bytes = encodeAbiParameters(parseAbiParameters(types), [
+      const abiParameterTypes = "uint256, address, address";
+      const bytes = encodeAbiParameters(parseAbiParameters(abiParameterTypes), [
         BigInt(chainId),
         maciAddress,
         createdBy,
@@ -1115,7 +1157,6 @@ export async function handleEvent(
 
       // Create a unique ID for the contribution
       const id = ethers.utils.solidityKeccak256(["bytes"], [bytes]);
-
       const { timestamp } = await getBlock();
 
       if (roundID === undefined) {
@@ -1152,15 +1193,12 @@ export async function handleEvent(
       ]);
 
       const maciAddress = extContracts[0];
-
       const TxInfo = await rpcClient.getTransaction({
         hash: event.transactionHash,
       });
 
       const createdBy = parseAddress(TxInfo.from);
-
       const types = "uint256, address, address";
-
       const bytes = encodeAbiParameters(parseAbiParameters(types), [
         BigInt(chainId),
         maciAddress,
@@ -1173,10 +1211,8 @@ export async function handleEvent(
       };
 
       const id = ethers.utils.solidityKeccak256(["bytes"], [bytes]);
-
       const { timestamp } = await getBlock();
       const uuid = randomUUID();
-
       const uuidTypes = "string, string, string";
       const uuidBytes = encodeAbiParameters(parseAbiParameters(uuidTypes), [
         uuid,

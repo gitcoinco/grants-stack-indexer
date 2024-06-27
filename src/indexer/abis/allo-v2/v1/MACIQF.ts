@@ -198,6 +198,11 @@ export default [
   },
   {
     inputs: [],
+    name: "NoAllowlist",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "NoProjectHasMoreThanOneVote",
     type: "error",
   },
@@ -214,11 +219,6 @@ export default [
   {
     inputs: [],
     name: "NothingToWithdraw",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "OnlyMaciCanRegisterVoters",
     type: "error",
   },
   {
@@ -616,6 +616,19 @@ export default [
   },
   {
     inputs: [],
+    name: "EMERGENCY_WITHDRAWAL_DELAY",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
     name: "MAX_CONTRIBUTION_AMOUNT",
     outputs: [
       {
@@ -679,108 +692,6 @@ export default [
       {
         internalType: "bool",
         name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "_maci",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "_pollContracts",
-    outputs: [
-      {
-        internalType: "address",
-        name: "poll",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "messageProcessor",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "tally",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "subsidy",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    name: "_recipients",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "useRegistryAnchor",
-        type: "bool",
-      },
-      {
-        internalType: "bool",
-        name: "tallyVerified",
-        type: "bool",
-      },
-      {
-        internalType: "enum IStrategy.Status",
-        name: "status",
-        type: "uint8",
-      },
-      {
-        internalType: "address",
-        name: "recipientAddress",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "totalVotesReceived",
-        type: "uint256",
-      },
-      {
-        components: [
-          {
-            internalType: "uint256",
-            name: "protocol",
-            type: "uint256",
-          },
-          {
-            internalType: "string",
-            name: "pointer",
-            type: "string",
-          },
-        ],
-        internalType: "struct Metadata",
-        name: "metadata",
-        type: "tuple",
-      },
-      {
-        internalType: "bool",
-        name: "acceptedOnce",
         type: "bool",
       },
     ],
@@ -887,7 +798,7 @@ export default [
     name: "allowlistVerifier",
     outputs: [
       {
-        internalType: "contract IAlowlistVerifier",
+        internalType: "contract IGatingVerifier",
         name: "",
         type: "address",
       },
@@ -1026,6 +937,19 @@ export default [
   {
     inputs: [
       {
+        internalType: "address",
+        name: "_token",
+        type: "address",
+      },
+    ],
+    name: "emergencyWithdraw",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
         internalType: "uint256",
         name: "_totalSpent",
         type: "uint256",
@@ -1049,6 +973,19 @@ export default [
     name: "finalize",
     outputs: [],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "finalizedAt",
+    outputs: [
+      {
+        internalType: "uint64",
+        name: "",
+        type: "uint64",
+      },
+    ],
+    stateMutability: "view",
     type: "function",
   },
   {
@@ -1185,6 +1122,11 @@ export default [
             name: "acceptedOnce",
             type: "bool",
           },
+          {
+            internalType: "uint64",
+            name: "lastUpdateAt",
+            type: "uint64",
+          },
         ],
         internalType: "struct MACIQFBase.Recipient",
         name: "",
@@ -1243,7 +1185,7 @@ export default [
     inputs: [
       {
         internalType: "address",
-        name: "",
+        name: "_caller",
         type: "address",
       },
       {
@@ -1354,6 +1296,19 @@ export default [
   },
   {
     inputs: [],
+    name: "maci",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
     name: "maciFactory",
     outputs: [
       {
@@ -1450,6 +1405,19 @@ export default [
     type: "function",
   },
   {
+    inputs: [],
+    name: "nonAllowlistVerifier",
+    outputs: [
+      {
+        internalType: "contract IGatingVerifier",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "address",
@@ -1463,6 +1431,34 @@ export default [
         internalType: "bool",
         name: "",
         type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "pollContracts",
+    outputs: [
+      {
+        internalType: "address",
+        name: "poll",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "messageProcessor",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "tally",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "subsidy",
+        type: "address",
       },
     ],
     stateMutability: "view",
@@ -1505,6 +1501,72 @@ export default [
       {
         internalType: "address",
         name: "",
+        type: "address",
+      },
+    ],
+    name: "recipients",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "useRegistryAnchor",
+        type: "bool",
+      },
+      {
+        internalType: "bool",
+        name: "tallyVerified",
+        type: "bool",
+      },
+      {
+        internalType: "enum IStrategy.Status",
+        name: "status",
+        type: "uint8",
+      },
+      {
+        internalType: "address",
+        name: "recipientAddress",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "totalVotesReceived",
+        type: "uint256",
+      },
+      {
+        components: [
+          {
+            internalType: "uint256",
+            name: "protocol",
+            type: "uint256",
+          },
+          {
+            internalType: "string",
+            name: "pointer",
+            type: "string",
+          },
+        ],
+        internalType: "struct Metadata",
+        name: "metadata",
+        type: "tuple",
+      },
+      {
+        internalType: "bool",
+        name: "acceptedOnce",
+        type: "bool",
+      },
+      {
+        internalType: "uint64",
+        name: "lastUpdateAt",
+        type: "uint64",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "_caller",
         type: "address",
       },
       {
@@ -1579,8 +1641,13 @@ export default [
     inputs: [
       {
         internalType: "address[]",
-        name: "recipients",
+        name: "_recipients",
         type: "address[]",
+      },
+      {
+        internalType: "uint64[]",
+        name: "_latestUpdateTimes",
+        type: "uint64[]",
       },
       {
         internalType: "enum IStrategy.Status[]",
