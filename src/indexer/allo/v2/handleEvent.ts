@@ -708,6 +708,11 @@ export async function handleEvent(
         throw new Error("Application not found");
       }
 
+      const encodedData = event.params.data;
+      const values = decodeMACIApplicationData(encodedData);
+
+      const metadata = await ipfsGet(values.metadata.pointer);
+
       const status = event.params.status;
       const statusString = ApplicationStatus[
         status
@@ -730,6 +735,8 @@ export async function handleEvent(
             status: statusString,
             statusUpdatedAtBlock,
             statusSnapshots: [...statusSnapshots, statusSnapshot],
+            metadataCid: values.metadata.pointer,
+            metadata: metadata ?? null,
           },
         },
       ];
