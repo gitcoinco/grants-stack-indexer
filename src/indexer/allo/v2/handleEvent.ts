@@ -687,6 +687,54 @@ export async function handleEvent(
     }
 
     // -- Allo V2 Strategies
+    case "UpdatedRegistration": {
+      const strategyAddress = parseAddress(event.address);
+      const round = await db.getRoundByStrategyAddress(
+        chainId,
+        strategyAddress
+      );
+
+      if (!round) {
+        throw new Error("Round not found");
+      }
+
+      const application = await db.getApplicationByAnchorAddress(
+        chainId,
+        round.id,
+        parseAddress(event.params.recipientId)
+      );
+
+      if (!application) {
+        throw new Error("Application not found");
+      }
+
+      const status = event.params.status;
+      const statusString = ApplicationStatus[
+        status
+      ] as ApplicationTable["status"];
+      const statusSnapshots = application.statusSnapshots ?? [];
+      const statusUpdatedAtBlock = event.blockNumber;
+      const statusSnapshot = {
+        status: statusString,
+        updatedAtBlock: statusUpdatedAtBlock.toString(),
+        updatedAt: new Date((await getBlock()).timestamp * 1000),
+      };
+
+      return [
+        {
+          type: "UpdateApplication",
+          chainId,
+          roundId: round.id,
+          applicationId: application.id,
+          application: {
+            status: statusString,
+            statusUpdatedAtBlock,
+            statusSnapshots: [...statusSnapshots, statusSnapshot],
+          },
+        },
+      ];
+    }
+
     case "Registered": {
       const anchorAddress = parseAddress(event.params.recipientId);
       const project = await db.getProjectByAnchor(chainId, anchorAddress);

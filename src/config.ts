@@ -19,7 +19,7 @@ type CoingeckoSupportedChainId =
   | 42
   | 42220;
 
-const CHAIN_DATA_VERSION = "73";
+const CHAIN_DATA_VERSION = "74";
 
 export type Token = {
   code: string;
