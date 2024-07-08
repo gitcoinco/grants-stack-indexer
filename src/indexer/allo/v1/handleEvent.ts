@@ -35,6 +35,7 @@ import { ProjectMetadataSchema } from "../../projectMetadata.js";
 import { updateApplicationStatus } from "../application.js";
 import { getDateFromTimestamp } from "../../../utils/index.js";
 import { fullProjectId } from "./fullProjectId.js";
+import { handleProjectCreatedEvent } from "./handlers/index.js";
 
 enum ApplicationStatus {
   PENDING = 0,
@@ -65,49 +66,14 @@ export async function handleEvent(
 
   switch (event.name) {
     // -- PROJECTS
-    case "ProjectCreated": {
-      const projectId = fullProjectId(
-        chainId,
-        Number(event.params.projectID),
-        event.address
+    case "ProjectCreated":
+      return handleProjectCreatedEvent(
+        args as EventHandlerArgs<
+          Indexer,
+          "AlloV1/ProjectRegistry/V1" | "AlloV1/ProjectRegistry/V2",
+          "ProjectCreated"
+        >
       );
-
-      const tx = await rpcClient.getTransaction({
-        hash: event.transactionHash,
-      });
-
-      const createdBy = tx.from;
-
-      return [
-        {
-          type: "InsertProject",
-          project: {
-            tags: ["allo-v1"],
-            chainId,
-            registryAddress: parseAddress(event.address),
-            id: projectId,
-            name: "",
-            projectNumber: Number(event.params.projectID),
-            metadataCid: null,
-            metadata: null,
-            createdByAddress: parseAddress(createdBy),
-            createdAtBlock: event.blockNumber,
-            updatedAtBlock: event.blockNumber,
-            projectType: "canonical",
-          },
-        },
-        {
-          type: "InsertProjectRole",
-          projectRole: {
-            chainId,
-            projectId,
-            address: parseAddress(event.params.owner),
-            role: "owner",
-            createdAtBlock: event.blockNumber,
-          },
-        },
-      ];
-    }
 
     case "MetadataUpdated": {
       const projectId = fullProjectId(
