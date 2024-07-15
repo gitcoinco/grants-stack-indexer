@@ -226,25 +226,9 @@ describe("handleEvent", () => {
       });
     });
 
-    test("MetadataUpdated event, NOT MIGRATED -> getEventHandler should return undefined", async () => {
+    test("MetadataUpdated event, NOT MIGRATED -> getEventHandler should return undefined", () => {
       const contractName = "AlloV1/ProjectRegistry/V2";
       const eventName = "MetadataUpdated";
-
-      const args = {
-        ...DEFAULT_ARGS,
-        event: {
-          ...DEFAULT_ARGS.event,
-          contractName,
-          name: eventName,
-          params: {
-            projectID: 1n,
-            metaPtr: {
-              pointer: "project-cid",
-              protocol: 0n,
-            },
-          },
-        },
-      };
 
       const handler = getEventHandler(contractName, eventName);
 
@@ -253,26 +237,9 @@ describe("handleEvent", () => {
   });
 
   describe("Unknown contract name", () => {
-    test("getEventHandler should return undefined", async () => {
+    test("getEventHandler should return undefined", () => {
       const contractName = "Unknown";
       const eventName = "ProjectCreated";
-
-      const args = {
-        ...DEFAULT_ARGS,
-        event: {
-          ...DEFAULT_ARGS.event,
-          contractName,
-          name: eventName,
-          params: {
-            projectID: 1n,
-            owner: addressTwo,
-          },
-        },
-        context: {
-          ...DEFAULT_ARGS.context,
-          rpcClient: MOCK_RPC_CLIENT(),
-        },
-      };
 
       const handler = getEventHandler(contractName, eventName);
 

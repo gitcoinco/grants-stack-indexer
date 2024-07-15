@@ -557,7 +557,7 @@ async function catchupAndWatchChain(
           const changesets = await handler(args);
           if (["Voted", "Allocated"].includes(eventName)) {
             try {
-              db.applyChanges(changesets);
+              await db.applyChanges(changesets);
             } catch (err: unknown) {
               if (args.event.name === "Voted") {
                 indexerLogger.warn({
