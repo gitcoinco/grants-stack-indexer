@@ -34,6 +34,7 @@ import {
 import { ProjectMetadataSchema } from "../../projectMetadata.js";
 import { updateApplicationStatus } from "../application.js";
 import { getDateFromTimestamp } from "../../../utils/index.js";
+import { fullProjectId } from "../../utils/index.js";
 
 enum ApplicationStatus {
   PENDING = 0,
@@ -41,17 +42,6 @@ enum ApplicationStatus {
   REJECTED,
   CANCELLED,
   IN_REVIEW,
-}
-
-function fullProjectId(
-  projectChainId: number,
-  projectId: number,
-  projectRegistryAddress: string
-) {
-  return ethers.utils.solidityKeccak256(
-    ["uint256", "address", "uint256"],
-    [projectChainId, projectRegistryAddress, projectId]
-  );
 }
 
 export async function handleEvent(
