@@ -713,7 +713,7 @@ export async function handleEvent(
 
       const metadata = await ipfsGet(values.metadata.pointer);
 
-      const status = event.params.status;
+      const status = 1;
       const statusString = ApplicationStatus[
         status
       ] as ApplicationTable["status"];
