@@ -552,8 +552,12 @@ async function catchupAndWatchChain(
         } else {
           const handler = handleAlloV2Event;
 
-          if (args.event.name === "Registered") {
-            indexerLogger.info({ msg: "Registered event", args });
+          if (["Registered", "UpdatedRegistration"].includes(args.event.name)) {
+            indexerLogger.info({
+              msg: "Registered or Updated event",
+              args,
+              event: args.event,
+            });
           }
           const changesets = await handler(args);
 
@@ -563,19 +567,14 @@ async function catchupAndWatchChain(
         }
       } catch (err) {
         // Added for debugging Maci
-        if (args.event.name === "Registered") {
+        if (["Registered", "UpdatedRegistration"].includes(args.event.name)) {
           indexerLogger.warn({
-            msg: "Registered event",
+            msg: "Registered or Updated event",
             err,
             args,
             event: args.event,
           });
         }
-        indexerLogger.warn({
-          msg: "skipping event due to error while processing",
-          err,
-          event: args.event,
-        });
         indexerLogger.warn({
           msg: "skipping event due to error while processing",
           err,
