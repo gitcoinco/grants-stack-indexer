@@ -713,7 +713,10 @@ export async function handleEvent(
 
       const metadata = await ipfsGet(values.metadata.pointer);
 
-      const status = 1;
+      const status = event.params.status == ApplicationStatus.IN_REVIEW ? 
+        ApplicationStatus.PENDING :
+        event.params.status;
+
       const statusString = ApplicationStatus[
         status
       ] as ApplicationTable["status"];
