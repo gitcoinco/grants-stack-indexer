@@ -751,11 +751,9 @@ export async function handleEvent(
       const project = await db.getProjectByAnchor(chainId, anchorAddress);
 
       if (!project) {
-        logger.warn({
-          msg: `Registered: Project not found for anchor address ${anchorAddress}`,
-          args,
-        });
-        throw new Error("Project not found");
+        throw new Error(
+          `Project not found for anchor address ${anchorAddress}`
+        );
       }
 
       const encodedData = event.params.data;
@@ -766,11 +764,9 @@ export async function handleEvent(
       );
 
       if (!round) {
-        logger.warn({
-          msg: `Registered: Round not found for strategy address ${strategyAddress}`,
-          args,
-        });
-        throw new Error("Round not found");
+        throw new Error(
+          `Round not found for strategy address ${strategyAddress}`
+        );
       }
 
       let id;
@@ -783,11 +779,7 @@ export async function handleEvent(
           break;
 
         default:
-          logger.warn({
-            msg: `Registered: Invalid strategy name ${round.strategyName}`,
-            args,
-          });
-          throw new Error("Invalid strategy name");
+          throw new Error(`Invalid strategy name ${round.strategyName}`);
       }
 
       const metadata = await ipfsGet(values.metadata.pointer);
