@@ -751,6 +751,10 @@ export async function handleEvent(
       const project = await db.getProjectByAnchor(chainId, anchorAddress);
 
       if (!project) {
+        logger.warn({
+          msg: `Registered: Project not found for anchor address ${anchorAddress}`,
+          args,
+        });
         throw new Error("Project not found");
       }
 
@@ -762,6 +766,10 @@ export async function handleEvent(
       );
 
       if (!round) {
+        logger.warn({
+          msg: `Registered: Round not found for strategy address ${strategyAddress}`,
+          args,
+        });
         throw new Error("Round not found");
       }
 
@@ -775,6 +783,10 @@ export async function handleEvent(
           break;
 
         default:
+          logger.warn({
+            msg: `Registered: Invalid strategy name ${round.strategyName}`,
+            args,
+          });
           throw new Error("Invalid strategy name");
       }
 
