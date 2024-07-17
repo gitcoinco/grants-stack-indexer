@@ -545,40 +545,29 @@ async function catchupAndWatchChain(
             .then((changesets) => db.applyChanges(changesets))
             .catch((err: unknown) => {
               indexerLogger.warn({
-                msg: "error while processing allocation",
+                msg: "Event Allocated: error while processing allocation",
                 err,
+                args,
               });
             });
         } else {
           const handler = handleAlloV2Event;
 
-          if (["Registered", "UpdatedRegistration"].includes(args.event.name)) {
-            indexerLogger.info({
-              msg: "Registered or Updated event",
-              args,
-              event: args.event,
-            });
-          }
           const changesets = await handler(args);
 
           for (const changeset of changesets) {
             await db.applyChange(changeset);
           }
         }
+        indexerLogger.info({
+          msg: `Event ${args.event.name}: success`,
+          args,
+        });
       } catch (err) {
-        // Added for debugging Maci
-        if (["Registered", "UpdatedRegistration"].includes(args.event.name)) {
-          indexerLogger.warn({
-            msg: "Registered or Updated event",
-            err,
-            args,
-            event: args.event,
-          });
-        }
         indexerLogger.warn({
-          msg: "skipping event due to error while processing",
+          msg: `Event ${args.event.name}: skipping event due to error while processing`,
           err,
-          event: args.event,
+          args,
         });
       } finally {
         // console.timeEnd(args.event.name);
