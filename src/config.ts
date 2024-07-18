@@ -19,7 +19,7 @@ type CoingeckoSupportedChainId =
   | 42
   | 42220;
 
-const CHAIN_DATA_VERSION = "87";
+const CHAIN_DATA_VERSION = "MACI_1";
 
 export type Token = {
   code: string;
