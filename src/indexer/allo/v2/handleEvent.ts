@@ -227,7 +227,7 @@ export async function handleEvent(
 
       const poolId = event.params.poolId;
 
-      if (["48", "49", "50"].includes(poolId.toString())) {
+      if (["46", "47", "48"].includes(poolId.toString())) {
         console.log("Skipping pool", poolId.toString());
         return [];
       }
