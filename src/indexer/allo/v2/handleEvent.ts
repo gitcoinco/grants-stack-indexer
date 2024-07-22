@@ -226,6 +226,12 @@ export async function handleEvent(
       const parsedMetadata = RoundMetadataSchema.safeParse(roundMetadata);
 
       const poolId = event.params.poolId;
+
+      if (["46", "47", "48"].includes(poolId.toString())) {
+        console.log("Skipping pool", poolId.toString());
+        return [];
+      }
+
       const { managerRole, adminRole } = generateRoundRoles(poolId);
       const strategyAddress = event.params.strategy;
       const strategyId = await readContract({
