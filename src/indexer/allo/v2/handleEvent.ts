@@ -717,7 +717,9 @@ export async function handleEvent(
       const encodedData = event.params.data;
       const values = decodeMACIApplicationData(encodedData);
 
-      const metadata = await ipfsGet(values.metadata.pointer) as any;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const metadata = (await ipfsGet(values.metadata.pointer)) as any;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       metadata.application.recipient = values.recipientAddress;
 
       const status =
@@ -789,7 +791,9 @@ export async function handleEvent(
           throw new Error(`Invalid strategy name ${round.strategyName}`);
       }
 
-      const metadata = await ipfsGet(values.metadata.pointer) as any;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const metadata = (await ipfsGet(values.metadata.pointer)) as any;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       metadata.application.recipient = values.recipientAddress;
 
       const { timestamp } = await getBlock();
