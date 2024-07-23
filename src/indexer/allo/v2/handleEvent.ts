@@ -227,7 +227,7 @@ export async function handleEvent(
 
       const poolId = event.params.poolId;
 
-      if (["46", "47", "48"].includes(poolId.toString())) {
+      if (["46", "47", "48", "51", "52", "53"].includes(poolId.toString())) {
         console.log("Skipping pool", poolId.toString());
         return [];
       }
@@ -717,7 +717,8 @@ export async function handleEvent(
       const encodedData = event.params.data;
       const values = decodeMACIApplicationData(encodedData);
 
-      const metadata = await ipfsGet(values.metadata.pointer);
+      const metadata = await ipfsGet(values.metadata.pointer) as any;
+      metadata.application.recipient = values.recipientAddress;
 
       const status =
         event.params.status == ApplicationStatus.IN_REVIEW
@@ -788,7 +789,8 @@ export async function handleEvent(
           throw new Error(`Invalid strategy name ${round.strategyName}`);
       }
 
-      const metadata = await ipfsGet(values.metadata.pointer);
+      const metadata = await ipfsGet(values.metadata.pointer) as any;
+      metadata.application.recipient = values.recipientAddress;
 
       const { timestamp } = await getBlock();
 
