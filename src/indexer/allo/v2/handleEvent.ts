@@ -718,7 +718,7 @@ export async function handleEvent(
       const values = decodeMACIApplicationData(encodedData);
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const metadata = await ipfsGet(values.metadata.pointer) as any;
+      const metadata = (await ipfsGet(values.metadata.pointer)) as any;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       metadata.application.recipient = values.recipientAddress;
 
@@ -792,7 +792,7 @@ export async function handleEvent(
       }
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const metadata = await ipfsGet(values.metadata.pointer) as any;
+      const metadata = (await ipfsGet(values.metadata.pointer)) as any;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       metadata.application.recipient = values.recipientAddress;
 
