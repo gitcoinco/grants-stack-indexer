@@ -1702,6 +1702,47 @@ const CHAINS: Chain[] = [
       },
     ],
   },
+  {
+    id: 42,
+    name: "metisAndromeda",
+    rpc: rpcUrl
+      .default("https://andromeda.metis.io/?owner=1088")
+      .parse(process.env.METIS_ANDROMEDA_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "METIS",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "METIS",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+    ],
+    subscriptions: [
+      // Allo V2
+      {
+        contractName: "AlloV2/Registry/V1",
+        address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+        fromBlock: 17860000,
+      },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0xB087535DB0df98fC4327136e897A5985E5Cfbd66",
+        fromBlock: 17860000,
+      },
+    ],
+  },
 ];
 
 export const getDecimalsForToken = (
