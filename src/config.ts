@@ -17,7 +17,8 @@ type CoingeckoSupportedChainId =
   | 713715
   | 1329
   | 42
-  | 42220;
+  | 42220
+  | 1880;
 
 const CHAIN_DATA_VERSION = "71";
 
@@ -1703,7 +1704,7 @@ const CHAINS: Chain[] = [
     ],
   },
   {
-    id: 42,
+    id: 1088,
     name: "metisAndromeda",
     rpc: rpcUrl
       .default("https://andromeda.metis.io/?owner=1088")
@@ -1716,7 +1717,7 @@ const CHAINS: Chain[] = [
         decimals: 18,
         priceSource: {
           chainId: 1,
-          address: "0x0000000000000000000000000000000000000000",
+          address: "0x9e32b13ce7f2e80a01932b42553652e053d6ed8e",
         },
       },
       {
@@ -1725,7 +1726,7 @@ const CHAINS: Chain[] = [
         decimals: 18,
         priceSource: {
           chainId: 1,
-          address: "0x0000000000000000000000000000000000000000",
+          address: "0x9e32b13ce7f2e80a01932b42553652e053d6ed8e",
         },
       },
     ],
