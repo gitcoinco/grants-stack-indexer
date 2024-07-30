@@ -17,7 +17,8 @@ type CoingeckoSupportedChainId =
   | 713715
   | 1329
   | 42
-  | 42220;
+  | 42220
+  | 1088;
 
 const CHAIN_DATA_VERSION = "71";
 
@@ -1699,6 +1700,47 @@ const CHAINS: Chain[] = [
         contractName: "AlloV2/Allo/V1",
         address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
         fromBlock: 23061115,
+      },
+    ],
+  },
+  {
+    id: 1088,
+    name: "metisAndromeda",
+    rpc: rpcUrl
+      .default("https://andromeda.metis.io/?owner=1088")
+      .parse(process.env.METIS_ANDROMEDA_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "METIS",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x9e32b13ce7f2e80a01932b42553652e053d6ed8e",
+        },
+      },
+      {
+        code: "METIS",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x9e32b13ce7f2e80a01932b42553652e053d6ed8e",
+        },
+      },
+    ],
+    subscriptions: [
+      // Allo V2
+      {
+        contractName: "AlloV2/Registry/V1",
+        address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+        fromBlock: 17860000,
+      },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0xB087535DB0df98fC4327136e897A5985E5Cfbd66",
+        fromBlock: 17860000,
       },
     ],
   },
