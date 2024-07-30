@@ -1497,6 +1497,15 @@ const CHAINS: Chain[] = [
           address: "0x0000000000000000000000000000000000000000",
         },
       },
+      {
+        code: "USDC",
+        address: "0x3894085Ef7Ff0f0aeDf52E2A2704928d1Ec074F1",
+        decimals: 6,
+        priceSource: {
+          chainId: 1329,
+          address: "0x3894085Ef7Ff0f0aeDf52E2A2704928d1Ec074F1",
+        },
+      },
     ],
     subscriptions: [
       // Allo V2
