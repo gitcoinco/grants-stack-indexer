@@ -1505,7 +1505,7 @@ const CHAINS: Chain[] = [
           chainId: 1329,
           address: "0x3894085Ef7Ff0f0aeDf52E2A2704928d1Ec074F1",
         },
-      }
+      },
     ],
     subscriptions: [
       // Allo V2
