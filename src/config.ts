@@ -18,7 +18,7 @@ type CoingeckoSupportedChainId =
   | 1329
   | 42
   | 42220
-  | 1880;
+  | 1088;
 
 const CHAIN_DATA_VERSION = "71";
 
