@@ -48,6 +48,8 @@ const ALLO_NATIVE_TOKEN = parseAddress(
   "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
 );
 
+const addressZero = "0x0000000000000000000000000000000000000000";
+
 enum ApplicationStatus {
   NONE = 0,
   PENDING,
@@ -307,10 +309,15 @@ export async function handleEvent(
             address: strategyAddress,
           });
           break;
-
         case "allov2.EasyRPGFStrategy":
           subscribeToContract({
             contract: "AlloV2/EasyRPGFStrategy/V1",
+            address: strategyAddress,
+          });
+          break;
+        case "allov2.DirectAllocationStrategy":
+          subscribeToContract({
+            contract: "AlloV2/DirectAllocationStrategy/V1",
             address: strategyAddress,
           });
           break;
@@ -1205,6 +1212,63 @@ export async function handleEvent(
           return [];
         }
       }
+    }
+
+    case "DirectAllocated": {
+      const strategyAddress = parseAddress(event.address);
+      const round = await db.getRoundByStrategyAddress(
+        chainId,
+        strategyAddress
+      );
+
+      const profile = await db.getProjectById(chainId, event.params.profileId);
+
+      if (profile === null || round === null) {
+        return [];
+      }
+
+      const donationId = ethers.utils.solidityKeccak256(
+        ["string"],
+        [`${event.blockNumber}-${event.logIndex}`]
+      );
+
+      const amount = event.params.amount;
+      const token = parseAddress(event.params.token);
+      const sender = parseAddress(event.params.sender);
+
+      const conversionToUSD = await convertToUSD(
+        priceProvider,
+        chainId,
+        token,
+        event.params.amount,
+        event.blockNumber
+      );
+
+      const amountInUsd = conversionToUSD.amount;
+
+      const donation: Donation = {
+        id: donationId,
+        chainId,
+        roundId: round.id,
+        applicationId: parseAddress(addressZero),
+        donorAddress: sender,
+        recipientAddress: parseAddress(event.params.profileOwner),
+        projectId: event.params.profileId,
+        transactionHash: event.transactionHash,
+        blockNumber: event.blockNumber,
+        tokenAddress: token,
+        amount: amount,
+        amountInUsd,
+        amountInRoundMatchToken: 0n,
+        timestamp: conversionToUSD.timestamp,
+      };
+
+      return [
+        {
+          type: "InsertDonation",
+          donation,
+        },
+      ];
     }
   }
 
