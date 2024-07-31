@@ -541,6 +541,14 @@ async function catchupAndWatchChain(
       try {
         // console.time(args.event.name);
         // do not await donation inserts as they are write only
+        indexerLogger.debug(
+          "DEBUG - event:",
+          args.event.name,
+          "- chainId:",
+          args.chainId,
+          "- event:",
+          event
+        );
         if (args.event.name === "Voted") {
           handleAlloV1Event(args)
             .then((changesets) => db.applyChanges(changesets))
@@ -572,7 +580,7 @@ async function catchupAndWatchChain(
         }
       } catch (err) {
         indexerLogger.warn({
-          msg: "skipping event due to error while processing",
+          msg: `skipping event due to error while processing - ${args.event.name}`,
           err,
           event: args.event,
         });
