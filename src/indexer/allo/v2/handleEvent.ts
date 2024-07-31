@@ -48,6 +48,8 @@ const ALLO_NATIVE_TOKEN = parseAddress(
   "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
 );
 
+const addressZero = "0x0000000000000000000000000000000000000000";
+
 enum ApplicationStatus {
   NONE = 0,
   PENDING,
