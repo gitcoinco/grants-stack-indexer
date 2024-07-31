@@ -1213,21 +1213,17 @@ export async function handleEvent(
         }
       }
     }
-    
-    case "DirectAllocated": {
 
+    case "DirectAllocated": {
       const strategyAddress = parseAddress(event.address);
       const round = await db.getRoundByStrategyAddress(
         chainId,
         strategyAddress
       );
 
-      const profile = await db.getProjectById(
-        chainId,
-        event.params.profileId
-      );
+      const profile = await db.getProjectById(chainId, event.params.profileId);
 
-      if (profile === null || round === null) {        
+      if (profile === null || round === null) {
         return [];
       }
 
