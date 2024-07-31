@@ -1252,7 +1252,7 @@ export async function handleEvent(
         id: donationId,
         chainId,
         roundId: round.id,
-        applicationId: parseAddress("0"),
+        applicationId: parseAddress(addressZero),
         donorAddress: sender,
         recipientAddress: parseAddress(event.params.profileOwner),
         projectId: event.params.profileId,
