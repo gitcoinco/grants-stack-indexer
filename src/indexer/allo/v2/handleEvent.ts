@@ -1236,7 +1236,7 @@ export async function handleEvent(
 
       const amount = event.params.amount;
       const token = parseAddress(event.params.token);
-      const origin = parseAddress(event.params.origin);
+      const sender = parseAddress(event.params.sender);
 
       const conversionToUSD = await convertToUSD(
         priceProvider,
@@ -1252,8 +1252,8 @@ export async function handleEvent(
         id: donationId,
         chainId,
         roundId: round.id,
-        applicationId: parseAddress('0'),
-        donorAddress: origin,
+        applicationId: parseAddress("0"),
+        donorAddress: sender,
         recipientAddress: parseAddress(event.params.profileOwner),
         projectId: event.params.profileId,
         transactionHash: event.transactionHash,
