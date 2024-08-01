@@ -37,11 +37,11 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .addPrimaryKeyConstraint("projects_pkey", ["id", "chainId"])
     .execute();
 
-  await schema
-    .createIndex("idx_projects_metadata_not_null")
-    .on("projects")
-    .columns(["metadata"])
-    .where(sql.ref("metadata"), "is not", null)
+  await db.schema
+    .createIndex('idx_projects_metadata_hash')
+    .on('projects')
+    .expression(sql`md5(metadata::text)`)
+    .where(sql.ref('metadata'), 'is not', null)
     .execute();
 
   await schema
@@ -153,7 +153,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   await schema
     .createIndex("idx_rounds_round_metadata_not_null")
     .on("rounds")
-    .columns(["roundMetadata"])
+    .expression(sql`md5(roundMetadata::text)`)
     .where(sql.ref("round_metadata"), "is not", null)
     .execute();
 
