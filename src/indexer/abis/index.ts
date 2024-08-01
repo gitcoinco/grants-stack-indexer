@@ -27,6 +27,7 @@ import AlloV2DirectGrantsSimpleStrategy from "./allo-v2/v1/DirectGrantsSimpleStr
 import AlloV1ToV2ProfileMigration from "./allo-v2/AlloV1ToV2ProfileMigration.js";
 import AlloV2DirectGrantsLiteStrategy from "./allo-v2/v1/DirectGrantsLiteStrategy.js";
 import AlloV2EasyRPGFStrategy from "./allo-v2/v1/EasyRPGFStrategy.js";
+import AlloV2DirectAllocationStrategy from "./allo-v2/v1/DirectAllocationStrategy.js";
 
 const abis = {
   "AlloV1/ProjectRegistry/V1": ProjectRegistryV1,
@@ -62,6 +63,7 @@ const abis = {
   "AlloV2/DirectGrantsSimpleStrategy/V1": AlloV2DirectGrantsSimpleStrategy,
   "AlloV2/DirectGrantsLiteStrategy/V1": AlloV2DirectGrantsLiteStrategy,
   "AlloV2/EasyRPGFStrategy/V1": AlloV2EasyRPGFStrategy,
+  "AlloV2/DirectAllocationStrategy/V1": AlloV2DirectAllocationStrategy,
 } as const;
 
 export default abis;
