@@ -4,7 +4,6 @@ import "express-async-errors";
 import express from "express";
 import { Logger } from "pino";
 import createHttpLogger from "pino-http";
-import cors from "cors";
 import * as Sentry from "@sentry/node";
 
 import { createHandler as createApiHandler } from "./api/v1/index.js";
