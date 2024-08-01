@@ -115,6 +115,14 @@ export function extractStrategyFromId(_id: string): Strategy | null {
         name: "allov2.EasyRPGFStrategy",
         groups: ["allov2.EasyRPGFStrategy"],
       };
+
+    // DirectAllocationStrategyv1.1
+    case "0x4cd0051913234cdd7d165b208851240d334786d6e5afbb4d0eec203515a9c6f3":
+      return {
+        id: id,
+        name: "allov2.DirectAllocationStrategy",
+        groups: ["allov2.DirectAllocationStrategy"],
+      };
   }
 
   return null;
