@@ -38,10 +38,10 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .execute();
 
   await db.schema
-    .createIndex('idx_projects_metadata_hash')
-    .on('projects')
+    .createIndex("idx_projects_metadata_hash")
+    .on("projects")
     .expression(sql`md5(metadata::text)`)
-    .where(sql.ref('metadata'), 'is not', null)
+    .where(sql.ref("metadata"), "is not", null)
     .execute();
 
   await schema
@@ -153,7 +153,7 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   await schema
     .createIndex("idx_rounds_round_metadata_not_null")
     .on("rounds")
-    .expression(sql`md5(roundMetadata::text)`)
+    .expression(sql`md5(round_metadata::text)`)
     .where(sql.ref("round_metadata"), "is not", null)
     .execute();
 
