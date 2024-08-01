@@ -6,6 +6,7 @@ import { Logger } from "pino";
 import createHttpLogger from "pino-http";
 import cors from "cors";
 import * as Sentry from "@sentry/node";
+
 import { createHandler as createApiHandler } from "./api/v1/index.js";
 import { PriceProvider } from "../prices/provider.js";
 import { PassportProvider } from "../passport/index.js";
@@ -44,7 +45,7 @@ interface HttpApi {
 }
 
 const corsOptions = {
-  origin: '*',
+  origin: "*",
 };
 
 export const createHttpApi = (config: HttpApiConfig): HttpApi => {
@@ -52,7 +53,7 @@ export const createHttpApi = (config: HttpApiConfig): HttpApi => {
 
   app.set("trust proxy", true);
   app.use(cors(corsOptions));
-  app.options('*', cors(corsOptions));
+  app.options("*", cors(corsOptions));
   app.use(express.json());
   app.use(
     // @ts-expect-error Something wrong with pino-http typings
