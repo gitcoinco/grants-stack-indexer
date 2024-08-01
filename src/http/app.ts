@@ -44,11 +44,23 @@ interface HttpApi {
   app: express.Application;
 }
 
+const cors = {
+  origins: ['https://localhost', "https://gitcoin.co", "https://manager.gitcoin.co"],
+  default: 'https://gitcoin.co'
+};
+
 export const createHttpApi = (config: HttpApiConfig): HttpApi => {
   const app = express();
 
   app.set("trust proxy", true);
-  app.use(cors());
+
+  app.all('*', function(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const origin: string = cors.origins.includes(req.header('origin')!.toLowerCase()) ? req.headers.origin as string : cors.default;
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+  });
+
   app.use(express.json());
   app.use(
     // @ts-expect-error Something wrong with pino-http typings
