@@ -1,4 +1,5 @@
 export type Address = `0x${string}` & { __brand: "Address" };
+export type Address_Test = `0x${string}` & { __brand: "Address" };
 
 class InvalidAddress extends Error {
   constructor(address: string) {
