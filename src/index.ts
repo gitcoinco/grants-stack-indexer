@@ -480,7 +480,7 @@ async function catchupAndWatchChain(
       return (await res.json()) as T;
     };
 
-    chainLogger.info("catching up with blockchain events");
+    chainLogger.info("DEBUG: catching up with blockchain events");
 
     const indexerLogger = chainLogger.child({ subsystem: "DataUpdater" });
 
