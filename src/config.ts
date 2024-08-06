@@ -210,6 +210,15 @@ const CHAINS: Chain[] = [
           address: "0x4200000000000000000000000000000000000042",
         },
       },
+      {
+        code: "TEC",
+        address: "0x8fc7c1109c08904160d6ae36482b79814d45eb78",
+        decimals: 18,
+        priceSource: {
+          chainId: 10,
+          address: "0x8fc7c1109c08904160d6ae36482b79814d45eb78",
+        },
+      },
     ],
     subscriptions: [
       {
