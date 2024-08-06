@@ -1,0 +1,22 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: indexer-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: indexer-web
+  template:
+    metadata:
+      labels:
+        app: indexer-web
+    spec:
+      containers:
+        - name: indexer-web
+          image: "gitcoinco/indexer-web:latest"
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: indexer-web-config

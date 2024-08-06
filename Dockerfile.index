@@ -1,0 +1,24 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Bundle app source
+COPY src src
+COPY tsconfig.json ./
+COPY vite.config.ts ./
+COPY .eslintrc.cjs ./
+COPY .prettierrc.json ./
+COPY package*.json ./
+
+RUN npm ci
+RUN npm run lint
+
+RUN npm run build
+
+RUN npm run test
+
+
+EXPOSE 8080
+
+
+CMD [ "npm", "start", "--", "--indexer", "--http" ]
