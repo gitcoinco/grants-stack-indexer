@@ -1757,7 +1757,7 @@ const CHAINS: Chain[] = [
       },
       {
         contractName: "AlloV2/Allo/V1",
-        address: "0xB087535DB0df98fC4327136e897A5985E5Cfbd66",
+        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
         fromBlock: 17860000,
       },
     ],
