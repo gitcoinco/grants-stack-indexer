@@ -27,6 +27,7 @@ export interface HttpApiConfig {
   priceProvider: PriceProvider;
   db: Database;
   dataProvider: DataProvider;
+  dataVersion?: string;
   passportProvider: PassportProvider;
   graphqlHandler?: AsyncRequestHandler;
   hostname: string;
@@ -94,6 +95,10 @@ export const createHttpApi = (config: HttpApiConfig): HttpApi => {
   });
 
   app.get("/data/*", staticJsonDataHandler(config.dataProvider));
+
+  app.get("/version", (_req, res) => {
+    res.send(config.dataVersion);
+  });
 
   app.use("/api/v1", api);
 
