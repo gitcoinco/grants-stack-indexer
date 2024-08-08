@@ -209,7 +209,7 @@ const CHAINS: Chain[] = [
           chainId: 10,
           address: "0x4200000000000000000000000000000000000042",
         },
-      }
+      },
     ],
     subscriptions: [
       {
