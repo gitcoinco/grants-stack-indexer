@@ -1,4 +1,4 @@
-version: "3.8" # Use the latest version you prefer
+version: "3.8"
 
 services:
   web:
@@ -41,7 +41,7 @@ services:
       POLYGON_RPC_URL: ${POLYGON_RPC_URL}
       METIS_ANDROMEDA_RPC_URL: ${METIS_ANDROMEDA_RPC_URL}
       SCROLL_SEPOLIA_RPC_URL: ${SCROLL_SEPOLIA_RPC_URL}
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: "postgresql://postgres:postgres@db:5432/grants_stack_indexer"
 
   index:
     build:
@@ -83,7 +83,8 @@ services:
       POLYGON_RPC_URL: ${POLYGON_RPC_URL}
       METIS_ANDROMEDA_RPC_URL: ${METIS_ANDROMEDA_RPC_URL}
       SCROLL_SEPOLIA_RPC_URL: ${SCROLL_SEPOLIA_RPC_URL}
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: "postgresql://postgres:postgres@db:5432/grants_stack_indexer"
+
   db:
     image: postgres:15 # Use the version of PostgreSQL you need
     environment:
