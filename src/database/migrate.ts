@@ -369,7 +369,9 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     "rounds"
   )}(id, chain_id)|@fieldName round|@foreignFieldName donations\n@foreignKey ("application_id", "round_id", "chain_id") references ${ref(
     "applications"
-  )}(id, round_id, chain_id)|@fieldName application|@foreignFieldName donations
+  )}(id, round_id, chain_id)|@fieldName application|@foreignFieldName donations\n@foreignKey ("project_id", "chain_id") references ${ref(
+    "projects"
+  )}(id, chain_id)|@fieldName project|@foreignFieldName donations
   ';
 
   comment on constraint "round_roles_rounds_fkey" on ${ref("round_roles")} is
