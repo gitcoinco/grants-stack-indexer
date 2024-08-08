@@ -1,0 +1,2 @@
+FROM datadog/agent:latest
+ADD conf.d/config.yaml /etc/datadog-agent/conf.d/config.yaml

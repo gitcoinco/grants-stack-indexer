@@ -9,3 +9,27 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=grants_stack_indexer
+  datadog:
+    image: datadog/agent:latest
+    network_mode: "host"        
+    env_file:
+      - .env
+    environment:
+      # - DD_APM_ENABLED=true
+      # - DD_LOGS_ENABLED=true
+      # - DD_AGENT_HOST=datadog
+      # - DD_TRACE_AGENT_PORT=8126
+      # - DD_ENV=${DD_ENV}
+      # - DD_SERVICE=${DD_SERVICE}
+      # - DD_VERSION=${DD_VERSION}
+      - DD_API_KEY=${DD_API_KEY}
+      - DD_APM_ENABLED=true
+      - DD_LOGS_ENABLED=true
+      - DD_ENV=${DD_ENV}
+      - DD_SERVICE=${DD_SERVICE}
+      - DD_VERSION=${DD_VERSION}
+    ports:
+      - "8126:8126" # APM port
+      - "8125:8125/udp" # DogStatsD port
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
