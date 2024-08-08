@@ -1826,6 +1826,7 @@ export type Config = {
   sentryDsn: string | null;
   databaseUrl: string;
   readOnlyDatabaseUrl: string;
+  dataVersion: string;
   databaseSchemaName: string;
   hostname: string;
   pinoPretty: boolean;
@@ -1979,7 +1980,8 @@ export function getConfig(): Config {
     .default(databaseUrl)
     .parse(process.env.READ_ONLY_DATABASE_URL);
 
-  const databaseSchemaName = `chain_data_${CHAIN_DATA_VERSION}`;
+  const dataVersion = CHAIN_DATA_VERSION;
+  const databaseSchemaName = `chain_data_${dataVersion}`;
 
   const dropDb = z.boolean().default(false).parse(args["drop-db"]);
 
@@ -2028,6 +2030,7 @@ export function getConfig(): Config {
     databaseUrl,
     readOnlyDatabaseUrl,
     dropDb,
+    dataVersion,
     databaseSchemaName,
     httpServerWaitForSync,
     httpServerEnabled,
