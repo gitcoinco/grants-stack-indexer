@@ -25,7 +25,7 @@ import { createPassportProvider, PassportProvider } from "./passport/index.js";
 
 import { createResourceMonitor } from "./resourceMonitor.js";
 import diskstats from "diskstats";
-import { StatsD } from "hot-shots"
+import { StatsD } from "hot-shots";
 
 import { Chain, getConfig, Config, getChainConfigById } from "./config.js";
 import { createPriceProvider, PriceProvider } from "./prices/provider.js";
@@ -48,7 +48,6 @@ import { IndexerEvents } from "chainsauce/dist/indexer.js";
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
 
 const dogstatsd = new StatsD();
-
 
 function createPgPool(args: { url: string; logger: Logger }): pg.Pool {
   const pool = new Pool({
@@ -76,12 +75,7 @@ function createPgPool(args: { url: string; logger: Logger }): pg.Pool {
   return pool;
 }
 
-
-
 async function main(): Promise<void> {
-
-
-
   const config = getConfig();
 
   // https://github.com/gitcoinco/allo-indexer/issues/215#issuecomment-1711380810
@@ -402,20 +396,12 @@ async function main(): Promise<void> {
       },
     });
 
-
-    dogstatsd.increment('indexer.main', 1);
-
-
-
-
+    dogstatsd.increment("indexer.main", 1);
 
     // tracer.dogstatsd.increment('indexer.main', 1);
     // tracer.dogstatsd.flush();
 
-
-
     // baseLogger.info("just flushed datadog");
-
 
     await httpApi.start();
   }
