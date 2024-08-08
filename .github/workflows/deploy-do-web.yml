@@ -2,33 +2,23 @@ name: Deploy DO Web
 
 on: workflow_dispatch
 
+env:
+  FILENAME: Dockerfile.web
+  IMAGE_NAME: gitcoinco/indexer-web
+  IMAGE_TAG: ${{ github.sha }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Install dependencies
-        run: npm ci
-      - name: Test build
-        run: npm run build
-  deploy-indexer:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy to production
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.DO_WEB_IP }}
-          username: ${{ secrets.DO_USER }}
-          key: ${{ secrets.DO_SSH_KEY }}
-          script: |
-            export N_PREFIX="$HOME/n"; [[ :$PATH: == *":$N_PREFIX/bin:"* ]] || PATH+=":$N_PREFIX/bin"
-            cd grants-stack-indexer
-            git fetch origin main
-            git reset --hard origin/main
-            npm install && npm run build
-            pm2 reload web
+
+      - name: Build the Docker image
+        run: docker build -f "$FILENAME" -t "$IMAGE_NAME:$IMAGE_TAG" . # build the Docker image using envs defined above
+
+      # login to dockerhub then push the image to the dockerhub repo
+      - name: Push Docker image
+        run: |-
+          echo ${{secrets.DOCKERHUB_PASS}} | docker login -u ${{secrets.DOCKERHUB_USER}} --password-stdin
+          docker push "$IMAGE_NAME:$IMAGE_TAG"
