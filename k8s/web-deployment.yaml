@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: indexer-web
+  namespace: backend-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: indexer-web
+  template:
+    metadata:
+      labels:
+        app: indexer-web
+    spec:
+      containers:
+        - name: backend-web
+          image: "gitcoinco/indexer-web:latest"
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: indexer-web-envs
+          resources:
+            requests:
+              memory: "1Gi" # Request 1GB of memory
+              cpu: "500m" # Request 0.5 vCPU
+            limits:
+              memory: "2Gi" # Limit to 2GB of memory
+              cpu: "1000m" # Limit to 1 vCPU
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: indexer-web
+  namespace: backend-web
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+  selector:
+    app: indexer-web
