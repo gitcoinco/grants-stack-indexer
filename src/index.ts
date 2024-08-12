@@ -47,7 +47,7 @@ import { IndexerEvents } from "chainsauce/dist/indexer.js";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
 
-const dogstatsd = new StatsD();
+const dogstatsd = new StatsD({});
 
 function createPgPool(args: { url: string; logger: Logger }): pg.Pool {
   const pool = new Pool({
@@ -396,12 +396,7 @@ async function main(): Promise<void> {
       },
     });
 
-    dogstatsd.increment("indexer.main", 1);
-
-    // tracer.dogstatsd.increment('indexer.main', 1);
-    // tracer.dogstatsd.flush();
-
-    // baseLogger.info("just flushed datadog");
+    dogstatsd.increment("indexer.start", 1);
 
     await httpApi.start();
   }
@@ -608,6 +603,10 @@ async function catchupAndWatchChain(
           });
 
           const donationQueueLength = db.donationQueueLength();
+
+
+          dogstatsd.gauge(`indexer.progress.${config.chain.id}`, Number(progressPercentage));
+          dogstatsd.gauge(`indexer.blockhead.${config.chain.id}`, Number(targetBlock));
 
           indexerLogger.info(
             `${currentBlock}/${targetBlock} indexed (${progressPercentage}%) (pending events: ${pendingEventsCount}) (pending donations: ${donationQueueLength}) (contracts: ${activeSubscriptions.length})`
