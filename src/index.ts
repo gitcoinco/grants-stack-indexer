@@ -396,8 +396,6 @@ async function main(): Promise<void> {
       },
     });
 
-    dogstatsd.increment("indexer.start", 1);
-
     await httpApi.start();
   }
 }
