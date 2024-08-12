@@ -604,9 +604,14 @@ async function catchupAndWatchChain(
 
           const donationQueueLength = db.donationQueueLength();
 
-
-          dogstatsd.gauge(`indexer.progress.${config.chain.id}`, Number(progressPercentage));
-          dogstatsd.gauge(`indexer.blockhead.${config.chain.id}`, Number(targetBlock));
+          dogstatsd.gauge(
+            `indexer.progress.${config.chain.id}`,
+            Number(progressPercentage)
+          );
+          dogstatsd.gauge(
+            `indexer.blockhead.${config.chain.id}`,
+            Number(targetBlock)
+          );
 
           indexerLogger.info(
             `${currentBlock}/${targetBlock} indexed (${progressPercentage}%) (pending events: ${pendingEventsCount}) (pending donations: ${donationQueueLength}) (contracts: ${activeSubscriptions.length})`
