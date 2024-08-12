@@ -43,11 +43,9 @@ kubectl rollout restart deployment indexer-web
 
 - `kubectl get pods`
 
+  - `kubectl logs {podname}`
+
 - `kubectl get svc`
-
-- `kubectl logs {podname}`
-
-- `helm repo list`
 
 - `kubectl get all -n ingress-nginx`
 
@@ -57,13 +55,15 @@ kubectl rollout restart deployment indexer-web
 
 - `kubectl get crds`
 
-- `kubectl get crds | grep cert-manager`
+  - `kubectl get crds | grep cert-manager`
 
   - `kubectl get order -n backend-web`
 
   - `kubectl get certificaterequest -n backend-web`
 
   - `kubectl get certificate -n backend-web`
+
+- `helm repo list`
 
 # How did we do it?
 
@@ -111,6 +111,7 @@ Run:
 doctl kubernetes cluster create k8s-indexer-web \
   --region nyc1 \
   --tag indexer-do,indexer-do-web \
+  --project indexer-do
   --node-pool "name=pool-indexer-web;size=s-2vcpu-4gb;count=2;auto-scale=true;min-nodes=2;max-nodes=5;tag=indexer-do;tag=indexer-do-web"
 ```
 
