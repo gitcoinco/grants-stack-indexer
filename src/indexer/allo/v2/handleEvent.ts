@@ -908,13 +908,10 @@ export async function handleEvent(
           roundId: round.id,
           applicationId: id,
           application: {
+            ...application,
+            ...statusUpdates,
             metadataCid: values.metadata.pointer,
             metadata: metadata ?? null,
-            distributionTransaction: null,
-            totalAmountDonatedInUsd: 0,
-            totalDonationsCount: 0,
-            uniqueDonorsCount: 0,
-            ...statusUpdates,
           },
         },
       ];
