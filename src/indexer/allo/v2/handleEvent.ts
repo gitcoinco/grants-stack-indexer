@@ -873,7 +873,6 @@ export async function handleEvent(
         throw new Error("Round not found");
       }
 
-      let id;
       let values;
 
       switch (round.strategyName) {
