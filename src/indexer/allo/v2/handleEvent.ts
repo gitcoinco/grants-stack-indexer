@@ -24,6 +24,7 @@ import {
   DGApplicationData,
   DGTimeStampUpdatedData,
   DVMDApplicationData,
+  DVMDExtendedApplicationData,
   DVMDTimeStampUpdatedData,
 } from "../../types.js";
 import { fetchPoolMetadata } from "./poolMetadata.js";
@@ -79,7 +80,9 @@ function getProjectTypeFromMetadata(metadata: ProjectMetadata) {
 }
 
 // Decode the application data from DonationVotingMerkleDistribution
-function decodeDVMDApplicationData(encodedData: Hex): DVMDApplicationData {
+function decodeDVMDExtendedApplicationData(
+  encodedData: Hex
+): DVMDExtendedApplicationData {
   const values = decodeAbiParameters(
     [
       { name: "data", type: "bytes" },
@@ -88,6 +91,15 @@ function decodeDVMDApplicationData(encodedData: Hex): DVMDApplicationData {
     encodedData
   );
 
+  const encodededDVMD = decodeDVMDApplicationData(values[0]);
+
+  return {
+    ...encodededDVMD,
+    recipientsCounter: values[1].toString(),
+  };
+}
+
+function decodeDVMDApplicationData(encodedData: Hex): DVMDApplicationData {
   const decodedData = decodeAbiParameters(
     [
       { name: "registryAnchor", type: "address" },
@@ -101,11 +113,10 @@ function decodeDVMDApplicationData(encodedData: Hex): DVMDApplicationData {
         ],
       },
     ],
-    values[0]
+    encodedData
   );
 
   const results: DVMDApplicationData = {
-    recipientsCounter: values[1].toString(),
     anchorAddress: decodedData[0],
     recipientAddress: decodedData[1],
     metadata: {
@@ -797,7 +808,7 @@ export async function handleEvent(
 
         case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
         case "allov2.DirectGrantsLiteStrategy":
-          values = decodeDVMDApplicationData(encodedData);
+          values = decodeDVMDExtendedApplicationData(encodedData);
           id = (Number(values.recipientsCounter) - 1).toString();
           break;
 
@@ -868,12 +879,11 @@ export async function handleEvent(
       switch (round.strategyName) {
         case "allov2.DirectGrantsSimpleStrategy":
           values = decodeDGApplicationData(encodedData);
-          id = event.params.recipientId;
           break;
 
+        case "allov2.DirectGrantsLiteStrategy":
         case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
           values = decodeDVMDApplicationData(encodedData);
-          id = (Number(values.recipientsCounter) - 1).toString();
           break;
 
         default:
@@ -882,12 +892,14 @@ export async function handleEvent(
 
       const metadata = await ipfsGet(values.metadata.pointer);
 
-      const statusString = ApplicationStatus[event.params.status] as ApplicationTable["status"];
+      const statusString = ApplicationStatus[
+        event.params.status
+      ] as ApplicationTable["status"];
 
-      const application = await db.getApplicationById(
+      const application = await db.getApplicationByAnchorAddress(
         chainId,
         round.id,
-        id
+        anchorAddress
       );
 
       if (application === null) {
@@ -901,12 +913,71 @@ export async function handleEvent(
         getBlock
       );
 
+      console.log("==================================");
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================")
+      console.log("==================================");
+      
+
       return [
         {
           type: "UpdateApplication",
           chainId,
           roundId: round.id,
-          applicationId: id,
+          applicationId: application.id,
           application: {
             ...application,
             ...statusUpdates,
