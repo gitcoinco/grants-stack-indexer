@@ -30,20 +30,21 @@ kubectl apply -f ./k8s/web-deployment.yaml
 ### Force restart and pull of latest image version
 
 ```
-kubectl rollout restart deployment indexer-web
+kubectl rollout restart deployment indexer-web -n backend-web
 ```
 
 ### Getting data and logs from the cluster examples
 
 - `kubectl get nodes`
 
-- `kubectl get deployment indexer-web`
+- `kubectl get deployment indexer-web -n backend-web`
 
-- `kubectl get hpa`
+- `kubectl get hpa -n backend-web`
 
-- `kubectl get pods`
+- `kubectl get pods -A`
+- `kubectl get pods -n backend-web`
 
-  - `kubectl logs {podname}`
+  - `kubectl logs {podname} -n backend-web`
 
 - `kubectl get svc`
 
@@ -111,7 +112,6 @@ Run:
 doctl kubernetes cluster create k8s-indexer-web \
   --region nyc1 \
   --tag indexer-do,indexer-do-web \
-  --project indexer-do
   --node-pool "name=pool-indexer-web;size=s-2vcpu-4gb;count=2;auto-scale=true;min-nodes=2;max-nodes=5;tag=indexer-do;tag=indexer-do-web"
 ```
 
@@ -137,7 +137,13 @@ doctl kubernetes cluster kubeconfig save k8s-indexer-web
 - Create a config map (with .env having production values):
 
   ```
-  kubectl create configmap indexer-web-envs --from-env-file=.env
+  # Check nodes
+  kubectl get nodes
+
+  # Create namespace backend-web
+  kubectl create ns backend-web
+
+  kubectl create configmap indexer-web-envs --from-env-file=.env -n backend-web
   ```
 
 - `indexer-web-envs` is referenced in `k8s/web-deployment.yaml` and **needed for deployment**
@@ -145,14 +151,14 @@ doctl kubernetes cluster kubeconfig save k8s-indexer-web
 ### Deploy web server
 
 ```
-# Create namespace backend-web
-kubectl create ns backend-web
-
 # Deploy web server
 kubectl apply -f ./k8s/web-deployment.yaml
 
 # Deploy horizontal pod auto-scaling
 kubectl apply -f ./k8s/web-hpa-autoscaling.yaml
+
+# Check pods
+kubectl get pods -n backend-web
 ```
 
 ### SSL, Ingress-nginx, LetsEncrypt
@@ -160,12 +166,24 @@ kubectl apply -f ./k8s/web-hpa-autoscaling.yaml
 #### Install ingress-nginx
 
 ```
+# Create namespace ingress-nginx
+kubectl create ns ingress-nginx
+
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 
 helm repo update
 
-helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace
+helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx
+
+# upgrade with nginx-values with commented service and config
+helm upgrade ingress-nginx ingress-nginx/ingress-nginx -f ./k8s/nginx-values.yaml -n ingress-nginx
+
+# Check resources in namespace ingress-nginx
+# Check until the load balancer has external ip
+kubectl get all -n ingress-nginx
 ```
+
+Point the domain to the load balancer from DO UI -> networking -> domains -> create A record pointing to the load balancer
 
 #### Apply web-ingress config
 
