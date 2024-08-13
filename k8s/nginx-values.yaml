@@ -6,11 +6,11 @@ controller:
     requests:
       cpu: 100m
       memory: 90Mi
-  service:
+  service: # commented before certificate
     annotations:
       service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol: "true"
       service.beta.kubernetes.io/do-loadbalancer-tls-passthrough: "true"
-  config:
+  config: # commented before certificate
     use-proxy-protocol: "true"
     keep-alive-requests: "10000"
     upstream-keep-alive: "1000"
