@@ -1342,6 +1342,7 @@ const CHAINS: Chain[] = [
       .default("https://rpc.scroll.io")
       .parse(process.env.SCROLL_RPC_URL),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
+    maxGetLogsRange: 9000,
     tokens: [
       {
         code: "ETH",
