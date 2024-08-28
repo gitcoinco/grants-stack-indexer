@@ -94,6 +94,15 @@ const CHAINS: Chain[] = [
           address: "0x0000000000000000000000000000000000000000",
         },
       },
+      {
+        code: "eBTC",
+        address: "0x661c70333aa1850ccdbae82776bb436a0fcfeefb",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x661c70333aa1850ccdbae82776bb436a0fcfeefb",
+        },
+      },
     ],
     subscriptions: [
       {
