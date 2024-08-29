@@ -20,7 +20,7 @@ type CoingeckoSupportedChainId =
   | 42220
   | 1088;
 
-const CHAIN_DATA_VERSION = "75";
+const CHAIN_DATA_VERSION = "79";
 
 export type Token = {
   code: string;
@@ -92,6 +92,15 @@ const CHAINS: Chain[] = [
         priceSource: {
           chainId: 1,
           address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "eBTC",
+        address: "0x661c70333aa1850ccdbae82776bb436a0fcfeefb",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x661c70333aa1850ccdbae82776bb436a0fcfeefb",
         },
       },
     ],
@@ -1342,6 +1351,7 @@ const CHAINS: Chain[] = [
       .default("https://rpc.scroll.io")
       .parse(process.env.SCROLL_RPC_URL),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
+    maxGetLogsRange: 9000,
     tokens: [
       {
         code: "ETH",
@@ -1748,7 +1758,7 @@ const CHAINS: Chain[] = [
       },
       {
         contractName: "AlloV2/Allo/V1",
-        address: "0xB087535DB0df98fC4327136e897A5985E5Cfbd66",
+        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
         fromBlock: 17860000,
       },
     ],
@@ -1817,6 +1827,7 @@ export type Config = {
   sentryDsn: string | null;
   databaseUrl: string;
   readOnlyDatabaseUrl: string;
+  dataVersion: string;
   databaseSchemaName: string;
   hostname: string;
   pinoPretty: boolean;
@@ -1970,7 +1981,8 @@ export function getConfig(): Config {
     .default(databaseUrl)
     .parse(process.env.READ_ONLY_DATABASE_URL);
 
-  const databaseSchemaName = `chain_data_${CHAIN_DATA_VERSION}`;
+  const dataVersion = CHAIN_DATA_VERSION;
+  const databaseSchemaName = `chain_data_${dataVersion}`;
 
   const dropDb = z.boolean().default(false).parse(args["drop-db"]);
 
@@ -2019,6 +2031,7 @@ export function getConfig(): Config {
     databaseUrl,
     readOnlyDatabaseUrl,
     dropDb,
+    dataVersion,
     databaseSchemaName,
     httpServerWaitForSync,
     httpServerEnabled,

@@ -78,7 +78,6 @@ function createPgPool(args: { url: string; logger: Logger }): pg.Pool {
 
   return pool;
 }
-
 async function main(): Promise<void> {
   const config = getConfig();
 
@@ -106,6 +105,7 @@ async function main(): Promise<void> {
     : {};
 
   const baseLogger = pino({
+    msgPrefix: `[${config.dataVersion}] `,
     level: config.logLevel,
     formatters: {
       level(level) {
@@ -373,6 +373,7 @@ async function main(): Promise<void> {
       db,
       priceProvider,
       passportProvider: passportProvider,
+      dataVersion: config.dataVersion,
       dataProvider: new CachedDataProvider({
         dataProvider: new DatabaseDataProvider(db),
         cache: new TTLCache({
@@ -487,7 +488,7 @@ async function catchupAndWatchChain(
       return (await res.json()) as T;
     };
 
-    chainLogger.info("catching up with blockchain events");
+    chainLogger.info("DEBUG: catching up with blockchain events");
 
     const indexerLogger = chainLogger.child({ subsystem: "DataUpdater" });
 
