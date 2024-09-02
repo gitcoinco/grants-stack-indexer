@@ -24,7 +24,7 @@ kill_timeout = '5s'
   PASSPORT_SCORER_ID=335
 
 [processes]
-  indexer = 'npm start -- --indexer --http'
+  indexer = 'npm start -- --indexer --http --rm-cache'
   web = 'npm start -- --http --http-wait-for-sync=false'
 
 [[mounts]]

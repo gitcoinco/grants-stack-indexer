@@ -20,7 +20,7 @@ type CoingeckoSupportedChainId =
   | 42220
   | 1088;
 
-const CHAIN_DATA_VERSION = "79";
+const CHAIN_DATA_VERSION = "81";
 
 export type Token = {
   code: string;
@@ -1834,6 +1834,7 @@ export type Config = {
   deploymentEnvironment: "local" | "development" | "staging" | "production";
   enableResourceMonitor: boolean;
   dropDb: boolean;
+  removeCache: boolean;
   estimatesLinearQfWorkerPoolSize: number | null;
 };
 
@@ -1898,6 +1899,9 @@ export function getConfig(): Config {
         type: "string",
       },
       "drop-db": {
+        type: "boolean",
+      },
+      "rm-cache": {
         type: "boolean",
       },
       "log-level": {
@@ -1986,6 +1990,8 @@ export function getConfig(): Config {
 
   const dropDb = z.boolean().default(false).parse(args["drop-db"]);
 
+  const removeCache = z.boolean().default(false).parse(args["rm-cache"]);
+
   const parseBoolean = z
     .boolean()
     .or(z.enum(["true", "false"]).transform((value) => value === "true"));
@@ -2031,6 +2037,7 @@ export function getConfig(): Config {
     databaseUrl,
     readOnlyDatabaseUrl,
     dropDb,
+    removeCache,
     dataVersion,
     databaseSchemaName,
     httpServerWaitForSync,
