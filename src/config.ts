@@ -20,7 +20,7 @@ type CoingeckoSupportedChainId =
   | 42220
   | 1088;
 
-const CHAIN_DATA_VERSION = "79";
+const CHAIN_DATA_VERSION = "80";
 
 export type Token = {
   code: string;
@@ -169,8 +169,8 @@ const CHAINS: Chain[] = [
         address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
         decimals: 18,
         priceSource: {
-          chainId: 10,
-          address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
         },
       },
       {
