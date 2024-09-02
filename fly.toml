@@ -30,7 +30,10 @@ kill_timeout = '5s'
 [[mounts]]
   source = 'indexer_staging'
   destination = '/mnt/indexer'
-  initial_size = '50gb'
+  initial_size = '50GB'
+  auto_extend_size_threshold = 80
+  auto_extend_size_increment = "5GB"
+  auto_extend_size_limit = "100GB"
   processes = ['indexer', 'web']
 
 [http_service]
