@@ -124,6 +124,12 @@ async function main(): Promise<void> {
   if (config.cacheDir) {
     if (config.removeCache) {
       await fs.rm(config.cacheDir, { recursive: true });
+      try {
+        await fs.access(config.cacheDir);
+        baseLogger.error("Cache folder is not removed");
+      } catch (err) {
+        baseLogger.info("Cache folder is removed");
+      }
     }
     await fs.mkdir(config.cacheDir, { recursive: true });
   }
