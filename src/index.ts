@@ -122,6 +122,9 @@ async function main(): Promise<void> {
   });
 
   if (config.cacheDir) {
+    if (config.removeCache) {
+      await fs.rm(config.cacheDir, { recursive: true });
+    }
     await fs.mkdir(config.cacheDir, { recursive: true });
   }
 
