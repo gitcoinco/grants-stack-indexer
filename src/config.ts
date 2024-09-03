@@ -20,7 +20,7 @@ type CoingeckoSupportedChainId =
   | 42220
   | 1088;
 
-const CHAIN_DATA_VERSION = "75";
+const CHAIN_DATA_VERSION = "81";
 
 export type Token = {
   code: string;
@@ -94,6 +94,15 @@ const CHAINS: Chain[] = [
           address: "0x0000000000000000000000000000000000000000",
         },
       },
+      {
+        code: "eBTC",
+        address: "0x661c70333aa1850ccdbae82776bb436a0fcfeefb",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0x661c70333aa1850ccdbae82776bb436a0fcfeefb",
+        },
+      },
     ],
     subscriptions: [
       {
@@ -160,8 +169,8 @@ const CHAINS: Chain[] = [
         address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
         decimals: 18,
         priceSource: {
-          chainId: 10,
-          address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
         },
       },
       {
@@ -1342,6 +1351,7 @@ const CHAINS: Chain[] = [
       .default("https://rpc.scroll.io")
       .parse(process.env.SCROLL_RPC_URL),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
+    maxGetLogsRange: 9000,
     tokens: [
       {
         code: "ETH",
@@ -1824,6 +1834,7 @@ export type Config = {
   deploymentEnvironment: "local" | "development" | "staging" | "production";
   enableResourceMonitor: boolean;
   dropDb: boolean;
+  removeCache: boolean;
   estimatesLinearQfWorkerPoolSize: number | null;
 };
 
@@ -1888,6 +1899,9 @@ export function getConfig(): Config {
         type: "string",
       },
       "drop-db": {
+        type: "boolean",
+      },
+      "rm-cache": {
         type: "boolean",
       },
       "log-level": {
@@ -1976,6 +1990,8 @@ export function getConfig(): Config {
 
   const dropDb = z.boolean().default(false).parse(args["drop-db"]);
 
+  const removeCache = z.boolean().default(false).parse(args["rm-cache"]);
+
   const parseBoolean = z
     .boolean()
     .or(z.enum(["true", "false"]).transform((value) => value === "true"));
@@ -2021,6 +2037,7 @@ export function getConfig(): Config {
     databaseUrl,
     readOnlyDatabaseUrl,
     dropDb,
+    removeCache,
     dataVersion,
     databaseSchemaName,
     httpServerWaitForSync,
