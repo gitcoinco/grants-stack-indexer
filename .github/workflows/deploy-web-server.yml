@@ -1,0 +1,41 @@
+name: Deploy Web Server
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up fly
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Set variables for production
+        run: |
+          echo "FLY_CONFIG=fly.toml" >> $GITHUB_ENV
+          echo "GIT_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")" >> $GITHUB_ENV
+          echo "FLY_APP_NAME=indexer-v2" >> $GITHUB_ENV
+        if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and test
+        run: |
+          flyctl -c ${{ env.FLY_CONFIG }} deploy --remote-only --build-only --push --image-label deployment-$GIT_SHA_SHORT
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_PRODUCTION }}
+
+      - name: Deploy HTTP
+        run: |
+          flyctl -c ${{ env.FLY_CONFIG }}  deploy --wait-timeout=7200 --env BUILD_TAG=`git rev-parse --short HEAD` --image registry.fly.io/$FLY_APP_NAME:deployment-$GIT_SHA_SHORT --process-groups=web
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_PRODUCTION }}
+
+      - name: Smoke test
+        run: |
+          curl --silent --show-error --fail-with-body https://${{ env.FLY_APP_NAME }}.fly.dev/api/v1/status
