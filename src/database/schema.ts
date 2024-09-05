@@ -125,6 +125,11 @@ export type ProjectTable = {
   projectType: ProjectType;
 };
 
+export type IpfsDataTable = {
+  cid: string;
+  data: unknown;
+};
+
 export type Project = Selectable<ProjectTable>;
 export type NewProject = Insertable<ProjectTable>;
 export type PartialProject = Updateable<ProjectTable>;
@@ -253,3 +258,8 @@ export type ApplicationPayout = {
 };
 
 export type NewApplicationPayout = Insertable<ApplicationPayout>;
+
+export type NewIpfsData = {
+  cid: string;
+  data: unknown;
+};
