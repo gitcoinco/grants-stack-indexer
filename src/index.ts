@@ -467,29 +467,63 @@ async function catchupAndWatchChain(
         return undefined;
       }
 
-      const url = `${config.ipfsGateway}/ipfs/${cid}`;
-
-      // chainLogger.trace(`Fetching ${url}`);
-
-      const res = await fetch(url, {
-        timeout: 2000,
-        onRetry(cause) {
-          chainLogger.debug({
-            msg: "Retrying IPFS request",
-            url: url,
-            err: cause,
+      // Fetch from a single IPFS gateway
+      const fetchFromGateway = async (url: string): Promise<T | undefined> => {
+        try {
+          const res = await fetch(url, {
+            timeout: 2000,
+            onRetry(cause) {
+              chainLogger.debug({
+                msg: "Retrying IPFS request",
+                url: url,
+                err: cause,
+              });
+            },
+            retry: { retries: 3, minTimeout: 2000, maxTimeout: 60 * 10000 },
+            // IPFS data is immutable, we can rely entirely on the cache when present
+            cache: "force-cache",
+            cachePath:
+              config.cacheDir !== null
+                ? path.join(config.cacheDir, "ipfs")
+                : undefined,
           });
-        },
-        retry: { retries: 3, minTimeout: 2000, maxTimeout: 60 * 10000 },
-        // IPFS data is immutable, we can rely entirely on the cache when present
-        cache: "force-cache",
-        cachePath:
-          config.cacheDir !== null
-            ? path.join(config.cacheDir, "ipfs")
-            : undefined,
-      });
 
-      return (await res.json()) as T;
+          if (res.ok) {
+            return (await res.json()) as T; // Return the fetched data
+          } else {
+            chainLogger.warn(
+              `Failed to fetch from ${url}, status: ${res.status} ${res.statusText}`
+            );
+          }
+        } catch (err) {
+          chainLogger.error(
+            `Error fetching from gateway ${url}: ${String(err)}`
+          );
+        }
+      };
+
+      // Iterate through each gateway and attempt to fetch data
+      for (const gateway of config.ipfsGateways) {
+        const url = `${gateway}/ipfs/${cid}`;
+        chainLogger.info(`Trying IPFS gateway: ${gateway} for CID: ${cid}`);
+
+        const result = await fetchFromGateway(url);
+        if (result !== undefined) {
+          chainLogger.info(
+            `Fetch successful from gateway: ${gateway} for CID: ${cid}`
+          );
+          return result; // Return the result if fetched successfully
+        } else {
+          chainLogger.warn(
+            `IPFS fetch failed for gateway ${gateway} for CID ${cid}`
+          );
+        }
+      }
+
+      chainLogger.error(
+        `Failed to fetch IPFS data for CID ${cid} from all gateways.`
+      );
+      return undefined; // Return undefined if all gateways fail
     };
 
     chainLogger.info("DEBUG: catching up with blockchain events");
