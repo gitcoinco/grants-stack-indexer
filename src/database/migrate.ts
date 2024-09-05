@@ -392,3 +392,13 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   $$ language sql stable;
   `.execute(db);
 }
+
+export async function migrateDataFetcher<T>(db: Kysely<T>, schemaName: string) {
+  const schema = db.withSchema(schemaName).schema;
+
+  await schema
+    .createTable("ipfs_data")
+    .addColumn("cid", "text")
+    .addColumn("data", "jsonb")
+    .execute();
+}
