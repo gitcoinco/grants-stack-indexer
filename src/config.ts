@@ -1487,7 +1487,7 @@ const CHAINS: Chain[] = [
       .default("https://evm-rpc.sei-apis.com")
       .parse(process.env.SEI_MAINNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
-    maxGetLogsRange: 10000,
+    maxGetLogsRange: 1000,
     tokens: [
       {
         code: "SEI",
@@ -1818,7 +1818,7 @@ export type Config = {
   httpServerWaitForSync: boolean;
   httpServerEnabled: boolean;
   indexerEnabled: boolean;
-  ipfsGateway: string;
+  ipfsGateways: string[];
   coingeckoApiKey: string | null;
   coingeckoApiUrl: string;
   chains: Chain[];
@@ -1968,10 +1968,11 @@ export function getConfig(): Config {
 
   const runOnce = z.boolean().default(false).parse(args["run-once"]);
 
-  const ipfsGateway = z
+  const ipfsGateways = z
     .string()
-    .default("https://ipfs.io")
-    .parse(process.env.IPFS_GATEWAY);
+    .array()
+    .default(["https://ipfs.io"])
+    .parse(JSON.parse(process.env.IPFS_GATEWAYS!));
 
   const sentryDsn = z
     .union([z.string(), z.null()])
@@ -2028,7 +2029,7 @@ export function getConfig(): Config {
     cacheDir,
     logLevel,
     runOnce,
-    ipfsGateway,
+    ipfsGateways,
     passportScorerId,
     apiHttpPort,
     pinoPretty,
