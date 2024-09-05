@@ -9,7 +9,8 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
     res.json({
       hostname: config.hostname,
       buildTag: config.buildTag,
-      databaseSchema: config.db.databaseSchemaName,
+      chainDataSchemaName: config.db.chainDataSchemaName,
+      ipfsDataSchema: config.db.ipfsDataSchemaName,
     });
   });
 

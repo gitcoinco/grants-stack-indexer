@@ -21,6 +21,7 @@ type CoingeckoSupportedChainId =
   | 1088;
 
 const CHAIN_DATA_VERSION = "81";
+const IPFS_DATA_VERSION = "1";
 
 export type Token = {
   code: string;
@@ -1829,11 +1830,15 @@ export type Config = {
   readOnlyDatabaseUrl: string;
   dataVersion: string;
   databaseSchemaName: string;
+  ipfsDataVersion: string;
+  ipfsDatabaseSchemaName: string;
   hostname: string;
   pinoPretty: boolean;
   deploymentEnvironment: "local" | "development" | "staging" | "production";
   enableResourceMonitor: boolean;
   dropDb: boolean;
+  dropChainDb: boolean;
+  dropIpfsDb: boolean;
   removeCache: boolean;
   estimatesLinearQfWorkerPoolSize: number | null;
 };
@@ -1899,6 +1904,12 @@ export function getConfig(): Config {
         type: "string",
       },
       "drop-db": {
+        type: "boolean",
+      },
+      "drop-chain-db": {
+        type: "boolean",
+      },
+      "drop-ipfs-db": {
         type: "boolean",
       },
       "rm-cache": {
@@ -1989,7 +2000,12 @@ export function getConfig(): Config {
   const dataVersion = CHAIN_DATA_VERSION;
   const databaseSchemaName = `chain_data_${dataVersion}`;
 
+  const ipfsDataVersion = IPFS_DATA_VERSION;
+  const ipfsDatabaseSchemaName = `ipfs_data_${ipfsDataVersion}`;
+
   const dropDb = z.boolean().default(false).parse(args["drop-db"]);
+  const dropChainDb = z.boolean().default(false).parse(args["drop-chain-db"]);
+  const dropIpfsDb = z.boolean().default(false).parse(args["drop-ipfs-db"]);
 
   const removeCache = z.boolean().default(false).parse(args["rm-cache"]);
 
@@ -2038,9 +2054,13 @@ export function getConfig(): Config {
     databaseUrl,
     readOnlyDatabaseUrl,
     dropDb,
+    dropChainDb,
+    dropIpfsDb,
     removeCache,
     dataVersion,
     databaseSchemaName,
+    ipfsDataVersion,
+    ipfsDatabaseSchemaName,
     httpServerWaitForSync,
     httpServerEnabled,
     indexerEnabled,
