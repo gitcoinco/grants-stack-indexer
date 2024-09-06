@@ -16,7 +16,7 @@ import {
   ApplicationPayout,
   IpfsDataTable,
 } from "./schema.js";
-import { migrate, migrateDataFetcher } from "./migrate.js";
+import { migrate, migrateDataFetcher, migratePriceFetcher } from "./migrate.js";
 import { encodeJsonWithBigInts } from "../utils/index.js";
 import type { DataChange } from "./changeset.js";
 import { Logger } from "pino";
@@ -57,6 +57,7 @@ export class Database {
 
   readonly chainDataSchemaName: string;
   readonly ipfsDataSchemaName: string;
+  readonly priceDataSchemaName: string;
 
   constructor(options: {
     statsUpdaterEnabled: boolean;
@@ -64,6 +65,7 @@ export class Database {
     connectionPool: Pool;
     chainDataSchemaName: string;
     ipfsDataSchemaName: string;
+    priceDataSchemaName: string;
   }) {
     const dialect = new PostgresDialect({
       pool: options.connectionPool,
@@ -79,6 +81,7 @@ export class Database {
     // Initialize schema names
     this.chainDataSchemaName = options.chainDataSchemaName;
     this.ipfsDataSchemaName = options.ipfsDataSchemaName;
+    this.priceDataSchemaName = options.priceDataSchemaName;
 
     this.#logger = options.logger;
 
@@ -113,19 +116,26 @@ export class Database {
       await client.query(`SELECT pg_advisory_unlock(${lockId})`);
     };
 
-    // Acquire locks for both schemas
+    // Acquire locks for all schemas
     const chainDataLockId = generateLockId(this.chainDataSchemaName);
     const ipfsDataLockId = generateLockId(this.ipfsDataSchemaName);
+    const priceDataLockId = generateLockId(this.priceDataSchemaName);
 
     try {
       const chainDataLockAcquired = await acquireLockForSchema(chainDataLockId);
       const ipfsDataLockAcquired = await acquireLockForSchema(ipfsDataLockId);
+      const priceDataLockAcquired = await acquireLockForSchema(priceDataLockId);
 
-      if (chainDataLockAcquired && ipfsDataLockAcquired) {
+      if (
+        chainDataLockAcquired &&
+        ipfsDataLockAcquired &&
+        priceDataLockAcquired
+      ) {
         return {
           release: async () => {
             await releaseLockForSchema(chainDataLockId);
             await releaseLockForSchema(ipfsDataLockId);
+            await releaseLockForSchema(priceDataLockId);
             client.release();
           },
           client,
@@ -265,9 +275,19 @@ export class Database {
       .execute();
   }
 
+  async dropPriceDataSchemaIfExists() {
+    await this.#db.schema
+      .withSchema(this.priceDataSchemaName)
+      .dropSchema(this.priceDataSchemaName)
+      .ifExists()
+      .cascade()
+      .execute();
+  }
+
   async dropAllSchemaIfExists() {
     await this.dropChainDataSchemaIfExists();
     await this.dropIpfsDataSchemaIfExists();
+    await this.dropPriceDataSchemaIfExists();
   }
 
   async createSchemaIfNotExists(
@@ -310,6 +330,11 @@ export class Database {
     await this.createSchemaIfNotExists(
       this.ipfsDataSchemaName,
       migrateDataFetcher,
+      logger
+    );
+    await this.createSchemaIfNotExists(
+      this.priceDataSchemaName,
+      migratePriceFetcher,
       logger
     );
   }
@@ -534,7 +559,7 @@ export class Database {
 
       case "InsertManyPrices": {
         await this.#db
-          .withSchema(this.chainDataSchemaName)
+          .withSchema(this.priceDataSchemaName)
           .insertInto("prices")
           .values(change.prices)
           .execute();
@@ -823,7 +848,7 @@ export class Database {
 
   async getLatestPriceTimestampForChain(chainId: ChainId) {
     const latestPriceTimestamp = await this.#db
-      .withSchema(this.chainDataSchemaName)
+      .withSchema(this.priceDataSchemaName)
       .selectFrom("prices")
       .where("chainId", "=", chainId)
       .orderBy("timestamp", "desc")
@@ -840,7 +865,7 @@ export class Database {
     blockNumber: bigint | "latest"
   ) {
     let priceQuery = this.#db
-      .withSchema(this.chainDataSchemaName)
+      .withSchema(this.priceDataSchemaName)
       .selectFrom("prices")
       .where("chainId", "=", chainId)
       .where("tokenAddress", "=", tokenAddress)
@@ -859,7 +884,7 @@ export class Database {
 
   async getAllChainPrices(chainId: ChainId) {
     return await this.#db
-      .withSchema(this.chainDataSchemaName)
+      .withSchema(this.priceDataSchemaName)
       .selectFrom("prices")
       .where("chainId", "=", chainId)
       .orderBy("blockNumber", "asc")
