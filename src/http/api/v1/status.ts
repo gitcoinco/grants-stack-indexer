@@ -11,6 +11,7 @@ export const createHandler = (config: HttpApiConfig): express.Router => {
       buildTag: config.buildTag,
       chainDataSchemaName: config.db.chainDataSchemaName,
       ipfsDataSchema: config.db.ipfsDataSchemaName,
+      priceDataSchema: config.db.priceDataSchemaName,
     });
   });
 
