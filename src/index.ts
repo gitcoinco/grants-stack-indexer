@@ -155,6 +155,7 @@ async function main(): Promise<void> {
     connectionPool: databaseConnectionPool,
     chainDataSchemaName: config.databaseSchemaName,
     ipfsDataSchemaName: config.ipfsDatabaseSchemaName,
+    priceDataSchemaName: config.priceDatabaseSchemaName,
   });
 
   baseLogger.info({
@@ -255,6 +256,9 @@ async function main(): Promise<void> {
         } else if (config.dropIpfsDb) {
           baseLogger.info("resetting ipfs data schema");
           await db.dropIpfsDataSchemaIfExists();
+        } else if (config.dropPriceDb) {
+          baseLogger.info("resetting price data schema");
+          await db.dropPriceDataSchemaIfExists();
         }
 
         await db.createAllSchemas(baseLogger);
@@ -333,7 +337,11 @@ async function main(): Promise<void> {
 
     const graphqlHandler = postgraphile(
       readOnlyDatabaseConnectionPool,
-      config.databaseSchemaName,
+      [
+        config.databaseSchemaName,
+        config.ipfsDatabaseSchemaName,
+        config.priceDatabaseSchemaName,
+      ],
       {
         watchPg: false,
         graphqlRoute: "/graphql",
