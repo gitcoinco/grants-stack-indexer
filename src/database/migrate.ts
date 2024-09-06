@@ -298,22 +298,6 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .execute();
 
   await schema
-    .createTable("prices")
-    .addColumn("id", "serial", (cb) => cb.primaryKey())
-    .addColumn("chainId", CHAIN_ID_TYPE)
-    .addColumn("tokenAddress", ADDRESS_TYPE)
-    .addColumn("priceInUSD", "real")
-    .addColumn("timestamp", "timestamptz")
-    .addColumn("blockNumber", BIGINT_TYPE)
-    .execute();
-
-  await db.schema
-    .createIndex("idx_prices_chain_token_block")
-    .on("prices")
-    .expression(sql`chain_id, token_address, block_number DESC`)
-    .execute();
-
-  await schema
     .createTable("legacy_projects")
     .addColumn("id", "serial", (col) => col.primaryKey())
     .addColumn("v1ProjectId", "text")
@@ -400,5 +384,28 @@ export async function migrateDataFetcher<T>(db: Kysely<T>, schemaName: string) {
     .createTable("ipfs_data")
     .addColumn("cid", "text")
     .addColumn("data", "jsonb")
+    .execute();
+}
+
+export async function migratePriceFetcher<T>(
+  db: Kysely<T>,
+  schemaName: string
+) {
+  const schema = db.withSchema(schemaName).schema;
+
+  await schema
+    .createTable("prices")
+    .addColumn("id", "serial", (cb) => cb.primaryKey())
+    .addColumn("chainId", CHAIN_ID_TYPE)
+    .addColumn("tokenAddress", ADDRESS_TYPE)
+    .addColumn("priceInUSD", "real")
+    .addColumn("timestamp", "timestamptz")
+    .addColumn("blockNumber", BIGINT_TYPE)
+    .execute();
+
+  await db.schema
+    .createIndex("idx_prices_chain_token_block")
+    .on("prices")
+    .expression(sql`chain_id, token_address, block_number DESC`)
     .execute();
 }
