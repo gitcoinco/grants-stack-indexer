@@ -40,7 +40,7 @@ export type Subscription = {
 };
 
 export type Chain = {
-  rpc: string;
+  rpcs: string[];
   name: string;
   id: ChainId;
   pricesFromTimestamp: number;
@@ -49,15 +49,15 @@ export type Chain = {
   maxGetLogsRange?: number;
 };
 
-const rpcUrl = z.string().url();
+const rpcUrl = z.array(z.string().url());
 
 const CHAINS: Chain[] = [
   {
     id: 1,
     name: "mainnet",
-    rpc: rpcUrl
-      .default("https://mainnet.infura.io/v3/")
-      .parse(process.env.MAINNET_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://mainnet.infura.io/v3/"])
+      .parse(process.env.MAINNET_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -152,9 +152,9 @@ const CHAINS: Chain[] = [
   {
     id: 10,
     name: "optimism",
-    rpc: rpcUrl
-      .default("https://optimism-rpc.publicnode.com")
-      .parse(process.env.OPTIMISM_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://optimism-rpc.publicnode.com"])
+      .parse(process.env.OPTIMISM_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -268,9 +268,9 @@ const CHAINS: Chain[] = [
   {
     id: 11155111,
     name: "sepolia",
-    rpc: rpcUrl
-      .default("https://ethereum-sepolia.publicnode.com")
-      .parse(process.env.SEPOLIA_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://ethereum-sepolia.publicnode.com"])
+      .parse(process.env.SEPOLIA_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2023, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -372,9 +372,9 @@ const CHAINS: Chain[] = [
   {
     id: 250,
     name: "fantom",
-    rpc: rpcUrl
-      .default("https://rpcapi.fantom.network")
-      .parse(process.env.FANTOM_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://rpcapi.fantom.network"])
+      .parse(process.env.FANTOM_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2022, 11, 1, 0, 0, 0),
     tokens: [
       {
@@ -471,9 +471,9 @@ const CHAINS: Chain[] = [
   {
     id: 58008,
     name: "pgn-testnet",
-    rpc: rpcUrl
-      .default("https://sepolia.publicgoods.network")
-      .parse(process.env.PGN_TESTNET_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://sepolia.publicgoods.network"])
+      .parse(process.env.PGN_TESTNET_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2023, 5, 2, 0, 0, 0),
     tokens: [
       {
@@ -524,9 +524,9 @@ const CHAINS: Chain[] = [
   {
     id: 424,
     name: "pgn-mainnet",
-    rpc: rpcUrl
-      .default("https://rpc.publicgoods.network")
-      .parse(process.env.PGN_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://rpc.publicgoods.network"])
+      .parse(process.env.PGN_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2023, 5, 2, 0, 0, 0),
     tokens: [
       {
@@ -602,9 +602,9 @@ const CHAINS: Chain[] = [
   {
     id: 42161,
     name: "arbitrum",
-    rpc: rpcUrl
-      .default("https://arb-mainnet.g.alchemy.com/v2/")
-      .parse(process.env.ARBITRUM_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://arb-mainnet.g.alchemy.com/v2/"])
+      .parse(process.env.ARBITRUM_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2023, 7, 1, 0, 0, 0),
     tokens: [
       {
@@ -715,9 +715,9 @@ const CHAINS: Chain[] = [
   {
     id: 80001,
     name: "polygon-mumbai",
-    rpc: rpcUrl
-      .default("https://rpc-mumbai.maticvigil.com/")
-      .parse(process.env.POLYGON_MUMBAI_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://rpc-mumbai.maticvigil.com/"])
+      .parse(process.env.POLYGON_MUMBAI_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2023, 8, 19, 0, 0, 0),
     tokens: [
       {
@@ -795,9 +795,9 @@ const CHAINS: Chain[] = [
   {
     id: 137,
     name: "polygon",
-    rpc: rpcUrl
-      .default("https://polygon-rpc.com")
-      .parse(process.env.POLYGON_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://polygon-rpc.com"])
+      .parse(process.env.POLYGON_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2023, 8, 19, 0, 0, 0),
     tokens: [
       {
@@ -893,9 +893,9 @@ const CHAINS: Chain[] = [
   {
     id: 8453,
     name: "base",
-    rpc: rpcUrl
-      .default("https://mainnet.base.org/")
-      .parse(process.env.BASE_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://mainnet.base.org/"])
+      .parse(process.env.BASE_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2023, 12, 1, 0, 0, 0),
     tokens: [
       {
@@ -973,9 +973,9 @@ const CHAINS: Chain[] = [
   {
     id: 324,
     name: "zksync-era-mainnet",
-    rpc: rpcUrl
-      .default("https://mainnet.era.zksync.io")
-      .parse(process.env.ZKSYNC_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://mainnet.era.zksync.io"])
+      .parse(process.env.ZKSYNC_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2023, 12, 1, 0, 0, 0),
     tokens: [
       {
@@ -1088,9 +1088,9 @@ const CHAINS: Chain[] = [
   {
     id: 300,
     name: "zksync-era-testnet",
-    rpc: rpcUrl
-      .default("https://sepolia.era.zksync.dev")
-      .parse(process.env.ZKSYNC_TESTNET_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://sepolia.era.zksync.dev"])
+      .parse(process.env.ZKSYNC_TESTNET_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2023, 12, 1, 0, 0, 0),
     tokens: [
       {
@@ -1128,9 +1128,9 @@ const CHAINS: Chain[] = [
   {
     id: 43114,
     name: "avalanche",
-    rpc: rpcUrl
-      .default("https://rpc.ankr.com/avalanche")
-      .parse(process.env.AVALANCHE_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://rpc.ankr.com/avalanche"])
+      .parse(process.env.AVALANCHE_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2023, 8, 19, 0, 0, 0),
     tokens: [
       {
@@ -1208,9 +1208,9 @@ const CHAINS: Chain[] = [
   {
     id: 43113,
     name: "avalanche-fuji",
-    rpc: rpcUrl
-      .default("https://avalanche-fuji-c-chain.publicnode.com")
-      .parse(process.env.AVALANCHE_FUJI_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://avalanche-fuji-c-chain.publicnode.com"])
+      .parse(process.env.AVALANCHE_FUJI_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2023, 8, 19, 0, 0, 0),
     tokens: [
       {
@@ -1278,9 +1278,9 @@ const CHAINS: Chain[] = [
   {
     id: 534351,
     name: "scroll-sepolia",
-    rpc: rpcUrl
-      .default("https://sepolia-rpc.scroll.io")
-      .parse(process.env.SCROLL_SEPOLIA_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://sepolia-rpc.scroll.io"])
+      .parse(process.env.SCROLL_SEPOLIA_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
     maxGetLogsRange: 2000,
     tokens: [
@@ -1349,9 +1349,9 @@ const CHAINS: Chain[] = [
   {
     id: 534352,
     name: "scroll",
-    rpc: rpcUrl
-      .default("https://rpc.scroll.io")
-      .parse(process.env.SCROLL_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://rpc.scroll.io"])
+      .parse(process.env.SCROLL_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
     maxGetLogsRange: 9000,
     tokens: [
@@ -1435,9 +1435,9 @@ const CHAINS: Chain[] = [
   {
     id: 713715,
     name: "sei-devnet",
-    rpc: rpcUrl
-      .default("https://evm-rpc-arctic-1.sei-apis.com")
-      .parse(process.env.SEI_DEVNET_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://evm-rpc-arctic-1.sei-apis.com"])
+      .parse(process.env.SEI_DEVNET_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
     tokens: [
       {
@@ -1485,9 +1485,9 @@ const CHAINS: Chain[] = [
   {
     id: 1329,
     name: "sei-mainnet",
-    rpc: rpcUrl
-      .default("https://evm-rpc.sei-apis.com")
-      .parse(process.env.SEI_MAINNET_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://evm-rpc.sei-apis.com"])
+      .parse(process.env.SEI_MAINNET_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
     maxGetLogsRange: 10000,
     tokens: [
@@ -1536,9 +1536,9 @@ const CHAINS: Chain[] = [
   {
     id: 42,
     name: "lukso-mainnet",
-    rpc: rpcUrl
-      .default("https://42.rpc.thirdweb.com")
-      .parse(process.env.LUKSO_MAINNET_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://42.rpc.thirdweb.com"])
+      .parse(process.env.LUKSO_MAINNET_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
     tokens: [
       {
@@ -1586,9 +1586,9 @@ const CHAINS: Chain[] = [
   {
     id: 4201,
     name: "lukso-testnet",
-    rpc: rpcUrl
-      .default("https://4201.rpc.thirdweb.com")
-      .parse(process.env.LUKSO_TESTNET_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://4201.rpc.thirdweb.com"])
+      .parse(process.env.LUKSO_TESTNET_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
     tokens: [
       {
@@ -1627,9 +1627,9 @@ const CHAINS: Chain[] = [
   {
     id: 42220,
     name: "celo-mainnet",
-    rpc: rpcUrl
-      .default("https://forno.celo.org")
-      .parse(process.env.CELO_MAINNET_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://forno.celo.org"])
+      .parse(process.env.CELO_MAINNET_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
     tokens: [
       {
@@ -1686,9 +1686,9 @@ const CHAINS: Chain[] = [
   {
     id: 44787,
     name: "celo-testnet",
-    rpc: rpcUrl
-      .default("https://alfajores-forno.celo-testnet.org")
-      .parse(process.env.CELO_TESTNET_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://alfajores-forno.celo-testnet.org"])
+      .parse(process.env.CELO_TESTNET_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
     tokens: [
       {
@@ -1727,9 +1727,9 @@ const CHAINS: Chain[] = [
   {
     id: 1088,
     name: "metisAndromeda",
-    rpc: rpcUrl
-      .default("https://andromeda.metis.io/?owner=1088")
-      .parse(process.env.METIS_ANDROMEDA_RPC_URL),
+    rpcs: rpcUrl
+      .default(["https://andromeda.metis.io/?owner=1088"])
+      .parse(process.env.METIS_ANDROMEDA_RPC_URLS),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
     tokens: [
       {
