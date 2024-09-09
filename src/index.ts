@@ -418,6 +418,7 @@ async function main(): Promise<void> {
                 workerPoolSize: config.estimatesLinearQfWorkerPoolSize,
               },
       },
+      indexedChains: await indexChainsPromise,
     });
 
     await httpApi.start();
