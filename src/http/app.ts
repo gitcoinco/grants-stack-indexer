@@ -173,7 +173,7 @@ export const createHttpApi = (config: HttpApiConfig): HttpApi => {
                 contract: contractName,
                 address: subscription.address,
                 fromBlock: subscriptionFromBlock || BigInt(0),
-              });              
+              });
             });
           } else {
             config.logger.error(
@@ -270,9 +270,13 @@ const recoverEthereumAddress = async ({
   if (!address || !timestamp || !signature) {
     return false;
   }
-  const whitelistedAddresses: string[] = JSON.parse(
-    process.env.WHITELISTED_ADDRESSES!
-  );
+  const whitelistedAddresses: string[] = process.env.WHITELISTED_ADDRESSES
+    ? (JSON.parse(process.env.WHITELISTED_ADDRESSES) as string[])
+    : [];
+
+  if (!whitelistedAddresses) {
+    return false;
+  }
 
   // Check timestamp validity
   const currentTime = Date.now();

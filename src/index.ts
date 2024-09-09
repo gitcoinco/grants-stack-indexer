@@ -244,8 +244,6 @@ async function main(): Promise<void> {
     const lock = await db.acquireWriteLock();
 
     if (lock !== null) {
-      baseLogger.info("acquired write lock");
-
       if (isFirstRun) {
         if (config.dropDb) {
           baseLogger.info("dropping all schemas");
