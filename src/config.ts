@@ -1489,7 +1489,7 @@ const CHAINS: Chain[] = [
       .default("https://evm-rpc.sei-apis.com")
       .parse(process.env.SEI_MAINNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
-    maxGetLogsRange: 1000,
+    maxGetLogsRange: 10000,
     tokens: [
       {
         code: "SEI",

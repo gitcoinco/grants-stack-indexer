@@ -526,13 +526,13 @@ async function catchupAndWatchChain(
       // Iterate through each gateway and attempt to fetch data
       for (const gateway of config.ipfsGateways) {
         const url = `${gateway}/ipfs/${cid}`;
-        chainLogger.info(`Trying IPFS gateway: ${gateway} for CID: ${cid}`);
+        // chainLogger.info(`Trying IPFS gateway: ${gateway} for CID: ${cid}`);
 
         const result = await fetchFromGateway(url);
         if (result !== undefined) {
-          chainLogger.info(
-            `Fetch successful from gateway: ${gateway} for CID: ${cid}`
-          );
+          // chainLogger.info(
+          //   `Fetch successful from gateway: ${gateway} for CID: ${cid}`
+          // );
 
           // Save to IpfsData table
           try {
