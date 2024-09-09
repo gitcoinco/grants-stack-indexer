@@ -1011,13 +1011,6 @@ export class Database {
       this.#logger.info("Deleting applications payouts");
       await trx
         .withSchema(this.chainDataSchemaName)
-        .deleteFrom("prices")
-        .where("chainId", "=", chainId)
-        .execute();
-
-      this.#logger.info("Deleting applications payouts");
-      await trx
-        .withSchema(this.chainDataSchemaName)
         .deleteFrom("applications")
         .where("chainId", "=", chainId)
         .execute();

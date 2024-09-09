@@ -270,8 +270,9 @@ const recoverEthereumAddress = async ({
   if (!address || !timestamp || !signature) {
     return false;
   }
-  const whitelistedAddresses =
-    process.env.WHITELISTED_ADDRESSES?.split(",") || [];
+  const whitelistedAddresses: string[] = JSON.parse(
+    process.env.WHITELISTED_ADDRESSES!
+  );
 
   // Check timestamp validity
   const currentTime = Date.now();
