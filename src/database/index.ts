@@ -102,6 +102,12 @@ export class Database {
       }, 0);
     };
 
+    // Helper function to forcibly acquire a lock for a specific schema
+    const forciblyAcquireLockForSchema = async (lockId: number) => {
+      // This will block until the lock is acquired
+      await client.query(`SELECT pg_advisory_lock(${lockId})`);
+    };
+
     // Helper function to acquire a lock for a specific schema
     const acquireLockForSchema = async (lockId: number) => {
       const result = await client.query(
@@ -121,26 +127,40 @@ export class Database {
     const ipfsDataLockId = generateLockId(this.ipfsDataSchemaName);
     const priceDataLockId = generateLockId(this.priceDataSchemaName);
 
+    // Track acquired locks
+    const acquiredLocks: number[] = [];
+
     try {
       const chainDataLockAcquired = await acquireLockForSchema(chainDataLockId);
-      const ipfsDataLockAcquired = await acquireLockForSchema(ipfsDataLockId);
-      const priceDataLockAcquired = await acquireLockForSchema(priceDataLockId);
+      if (chainDataLockAcquired) acquiredLocks.push(chainDataLockId);
 
-      if (
-        chainDataLockAcquired &&
-        ipfsDataLockAcquired &&
-        priceDataLockAcquired
-      ) {
-        return {
-          release: async () => {
-            await releaseLockForSchema(chainDataLockId);
-            await releaseLockForSchema(ipfsDataLockId);
-            await releaseLockForSchema(priceDataLockId);
-            client.release();
-          },
-          client,
-        };
-      }
+      // const ipfsDataLockAcquired = await acquireLockForSchema(ipfsDataLockId);
+      // if (ipfsDataLockAcquired) acquiredLocks.push(ipfsDataLockId);
+      // const priceDataLockAcquired = await acquireLockForSchema(priceDataLockId);
+      // if (priceDataLockAcquired) acquiredLocks.push(priceDataLockId);
+
+      // NOTE: We are forcibly acquiring locks for IPFS and Price data schemas
+      await forciblyAcquireLockForSchema(priceDataLockId);
+      await forciblyAcquireLockForSchema(priceDataLockId);
+      acquiredLocks.push(ipfsDataLockId);
+      acquiredLocks.push(priceDataLockId);
+
+      // this.#logger.info(`Lock Status =>
+      //   Chain Data (${chainDataLockId}): ${chainDataLockAcquired},
+      //   IPFS Data (${ipfsDataLockId}): ${ipfsDataLockAcquired},
+      //   Price Data (${priceDataLockId}): ${priceDataLockAcquired}
+      // `);
+
+      return {
+        release: async () => {
+          for (const lockId of acquiredLocks) {
+            await releaseLockForSchema(lockId);
+          }
+          client.release();
+        },
+        client,
+        acquiredLocks,
+      };
     } catch (error) {
       this.#logger.error({ error }, "Failed to acquire write lock");
     }
