@@ -116,6 +116,17 @@ export class Database {
       await client.query(`SELECT pg_advisory_unlock(${lockId})`);
     };
 
+    // Helper function to force release a lock for a specific schema
+    const forceReleaseLockForSchema = async (lockId: number) => {
+      await client.query(`
+        SELECT pg_terminate_backend(pid)
+        FROM pg_locks
+        WHERE locktype = 'advisory'
+        AND objid = ${lockId}
+        AND pid != pg_backend_pid()
+      `);
+    };
+
     // Acquire locks for all schemas
     const chainDataLockId = generateLockId(this.chainDataSchemaName);
     const ipfsDataLockId = generateLockId(this.ipfsDataSchemaName);
@@ -133,11 +144,17 @@ export class Database {
 
       return {
         release: async () => {
-          if (chainDataLockAcquired)
+          if (chainDataLockAcquired) {
             await releaseLockForSchema(chainDataLockId);
-          if (ipfsDataLockAcquired) await releaseLockForSchema(ipfsDataLockId);
-          if (priceDataLockAcquired)
-            await releaseLockForSchema(priceDataLockId);
+          }
+          if (ipfsDataLockAcquired) {
+            await forceReleaseLockForSchema(ipfsDataLockId);
+            // await releaseLockForSchema(ipfsDataLockId);
+          }
+          if (priceDataLockAcquired) {
+            await forceReleaseLockForSchema(priceDataLockId);
+            // await releaseLockForSchema(priceDataLockId);
+          }
           client.release();
         },
         client,
