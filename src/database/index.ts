@@ -121,31 +121,37 @@ export class Database {
     const ipfsDataLockId = generateLockId(this.ipfsDataSchemaName);
     const priceDataLockId = generateLockId(this.priceDataSchemaName);
 
-    try {
-      const chainDataLockAcquired = await acquireLockForSchema(chainDataLockId);
-      const ipfsDataLockAcquired = await acquireLockForSchema(ipfsDataLockId);
-      const priceDataLockAcquired = await acquireLockForSchema(priceDataLockId);
+    // Lock acquisition status
+    let chainDataLockAcquired = false;
+    let ipfsDataLockAcquired = false;
+    let priceDataLockAcquired = false;
 
-      if (
-        chainDataLockAcquired &&
-        ipfsDataLockAcquired &&
-        priceDataLockAcquired
-      ) {
-        return {
-          release: async () => {
+    try {
+      chainDataLockAcquired = await acquireLockForSchema(chainDataLockId);
+      ipfsDataLockAcquired = await acquireLockForSchema(ipfsDataLockId);
+      priceDataLockAcquired = await acquireLockForSchema(priceDataLockId);
+
+      return {
+        release: async () => {
+          if (chainDataLockAcquired)
             await releaseLockForSchema(chainDataLockId);
-            await releaseLockForSchema(ipfsDataLockId);
+          if (ipfsDataLockAcquired) await releaseLockForSchema(ipfsDataLockId);
+          if (priceDataLockAcquired)
             await releaseLockForSchema(priceDataLockId);
-            client.release();
-          },
-          client,
-        };
-      }
+          client.release();
+        },
+        client,
+      };
     } catch (error) {
       this.#logger.error({ error }, "Failed to acquire write lock");
-    }
+    } finally {
+      // Ensure any acquired locks are released if they were not all acquired
+      if (chainDataLockAcquired) await releaseLockForSchema(chainDataLockId);
+      if (ipfsDataLockAcquired) await releaseLockForSchema(ipfsDataLockId);
+      if (priceDataLockAcquired) await releaseLockForSchema(priceDataLockId);
 
-    client.release();
+      client.release();
+    }
 
     return null;
   }
