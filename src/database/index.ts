@@ -116,59 +116,36 @@ export class Database {
       await client.query(`SELECT pg_advisory_unlock(${lockId})`);
     };
 
-    // Helper function to force release a lock for a specific schema
-    const forceReleaseLockForSchema = async (lockId: number) => {
-      await client.query(`
-        SELECT pg_terminate_backend(pid)
-        FROM pg_locks
-        WHERE locktype = 'advisory'
-        AND objid = ${lockId}
-        AND pid != pg_backend_pid()
-      `);
-    };
-
     // Acquire locks for all schemas
     const chainDataLockId = generateLockId(this.chainDataSchemaName);
     const ipfsDataLockId = generateLockId(this.ipfsDataSchemaName);
     const priceDataLockId = generateLockId(this.priceDataSchemaName);
 
-    // Lock acquisition status
-    let chainDataLockAcquired = false;
-    let ipfsDataLockAcquired = false;
-    let priceDataLockAcquired = false;
-
     try {
-      chainDataLockAcquired = await acquireLockForSchema(chainDataLockId);
-      ipfsDataLockAcquired = await acquireLockForSchema(ipfsDataLockId);
-      priceDataLockAcquired = await acquireLockForSchema(priceDataLockId);
+      const chainDataLockAcquired = await acquireLockForSchema(chainDataLockId);
+      const ipfsDataLockAcquired = await acquireLockForSchema(ipfsDataLockId);
+      const priceDataLockAcquired = await acquireLockForSchema(priceDataLockId);
 
-      return {
-        release: async () => {
-          if (chainDataLockAcquired) {
+      if (
+        chainDataLockAcquired &&
+        ipfsDataLockAcquired &&
+        priceDataLockAcquired
+      ) {
+        return {
+          release: async () => {
             await releaseLockForSchema(chainDataLockId);
-          }
-          if (ipfsDataLockAcquired) {
-            await forceReleaseLockForSchema(ipfsDataLockId);
-            // await releaseLockForSchema(ipfsDataLockId);
-          }
-          if (priceDataLockAcquired) {
-            await forceReleaseLockForSchema(priceDataLockId);
-            // await releaseLockForSchema(priceDataLockId);
-          }
-          client.release();
-        },
-        client,
-      };
+            await releaseLockForSchema(ipfsDataLockId);
+            await releaseLockForSchema(priceDataLockId);
+            client.release();
+          },
+          client,
+        };
+      }
     } catch (error) {
       this.#logger.error({ error }, "Failed to acquire write lock");
-    } finally {
-      // Ensure any acquired locks are released if they were not all acquired
-      if (chainDataLockAcquired) await releaseLockForSchema(chainDataLockId);
-      if (ipfsDataLockAcquired) await releaseLockForSchema(ipfsDataLockId);
-      if (priceDataLockAcquired) await releaseLockForSchema(priceDataLockId);
-
-      client.release();
     }
+
+    client.release();
 
     return null;
   }
@@ -960,6 +937,93 @@ export class Database {
       .executeTakeFirst();
 
     return result ?? null;
+  }
+
+  async deleteChainData(chainId: ChainId) {
+    this.#logger.info("Deleting chain data for chainId:", chainId);
+
+    await this.#db.transaction().execute(async (trx) => {
+      this.#logger.info("Deleting pending round roles");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("pendingRoundRoles")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting round roles");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("roundRoles")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting pending project roles");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("pendingProjectRoles")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting project roles");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("projectRoles")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting applications");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("applications")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting applications donations");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("donations")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      // this.#logger.info("Deleting donation prices");
+      // await trx
+      //   .withSchema(this.priceDataSchemaName)
+      //   .deleteFrom("prices")
+      //   .where("chainId", "=", chainId)
+      //   .execute();
+
+      this.#logger.info("Deleting applications");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("applications")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting rounds");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("rounds")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting projects");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("projects")
+        .where("chainId", "=", chainId)
+        .execute();
+    });
+
+    this.#logger.info("Updating subscriptions indexed_to_block");
+    const sqlQuery = `
+      UPDATE ${this.chainDataSchemaName}.subscriptions
+      SET indexed_to_block = 0::bigint
+      WHERE chain_id = ${chainId}
+    `;
+
+    await sql.raw(sqlQuery).execute(this.#db);
+
+    this.#logger.info("Deleted chain data for chainId:", chainId);
   }
 
   async getDataByCid(cId: string) {
