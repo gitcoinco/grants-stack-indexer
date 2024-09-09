@@ -173,7 +173,7 @@ export const createHttpApi = (config: HttpApiConfig): HttpApi => {
                 contract: contractName,
                 address: subscription.address,
                 fromBlock: subscriptionFromBlock || BigInt(0),
-              });
+              });              
             });
           } else {
             config.logger.error(

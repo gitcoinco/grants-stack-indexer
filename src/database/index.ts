@@ -994,35 +994,42 @@ export class Database {
         .where("chainId", "=", chainId)
         .execute();
 
-      this.#logger.info("Deleting applications payouts");
+      this.#logger.info("Deleting applications");
       await trx
         .withSchema(this.chainDataSchemaName)
         .deleteFrom("applications")
         .where("chainId", "=", chainId)
         .execute();
 
-      this.#logger.info("Deleting applications payouts");
+      this.#logger.info("Deleting applications donations");
       await trx
         .withSchema(this.chainDataSchemaName)
         .deleteFrom("donations")
         .where("chainId", "=", chainId)
         .execute();
 
-      this.#logger.info("Deleting applications payouts");
+      // this.#logger.info("Deleting donation prices");
+      // await trx
+      //   .withSchema(this.priceDataSchemaName)
+      //   .deleteFrom("prices")
+      //   .where("chainId", "=", chainId)
+      //   .execute();
+
+      this.#logger.info("Deleting applications");
       await trx
         .withSchema(this.chainDataSchemaName)
         .deleteFrom("applications")
         .where("chainId", "=", chainId)
         .execute();
 
-      this.#logger.info("Deleting applications payouts");
+      this.#logger.info("Deleting rounds");
       await trx
         .withSchema(this.chainDataSchemaName)
         .deleteFrom("rounds")
         .where("chainId", "=", chainId)
         .execute();
 
-      this.#logger.info("Deleting applications payouts");
+      this.#logger.info("Deleting projects");
       await trx
         .withSchema(this.chainDataSchemaName)
         .deleteFrom("projects")
