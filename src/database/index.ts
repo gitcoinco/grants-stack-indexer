@@ -962,6 +962,93 @@ export class Database {
     return result ?? null;
   }
 
+  async deleteChainData(chainId: ChainId) {
+    this.#logger.info("Deleting chain data for chainId:", chainId);
+
+    await this.#db.transaction().execute(async (trx) => {
+      this.#logger.info("Deleting pending round roles");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("pendingRoundRoles")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting round roles");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("roundRoles")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting pending project roles");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("pendingProjectRoles")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting project roles");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("projectRoles")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting applications payouts");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("applications")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting applications payouts");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("donations")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting applications payouts");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("prices")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting applications payouts");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("applications")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting applications payouts");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("rounds")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting applications payouts");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("projects")
+        .where("chainId", "=", chainId)
+        .execute();
+    });
+
+    this.#logger.info("Updating subscriptions indexed_to_block");
+    const sqlQuery = `
+      UPDATE ${this.chainDataSchemaName}.subscriptions
+      SET indexed_to_block = 0::bigint
+      WHERE chain_id = ${chainId}
+    `;
+
+    await sql.raw(sqlQuery).execute(this.#db);
+
+    this.#logger.info("Deleted chain data for chainId:", chainId);
+  }
+
   async getDataByCid(cId: string) {
     const metadata = await this.#db
       .withSchema(this.ipfsDataSchemaName)
