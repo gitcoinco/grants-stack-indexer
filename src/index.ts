@@ -187,11 +187,32 @@ async function main(): Promise<void> {
     }
 
     const chain = getChainConfigById(chainId);
-    const client = createPublicClient({
-      transport: http(chain.rpcs[0]),
-    });
 
-    const block = await client.getBlock({ blockNumber });
+    let publicRpcClient: ReturnType<typeof createPublicClient> | null = null;
+
+    for (const rpcUrl of chain.rpcs) {
+      try {
+        const client = createPublicClient({
+          transport: http(rpcUrl),
+        });
+
+        const blockNumber = await client.getBlockNumber();
+        if (blockNumber !== null) {
+          publicRpcClient = client;
+          break;
+        }
+      } catch (error) {
+        throw new Error(
+          "Failed to connect to RPC at ${rpcUrl}, trying next one..."
+        );
+      }
+    }
+
+    if (!publicRpcClient) {
+      throw new Error("All RPC connections failed");
+    }
+
+    const block = await publicRpcClient.getBlock({ blockNumber });
     const timestamp = Number(block.timestamp);
 
     const chainsauceBlock: Block = {
@@ -569,15 +590,15 @@ async function catchupAndWatchChain(
 
     for (const rpcUrl of config.chain.rpcs) {
       try {
-        publicRpcClient = createPublicClient({
+        const client = createPublicClient({
           transport: http(rpcUrl),
         });
 
-        const blockNumber = await publicRpcClient.getBlockNumber();
-        chainLogger.info(
-          `Connected to RPC at ${rpcUrl} at block ${blockNumber}`
-        );
-        break;
+        const blockNumber = await client.getBlockNumber();
+        if (blockNumber !== null) {
+          publicRpcClient = client;
+          break;
+        }
       } catch (error) {
         chainLogger.warn(
           `Failed to connect to RPC at ${rpcUrl}, trying next one...`
