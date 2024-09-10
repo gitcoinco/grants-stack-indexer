@@ -384,6 +384,7 @@ export async function migrateDataFetcher<T>(db: Kysely<T>, schemaName: string) {
     .createTable("ipfs_data")
     .addColumn("cid", "text")
     .addColumn("data", "jsonb")
+    .addUniqueConstraint("unique_cid", ["cid"])
     .execute();
 }
 
@@ -401,6 +402,11 @@ export async function migratePriceFetcher<T>(
     .addColumn("priceInUSD", "real")
     .addColumn("timestamp", "timestamptz")
     .addColumn("blockNumber", BIGINT_TYPE)
+    .addUniqueConstraint("unique_chainId_tokenAddress_blockNumber", [
+      "chainId",
+      "tokenAddress",
+      "blockNumber",
+    ])
     .execute();
 
   await db.schema
