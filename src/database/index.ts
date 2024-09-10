@@ -95,51 +95,26 @@ export class Database {
   async acquireWriteLock() {
     const client = await this.#connectionPool.connect();
 
-    // Helper function to generate lock ID based on schema name
-    const generateLockId = (schemaName: string): number => {
-      return schemaName.split("").reduce((acc, char) => {
-        return acc + char.charCodeAt(0);
-      }, 0);
-    };
+    // generate lock id based on schema
+    const lockId = this.chainDataSchemaName.split("").reduce((acc, char) => {
+      return acc + char.charCodeAt(0);
+    }, 0);
 
-    // Helper function to acquire a lock for a specific schema
-    const acquireLockForSchema = async (lockId: number) => {
+    try {
       const result = await client.query(
         `SELECT pg_try_advisory_lock(${lockId}) as lock`
       );
+
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      return result.rows[0].lock === true;
-    };
-
-    // Helper function to release a lock for a specific schema
-    const releaseLockForSchema = async (lockId: number) => {
-      await client.query(`SELECT pg_advisory_unlock(${lockId})`);
-    };
-
-    // Acquire locks for all schemas
-    const chainDataLockId = generateLockId(this.chainDataSchemaName);
-
-    // Track acquired locks
-    const acquiredLocks: number[] = [];
-
-    try {
-      const chainDataLockAcquired = await acquireLockForSchema(chainDataLockId);
-      if (chainDataLockAcquired) acquiredLocks.push(chainDataLockId);
-
-      this.#logger.info(`Lock Status =>
-        Chain Data (${chainDataLockId}): ${chainDataLockAcquired}
-      `);
-
-      return {
-        release: async () => {
-          for (const lockId of acquiredLocks) {
-            await releaseLockForSchema(lockId);
-          }
-          client.release();
-        },
-        client,
-        acquiredLocks,
-      };
+      if (result.rows[0].lock === true) {
+        return {
+          release: async () => {
+            await client.query(`SELECT pg_advisory_unlock(${lockId})`);
+            client.release();
+          },
+          client,
+        };
+      }
     } catch (error) {
       this.#logger.error({ error }, "Failed to acquire write lock");
     }
