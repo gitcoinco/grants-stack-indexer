@@ -219,10 +219,18 @@ export function createPriceProvider(
       );
 
       if (!existingPrice) {
-        await db.applyChange({
-          type: "InsertManyPrices",
-          prices: [newPrice],
-        });
+        try {
+          await db.applyChange({
+            type: "InsertManyPrices",
+            prices: [newPrice],
+          });
+        } catch (e) {
+          logger.error({
+            msg: "Failed to insert price",
+            error: e,
+            price: newPrice,
+          });
+        }
       }
 
       return { ...newPrice, tokenDecimals: token.decimals };
