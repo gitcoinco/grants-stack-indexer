@@ -42,7 +42,7 @@ export const getExternalIP = async (logger: Logger): Promise<string> => {
       logger.debug(`Attempting to fetch IP address from: ${url}`);
       const response = await fetch(url);
       if (response.ok) {
-        const { ip } = await response.json();
+        const { ip } = (await response.json()) as { ip: string };
         logger.info(`Successfully fetched IP address: ${ip}`);
         return ip;
       }
@@ -51,7 +51,7 @@ export const getExternalIP = async (logger: Logger): Promise<string> => {
       if (error instanceof Error) {
         logger.error(`Failed to fetch from ${url}: ${error.message}`);
       } else {
-        logger.error(`Failed to fetch from ${url}: ${error}`);
+        logger.error(`Failed to fetch from ${url}`);
       }
     }
   }
