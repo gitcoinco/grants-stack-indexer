@@ -484,7 +484,7 @@ async function catchupAndWatchChain(
       // Check if data is already in the IPFS database
       const ipfsData = await db.getDataByCid(cid);
       if (ipfsData) {
-        chainLogger.info(`Found IPFS data in database for CID: ${cid}`);
+        // chainLogger.info(`Found IPFS data in database for CID: ${cid}`);
         return Promise.resolve(ipfsData.data as string as T);
       }
 
