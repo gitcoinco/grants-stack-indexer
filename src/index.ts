@@ -39,7 +39,7 @@ import type { EventHandlerContext } from "./indexer/indexer.js";
 import { handleEvent as handleAlloV1Event } from "./indexer/allo/v1/handleEvent.js";
 import { handleEvent as handleAlloV2Event } from "./indexer/allo/v2/handleEvent.js";
 import { Database } from "./database/index.js";
-import { decodeJsonWithBigInts } from "./utils/index.js";
+import { decodeJsonWithBigInts, getExternalIP } from "./utils/index.js";
 import { Block } from "chainsauce/dist/cache.js";
 import { createPublicClient, http } from "viem";
 import { IndexerEvents } from "chainsauce/dist/indexer.js";
@@ -692,28 +692,3 @@ function monitorAndLogResources(config: {
 
   resourceMonitor.start();
 }
-
-const getExternalIP = async (logger: Logger): Promise<string> => {
-  const urls = ["https://api.ipify.org?format=json", "http://ipinfo.io/json"];
-  for (const url of urls) {
-    try {
-      logger.debug(`Attempting to fetch IP address from: ${url}`);
-      const response = await fetch(url);
-      if (response.ok) {
-        const { ip } = await response.json();
-        logger.info(`Successfully fetched IP address from: ${url}`);
-        return ip;
-      }
-      throw new Error(`Request failed with status: ${response.status}`);
-    } catch (error) {
-      if (error instanceof Error) {
-        logger.error(`Failed to fetch from ${url}: ${error.message}`);
-      } else {
-        logger.error(`Failed to fetch from ${url}: ${error}`);
-      }
-    }
-  }
-  throw new Error(
-    "Unable to fetch external IP address from both primary and fallback URLs."
-  );
-};
