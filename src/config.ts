@@ -20,7 +20,9 @@ type CoingeckoSupportedChainId =
   | 42220
   | 1088;
 
-const CHAIN_DATA_VERSION = "79";
+const CHAIN_DATA_VERSION = "83";
+const IPFS_DATA_VERSION = "1";
+const PRICE_DATA_VERSION = "1";
 
 export type Token = {
   code: string;
@@ -169,8 +171,8 @@ const CHAINS: Chain[] = [
         address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
         decimals: 18,
         priceSource: {
-          chainId: 10,
-          address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+          chainId: 1,
+          address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
         },
       },
       {
@@ -1818,7 +1820,7 @@ export type Config = {
   httpServerWaitForSync: boolean;
   httpServerEnabled: boolean;
   indexerEnabled: boolean;
-  ipfsGateway: string;
+  ipfsGateways: string[];
   coingeckoApiKey: string | null;
   coingeckoApiUrl: string;
   chains: Chain[];
@@ -1829,11 +1831,19 @@ export type Config = {
   readOnlyDatabaseUrl: string;
   dataVersion: string;
   databaseSchemaName: string;
+  ipfsDataVersion: string;
+  ipfsDatabaseSchemaName: string;
+  priceDataVersion: string;
+  priceDatabaseSchemaName: string;
   hostname: string;
   pinoPretty: boolean;
   deploymentEnvironment: "local" | "development" | "staging" | "production";
   enableResourceMonitor: boolean;
   dropDb: boolean;
+  dropChainDb: boolean;
+  dropIpfsDb: boolean;
+  dropPriceDb: boolean;
+  removeCache: boolean;
   estimatesLinearQfWorkerPoolSize: number | null;
 };
 
@@ -1900,6 +1910,18 @@ export function getConfig(): Config {
       "drop-db": {
         type: "boolean",
       },
+      "drop-chain-db": {
+        type: "boolean",
+      },
+      "drop-ipfs-db": {
+        type: "boolean",
+      },
+      "drop-price-db": {
+        type: "boolean",
+      },
+      "rm-cache": {
+        type: "boolean",
+      },
       "log-level": {
         type: "string",
       },
@@ -1964,10 +1986,11 @@ export function getConfig(): Config {
 
   const runOnce = z.boolean().default(false).parse(args["run-once"]);
 
-  const ipfsGateway = z
+  const ipfsGateways = z
     .string()
-    .default("https://ipfs.io")
-    .parse(process.env.IPFS_GATEWAY);
+    .array()
+    .default(["https://ipfs.io"])
+    .parse(JSON.parse(process.env.IPFS_GATEWAYS!));
 
   const sentryDsn = z
     .union([z.string(), z.null()])
@@ -1984,7 +2007,18 @@ export function getConfig(): Config {
   const dataVersion = CHAIN_DATA_VERSION;
   const databaseSchemaName = `chain_data_${dataVersion}`;
 
+  const ipfsDataVersion = IPFS_DATA_VERSION;
+  const ipfsDatabaseSchemaName = `ipfs_data_${ipfsDataVersion}`;
+
+  const priceDataVersion = PRICE_DATA_VERSION;
+  const priceDatabaseSchemaName = `price_data_${priceDataVersion}`;
+
   const dropDb = z.boolean().default(false).parse(args["drop-db"]);
+  const dropChainDb = z.boolean().default(false).parse(args["drop-chain-db"]);
+  const dropIpfsDb = z.boolean().default(false).parse(args["drop-ipfs-db"]);
+  const dropPriceDb = z.boolean().default(false).parse(args["drop-price-db"]);
+
+  const removeCache = z.boolean().default(false).parse(args["rm-cache"]);
 
   const parseBoolean = z
     .boolean()
@@ -2022,7 +2056,7 @@ export function getConfig(): Config {
     cacheDir,
     logLevel,
     runOnce,
-    ipfsGateway,
+    ipfsGateways,
     passportScorerId,
     apiHttpPort,
     pinoPretty,
@@ -2031,8 +2065,16 @@ export function getConfig(): Config {
     databaseUrl,
     readOnlyDatabaseUrl,
     dropDb,
+    dropChainDb,
+    dropIpfsDb,
+    dropPriceDb,
+    removeCache,
     dataVersion,
     databaseSchemaName,
+    ipfsDataVersion,
+    ipfsDatabaseSchemaName,
+    priceDataVersion,
+    priceDatabaseSchemaName,
     httpServerWaitForSync,
     httpServerEnabled,
     indexerEnabled,

@@ -14,8 +14,9 @@ import {
   NewDonation,
   LegacyProjectTable,
   ApplicationPayout,
+  IpfsDataTable,
 } from "./schema.js";
-import { migrate } from "./migrate.js";
+import { migrate, migrateDataFetcher, migratePriceFetcher } from "./migrate.js";
 import { encodeJsonWithBigInts } from "../utils/index.js";
 import type { DataChange } from "./changeset.js";
 import { Logger } from "pino";
@@ -37,6 +38,7 @@ interface Tables {
   prices: PriceTable;
   legacyProjects: LegacyProjectTable;
   applicationsPayouts: ApplicationPayout;
+  ipfsData: IpfsDataTable;
 }
 
 type KyselyDb = Kysely<Tables>;
@@ -53,13 +55,17 @@ export class Database {
   #statsTimeout: ReturnType<typeof setTimeout> | null = null;
   #logger: Logger;
 
-  readonly databaseSchemaName: string;
+  readonly chainDataSchemaName: string;
+  readonly ipfsDataSchemaName: string;
+  readonly priceDataSchemaName: string;
 
   constructor(options: {
     statsUpdaterEnabled: boolean;
     logger: Logger;
     connectionPool: Pool;
-    schemaName: string;
+    chainDataSchemaName: string;
+    ipfsDataSchemaName: string;
+    priceDataSchemaName: string;
   }) {
     const dialect = new PostgresDialect({
       pool: options.connectionPool,
@@ -72,10 +78,12 @@ export class Database {
       plugins: [new CamelCasePlugin()],
     });
 
-    this.#db = this.#db.withSchema(options.schemaName);
+    // Initialize schema names
+    this.chainDataSchemaName = options.chainDataSchemaName;
+    this.ipfsDataSchemaName = options.ipfsDataSchemaName;
+    this.priceDataSchemaName = options.priceDataSchemaName;
 
     this.#logger = options.logger;
-    this.databaseSchemaName = options.schemaName;
 
     this.scheduleDonationQueueFlush();
 
@@ -88,7 +96,7 @@ export class Database {
     const client = await this.#connectionPool.connect();
 
     // generate lock id based on schema
-    const lockId = this.databaseSchemaName.split("").reduce((acc, char) => {
+    const lockId = this.chainDataSchemaName.split("").reduce((acc, char) => {
       return acc + char.charCodeAt(0);
     }, 0);
 
@@ -132,12 +140,12 @@ export class Database {
   }
 
   private async updateStats() {
-    const donationsTableRef = `"${this.databaseSchemaName}"."donations"`;
+    const donationsTableRef = `"${this.chainDataSchemaName}"."donations"`;
 
     await sql
       .raw(
         `
-      UPDATE "${this.databaseSchemaName}"."rounds" AS r
+      UPDATE "${this.chainDataSchemaName}"."rounds" AS r
       SET
           total_amount_donated_in_usd = d.total_amount,
           total_donations_count = d.donation_count,
@@ -160,7 +168,7 @@ export class Database {
     await sql
       .raw(
         `
-      UPDATE "${this.databaseSchemaName}"."applications" AS a
+      UPDATE "${this.chainDataSchemaName}"."applications" AS a
       SET
           total_amount_donated_in_usd = d.total_amount,
           total_donations_count = d.donation_count,
@@ -223,38 +231,86 @@ export class Database {
     }
   }
 
-  async dropSchemaIfExists() {
+  async dropChainDataSchemaIfExists() {
     await this.#db.schema
-      .dropSchema(this.databaseSchemaName)
+      .withSchema(this.chainDataSchemaName)
+      .dropSchema(this.chainDataSchemaName)
       .ifExists()
       .cascade()
       .execute();
   }
 
-  async createSchemaIfNotExists(logger: Logger) {
+  async dropIpfsDataSchemaIfExists() {
+    await this.#db.schema
+      .withSchema(this.ipfsDataSchemaName)
+      .dropSchema(this.ipfsDataSchemaName)
+      .ifExists()
+      .cascade()
+      .execute();
+  }
+
+  async dropPriceDataSchemaIfExists() {
+    await this.#db.schema
+      .withSchema(this.priceDataSchemaName)
+      .dropSchema(this.priceDataSchemaName)
+      .ifExists()
+      .cascade()
+      .execute();
+  }
+
+  async dropAllSchemaIfExists() {
+    await this.dropChainDataSchemaIfExists();
+    await this.dropIpfsDataSchemaIfExists();
+    await this.dropPriceDataSchemaIfExists();
+  }
+
+  async createSchemaIfNotExists(
+    schemaName: string,
+    migrateFn: (tx: any, schemaName: string) => Promise<void>,
+    logger: Logger
+  ) {
     const exists = await sql<{ exists: boolean }>`
-    SELECT EXISTS (
-      SELECT 1 FROM information_schema.schemata
-      WHERE schema_name = ${this.databaseSchemaName}
-    )`.execute(this.#db);
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.schemata
+        WHERE schema_name = ${schemaName}
+      )`.execute(this.#db.withSchema(schemaName));
 
     if (exists.rows.length > 0 && exists.rows[0].exists) {
       logger.info({
-        msg: `schema "${this.databaseSchemaName}" exists, skipping creation`,
+        msg: `schema "${schemaName}" exists, skipping creation`,
       });
-
       return;
     }
 
     logger.info({
-      msg: `schema "${this.databaseSchemaName}" does not exist, creating schema`,
+      msg: `schema "${schemaName}" does not exist, creating schema`,
     });
 
-    await this.#db.transaction().execute(async (tx) => {
-      await tx.schema.createSchema(this.databaseSchemaName).execute();
+    await this.#db
+      .withSchema(schemaName)
+      .transaction()
+      .execute(async (tx) => {
+        await tx.schema.createSchema(schemaName).execute();
+        await migrateFn(tx, schemaName);
+      });
+  }
 
-      await migrate(tx, this.databaseSchemaName);
-    });
+  async createAllSchemas(logger: Logger) {
+    await this.createSchemaIfNotExists(
+      this.chainDataSchemaName,
+      migrate,
+      logger
+    );
+    await this.createSchemaIfNotExists(
+      this.ipfsDataSchemaName,
+      migrateDataFetcher,
+      logger
+    );
+    await this.createSchemaIfNotExists(
+      this.priceDataSchemaName,
+      migratePriceFetcher,
+      logger
+    );
   }
 
   async applyChanges(changes: DataChange[]): Promise<void> {
@@ -267,6 +323,7 @@ export class Database {
     switch (change.type) {
       case "InsertPendingProjectRole": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .insertInto("pendingProjectRoles")
           .values(change.pendingProjectRole)
           .execute();
@@ -275,6 +332,7 @@ export class Database {
 
       case "DeletePendingProjectRoles": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .deleteFrom("pendingProjectRoles")
           .where("id", "in", change.ids)
           .execute();
@@ -283,6 +341,7 @@ export class Database {
 
       case "InsertPendingRoundRole": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .insertInto("pendingRoundRoles")
           .values(change.pendingRoundRole)
           .execute();
@@ -291,6 +350,7 @@ export class Database {
 
       case "DeletePendingRoundRoles": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .deleteFrom("pendingRoundRoles")
           .where("id", "in", change.ids)
           .execute();
@@ -298,12 +358,17 @@ export class Database {
       }
 
       case "InsertProject": {
-        await this.#db.insertInto("projects").values(change.project).execute();
+        await this.#db
+          .withSchema(this.chainDataSchemaName)
+          .insertInto("projects")
+          .values(change.project)
+          .execute();
         break;
       }
 
       case "UpdateProject": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .updateTable("projects")
           .set(change.project)
           .where("id", "=", change.projectId)
@@ -314,6 +379,7 @@ export class Database {
 
       case "InsertProjectRole": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .insertInto("projectRoles")
           .values(change.projectRole)
           .execute();
@@ -322,6 +388,7 @@ export class Database {
 
       case "DeleteAllProjectRolesByRole": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .deleteFrom("projectRoles")
           .where("chainId", "=", change.projectRole.chainId)
           .where("projectId", "=", change.projectRole.projectId)
@@ -332,6 +399,7 @@ export class Database {
 
       case "DeleteAllProjectRolesByRoleAndAddress": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .deleteFrom("projectRoles")
           .where("chainId", "=", change.projectRole.chainId)
           .where("projectId", "=", change.projectRole.projectId)
@@ -342,12 +410,17 @@ export class Database {
       }
 
       case "InsertRound": {
-        await this.#db.insertInto("rounds").values(change.round).execute();
+        await this.#db
+          .withSchema(this.chainDataSchemaName)
+          .insertInto("rounds")
+          .values(change.round)
+          .execute();
         break;
       }
 
       case "UpdateRound": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .updateTable("rounds")
           .set(change.round)
           .where("chainId", "=", change.chainId)
@@ -358,6 +431,7 @@ export class Database {
 
       case "IncrementRoundFundedAmount": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .updateTable("rounds")
           .set((eb) => ({
             fundedAmount: eb("fundedAmount", "+", change.fundedAmount),
@@ -375,6 +449,7 @@ export class Database {
 
       case "UpdateRoundByStrategyAddress": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .updateTable("rounds")
           .set(change.round)
           .where("chainId", "=", change.chainId)
@@ -385,6 +460,7 @@ export class Database {
 
       case "InsertRoundRole": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .insertInto("roundRoles")
           .values(change.roundRole)
           .execute();
@@ -393,6 +469,7 @@ export class Database {
 
       case "DeleteAllRoundRolesByRoleAndAddress": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .deleteFrom("roundRoles")
           .where("chainId", "=", change.roundRole.chainId)
           .where("roundId", "=", change.roundRole.roundId)
@@ -411,7 +488,11 @@ export class Database {
           };
         }
 
-        await this.#db.insertInto("applications").values(application).execute();
+        await this.#db
+          .withSchema(this.chainDataSchemaName)
+          .insertInto("applications")
+          .values(application)
+          .execute();
         break;
       }
 
@@ -425,6 +506,7 @@ export class Database {
         }
 
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .updateTable("applications")
           .set(application)
           .where("chainId", "=", change.chainId)
@@ -441,6 +523,7 @@ export class Database {
 
       case "InsertManyDonations": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .insertInto("donations")
           .values(change.donations)
           .onConflict((c) => c.column("id").doNothing())
@@ -449,12 +532,17 @@ export class Database {
       }
 
       case "InsertManyPrices": {
-        await this.#db.insertInto("prices").values(change.prices).execute();
+        await this.#db
+          .withSchema(this.priceDataSchemaName)
+          .insertInto("prices")
+          .values(change.prices)
+          .execute();
         break;
       }
 
       case "IncrementRoundDonationStats": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .updateTable("rounds")
           .set((eb) => ({
             totalAmountDonatedInUsd: eb(
@@ -472,6 +560,7 @@ export class Database {
 
       case "IncrementRoundTotalDistributed": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .updateTable("rounds")
           .set((eb) => ({
             totalDistributed: eb("totalDistributed", "+", change.amount),
@@ -484,6 +573,7 @@ export class Database {
 
       case "IncrementApplicationDonationStats": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .updateTable("applications")
           .set((eb) => ({
             totalAmountDonatedInUsd: eb(
@@ -502,6 +592,7 @@ export class Database {
 
       case "NewLegacyProject": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .insertInto("legacyProjects")
           .values(change.legacyProject)
           .execute();
@@ -510,8 +601,18 @@ export class Database {
 
       case "InsertApplicationPayout": {
         await this.#db
+          .withSchema(this.chainDataSchemaName)
           .insertInto("applicationsPayouts")
           .values(change.payout)
+          .execute();
+        break;
+      }
+
+      case "InsertIpfsData": {
+        await this.#db
+          .withSchema(this.ipfsDataSchemaName)
+          .insertInto("ipfsData")
+          .values(change.ipfs)
           .execute();
         break;
       }
@@ -523,6 +624,7 @@ export class Database {
 
   async getPendingProjectRolesByRole(chainId: ChainId, role: string) {
     const pendingProjectRole = await this.#db
+      .withSchema(this.chainDataSchemaName)
       .selectFrom("pendingProjectRoles")
       .where("chainId", "=", chainId)
       .where("role", "=", role)
@@ -534,6 +636,7 @@ export class Database {
 
   async getPendingRoundRolesByRole(chainId: ChainId, role: string) {
     const pendingRoundRole = await this.#db
+      .withSchema(this.chainDataSchemaName)
       .selectFrom("pendingRoundRoles")
       .where("chainId", "=", chainId)
       .where("role", "=", role)
@@ -545,6 +648,7 @@ export class Database {
 
   async getProjectById(chainId: ChainId, projectId: string) {
     const project = await this.#db
+      .withSchema(this.chainDataSchemaName)
       .selectFrom("projects")
       .where("chainId", "=", chainId)
       .where("id", "=", projectId)
@@ -556,6 +660,7 @@ export class Database {
 
   async getProjectByAnchor(chainId: ChainId, anchorAddress: Address) {
     const project = await this.#db
+      .withSchema(this.chainDataSchemaName)
       .selectFrom("projects")
       .where("chainId", "=", chainId)
       .where("anchorAddress", "=", anchorAddress)
@@ -567,6 +672,7 @@ export class Database {
 
   async getRoundById(chainId: ChainId, roundId: string) {
     const round = await this.#db
+      .withSchema(this.chainDataSchemaName)
       .selectFrom("rounds")
       .where("chainId", "=", chainId)
       .where("id", "=", roundId)
@@ -578,6 +684,7 @@ export class Database {
 
   async getRoundByStrategyAddress(chainId: ChainId, strategyAddress: Address) {
     const round = await this.#db
+      .withSchema(this.chainDataSchemaName)
       .selectFrom("rounds")
       .where("chainId", "=", chainId)
       .where("strategyAddress", "=", strategyAddress)
@@ -593,6 +700,7 @@ export class Database {
     roleValue: string
   ) {
     const round = await this.#db
+      .withSchema(this.chainDataSchemaName)
       .selectFrom("rounds")
       .where("chainId", "=", chainId)
       .where(`${roleName}Role`, "=", roleValue)
@@ -615,6 +723,7 @@ export class Database {
     }
 
     const round = await this.#db
+      .withSchema(this.chainDataSchemaName)
       .selectFrom("rounds")
       .where("chainId", "=", chainId)
       .where("id", "=", roundId)
@@ -631,6 +740,7 @@ export class Database {
 
   async getAllChainRounds(chainId: ChainId) {
     const rounds = await this.#db
+      .withSchema(this.chainDataSchemaName)
       .selectFrom("rounds")
       .where("chainId", "=", chainId)
       .selectAll()
@@ -641,6 +751,7 @@ export class Database {
 
   async getAllRoundApplications(chainId: ChainId, roundId: string) {
     return await this.#db
+      .withSchema(this.chainDataSchemaName)
       .selectFrom("applications")
       .where("chainId", "=", chainId)
       .where("roundId", "=", roundId)
@@ -650,6 +761,7 @@ export class Database {
 
   async getAllRoundDonations(chainId: ChainId, roundId: string) {
     return await this.#db
+      .withSchema(this.chainDataSchemaName)
       .selectFrom("donations")
       .where("chainId", "=", chainId)
       .where("roundId", "=", roundId)
@@ -663,6 +775,7 @@ export class Database {
     applicationId: string
   ) {
     const application = await this.#db
+      .withSchema(this.chainDataSchemaName)
       .selectFrom("applications")
       .where("chainId", "=", chainId)
       .where("roundId", "=", roundId)
@@ -679,6 +792,7 @@ export class Database {
     projectId: string
   ) {
     const application = await this.#db
+      .withSchema(this.chainDataSchemaName)
       .selectFrom("applications")
       .where("chainId", "=", chainId)
       .where("roundId", "=", roundId)
@@ -695,6 +809,7 @@ export class Database {
     anchorAddress: Address
   ) {
     const application = await this.#db
+      .withSchema(this.chainDataSchemaName)
       .selectFrom("applications")
       .where("chainId", "=", chainId)
       .where("roundId", "=", roundId)
@@ -707,6 +822,7 @@ export class Database {
 
   async getLatestPriceTimestampForChain(chainId: ChainId) {
     const latestPriceTimestamp = await this.#db
+      .withSchema(this.priceDataSchemaName)
       .selectFrom("prices")
       .where("chainId", "=", chainId)
       .orderBy("timestamp", "desc")
@@ -723,6 +839,7 @@ export class Database {
     blockNumber: bigint | "latest"
   ) {
     let priceQuery = this.#db
+      .withSchema(this.priceDataSchemaName)
       .selectFrom("prices")
       .where("chainId", "=", chainId)
       .where("tokenAddress", "=", tokenAddress)
@@ -741,6 +858,7 @@ export class Database {
 
   async getAllChainPrices(chainId: ChainId) {
     return await this.#db
+      .withSchema(this.priceDataSchemaName)
       .selectFrom("prices")
       .where("chainId", "=", chainId)
       .orderBy("blockNumber", "asc")
@@ -750,6 +868,7 @@ export class Database {
 
   async getAllChainProjects(chainId: ChainId) {
     return await this.#db
+      .withSchema(this.chainDataSchemaName)
       .selectFrom("projects")
       .where("chainId", "=", chainId)
       .selectAll()
@@ -761,6 +880,7 @@ export class Database {
     donorAddress: Address
   ) {
     const donations = await this.#db
+      .withSchema(this.chainDataSchemaName)
       .selectFrom("donations")
       .where("donations.donorAddress", "=", donorAddress)
       .where("donations.chainId", "=", chainId)
@@ -784,11 +904,110 @@ export class Database {
 
   async getV2ProjectIdByV1ProjectId(v1ProjectId: string) {
     const result = await this.#db
+      .withSchema(this.chainDataSchemaName)
       .selectFrom("legacyProjects")
       .where("v1ProjectId", "=", v1ProjectId)
       .select("v2ProjectId")
       .executeTakeFirst();
 
     return result ?? null;
+  }
+
+  async deleteChainData(chainId: ChainId) {
+    this.#logger.info("Deleting chain data for chainId:", chainId);
+
+    await this.#db.transaction().execute(async (trx) => {
+      this.#logger.info("Deleting pending round roles");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("pendingRoundRoles")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting round roles");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("roundRoles")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting pending project roles");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("pendingProjectRoles")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting project roles");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("projectRoles")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting applications");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("applications")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting applications donations");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("donations")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      // this.#logger.info("Deleting donation prices");
+      // await trx
+      //   .withSchema(this.priceDataSchemaName)
+      //   .deleteFrom("prices")
+      //   .where("chainId", "=", chainId)
+      //   .execute();
+
+      this.#logger.info("Deleting applications");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("applications")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting rounds");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("rounds")
+        .where("chainId", "=", chainId)
+        .execute();
+
+      this.#logger.info("Deleting projects");
+      await trx
+        .withSchema(this.chainDataSchemaName)
+        .deleteFrom("projects")
+        .where("chainId", "=", chainId)
+        .execute();
+    });
+
+    this.#logger.info("Updating subscriptions indexed_to_block");
+    const sqlQuery = `
+      UPDATE ${this.chainDataSchemaName}.subscriptions
+      SET indexed_to_block = 0::bigint
+      WHERE chain_id = ${chainId}
+    `;
+
+    await sql.raw(sqlQuery).execute(this.#db);
+
+    this.#logger.info("Deleted chain data for chainId:", chainId);
+  }
+
+  async getDataByCid(cId: string) {
+    const metadata = await this.#db
+      .withSchema(this.ipfsDataSchemaName)
+      .selectFrom("ipfsData")
+      .where("cid", "=", cId)
+      .selectAll()
+      .executeTakeFirst();
+
+    return metadata ?? null;
   }
 }
