@@ -164,9 +164,9 @@ async function main(): Promise<void> {
       (c) =>
         c.name +
         " (rpc: " +
-        c.rpc.slice(0, 25) +
+        c.rpcs[0].slice(0, 25) +
         "..." +
-        c.rpc.slice(-5, -1) +
+        c.rpcs[0].slice(-5, -1) +
         ")"
     ),
   });
@@ -187,11 +187,32 @@ async function main(): Promise<void> {
     }
 
     const chain = getChainConfigById(chainId);
-    const client = createPublicClient({
-      transport: http(chain.rpc),
-    });
 
-    const block = await client.getBlock({ blockNumber });
+    let publicRpcClient: ReturnType<typeof createPublicClient> | null = null;
+
+    for (const rpcUrl of chain.rpcs) {
+      try {
+        const client = createPublicClient({
+          transport: http(rpcUrl),
+        });
+
+        const blockNumber = await client.getBlockNumber();
+        if (blockNumber !== null) {
+          publicRpcClient = client;
+          break;
+        }
+      } catch (error) {
+        throw new Error(
+          "Failed to connect to RPC at ${rpcUrl}, trying next one..."
+        );
+      }
+    }
+
+    if (!publicRpcClient) {
+      throw new Error("All RPC connections failed");
+    }
+
+    const block = await publicRpcClient.getBlock({ blockNumber });
     const timestamp = Number(block.timestamp);
 
     const chainsauceBlock: Block = {
@@ -565,14 +586,34 @@ async function catchupAndWatchChain(
 
     const indexerLogger = chainLogger.child({ subsystem: "DataUpdater" });
 
-    const viemRpcClient = createPublicClient({
-      transport: http(config.chain.rpc),
-    });
+    let publicRpcClient: ReturnType<typeof createPublicClient> | null = null;
+
+    for (const rpcUrl of config.chain.rpcs) {
+      try {
+        const client = createPublicClient({
+          transport: http(rpcUrl),
+        });
+
+        const blockNumber = await client.getBlockNumber();
+        if (blockNumber !== null) {
+          publicRpcClient = client;
+          break;
+        }
+      } catch (error) {
+        chainLogger.warn(
+          `Failed to connect to RPC at ${rpcUrl}, trying next one...`
+        );
+      }
+    }
+
+    if (!publicRpcClient) {
+      throw new Error("All RPC connections failed");
+    }
 
     const eventHandlerContext: EventHandlerContext = {
       chainId: config.chain.id,
       db,
-      rpcClient: viemRpcClient,
+      rpcClient: publicRpcClient,
       ipfsGet: cachedIpfsGet,
       priceProvider,
       blockTimestampInMs: blockTimestampInMs,
@@ -583,7 +624,7 @@ async function catchupAndWatchChain(
       retryDelayMs: 1000,
       maxConcurrentRequests: 10,
       maxRetries: 3,
-      url: config.chain.rpc,
+      url: config.chain.rpcs[0],
       onRequest({ method, params }) {
         chainLogger.trace({ msg: `RPC Request ${method}`, params });
       },
