@@ -263,3 +263,8 @@ export type NewIpfsData = {
   cid: string;
   data: unknown;
 };
+
+export type SkippedBlockCount = {
+  chainId: ChainId;
+  count: bigint;
+};

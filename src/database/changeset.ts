@@ -145,4 +145,8 @@ export type DataChange =
   | {
       type: "InsertIpfsData";
       ipfs: NewIpfsData;
-    };
+    }
+  | {
+    type : "IncrementSkippedBlockCount";
+    chainId: ChainId;
+  };

@@ -15,6 +15,7 @@ import {
   LegacyProjectTable,
   ApplicationPayout,
   IpfsDataTable,
+  SkippedBlockCountTable,
 } from "./schema.js";
 import { migrate, migrateDataFetcher, migratePriceFetcher } from "./migrate.js";
 import { encodeJsonWithBigInts } from "../utils/index.js";
@@ -39,6 +40,7 @@ interface Tables {
   legacyProjects: LegacyProjectTable;
   applicationsPayouts: ApplicationPayout;
   ipfsData: IpfsDataTable;
+  skippedBlockCount: SkippedBlockCountTable;
 }
 
 type KyselyDb = Kysely<Tables>;
@@ -663,9 +665,29 @@ export class Database {
         break;
       }
 
+      case "IncrementSkippedBlockCount": {
+        await this.#db
+          .withSchema(this.chainDataSchemaName)
+          .insertInto("skippedBlockCount")
+          .values(change.chainId)
+          .execute();
+        break;
+      }
+
       default:
         throw new Error(`Unknown changeset type`);
     }
+  }
+
+  async getSkippedBlockCountByChainId(chainId: ChainId) {
+    const skippedBlockCount = await this.#db
+      .withSchema(this.chainDataSchemaName)
+      .selectFrom("skippedBlockCount")
+      .where("chainId", "=", chainId)
+      .selectAll()
+      .execute();
+
+    return skippedBlockCount;
   }
 
   async getPendingProjectRolesByRole(chainId: ChainId, role: string) {

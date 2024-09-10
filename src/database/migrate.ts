@@ -13,6 +13,12 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
   const schema = db.withSchema(schemaName).schema;
 
   await schema
+    .createTable("skipped_block_count")
+    .addColumn("chainId", CHAIN_ID_TYPE)
+    .addColumn("count", BIGINT_TYPE)
+    .execute();
+
+  await schema
     .createType("project_type")
     .asEnum(["canonical", "linked"])
     .execute();
