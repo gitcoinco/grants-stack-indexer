@@ -124,8 +124,8 @@ export class Database {
 
     // Acquire locks for all schemas
     const chainDataLockId = generateLockId(this.chainDataSchemaName);
-    const ipfsDataLockId = generateLockId(this.ipfsDataSchemaName);
-    const priceDataLockId = generateLockId(this.priceDataSchemaName);
+    // const ipfsDataLockId = generateLockId(this.ipfsDataSchemaName);
+    // const priceDataLockId = generateLockId(this.priceDataSchemaName);
 
     // Track acquired locks
     const acquiredLocks: number[] = [];
@@ -140,16 +140,16 @@ export class Database {
       // if (priceDataLockAcquired) acquiredLocks.push(priceDataLockId);
 
       // NOTE: We are forcibly acquiring locks for IPFS and Price data schemas
-      await forciblyAcquireLockForSchema(priceDataLockId);
-      await forciblyAcquireLockForSchema(priceDataLockId);
-      acquiredLocks.push(ipfsDataLockId);
-      acquiredLocks.push(priceDataLockId);
+      // await forciblyAcquireLockForSchema(ipfsDataLockId);
+      // await forciblyAcquireLockForSchema(priceDataLockId);
+      // acquiredLocks.push(ipfsDataLockId);
+      // acquiredLocks.push(priceDataLockId);
 
-      // this.#logger.info(`Lock Status =>
-      //   Chain Data (${chainDataLockId}): ${chainDataLockAcquired},
-      //   IPFS Data (${ipfsDataLockId}): ${ipfsDataLockAcquired},
-      //   Price Data (${priceDataLockId}): ${priceDataLockAcquired}
-      // `);
+      this.#logger.info(`Lock Status =>
+        Chain Data (${chainDataLockId}): ${chainDataLockAcquired}
+      `);
+        // IPFS Data (${ipfsDataLockId}): ${ipfsDataLockAcquired},
+        // Price Data (${priceDataLockId}): ${priceDataLockAcquired}
 
       return {
         release: async () => {
