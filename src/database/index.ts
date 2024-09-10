@@ -15,7 +15,7 @@ import {
   LegacyProjectTable,
   ApplicationPayout,
   IpfsDataTable,
-  SkippedBlockCountTable,
+  SkippedBlockCount,
 } from "./schema.js";
 import { migrate, migrateDataFetcher, migratePriceFetcher } from "./migrate.js";
 import { encodeJsonWithBigInts } from "../utils/index.js";
@@ -40,7 +40,7 @@ interface Tables {
   legacyProjects: LegacyProjectTable;
   applicationsPayouts: ApplicationPayout;
   ipfsData: IpfsDataTable;
-  skippedBlockCount: SkippedBlockCountTable;
+  skippedBlockCount: SkippedBlockCount;
 }
 
 type KyselyDb = Kysely<Tables>;
@@ -668,8 +668,11 @@ export class Database {
       case "IncrementSkippedBlockCount": {
         await this.#db
           .withSchema(this.chainDataSchemaName)
-          .insertInto("skippedBlockCount")
-          .values(change.chainId)
+          .updateTable("skippedBlockCount")
+          .set((eb) => ({
+            count: eb("count", "+", 1),
+          }))
+          .where("chainId", "=", change.chainId)
           .execute();
         break;
       }
