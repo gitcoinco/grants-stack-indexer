@@ -1839,6 +1839,44 @@ export type Config = {
 };
 
 export function getConfig(): Config {
+  const { values: args } = parseArgs({
+    options: {
+      "to-block": {
+        type: "string",
+      },
+      "from-block": {
+        type: "string",
+      },
+      "drop-db": {
+        type: "boolean",
+      },
+      "rm-cache": {
+        type: "boolean",
+      },
+      "log-level": {
+        type: "string",
+      },
+      "run-once": {
+        type: "boolean",
+      },
+      "no-cache": {
+        type: "boolean",
+      },
+      "http-wait-for-sync": {
+        type: "string",
+      },
+      http: {
+        type: "boolean",
+      },
+      indexer: {
+        type: "boolean",
+      },
+      port: {
+        type: "string",
+      },
+    },
+  });
+
   const buildTag = z
     .union([z.string(), z.null()])
     .default(null)
@@ -1849,7 +1887,17 @@ export function getConfig(): Config {
     .transform((value) => value === "true")
     .parse(process.env.ENABLE_RESOURCE_MONITOR);
 
-  const apiHttpPort = z.coerce.number().parse(process.env.PORT);
+  const portSchema = z.number().int().nonnegative().max(65535);
+
+  const portOverride = z
+    .union([portSchema, z.undefined()])
+    .optional()
+    .parse(args["port"]);
+
+  const apiHttpPort =
+    portOverride !== undefined
+      ? portOverride
+      : portSchema.parse(z.coerce.number().parse(process.env.PORT));
 
   const pinoPretty = z
     .enum(["true", "false"])
@@ -1889,41 +1937,6 @@ export function getConfig(): Config {
     .union([z.string(), z.null()])
     .default(path.join(storageDir, "cache"))
     .parse(process.env.CACHE_DIR);
-
-  const { values: args } = parseArgs({
-    options: {
-      "to-block": {
-        type: "string",
-      },
-      "from-block": {
-        type: "string",
-      },
-      "drop-db": {
-        type: "boolean",
-      },
-      "rm-cache": {
-        type: "boolean",
-      },
-      "log-level": {
-        type: "string",
-      },
-      "run-once": {
-        type: "boolean",
-      },
-      "no-cache": {
-        type: "boolean",
-      },
-      "http-wait-for-sync": {
-        type: "string",
-      },
-      http: {
-        type: "boolean",
-      },
-      indexer: {
-        type: "boolean",
-      },
-    },
-  });
 
   const chains = z
     .string()
