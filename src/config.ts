@@ -1856,7 +1856,16 @@ export function getConfig(): Config {
       "from-block": {
         type: "string",
       },
+      "drop-chain-db": {
+        type: "boolean",
+      },
+      "drop-ipfs-db": {
+        type: "boolean",
+      },
       "drop-db": {
+        type: "boolean",
+      },
+      "drop-price-db": {
         type: "boolean",
       },
       "rm-cache": {
