@@ -1,7 +1,8 @@
-app = 'indexer-v2'
-primary_region = 'den'
-kill_signal = 'SIGINT'
-kill_timeout = '5s'
+
+app = "indexer-v2"
+primary_region = "den"
+kill_signal = "SIGINT"
+kill_timeout = "5s"
 
 [experimental]
   auto_rollback = true
@@ -9,58 +10,96 @@ kill_timeout = '5s'
 [build]
 
 [deploy]
-  wait_timeout = '6h0m0s'
+  wait_timeout = "6h0m0s"
 
 [env]
-  PINO_PRETTY = 'true'
-  DEPLOYMENT_ENVIRONMENT = 'production'
-  ENABLE_RESOURCE_MONITOR = 'false'
-  ESTIMATES_LINEARQF_WORKER_POOL_SIZE = '10'
-  INDEXED_CHAINS = 'mainnet,optimism,fantom,pgn-testnet,pgn-mainnet,arbitrum,polygon,sepolia,avalanche,avalanche-fuji,scroll,scroll-sepolia,base,zksync-era-mainnet,lukso-mainnet,lukso-testnet,celo-mainnet,celo-testnet,sei-mainnet,metisAndromeda'
-  LOG_LEVEL = 'debug'
-  NODE_OPTIONS = '--max-old-space-size=4096'
-  PORT = '8080'
-  STORAGE_DIR = '/mnt/indexer'
-  PASSPORT_SCORER_ID=335
+  PINO_PRETTY = "true"
+  DEPLOYMENT_ENVIRONMENT = "production"
+  ENABLE_RESOURCE_MONITOR = "false"
+  ESTIMATES_LINEARQF_WORKER_POOL_SIZE = "10"
+  INDEXED_CHAINS = "mainnet,optimism,fantom,pgn-testnet,pgn-mainnet,arbitrum,polygon,sepolia,avalanche,avalanche-fuji,scroll,scroll-sepolia,base,zksync-era-mainnet,lukso-mainnet,lukso-testnet,celo-mainnet,celo-testnet,sei-mainnet,metisAndromeda"
+  LOG_LEVEL = "debug"
+  NODE_OPTIONS = "--max-old-space-size=4096"
+  PORT = "8080"
+  STORAGE_DIR = "/mnt/indexer"
+  PASSPORT_SCORER_ID = 335
 
 [processes]
-  indexer = 'npm start -- --indexer --http'
-  web = 'npm start -- --http --http-wait-for-sync=false'
+  indexer = "npm start -- --indexer --http"
+  web = "npm start -- --http --http-wait-for-sync=false"
 
 [[mounts]]
-  source = 'indexer_staging'
-  destination = '/mnt/indexer'
-  initial_size = '50GB'
+  source = "indexer_staging"
+  destination = "/mnt/indexer"
+  initial_size = "50GB"
   auto_extend_size_threshold = 80
   auto_extend_size_increment = "5GB"
   auto_extend_size_limit = "100GB"
-  processes = ['indexer', 'web']
+  processes = ["indexer", "web"]
 
-[http_service]
+[[services]]
   internal_port = 8080
-  force_https = true
-  auto_stop_machines = true
-  auto_start_machines = true
-  min_machines_running = 2
-  processes = ['web']
+  processes = ["indexer"]
+  protocol = "tcp"
+  script_checks = []
 
-  [http_service.concurrency]
-    type = 'requests'
+  [services.concurrency]
     hard_limit = 250
     soft_limit = 200
+    type = "requests"
 
-[checks]
-  [checks.http]
-    port = 8080
-    type = 'http'
-    interval = '15s'
-    timeout = '10s'
-    grace_period = '30s'
-    method = 'get'
-    path = '/api/v1/status'
-    processes = ['web', 'indexer']
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [[services.tcp_checks]]
+    grace_period = "30s"
+    interval = "15s"
+    restart_limit = 0
+    timeout = "10s"
+
+[[services]]
+  internal_port = 8080
+  processes = ["web"]
+  protocol = "tcp"
+  script_checks = []
+
+  [services.concurrency]
+    hard_limit = 250
+    soft_limit = 200
+    type = "requests"
+
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [[services.tcp_checks]]
+    grace_period = "30s"
+    interval = "15s"
+    restart_limit = 0
+    timeout = "10s"
+
+[checks.http]
+  port = 8080
+  type = "http"
+  interval = "15s"
+  timeout = "10s"
+  grace_period = "30s"
+  method = "get"
+  path = "/api/v1/status"
+  processes = ["web", "indexer"]
 
 [[vm]]
-  memory = '4gb'
-  cpu_kind = 'performance'
+  memory = "4gb"
+  cpu_kind = "performance"
   cpus = 2
