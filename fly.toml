@@ -24,7 +24,7 @@ kill_timeout = '5s'
   PASSPORT_SCORER_ID=335
 
 [processes]
-  indexer = 'npm start -- --indexer --http'
+  indexer = 'npm start -- --indexer --http --port=8081'
   web = 'npm start -- --http --http-wait-for-sync=false'
 
 [[mounts]]
@@ -36,7 +36,30 @@ kill_timeout = '5s'
   auto_extend_size_limit = "100GB"
   processes = ['indexer', 'web']
 
-[http_service]
+[http_service.indexer]
+  internal_port = 8081
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['indexer']
+
+  [http_service.indexer.concurrency]
+    type = 'requests'
+    hard_limit = 250
+    soft_limit = 200
+
+[checks.indexer_http]
+  port = 8081
+  type = 'http'
+  interval = '15s'
+  timeout = '10s'
+  grace_period = '30s'
+  method = 'get'
+  path = '/api/v1/status'
+  processes = ['indexer']
+
+[http_service.web]
   internal_port = 8080
   force_https = true
   auto_stop_machines = true
@@ -44,7 +67,7 @@ kill_timeout = '5s'
   min_machines_running = 2
   processes = ['web']
 
-  [http_service.concurrency]
+  [http_service.web.concurrency]
     type = 'requests'
     hard_limit = 250
     soft_limit = 200

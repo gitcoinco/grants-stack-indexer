@@ -1848,57 +1848,6 @@ export type Config = {
 };
 
 export function getConfig(): Config {
-  const buildTag = z
-    .union([z.string(), z.null()])
-    .default(null)
-    .parse(process.env.BUILD_TAG);
-
-  const enableResourceMonitor = z
-    .enum(["true", "false"])
-    .transform((value) => value === "true")
-    .parse(process.env.ENABLE_RESOURCE_MONITOR);
-
-  const apiHttpPort = z.coerce.number().parse(process.env.PORT);
-
-  const pinoPretty = z
-    .enum(["true", "false"])
-    .default("true")
-    .transform((value) => value === "true")
-    .parse(process.env.PINO_PRETTY);
-
-  const deploymentEnvironment = z
-    .union([
-      z.literal("local"),
-      z.literal("development"),
-      z.literal("staging"),
-      z.literal("production"),
-    ])
-    .parse(process.env.DEPLOYMENT_ENVIRONMENT);
-
-  const passportScorerId = z.coerce
-    .number()
-    .parse(process.env.PASSPORT_SCORER_ID);
-
-  const coingeckoApiKey = z
-    .union([z.string(), z.null()])
-    .default(null)
-    .parse(process.env.COINGECKO_API_KEY);
-
-  const coingeckoApiUrl =
-    coingeckoApiKey === null
-      ? "https://api.coingecko.com/api/v3"
-      : "https://pro-api.coingecko.com/api/v3/";
-
-  const storageDir = z
-    .string()
-    .default("./.var")
-    .parse(process.env.STORAGE_DIR);
-
-  const cacheDir = z
-    .union([z.string(), z.null()])
-    .default(path.join(storageDir, "cache"))
-    .parse(process.env.CACHE_DIR);
-
   const { values: args } = parseArgs({
     options: {
       "to-block": {
@@ -1940,8 +1889,72 @@ export function getConfig(): Config {
       indexer: {
         type: "boolean",
       },
+      port: {
+        type: "string",
+      },
     },
   });
+
+  const buildTag = z
+    .union([z.string(), z.null()])
+    .default(null)
+    .parse(process.env.BUILD_TAG);
+
+  const enableResourceMonitor = z
+    .enum(["true", "false"])
+    .transform((value) => value === "true")
+    .parse(process.env.ENABLE_RESOURCE_MONITOR);
+
+  const portSchema = z.number().int().nonnegative().max(65535);
+
+  const portOverride = z
+    .union([portSchema, z.undefined()])
+    .optional()
+    .parse(args["port"]);
+
+  const apiHttpPort =
+    portOverride !== undefined
+      ? portOverride
+      : portSchema.parse(z.coerce.number().parse(process.env.PORT));
+
+  const pinoPretty = z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true")
+    .parse(process.env.PINO_PRETTY);
+
+  const deploymentEnvironment = z
+    .union([
+      z.literal("local"),
+      z.literal("development"),
+      z.literal("staging"),
+      z.literal("production"),
+    ])
+    .parse(process.env.DEPLOYMENT_ENVIRONMENT);
+
+  const passportScorerId = z.coerce
+    .number()
+    .parse(process.env.PASSPORT_SCORER_ID);
+
+  const coingeckoApiKey = z
+    .union([z.string(), z.null()])
+    .default(null)
+    .parse(process.env.COINGECKO_API_KEY);
+
+  const coingeckoApiUrl =
+    coingeckoApiKey === null
+      ? "https://api.coingecko.com/api/v3"
+      : "https://pro-api.coingecko.com/api/v3/";
+
+  const storageDir = z
+    .string()
+    .default("./.var")
+    .parse(process.env.STORAGE_DIR);
+
+  const cacheDir = z
+    .union([z.string(), z.null()])
+    .default(path.join(storageDir, "cache"))
+    .parse(process.env.CACHE_DIR);
 
   const chains = z
     .string()
