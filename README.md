@@ -44,6 +44,7 @@ npm run dev -- --from-block=12345 # start indexing from the 12345th block
 npm run dev -- --run-once # index and exit without watching for events
 npm run dev -- --no-cache # disable cache
 npm run dev -- --log-level=trace # set log level
+npm run dev -- --port=8081 # start web service on a given port
 ```
 
 ## Running in production
