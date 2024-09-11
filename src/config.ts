@@ -1887,7 +1887,7 @@ export function getConfig(): Config {
     .transform((value) => value === "true")
     .parse(process.env.ENABLE_RESOURCE_MONITOR);
 
-  const portSchema = z.number().int().nonnegative().max(65535);
+  const portSchema = z.coerce.number().int().nonnegative().max(65535);
 
   const portOverride = z
     .union([portSchema, z.undefined()])
