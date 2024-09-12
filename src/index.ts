@@ -25,6 +25,7 @@ import { createPassportProvider, PassportProvider } from "./passport/index.js";
 
 import { createResourceMonitor } from "./resourceMonitor.js";
 import diskstats from "diskstats";
+import { StatsD } from "hot-shots";
 
 import { Chain, getConfig, Config, getChainConfigById } from "./config.js";
 import { createPriceProvider, PriceProvider } from "./prices/provider.js";
@@ -45,6 +46,12 @@ import { createPublicClient, http } from "viem";
 import { IndexerEvents } from "chainsauce/dist/indexer.js";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
+
+const dogstatsd = new StatsD({
+  host: "149.248.217.210",
+  port: 8125,
+  tagPrefix: "allo-indexer.",
+});
 
 function createPgPool(args: { url: string; logger: Logger }): pg.Pool {
   const pool = new Pool({
@@ -681,6 +688,15 @@ async function catchupAndWatchChain(
           });
 
           const donationQueueLength = db.donationQueueLength();
+
+          dogstatsd.gauge(
+            `indexer.progress.${config.chain.id}`,
+            Number(progressPercentage)
+          );
+          dogstatsd.gauge(
+            `indexer.blockhead.${config.chain.id}`,
+            Number(targetBlock)
+          );
 
           indexerLogger.info(
             `${currentBlock}/${targetBlock} indexed (${progressPercentage}%) (pending events: ${pendingEventsCount}) (pending donations: ${donationQueueLength}) (contracts: ${activeSubscriptions.length})`
