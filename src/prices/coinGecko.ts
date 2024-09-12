@@ -16,6 +16,7 @@ const platforms: { [key: number]: string } = {
   42: "lukso",
   42220: "celo",
   1088: "metis",
+  100: "xdai",
 };
 
 const nativeTokens: { [key: number]: string } = {
@@ -29,6 +30,7 @@ const nativeTokens: { [key: number]: string } = {
   42: "lukso-token",
   42220: "celo",
   1088: "metis-token",
+  100: "xdai",
 };
 
 type TimestampInMs = number;

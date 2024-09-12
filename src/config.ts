@@ -11,6 +11,7 @@ type ChainId = number;
 type CoingeckoSupportedChainId =
   | 1
   | 10
+  | 100
   | 250
   | 42161
   | 43114
@@ -1765,6 +1766,56 @@ const CHAINS: Chain[] = [
       },
     ],
   },
+  {
+    id: 100,
+    name: "gnosis",
+    rpc: rpcUrl
+      .default("https://rpc.gnosischain.com")
+      .parse(process.env.GNOSIS_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "XDAI",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 18,
+        priceSource: {
+          chainId: 100,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "XDAI",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 18,
+        priceSource: {
+          chainId: 100,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+      {
+        code: "USDC",
+        address: "0xddafbb505ad214d7b80b1f830fccc89b60fb7a83",
+        decimals: 6,
+        priceSource: {
+          chainId: 100,
+          address: "0xddafbb505ad214d7b80b1f830fccc89b60fb7a83",
+        },
+      },
+    ],
+    subscriptions: [
+      // Allo V2
+      {
+        contractName: "AlloV2/Registry/V1",
+        address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+        fromBlock: 35900000,
+      },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+        fromBlock: 35900000,
+      },
+    ],
+  },
 ];
 
 export const getDecimalsForToken = (
@@ -1848,6 +1899,53 @@ export type Config = {
 };
 
 export function getConfig(): Config {
+  const { values: args } = parseArgs({
+    options: {
+      "to-block": {
+        type: "string",
+      },
+      "from-block": {
+        type: "string",
+      },
+      "drop-chain-db": {
+        type: "boolean",
+      },
+      "drop-ipfs-db": {
+        type: "boolean",
+      },
+      "drop-db": {
+        type: "boolean",
+      },
+      "drop-price-db": {
+        type: "boolean",
+      },
+      "rm-cache": {
+        type: "boolean",
+      },
+      "log-level": {
+        type: "string",
+      },
+      "run-once": {
+        type: "boolean",
+      },
+      "no-cache": {
+        type: "boolean",
+      },
+      "http-wait-for-sync": {
+        type: "string",
+      },
+      http: {
+        type: "boolean",
+      },
+      indexer: {
+        type: "boolean",
+      },
+      port: {
+        type: "string",
+      },
+    },
+  });
+
   const buildTag = z
     .union([z.string(), z.null()])
     .default(null)
@@ -1858,7 +1956,17 @@ export function getConfig(): Config {
     .transform((value) => value === "true")
     .parse(process.env.ENABLE_RESOURCE_MONITOR);
 
-  const apiHttpPort = z.coerce.number().parse(process.env.PORT);
+  const portSchema = z.coerce.number().int().nonnegative().max(65535);
+
+  const portOverride = z
+    .union([portSchema, z.undefined()])
+    .optional()
+    .parse(args["port"]);
+
+  const apiHttpPort =
+    portOverride !== undefined
+      ? portOverride
+      : portSchema.parse(z.coerce.number().parse(process.env.PORT));
 
   const pinoPretty = z
     .enum(["true", "false"])
@@ -1898,50 +2006,6 @@ export function getConfig(): Config {
     .union([z.string(), z.null()])
     .default(path.join(storageDir, "cache"))
     .parse(process.env.CACHE_DIR);
-
-  const { values: args } = parseArgs({
-    options: {
-      "to-block": {
-        type: "string",
-      },
-      "from-block": {
-        type: "string",
-      },
-      "drop-db": {
-        type: "boolean",
-      },
-      "drop-chain-db": {
-        type: "boolean",
-      },
-      "drop-ipfs-db": {
-        type: "boolean",
-      },
-      "drop-price-db": {
-        type: "boolean",
-      },
-      "rm-cache": {
-        type: "boolean",
-      },
-      "log-level": {
-        type: "string",
-      },
-      "run-once": {
-        type: "boolean",
-      },
-      "no-cache": {
-        type: "boolean",
-      },
-      "http-wait-for-sync": {
-        type: "string",
-      },
-      http: {
-        type: "boolean",
-      },
-      indexer: {
-        type: "boolean",
-      },
-    },
-  });
 
   const chains = z
     .string()

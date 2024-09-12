@@ -40,7 +40,7 @@ import type { EventHandlerContext } from "./indexer/indexer.js";
 import { handleEvent as handleAlloV1Event } from "./indexer/allo/v1/handleEvent.js";
 import { handleEvent as handleAlloV2Event } from "./indexer/allo/v2/handleEvent.js";
 import { Database } from "./database/index.js";
-import { decodeJsonWithBigInts } from "./utils/index.js";
+import { decodeJsonWithBigInts, getExternalIP } from "./utils/index.js";
 import { Block } from "chainsauce/dist/cache.js";
 import { createPublicClient, http } from "viem";
 import { IndexerEvents } from "chainsauce/dist/indexer.js";
@@ -127,6 +127,8 @@ async function main(): Promise<void> {
   types.setTypeParser(3802, function (val) {
     return decodeJsonWithBigInts(val);
   });
+
+  await getExternalIP(baseLogger);
 
   if (config.cacheDir) {
     if (config.removeCache) {
