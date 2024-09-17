@@ -211,10 +211,27 @@ export function createPriceProvider(
         });
       }
 
-      await db.applyChange({
-        type: "InsertManyPrices",
-        prices: [newPrice],
-      });
+      // Check if the price is already in the database
+      const existingPrice = await db.getTokenPriceByBlockNumber(
+        chainId,
+        newPrice.tokenAddress,
+        blockNumber
+      );
+
+      if (!existingPrice) {
+        try {
+          await db.applyChange({
+            type: "InsertManyPrices",
+            prices: [newPrice],
+          });
+        } catch (e) {
+          logger.error({
+            msg: "Failed to insert price",
+            error: e,
+            price: newPrice,
+          });
+        }
+      }
 
       return { ...newPrice, tokenDecimals: token.decimals };
     }

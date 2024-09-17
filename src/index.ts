@@ -25,6 +25,7 @@ import { createPassportProvider, PassportProvider } from "./passport/index.js";
 
 import { createResourceMonitor } from "./resourceMonitor.js";
 import diskstats from "diskstats";
+import { StatsD } from "hot-shots";
 
 import { Chain, getConfig, Config, getChainConfigById } from "./config.js";
 import { createPriceProvider, PriceProvider } from "./prices/provider.js";
@@ -39,12 +40,18 @@ import type { EventHandlerContext } from "./indexer/indexer.js";
 import { handleEvent as handleAlloV1Event } from "./indexer/allo/v1/handleEvent.js";
 import { handleEvent as handleAlloV2Event } from "./indexer/allo/v2/handleEvent.js";
 import { Database } from "./database/index.js";
-import { decodeJsonWithBigInts } from "./utils/index.js";
+import { decodeJsonWithBigInts, getExternalIP } from "./utils/index.js";
 import { Block } from "chainsauce/dist/cache.js";
 import { createPublicClient, http } from "viem";
 import { IndexerEvents } from "chainsauce/dist/indexer.js";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
+
+const dogstatsd = new StatsD({
+  host: "149.248.217.210",
+  port: 8125,
+  tagPrefix: "allo-indexer.",
+});
 
 function createPgPool(args: { url: string; logger: Logger }): pg.Pool {
   const pool = new Pool({
@@ -121,6 +128,8 @@ async function main(): Promise<void> {
     return decodeJsonWithBigInts(val);
   });
 
+  await getExternalIP(baseLogger);
+
   if (config.cacheDir) {
     if (config.removeCache) {
       await fs.rm(config.cacheDir, { recursive: true });
@@ -151,7 +160,9 @@ async function main(): Promise<void> {
     logger: baseLogger.child({ subsystem: "Database" }),
     statsUpdaterEnabled: config.indexerEnabled,
     connectionPool: databaseConnectionPool,
-    schemaName: config.databaseSchemaName,
+    chainDataSchemaName: config.databaseSchemaName,
+    ipfsDataSchemaName: config.ipfsDatabaseSchemaName,
+    priceDataSchemaName: config.priceDatabaseSchemaName,
   });
 
   baseLogger.info({
@@ -240,15 +251,22 @@ async function main(): Promise<void> {
     const lock = await db.acquireWriteLock();
 
     if (lock !== null) {
-      baseLogger.info("acquired write lock");
-
       if (isFirstRun) {
         if (config.dropDb) {
-          baseLogger.info("dropping schema");
-          await db.dropSchemaIfExists();
+          baseLogger.info("dropping all schemas");
+          await db.dropAllSchemaIfExists();
+        } else if (config.dropChainDb) {
+          baseLogger.info("resetting chain data schema");
+          await db.dropChainDataSchemaIfExists();
+        } else if (config.dropIpfsDb) {
+          baseLogger.info("resetting ipfs data schema");
+          await db.dropIpfsDataSchemaIfExists();
+        } else if (config.dropPriceDb) {
+          baseLogger.info("resetting price data schema");
+          await db.dropPriceDataSchemaIfExists();
         }
 
-        await db.createSchemaIfNotExists(baseLogger);
+        await db.createAllSchemas(baseLogger);
         await subscriptionStore.init();
       }
 
@@ -324,7 +342,11 @@ async function main(): Promise<void> {
 
     const graphqlHandler = postgraphile(
       readOnlyDatabaseConnectionPool,
-      config.databaseSchemaName,
+      [
+        config.databaseSchemaName,
+        config.ipfsDatabaseSchemaName,
+        config.priceDatabaseSchemaName,
+      ],
       {
         watchPg: false,
         graphqlRoute: "/graphql",
@@ -401,6 +423,7 @@ async function main(): Promise<void> {
                 workerPoolSize: config.estimatesLinearQfWorkerPoolSize,
               },
       },
+      indexedChains: await indexChainsPromise,
     });
 
     await httpApi.start();
@@ -465,29 +488,86 @@ async function catchupAndWatchChain(
         return undefined;
       }
 
-      const url = `${config.ipfsGateway}/ipfs/${cid}`;
+      // Check if data is already in the IPFS database
+      const ipfsData = await db.getDataByCid(cid);
+      if (ipfsData) {
+        // chainLogger.info(`Found IPFS data in database for CID: ${cid}`);
+        return Promise.resolve(ipfsData.data as string as T);
+      }
 
-      // chainLogger.trace(`Fetching ${url}`);
-
-      const res = await fetch(url, {
-        timeout: 2000,
-        onRetry(cause) {
-          chainLogger.debug({
-            msg: "Retrying IPFS request",
-            url: url,
-            err: cause,
+      // Fetch from a single IPFS gateway
+      const fetchFromGateway = async (url: string): Promise<T | undefined> => {
+        try {
+          const res = await fetch(url, {
+            timeout: 2000,
+            onRetry(cause) {
+              chainLogger.debug({
+                msg: "Retrying IPFS request",
+                url: url,
+                err: cause,
+              });
+            },
+            retry: { retries: 3, minTimeout: 2000, maxTimeout: 60 * 10000 },
+            // IPFS data is immutable, we can rely entirely on the cache when present
+            cache: "force-cache",
+            cachePath:
+              config.cacheDir !== null
+                ? path.join(config.cacheDir, "ipfs")
+                : undefined,
           });
-        },
-        retry: { retries: 3, minTimeout: 2000, maxTimeout: 60 * 10000 },
-        // IPFS data is immutable, we can rely entirely on the cache when present
-        cache: "force-cache",
-        cachePath:
-          config.cacheDir !== null
-            ? path.join(config.cacheDir, "ipfs")
-            : undefined,
-      });
 
-      return (await res.json()) as T;
+          if (res.ok) {
+            return (await res.json()) as T; // Return the fetched data
+          } else {
+            chainLogger.warn(
+              `Failed to fetch from ${url}, status: ${res.status} ${res.statusText}`
+            );
+          }
+        } catch (err) {
+          chainLogger.error(
+            `Error fetching from gateway ${url}: ${String(err)}`
+          );
+        }
+      };
+
+      // Iterate through each gateway and attempt to fetch data
+      for (const gateway of config.ipfsGateways) {
+        const url = `${gateway}/ipfs/${cid}`;
+        // chainLogger.info(`Trying IPFS gateway: ${gateway} for CID: ${cid}`);
+
+        const result = await fetchFromGateway(url);
+        if (result !== undefined) {
+          // chainLogger.info(
+          //   `Fetch successful from gateway: ${gateway} for CID: ${cid}`
+          // );
+
+          // Save to IpfsData table
+          try {
+            await db.applyChange({
+              type: "InsertIpfsData",
+              ipfs: {
+                cid,
+                data: result, // TODO: check is JSON.parse is needed
+              },
+            });
+          } catch (err) {
+            chainLogger.error(
+              `Error saving IPFS data to database: ${String(err)}`
+            );
+          }
+
+          return result; // Return the result if fetched successfully
+        } else {
+          chainLogger.warn(
+            `IPFS fetch failed for gateway ${gateway} for CID ${cid}`
+          );
+        }
+      }
+
+      chainLogger.error(
+        `Failed to fetch IPFS data for CID ${cid} from all gateways.`
+      );
+      return undefined; // Return undefined if all gateways fail
     };
 
     chainLogger.info("DEBUG: catching up with blockchain events");
@@ -608,6 +688,15 @@ async function catchupAndWatchChain(
           });
 
           const donationQueueLength = db.donationQueueLength();
+
+          dogstatsd.gauge(
+            `indexer.progress.${config.chain.id}`,
+            Number(progressPercentage)
+          );
+          dogstatsd.gauge(
+            `indexer.blockhead.${config.chain.id}`,
+            Number(targetBlock)
+          );
 
           indexerLogger.info(
             `${currentBlock}/${targetBlock} indexed (${progressPercentage}%) (pending events: ${pendingEventsCount}) (pending donations: ${donationQueueLength}) (contracts: ${activeSubscriptions.length})`
