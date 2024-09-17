@@ -24,6 +24,7 @@ import {
   DGApplicationData,
   DGTimeStampUpdatedData,
   DVMDApplicationData,
+  DVMDExtendedApplicationData,
   DVMDTimeStampUpdatedData,
 } from "../../types.js";
 import { fetchPoolMetadata } from "./poolMetadata.js";
@@ -79,7 +80,9 @@ function getProjectTypeFromMetadata(metadata: ProjectMetadata) {
 }
 
 // Decode the application data from DonationVotingMerkleDistribution
-function decodeDVMDApplicationData(encodedData: Hex): DVMDApplicationData {
+function decodeDVMDExtendedApplicationData(
+  encodedData: Hex
+): DVMDExtendedApplicationData {
   const values = decodeAbiParameters(
     [
       { name: "data", type: "bytes" },
@@ -88,6 +91,15 @@ function decodeDVMDApplicationData(encodedData: Hex): DVMDApplicationData {
     encodedData
   );
 
+  const encodededDVMD = decodeDVMDApplicationData(values[0]);
+
+  return {
+    ...encodededDVMD,
+    recipientsCounter: values[1].toString(),
+  };
+}
+
+function decodeDVMDApplicationData(encodedData: Hex): DVMDApplicationData {
   const decodedData = decodeAbiParameters(
     [
       { name: "registryAnchor", type: "address" },
@@ -101,11 +113,10 @@ function decodeDVMDApplicationData(encodedData: Hex): DVMDApplicationData {
         ],
       },
     ],
-    values[0]
+    encodedData
   );
 
   const results: DVMDApplicationData = {
-    recipientsCounter: values[1].toString(),
     anchorAddress: decodedData[0],
     recipientAddress: decodedData[1],
     metadata: {
@@ -797,7 +808,7 @@ export async function handleEvent(
 
         case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
         case "allov2.DirectGrantsLiteStrategy":
-          values = decodeDVMDApplicationData(encodedData);
+          values = decodeDVMDExtendedApplicationData(encodedData);
           id = (Number(values.recipientsCounter) - 1).toString();
           break;
 
@@ -839,6 +850,80 @@ export async function handleEvent(
         {
           type: "InsertApplication",
           application,
+        },
+      ];
+    }
+
+    case "UpdatedRegistration": {
+      const anchorAddress = parseAddress(event.params.recipientId);
+      const project = await db.getProjectByAnchor(chainId, anchorAddress);
+
+      if (!project) {
+        throw new Error("Project not found");
+      }
+
+      const encodedData = event.params.data;
+      const strategyAddress = parseAddress(event.address);
+      const round = await db.getRoundByStrategyAddress(
+        chainId,
+        strategyAddress
+      );
+
+      if (!round) {
+        throw new Error("Round not found");
+      }
+
+      let values;
+
+      switch (round.strategyName) {
+        case "allov2.DirectGrantsSimpleStrategy":
+          values = decodeDGApplicationData(encodedData);
+          break;
+
+        case "allov2.DirectGrantsLiteStrategy":
+        case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
+          values = decodeDVMDApplicationData(encodedData);
+          break;
+
+        default:
+          throw new Error("Invalid strategy name");
+      }
+
+      const metadata = await ipfsGet(values.metadata.pointer);
+
+      const statusString = ApplicationStatus[
+        event.params.status
+      ] as ApplicationTable["status"];
+
+      const application = await db.getApplicationByAnchorAddress(
+        chainId,
+        round.id,
+        anchorAddress
+      );
+
+      if (application === null) {
+        return [];
+      }
+
+      const statusUpdates = await updateApplicationStatus(
+        application,
+        statusString,
+        event.blockNumber,
+        getBlock
+      );
+
+      return [
+        {
+          type: "UpdateApplication",
+          chainId,
+          roundId: round.id,
+          applicationId: application.id,
+          application: {
+            ...application,
+            ...statusUpdates,
+            metadataCid: values.metadata.pointer,
+            metadata: metadata ?? null,
+          },
         },
       ];
     }
