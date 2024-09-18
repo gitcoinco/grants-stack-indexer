@@ -33,6 +33,10 @@ export const MatchingDistributionSchema = z.object({
       matchAmountInToken: BigIntSchema.default("0"),
     })
   ),
+  blockNumber: z.number().optional(),
+  blockTimestamp: z.date().optional(),
+  usdPrice: z.number().optional(),
+  usdPriceTimestampAt: z.date().optional(),
 });
 
 export type RoundTable = {

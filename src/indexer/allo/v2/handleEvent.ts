@@ -997,9 +997,38 @@ export async function handleEvent(
       if (!("metadata" in event.params)) {
         return [];
       }
-
       const strategyAddress = parseAddress(event.address);
-      const rawDistribution = await ipfsGet(event.params.metadata.pointer);
+      const round = await db.getRoundByStrategyAddress(
+        chainId,
+        strategyAddress
+      );
+
+      if (!round) {
+        throw new Error("Round not found");
+      }
+
+      const rawDistribution = (await ipfsGet(
+        event.params.metadata.pointer
+      )) as Record<string, unknown>;
+
+      const usdAmount = await convertToUSD(
+        priceProvider,
+        chainId,
+        round?.matchTokenAddress,
+        BigInt(1),
+        event.blockNumber
+      );
+
+      const blockTimestamp = getDateFromTimestamp(
+        BigInt((await blockTimestampInMs(chainId, event.blockNumber)) / 1000)
+      );
+      rawDistribution["blockNumber"] = Number(event.blockNumber);
+      if (blockTimestamp) {
+        rawDistribution["blockTimestamp"] = blockTimestamp;
+      }
+      rawDistribution["usdPrice"] = usdAmount.price;
+      rawDistribution["usdPriceTimestampAt"] = usdAmount.timestamp;
+
       const distribution =
         MatchingDistributionSchema.safeParse(rawDistribution);
 
