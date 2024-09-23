@@ -10,11 +10,6 @@
 
 # Set the DATABASE_URL
 DATABASE_URL="postgres://postgres:postgres@localhost:5432/grants_stack_indexer"
-# Define source and target schemas
-SOURCE_SCHEMA="chain_data_83"
-TARGET_SCHEMA="chain_data_84"
-# Define the chain ID to delete data for
-CHAIN_ID=1329  # Change this to your actual chain ID
 
 # =================================================================================================
 
@@ -37,6 +32,25 @@ handle_error() {
 
 # Trap errors and call handle_error function
 trap 'handle_error' ERR
+
+# User inputs
+read -p "Enter source schema number (e.g., 83): " SOURCE_NUM
+read -p "Enter target schema number (e.g., 84): " TARGET_NUM
+read -p "Enter chain ID to delete data for: " CHAIN_ID
+
+# Construct schema names
+SOURCE_SCHEMA="chain_data_$SOURCE_NUM"
+TARGET_SCHEMA="chain_data_$TARGET_NUM"
+
+# Confirmation prompt
+echo "You are about to clone schema '$SOURCE_SCHEMA' to '$TARGET_SCHEMA' and delete data for chain ID: $CHAIN_ID."
+read -p "Do you want to continue? (y/n): " -n 1 -r
+echo    # Move to a new line
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Operation cancelled."
+    unset PGPASSWORD
+    exit 0
+fi
 
 echo "Dropping target schema if it exists..."
 psql -U $USERNAME -h $HOST -p $PORT -d $DB_NAME -c "DROP SCHEMA IF EXISTS $TARGET_SCHEMA CASCADE;"
@@ -80,7 +94,7 @@ END
 EOF
 
 # Unset PGPASSWORD
-unset PGPASSWORD
+unset PGPASSWO
 
 echo "Schema $SOURCE_SCHEMA has been successfully cloned to $TARGET_SCHEMA in database $DB_NAME"
 echo "Deleted chain data for chain ID: $CHAIN_ID"
