@@ -8,6 +8,7 @@ import {
 
 import { Address, Hex, ChainId } from "../types.js";
 import { z } from "zod";
+import { AttestationTxnData } from "../indexer/types.js";
 
 export type MatchingDistribution = z.infer<typeof MatchingDistributionSchema>;
 
@@ -266,4 +267,32 @@ export type NewApplicationPayout = Insertable<ApplicationPayout>;
 export type NewIpfsData = {
   cid: string;
   data: unknown;
+};
+
+// Attestations
+export type AttestationTable = {
+  uid: string;
+  chainId: ChainId;
+  fee: bigint;
+  recipient: Address;
+  refUID: string;
+  projectsContributed: bigint;
+  roundsContributed: bigint;
+  chainIdsContributed: bigint;
+  totalUSDAmount: bigint;
+  timestamp: Date | null;
+  metadataCid: string;
+  metadata: unknown;
+};
+
+export type AttestationTxnTable = {
+  chainId: ChainId;
+  txnHash: string;
+  attestationUid: string;
+  attestationChainId: ChainId;
+};
+
+export type NewAttestationData = {
+  attestationData: AttestationTable;
+  transactionsData: AttestationTxnData[];
 };

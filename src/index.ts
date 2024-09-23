@@ -39,6 +39,7 @@ import abis from "./indexer/abis/index.js";
 import type { EventHandlerContext } from "./indexer/indexer.js";
 import { handleEvent as handleAlloV1Event } from "./indexer/allo/v1/handleEvent.js";
 import { handleEvent as handleAlloV2Event } from "./indexer/allo/v2/handleEvent.js";
+import { handleEvent as handleGitcoinAttestationNetworkEvent } from "./indexer/gitcoin-attestation-network/handleEvent.js";
 import { Database } from "./database/index.js";
 import { decodeJsonWithBigInts, getExternalIP } from "./utils/index.js";
 import { Block } from "chainsauce/dist/cache.js";
@@ -650,9 +651,21 @@ async function catchupAndWatchChain(
               });
             });
         } else {
-          const handler = args.event.contractName.startsWith("AlloV1")
-            ? handleAlloV1Event
-            : handleAlloV2Event;
+          let handler;
+
+          if (args.event.contractName.startsWith("GitcoinAttestationNetwork")) {
+            handler = handleGitcoinAttestationNetworkEvent;
+          } else if (args.event.contractName.startsWith("AlloV1")) {
+            handler = handleAlloV1Event;
+          } else if (args.event.contractName.startsWith("AlloV2")) {
+            handler = handleAlloV2Event;
+          } else {
+            indexerLogger.warn({
+              msg: "skipping event due to unknown contract",
+              event: args.event,
+            });
+            return;
+          }
 
           const changesets = await handler(args);
 

@@ -298,6 +298,48 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     .execute();
 
   await schema
+    .createTable("attestations")
+    .addColumn("uid", "text")
+    .addColumn("chainId", CHAIN_ID_TYPE)
+    .addColumn("fee", BIGINT_TYPE)
+    .addColumn("recipient", ADDRESS_TYPE)
+    .addColumn("refUID", "text")
+    .addColumn("projectsContributed", BIGINT_TYPE)
+    .addColumn("roundsContributed", BIGINT_TYPE)
+    .addColumn("chainIdsContributed", BIGINT_TYPE)
+    .addColumn("totalUSDAmount", BIGINT_TYPE)
+    .addColumn("timestamp", "timestamptz")
+    .addColumn("metadataCid", "text")
+    .addColumn("metadata", "jsonb")
+    .addUniqueConstraint("unique_uid_chainId", ["uid", "chainId"])
+    .execute();
+
+  await schema
+    .createTable("attestation_txns")
+    .addColumn("txnHash", "text")
+    .addColumn("chainId", CHAIN_ID_TYPE)
+
+    // Add the foreign key columns
+    .addColumn("attestationUid", "text")
+    .addColumn("attestationChainId", CHAIN_ID_TYPE)
+
+    // Add Constraints
+    .addUniqueConstraint("unique_txnHash_chainId_attestationUid", [
+      "txnHash",
+      "chainId",
+      "attestationUid",
+    ])
+
+    .addForeignKeyConstraint(
+      "attestation_txns_attestations_fkey",
+      ["attestationUid", "attestationChainId"],
+      "attestations",
+      ["uid", "chainId"],
+      (cb) => cb.onDelete("cascade")
+    )
+    .execute();
+
+  await schema
     .createTable("legacy_projects")
     .addColumn("id", "serial", (col) => col.primaryKey())
     .addColumn("v1ProjectId", "text")
@@ -338,6 +380,11 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     "applications"
   )}(id, chain_id)|@fieldNme application';
 
+  comment on table ${ref("attestation_txns")} is
+  E'@foreignKey ("txn_hash", "chain_id") references ${ref(
+    "donations"
+  )}(transaction_hash, chain_id)|@fieldName donations';
+
   create function ${ref("applications_canonical_project")}(a ${ref(
     "applications"
   )} ) returns ${ref("projects")} as $$
@@ -355,6 +402,11 @@ export async function migrate<T>(db: Kysely<T>, schemaName: string) {
     "applications"
   )}(id, round_id, chain_id)|@fieldName application|@foreignFieldName donations
   ';
+
+  comment on constraint "attestation_txns_attestations_fkey" on ${ref(
+    "attestation_txns"
+  )} is
+  E'@foreignFieldName attestationTxns\n@fieldName attestation';
 
   comment on constraint "round_roles_rounds_fkey" on ${ref("round_roles")} is
   E'@foreignFieldName roles\n@fieldName round';

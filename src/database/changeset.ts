@@ -17,6 +17,7 @@ import {
   NewLegacyProject,
   NewApplicationPayout,
   NewIpfsData,
+  NewAttestationData,
 } from "./schema.js";
 
 export type DataChange =
@@ -145,4 +146,8 @@ export type DataChange =
   | {
       type: "InsertIpfsData";
       ipfs: NewIpfsData;
+    }
+  | {
+      type: "InsertAttestation";
+      attestation: NewAttestationData;
     };
