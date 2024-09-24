@@ -21,7 +21,7 @@ type CoingeckoSupportedChainId =
   | 42220
   | 1088;
 
-const CHAIN_DATA_VERSION = "85";
+const CHAIN_DATA_VERSION = "83";
 const IPFS_DATA_VERSION = "1";
 const PRICE_DATA_VERSION = "1";
 
