@@ -200,7 +200,7 @@ export async function handleEvent(
           msg: `ProfileCreated: Failed to parse metadata for profile ${profileId}`,
           event,
           metadataCid,
-          metadata,
+          // metadata,
         });
       }
 

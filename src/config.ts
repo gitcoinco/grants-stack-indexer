@@ -21,7 +21,7 @@ type CoingeckoSupportedChainId =
   | 42220
   | 1088;
 
-const CHAIN_DATA_VERSION = "83";
+const CHAIN_DATA_VERSION = "86";
 const IPFS_DATA_VERSION = "1";
 const PRICE_DATA_VERSION = "1";
 
@@ -368,6 +368,12 @@ const CHAINS: Chain[] = [
         address: "0xCd5AbD09ee34BA604795F7f69413caf20ee0Ab60",
         fromBlock: 5100681,
       },
+      // Gitcoin Attestation Network
+      {
+        contractName: "GitcoinAttestationNetwork/GitcoinGrantsResolver",
+        address: "0xBAa70bbAB3C4a7265f879bb3658336DE893b8582",
+        fromBlock: 6746370,
+      },
     ],
   },
   {
@@ -711,6 +717,12 @@ const CHAINS: Chain[] = [
         address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
         fromBlock: 146498081,
       },
+      // Gitcoin Attestation Network
+      // {
+      //   contractName: "GitcoinAttestationNetwork/GitcoinGrantsResolver",
+      //   address: "0x0",
+      //   fromBlock: 0,
+      // },
     ],
   },
   {

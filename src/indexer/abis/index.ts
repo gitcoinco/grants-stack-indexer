@@ -29,7 +29,11 @@ import AlloV2DirectGrantsLiteStrategy from "./allo-v2/v1/DirectGrantsLiteStrateg
 import AlloV2EasyRPGFStrategy from "./allo-v2/v1/EasyRPGFStrategy.js";
 import AlloV2DirectAllocationStrategy from "./allo-v2/v1/DirectAllocationStrategy.js";
 
+// Gitcoin Attestation Network
+import GitcoinAttestationNetwork from "./gitcoin-attestation-network/GitcoinGrantsResolver.js";
+
 const abis = {
+  // Allo V1
   "AlloV1/ProjectRegistry/V1": ProjectRegistryV1,
   "AlloV1/ProjectRegistry/V2": ProjectRegistryV2,
   "AlloV1/ProgramFactory/V1": ProgramFactoryV1,
@@ -53,10 +57,14 @@ const abis = {
   "AlloV1/MerklePayoutStrategyImplementation/V2":
     MerklePayoutStrategyImplementation,
 
+  // Allo V2 Profile Migration
   "AlloV2/AlloV1ToV2ProfileMigration": AlloV1ToV2ProfileMigration,
 
-  "AlloV2/Allo/V1": AlloV2,
+  // Allo V2 Registry
   "AlloV2/Registry/V1": AlloV2Registry,
+
+  // Allo V2 Core
+  "AlloV2/Allo/V1": AlloV2,
   "AlloV2/IStrategy/V1": AlloV2IStrategy,
   "AlloV2/DonationVotingMerkleDistributionDirectTransferStrategy/V1":
     AlloV2DonationVotingMerkleDistributionDirectTransferStrategy,
@@ -64,6 +72,9 @@ const abis = {
   "AlloV2/DirectGrantsLiteStrategy/V1": AlloV2DirectGrantsLiteStrategy,
   "AlloV2/EasyRPGFStrategy/V1": AlloV2EasyRPGFStrategy,
   "AlloV2/DirectAllocationStrategy/V1": AlloV2DirectAllocationStrategy,
+
+  // Gitcoin Attestation Network
+  "GitcoinAttestationNetwork/GitcoinGrantsResolver": GitcoinAttestationNetwork,
 } as const;
 
 export default abis;

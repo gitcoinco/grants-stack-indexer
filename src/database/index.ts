@@ -15,6 +15,8 @@ import {
   LegacyProjectTable,
   ApplicationPayout,
   IpfsDataTable,
+  AttestationTable,
+  AttestationTxnTable,
 } from "./schema.js";
 import { migrate, migrateDataFetcher, migratePriceFetcher } from "./migrate.js";
 import { encodeJsonWithBigInts } from "../utils/index.js";
@@ -39,6 +41,8 @@ interface Tables {
   legacyProjects: LegacyProjectTable;
   applicationsPayouts: ApplicationPayout;
   ipfsData: IpfsDataTable;
+  attestations: AttestationTable;
+  attestationTxns: AttestationTxnTable;
 }
 
 type KyselyDb = Kysely<Tables>;
@@ -613,6 +617,36 @@ export class Database {
           .withSchema(this.ipfsDataSchemaName)
           .insertInto("ipfsData")
           .values(change.ipfs)
+          .execute();
+        break;
+      }
+
+      case "InsertAttestation": {
+        const attestationData = change.attestation.attestationData;
+        const transactionsData = change.attestation.transactionsData;
+
+        // Insert into attestations
+        await this.#db
+          .withSchema(this.chainDataSchemaName)
+          .insertInto("attestations")
+          .values(attestationData)
+          .execute();
+
+        // Insert into attestation transactions
+        const attestationTxns: AttestationTxnTable[] = [];
+        for (let i = 0; i < transactionsData.length; i++) {
+          // Link transaction to attestation
+          attestationTxns.push({
+            chainId: transactionsData[i].chainId,
+            txnHash: transactionsData[i].txnHash,
+            attestationUid: attestationData.uid,
+            attestationChainId: attestationData.chainId,
+          });
+        }
+        await this.#db
+          .withSchema(this.chainDataSchemaName)
+          .insertInto("attestationTxns")
+          .values(attestationTxns)
           .execute();
         break;
       }

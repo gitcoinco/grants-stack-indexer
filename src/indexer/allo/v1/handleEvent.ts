@@ -135,7 +135,7 @@ export async function handleEvent(
           msg: `MetadataUpdated: Failed to parse metadata for project ${projectId}`,
           event,
           metadataCid,
-          metadata,
+          // metadata,
         });
         return [];
       }
@@ -255,7 +255,7 @@ export async function handleEvent(
           msg: `ProgramCreated: Failed to parse metadata for program ${programAddress}`,
           event,
           metadataCid,
-          metadata,
+          // metadata,
         });
         return [];
       }
