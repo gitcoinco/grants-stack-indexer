@@ -718,11 +718,11 @@ const CHAINS: Chain[] = [
         fromBlock: 146498081,
       },
       // Gitcoin Attestation Network
-      // {
-      //   contractName: "GitcoinAttestationNetwork/GitcoinGrantsResolver",
-      //   address: "0x0",
-      //   fromBlock: 0,
-      // },
+      {
+        contractName: "GitcoinAttestationNetwork/GitcoinGrantsResolver",
+        address: "0x2ce7E4cB5Edb140A9327e67De85463186E757C8f",
+        fromBlock: 262697000,
+      },
     ],
   },
   {
