@@ -124,6 +124,9 @@ BEGIN
 
     -- Delete from projects
     DELETE FROM $TARGET_SCHEMA.projects WHERE chain_id = $CHAIN_ID;
+
+    -- Update subscriptions
+    UPDATE $TARGET_SCHEMA.subscriptions SET indexed_to_block = 0::bigint WHERE chain_id = $CHAIN_ID;
 END
 \$\$;
 EOF
