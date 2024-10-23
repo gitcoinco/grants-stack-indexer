@@ -161,9 +161,7 @@ async function main(): Promise<void> {
     logger: baseLogger.child({ subsystem: "Database" }),
     statsUpdaterEnabled: config.indexerEnabled,
     connectionPool: databaseConnectionPool,
-    chainDataSchemaName: config.databaseSchemaName,
-    ipfsDataSchemaName: config.ipfsDatabaseSchemaName,
-    priceDataSchemaName: config.priceDatabaseSchemaName,
+    schemaName: config.databaseSchemaName,
   });
 
   baseLogger.info({
@@ -252,22 +250,15 @@ async function main(): Promise<void> {
     const lock = await db.acquireWriteLock();
 
     if (lock !== null) {
+      baseLogger.info("acquired write lock");
+
       if (isFirstRun) {
         if (config.dropDb) {
-          baseLogger.info("dropping all schemas");
-          await db.dropAllSchemaIfExists();
-        } else if (config.dropChainDb) {
-          baseLogger.info("resetting chain data schema");
-          await db.dropChainDataSchemaIfExists();
-        } else if (config.dropIpfsDb) {
-          baseLogger.info("resetting ipfs data schema");
-          await db.dropIpfsDataSchemaIfExists();
-        } else if (config.dropPriceDb) {
-          baseLogger.info("resetting price data schema");
-          await db.dropPriceDataSchemaIfExists();
+          baseLogger.info("dropping schema");
+          await db.dropSchemaIfExists();
         }
 
-        await db.createAllSchemas(baseLogger);
+        await db.createSchemaIfNotExists(baseLogger);
         await subscriptionStore.init();
       }
 
@@ -343,11 +334,7 @@ async function main(): Promise<void> {
 
     const graphqlHandler = postgraphile(
       readOnlyDatabaseConnectionPool,
-      [
-        config.databaseSchemaName,
-        config.ipfsDatabaseSchemaName,
-        config.priceDatabaseSchemaName,
-      ],
+      config.databaseSchemaName,
       {
         watchPg: false,
         graphqlRoute: "/graphql",
@@ -424,7 +411,6 @@ async function main(): Promise<void> {
                 workerPoolSize: config.estimatesLinearQfWorkerPoolSize,
               },
       },
-      indexedChains: await indexChainsPromise,
     });
 
     await httpApi.start();
@@ -489,86 +475,29 @@ async function catchupAndWatchChain(
         return undefined;
       }
 
-      // Check if data is already in the IPFS database
-      const ipfsData = await db.getDataByCid(cid);
-      if (ipfsData) {
-        // chainLogger.info(`Found IPFS data in database for CID: ${cid}`);
-        return Promise.resolve(ipfsData.data as string as T);
-      }
+      const url = `${config.ipfsGateway}/ipfs/${cid}`;
 
-      // Fetch from a single IPFS gateway
-      const fetchFromGateway = async (url: string): Promise<T | undefined> => {
-        try {
-          const res = await fetch(url, {
-            timeout: 2000,
-            onRetry(cause) {
-              chainLogger.debug({
-                msg: "Retrying IPFS request",
-                url: url,
-                err: cause,
-              });
-            },
-            retry: { retries: 3, minTimeout: 2000, maxTimeout: 60 * 10000 },
-            // IPFS data is immutable, we can rely entirely on the cache when present
-            cache: "force-cache",
-            cachePath:
-              config.cacheDir !== null
-                ? path.join(config.cacheDir, "ipfs")
-                : undefined,
+      // chainLogger.trace(`Fetching ${url}`);
+
+      const res = await fetch(url, {
+        timeout: 2000,
+        onRetry(cause) {
+          chainLogger.debug({
+            msg: "Retrying IPFS request",
+            url: url,
+            err: cause,
           });
+        },
+        retry: { retries: 3, minTimeout: 2000, maxTimeout: 60 * 10000 },
+        // IPFS data is immutable, we can rely entirely on the cache when present
+        cache: "force-cache",
+        cachePath:
+          config.cacheDir !== null
+            ? path.join(config.cacheDir, "ipfs")
+            : undefined,
+      });
 
-          if (res.ok) {
-            return (await res.json()) as T; // Return the fetched data
-          } else {
-            chainLogger.warn(
-              `Failed to fetch from ${url}, status: ${res.status} ${res.statusText}`
-            );
-          }
-        } catch (err) {
-          chainLogger.error(
-            `Error fetching from gateway ${url}: ${String(err)}`
-          );
-        }
-      };
-
-      // Iterate through each gateway and attempt to fetch data
-      for (const gateway of config.ipfsGateways) {
-        const url = `${gateway}/ipfs/${cid}`;
-        // chainLogger.info(`Trying IPFS gateway: ${gateway} for CID: ${cid}`);
-
-        const result = await fetchFromGateway(url);
-        if (result !== undefined) {
-          // chainLogger.info(
-          //   `Fetch successful from gateway: ${gateway} for CID: ${cid}`
-          // );
-
-          // Save to IpfsData table
-          try {
-            await db.applyChange({
-              type: "InsertIpfsData",
-              ipfs: {
-                cid,
-                data: result, // TODO: check is JSON.parse is needed
-              },
-            });
-          } catch (err) {
-            chainLogger.error(
-              `Error saving IPFS data to database: ${String(err)}`
-            );
-          }
-
-          return result; // Return the result if fetched successfully
-        } else {
-          chainLogger.warn(
-            `IPFS fetch failed for gateway ${gateway} for CID ${cid}`
-          );
-        }
-      }
-
-      chainLogger.error(
-        `Failed to fetch IPFS data for CID ${cid} from all gateways.`
-      );
-      return undefined; // Return undefined if all gateways fail
+      return (await res.json()) as T;
     };
 
     chainLogger.info("DEBUG: catching up with blockchain events");

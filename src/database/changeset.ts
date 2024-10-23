@@ -16,7 +16,6 @@ import {
   NewPrice,
   NewLegacyProject,
   NewApplicationPayout,
-  NewIpfsData,
   NewAttestationData,
 } from "./schema.js";
 
@@ -142,10 +141,6 @@ export type DataChange =
   | {
       type: "InsertApplicationPayout";
       payout: NewApplicationPayout;
-    }
-  | {
-      type: "InsertIpfsData";
-      ipfs: NewIpfsData;
     }
   | {
       type: "InsertAttestation";
