@@ -199,7 +199,7 @@ export const createPassportProvider = (
 
     const { db } = state;
     const res = await fetch(
-      "https://public.scorer.gitcoin.co/passport_scores/registry_score.jsonl"
+      "https://nyc3.digitaloceanspaces.com/regendata/passport/registry_score.jsonl"
     );
     const { body } = res;
 
