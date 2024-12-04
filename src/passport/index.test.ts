@@ -69,7 +69,7 @@ describe("operation", () => {
       await passportProvider.start();
 
       expect(fetchMock).toHaveBeenCalledWith(
-        "https://public.scorer.gitcoin.co/passport_scores/registry_score.jsonl"
+        "https://nyc3.digitaloceanspaces.com/regendata/passport/registry_score.jsonl"
       );
     });
 
@@ -99,7 +99,7 @@ describe("operation", () => {
       await vi.advanceTimersToNextTimerAsync();
 
       expect(fetchMock).toHaveBeenCalledWith(
-        "https://public.scorer.gitcoin.co/passport_scores/registry_score.jsonl"
+        "https://nyc3.digitaloceanspaces.com/regendata/passport/registry_score.jsonl"
       );
 
       fetchMock.mockClear();
@@ -107,7 +107,7 @@ describe("operation", () => {
       await vi.advanceTimersToNextTimerAsync();
 
       expect(fetchMock).toHaveBeenCalledWith(
-        "https://public.scorer.gitcoin.co/passport_scores/registry_score.jsonl"
+        "https://nyc3.digitaloceanspaces.com/regendata/passport/registry_score.jsonl"
       );
     });
   });
