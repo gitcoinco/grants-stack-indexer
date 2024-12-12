@@ -46,10 +46,10 @@ export function extractCalculationConfigFromRound(
     sybilDefense === undefined
       ? undefined
       : typeof sybilDefense === "boolean"
-      ? sybilDefense
-      : sybilDefense === "passport"
-      ? true
-      : false;
+        ? sybilDefense
+        : sybilDefense === "passport"
+          ? true
+          : false;
 
   const minimumAmountUSD =
     round.metadata?.quadraticFundingConfig?.minDonationThresholdAmount ===
