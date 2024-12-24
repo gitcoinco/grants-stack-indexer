@@ -45,6 +45,7 @@ import { decodeJsonWithBigInts, getExternalIP } from "./utils/index.js";
 import { Block } from "chainsauce/dist/cache.js";
 import { createPublicClient, http } from "viem";
 import { IndexerEvents } from "chainsauce/dist/indexer.js";
+import { getEventHandler } from "./indexer/utils/getEventHandler.js";
 
 const RESOURCE_MONITOR_INTERVAL_MS = 1 * 60 * 1000; // every minute
 
@@ -630,9 +631,45 @@ async function catchupAndWatchChain(
 
     indexer.on("event", async (args) => {
       try {
-        // console.time(args.event.name);
-        // do not await donation inserts as they are write only
-        if (args.event.name === "Voted") {
+        const {
+          event: { contractName, name: eventName },
+        } = args;
+
+        // for now we check for handlers based on:
+        // - protocol name: AlloV1 / AlloV2
+        // - contract name example: ProjectRegistry
+        // - contract version: V1 / V2
+        // and then the event name.
+        // but we can combine in the future this way
+        // with another object that has event handlers by name
+        // like generic event handlers that are not depending on Protocol/Name/Version contracts
+        const handler = getEventHandler(contractName, eventName);
+        if (handler) {
+          const changesets = await handler(args);
+          if (["Voted", "Allocated"].includes(eventName)) {
+            try {
+              await db.applyChanges(changesets);
+            } catch (err: unknown) {
+              if (args.event.name === "Voted") {
+                indexerLogger.warn({
+                  msg: "error while processing vote",
+                  err,
+                });
+              } else if (args.event.name === "Allocated") {
+                indexerLogger.warn({
+                  msg: "error while processing allocation",
+                  err,
+                });
+              }
+            }
+          } else {
+            for (const changeset of changesets) {
+              await db.applyChange(changeset);
+            }
+          }
+        } else if (args.event.name === "Voted") {
+          // console.time(args.event.name);
+          // do not await donation inserts as they are write only
           handleAlloV1Event(args)
             .then((changesets) => db.applyChanges(changesets))
             .catch((err: unknown) => {
