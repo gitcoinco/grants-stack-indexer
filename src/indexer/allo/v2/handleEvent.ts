@@ -26,6 +26,7 @@ import {
   DVMDApplicationData,
   DVMDExtendedApplicationData,
   DVMDTimeStampUpdatedData,
+  EasyRetroFundingTimeStampUpdatedData,
 } from "../../types.js";
 import { fetchPoolMetadata } from "./poolMetadata.js";
 import roleGranted from "./roleGranted.js";
@@ -332,6 +333,12 @@ export async function handleEvent(
             address: strategyAddress,
           });
           break;
+        case "allov2.EasyRetroFundingStrategy":
+          subscribeToContract({
+            contract: "AlloV2/EasyRetroFundingStrategy/V1",
+            address: strategyAddress,
+          });
+          break;
       }
 
       let applicationsStartTime: Date | null = null;
@@ -422,6 +429,55 @@ export async function handleEvent(
           registrationStartTimeResolved
         );
         applicationsEndTime = getDateFromTimestamp(registrationEndTimeResolved);
+      } else if (
+        strategy !== null &&
+        strategy.name === "allov2.EasyRetroFundingStrategy"
+      ) {
+        const contract = "AlloV2/EasyRetroFundingStrategy/V1";
+        const [registrationStartTimeResolved, registrationEndTimeResolved, poolStartTimeResolved, poolEndTimeResolved] =
+          await Promise.all([
+            await readContract({
+              contract,
+              address: strategyAddress,
+              functionName: "registrationStartTime",
+            }),
+            await readContract({
+              contract,
+              address: strategyAddress,
+              functionName: "registrationEndTime",
+            }),
+            await readContract({
+              contract,
+              address: strategyAddress,
+              functionName: "poolStartTime",
+            }),
+            await readContract({
+              contract,
+              address: strategyAddress,
+              functionName: "poolEndTime",
+            }),
+          ]);
+
+        applicationsStartTime = getDateFromTimestamp(registrationStartTimeResolved);
+        applicationsEndTime = getDateFromTimestamp(registrationEndTimeResolved);
+        donationsStartTime = getDateFromTimestamp(poolStartTimeResolved);
+        donationsEndTime = getDateFromTimestamp(poolEndTimeResolved);
+
+        if (parsedMetadata.success && token !== null) {
+          matchAmount = parseUnits(
+            parsedMetadata.data.quadraticFundingConfig.matchingFundsAvailable.toString(),
+            token.decimals
+          );
+          matchAmountInUsd = (
+            await convertToUSD(
+              priceProvider,
+              chainId,
+              matchTokenAddress,
+              matchAmount,
+              event.blockNumber
+            )
+          ).amount;
+        }
       }
 
       const fundedAmount = event.params.amount;
@@ -808,6 +864,7 @@ export async function handleEvent(
 
         case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
         case "allov2.DirectGrantsLiteStrategy":
+        case "allov2.EasyRetroFundingStrategy":
           values = decodeDVMDExtendedApplicationData(encodedData);
           id = (Number(values.recipientsCounter) - 1).toString();
           break;
@@ -882,6 +939,7 @@ export async function handleEvent(
 
         case "allov2.DirectGrantsLiteStrategy":
         case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
+        case "allov2.EasyRetroFundingStrategy":
           values = decodeDVMDApplicationData(encodedData);
           break;
 
@@ -971,6 +1029,15 @@ export async function handleEvent(
           donationsStartTime = getDateFromTimestamp(params.allocationStartTime);
           donationsEndTime = getDateFromTimestamp(params.allocationEndTime);
 
+          break;
+
+        case "allov2.EasyRetroFundingStrategy":
+          params = event.params as EasyRetroFundingTimeStampUpdatedData;
+
+          applicationsStartTime = getDateFromTimestamp(params.registrationStartTime);
+          applicationsEndTime = getDateFromTimestamp(params.registrationEndTime);
+          donationsStartTime = getDateFromTimestamp(params.poolStartTime);
+          donationsEndTime = getDateFromTimestamp(params.poolEndTime);
           break;
 
         default:

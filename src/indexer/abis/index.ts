@@ -28,6 +28,7 @@ import AlloV1ToV2ProfileMigration from "./allo-v2/AlloV1ToV2ProfileMigration.js"
 import AlloV2DirectGrantsLiteStrategy from "./allo-v2/v1/DirectGrantsLiteStrategy.js";
 import AlloV2EasyRPGFStrategy from "./allo-v2/v1/EasyRPGFStrategy.js";
 import AlloV2DirectAllocationStrategy from "./allo-v2/v1/DirectAllocationStrategy.js";
+import AlloV2EasyRetroFundingStrategy from "./allo-v2/v1/EasyRetroFundingStrategy.js";
 
 // Gitcoin Attestation Network
 import GitcoinAttestationNetwork from "./gitcoin-attestation-network/GitcoinGrantsResolver.js";
@@ -72,7 +73,7 @@ const abis = {
   "AlloV2/DirectGrantsLiteStrategy/V1": AlloV2DirectGrantsLiteStrategy,
   "AlloV2/EasyRPGFStrategy/V1": AlloV2EasyRPGFStrategy,
   "AlloV2/DirectAllocationStrategy/V1": AlloV2DirectAllocationStrategy,
-
+  "AlloV2/EasyRetroFundingStrategy/V1": AlloV2EasyRetroFundingStrategy,
   // Gitcoin Attestation Network
   "GitcoinAttestationNetwork/GitcoinGrantsResolver": GitcoinAttestationNetwork,
 } as const;

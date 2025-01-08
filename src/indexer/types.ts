@@ -28,6 +28,13 @@ export type DVMDTimeStampUpdatedData = {
   allocationEndTime: bigint;
 };
 
+export type EasyRetroFundingTimeStampUpdatedData = {
+  registrationStartTime: bigint;
+  registrationEndTime: bigint;
+  poolStartTime: bigint;
+  poolEndTime: bigint;
+};
+
 export type DGTimeStampUpdatedData = {
   registrationStartTime: bigint;
   registrationEndTime: bigint;
