@@ -434,31 +434,37 @@ export async function handleEvent(
         strategy.name === "allov2.EasyRetroFundingStrategy"
       ) {
         const contract = "AlloV2/EasyRetroFundingStrategy/V1";
-        const [registrationStartTimeResolved, registrationEndTimeResolved, poolStartTimeResolved, poolEndTimeResolved] =
-          await Promise.all([
-            await readContract({
-              contract,
-              address: strategyAddress,
-              functionName: "registrationStartTime",
-            }),
-            await readContract({
-              contract,
-              address: strategyAddress,
-              functionName: "registrationEndTime",
-            }),
-            await readContract({
-              contract,
-              address: strategyAddress,
-              functionName: "poolStartTime",
-            }),
-            await readContract({
-              contract,
-              address: strategyAddress,
-              functionName: "poolEndTime",
-            }),
-          ]);
+        const [
+          registrationStartTimeResolved,
+          registrationEndTimeResolved,
+          poolStartTimeResolved,
+          poolEndTimeResolved,
+        ] = await Promise.all([
+          await readContract({
+            contract,
+            address: strategyAddress,
+            functionName: "registrationStartTime",
+          }),
+          await readContract({
+            contract,
+            address: strategyAddress,
+            functionName: "registrationEndTime",
+          }),
+          await readContract({
+            contract,
+            address: strategyAddress,
+            functionName: "poolStartTime",
+          }),
+          await readContract({
+            contract,
+            address: strategyAddress,
+            functionName: "poolEndTime",
+          }),
+        ]);
 
-        applicationsStartTime = getDateFromTimestamp(registrationStartTimeResolved);
+        applicationsStartTime = getDateFromTimestamp(
+          registrationStartTimeResolved
+        );
         applicationsEndTime = getDateFromTimestamp(registrationEndTimeResolved);
         donationsStartTime = getDateFromTimestamp(poolStartTimeResolved);
         donationsEndTime = getDateFromTimestamp(poolEndTimeResolved);
@@ -1034,8 +1040,12 @@ export async function handleEvent(
         case "allov2.EasyRetroFundingStrategy":
           params = event.params as EasyRetroFundingTimeStampUpdatedData;
 
-          applicationsStartTime = getDateFromTimestamp(params.registrationStartTime);
-          applicationsEndTime = getDateFromTimestamp(params.registrationEndTime);
+          applicationsStartTime = getDateFromTimestamp(
+            params.registrationStartTime
+          );
+          applicationsEndTime = getDateFromTimestamp(
+            params.registrationEndTime
+          );
           donationsStartTime = getDateFromTimestamp(params.poolStartTime);
           donationsEndTime = getDateFromTimestamp(params.poolEndTime);
           break;
