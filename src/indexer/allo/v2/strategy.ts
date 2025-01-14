@@ -123,6 +123,14 @@ export function extractStrategyFromId(_id: string): Strategy | null {
         name: "allov2.DirectAllocationStrategy",
         groups: ["allov2.DirectAllocationStrategy"],
       };
+
+    // EasyRetroFundingStrategyv1.0
+    case "0x060ffd6c79f918819a622248c6823443412aedea610cc19c89d28dadcdef7fba":
+      return {
+        id: id,
+        name: "allov2.EasyRetroFundingStrategy",
+        groups: ["allov2.EasyRetroFundingStrategy"],
+      };
   }
 
   return null;
