@@ -797,9 +797,46 @@ export async function handleEvent(
       }
 
       const strategyAddress = parseAddress(event.address);
-      const rawDistribution = await ipfsGet(
-        event.params.distributionMetaPtr.pointer
+
+      const roundId = parseAddress(
+        await readContract({
+          contract: "AlloV1/MerklePayoutStrategyImplementation/V2",
+          address: strategyAddress,
+          functionName: "roundAddress",
+        })
       );
+
+      const round = await db.getRoundById(
+        chainId,
+        roundId
+      );
+
+      if (!round) {
+        throw new Error("Round not found");
+      }
+
+      const rawDistribution = (await ipfsGet(
+        event.params.distributionMetaPtr.pointer
+      )) as Record<string, unknown>;
+
+      const usdAmount = await convertToUSD(
+        priceProvider,
+        chainId,
+        round?.matchTokenAddress,
+        BigInt(1),
+        event.blockNumber
+      );
+
+      const blockTimestamp = getDateFromTimestamp(
+        BigInt((await blockTimestampInMs(chainId, event.blockNumber)) / 1000)
+      );
+      rawDistribution["blockNumber"] = Number(event.blockNumber);
+      if (blockTimestamp) {
+        rawDistribution["blockTimestamp"] = blockTimestamp;
+      }
+      rawDistribution["usdPrice"] = usdAmount.price;
+      rawDistribution["usdPriceTimestampAt"] = usdAmount.timestamp;
+
       const distribution =
         MatchingDistributionSchema.safeParse(rawDistribution);
 
