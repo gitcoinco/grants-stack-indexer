@@ -13,6 +13,7 @@ import { Changeset } from "../../../database/index.js";
 import {
   ApplicationTable,
   Donation,
+  ERFDistributionSchema,
   MatchingDistributionSchema,
   NewApplication,
   NewRound,
@@ -274,14 +275,18 @@ export async function handleEvent(
 
     case "PoolCreated": {
       const { pointer: metadataPointer } = event.params.metadata;
+
       const { roundMetadata, applicationMetadata } = await fetchPoolMetadata(
         ipfsGet,
         metadataPointer
       );
+
       const parsedMetadata = RoundMetadataSchema.safeParse(roundMetadata);
 
       const poolId = event.params.poolId;
+
       const { managerRole, adminRole } = generateRoundRoles(poolId);
+
       const strategyAddress = event.params.strategy;
 
       const strategyId = await readContract({
@@ -289,7 +294,9 @@ export async function handleEvent(
         address: strategyAddress,
         functionName: "getStrategyId",
       });
+
       const strategy = extractStrategyFromId(strategyId);
+
       let matchAmount = 0n;
       let matchAmountInUsd = 0;
 
@@ -353,6 +360,7 @@ export async function handleEvent(
       ) {
         const contract =
           "AlloV2/DonationVotingMerkleDistributionDirectTransferStrategy/V1";
+
         const [
           registrationStartTimeResolved,
           registrationEndTimeResolved,
@@ -380,6 +388,7 @@ export async function handleEvent(
             functionName: "allocationEndTime",
           }),
         ]);
+
         applicationsStartTime = getDateFromTimestamp(
           registrationStartTimeResolved
         );
@@ -392,6 +401,7 @@ export async function handleEvent(
             parsedMetadata.data.quadraticFundingConfig.matchingFundsAvailable.toString(),
             token.decimals
           );
+
           matchAmountInUsd = (
             await convertToUSD(
               priceProvider,
@@ -407,11 +417,11 @@ export async function handleEvent(
         (strategy.name === "allov2.DirectGrantsSimpleStrategy" ||
           strategy.name === "allov2.DirectGrantsLiteStrategy")
       ) {
-        // const contract = "AlloV2/DirectGrantsSimpleStrategy/V1";
         const contract =
           strategy.name === "allov2.DirectGrantsSimpleStrategy"
             ? "AlloV2/DirectGrantsSimpleStrategy/V1"
             : "AlloV2/DirectGrantsLiteStrategy/V1";
+
         const [registrationStartTimeResolved, registrationEndTimeResolved] =
           await Promise.all([
             await readContract({
@@ -425,6 +435,7 @@ export async function handleEvent(
               functionName: "registrationEndTime",
             }),
           ]);
+
         applicationsStartTime = getDateFromTimestamp(
           registrationStartTimeResolved
         );
@@ -434,6 +445,7 @@ export async function handleEvent(
         strategy.name === "allov2.EasyRetroFundingStrategy"
       ) {
         const contract = "AlloV2/EasyRetroFundingStrategy/V1";
+
         const [
           registrationStartTimeResolved,
           registrationEndTimeResolved,
@@ -597,7 +609,6 @@ export async function handleEvent(
             },
           });
         }
-
         changes.push({
           type: "DeletePendingRoundRoles",
           ids: pendingManagerRoundRoles.map((r) => r.id!),
@@ -1088,31 +1099,63 @@ export async function handleEvent(
         event.params.metadata.pointer
       )) as Record<string, unknown>;
 
-      const usdAmount = await convertToUSD(
-        priceProvider,
-        chainId,
-        round?.matchTokenAddress,
-        BigInt(1),
-        event.blockNumber
-      );
+      const blockNumber = Number(event.blockNumber);
+      const blockTimestamp =
+        getDateFromTimestamp(
+          BigInt((await blockTimestampInMs(chainId, event.blockNumber)) / 1000)
+        ) || undefined;
+      let distribution;
+      switch (round.strategyName) {
+        case "allov2.EasyRetroFundingStrategy": {
+          rawDistribution["blockNumber"] = blockNumber;
+          rawDistribution["blockTimestamp"] = blockTimestamp;
+          const parsedDistribution =
+            ERFDistributionSchema.safeParse(rawDistribution);
 
-      const blockTimestamp = getDateFromTimestamp(
-        BigInt((await blockTimestampInMs(chainId, event.blockNumber)) / 1000)
-      );
-      rawDistribution["blockNumber"] = Number(event.blockNumber);
-      if (blockTimestamp) {
-        rawDistribution["blockTimestamp"] = blockTimestamp;
+          const enhancedMatchingDistribution = parsedDistribution.success
+            ? parsedDistribution.data?.matchingDistribution.map((entry) => ({
+                ...entry,
+                contributionsCount: 0,
+                originalMatchAmountInToken: "0",
+                matchAmountInToken: "0",
+              }))
+            : [];
+
+          distribution = {
+            data: {
+              matchingDistribution: enhancedMatchingDistribution,
+              blockNumber: blockNumber,
+              blockTimestamp: blockTimestamp,
+              usdPrice: 0,
+              usdPriceTimestampAt: undefined,
+            },
+            success: parsedDistribution.success,
+          };
+          break;
+        }
+        default: {
+          const usdAmount = await convertToUSD(
+            priceProvider,
+            chainId,
+            round?.matchTokenAddress,
+            BigInt(1),
+            event.blockNumber
+          );
+
+          rawDistribution["blockNumber"] = blockNumber;
+          rawDistribution["blockTimestamp"] = blockTimestamp;
+          rawDistribution["usdPrice"] = usdAmount.price;
+          rawDistribution["usdPriceTimestampAt"] = usdAmount.timestamp;
+
+          distribution = MatchingDistributionSchema.safeParse(rawDistribution);
+          break;
+        }
       }
-      rawDistribution["usdPrice"] = usdAmount.price;
-      rawDistribution["usdPriceTimestampAt"] = usdAmount.timestamp;
 
-      const distribution =
-        MatchingDistributionSchema.safeParse(rawDistribution);
-
-      if (!distribution.success) {
+      if (!distribution || !distribution.success) {
         logger.warn({
           msg: "Failed to parse distribution",
-          error: distribution.error,
+          error: distribution?.error,
           event,
           rawDistribution,
         });
