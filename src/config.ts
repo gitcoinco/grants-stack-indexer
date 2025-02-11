@@ -19,7 +19,8 @@ type CoingeckoSupportedChainId =
   | 1329
   | 42
   | 42220
-  | 1088;
+  | 1088
+  | 295;
 
 const CHAIN_DATA_VERSION = "87";
 const IPFS_DATA_VERSION = "1";
@@ -1825,6 +1826,38 @@ const CHAINS: Chain[] = [
         contractName: "AlloV2/Allo/V1",
         address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
         fromBlock: 35900000,
+      },
+    ],
+  },
+  {
+    id: 295,
+    name: "hedera",
+    rpc: rpcUrl
+      .default("https://mainnet.hashio.io/api")
+      .parse(process.env.HEDERA_RPC_URL),
+    pricesFromTimestamp: Date.UTC(2025, 1, 1, 0, 0, 0),
+    tokens: [
+      {
+        code: "HBAR",
+        address: "0x0000000000000000000000000000000000000000",
+        decimals: 8,
+        priceSource: {
+          chainId: 295,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
+    ],
+    subscriptions: [
+      // Allo V2
+      {
+        contractName: "AlloV2/Registry/V1",
+        address: "0x4aacca72145e1df2aec137e1f3c5e3d75db8b5f3",
+        fromBlock: 75239000,
+      },
+      {
+        contractName: "AlloV2/Allo/V1",
+        address: "0x1133eA7Af70876e64665ecD07C0A0476d09465a1",
+        fromBlock: 75239000,
       },
     ],
   },

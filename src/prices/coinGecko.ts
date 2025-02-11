@@ -17,6 +17,7 @@ const platforms: { [key: number]: string } = {
   42220: "celo",
   1088: "metis",
   100: "xdai",
+  295: "hedera-hashgraph",
 };
 
 const nativeTokens: { [key: number]: string } = {
@@ -31,6 +32,7 @@ const nativeTokens: { [key: number]: string } = {
   42220: "celo",
   1088: "metis-token",
   100: "xdai",
+  295: "hedera-hashgraph",
 };
 
 type TimestampInMs = number;
