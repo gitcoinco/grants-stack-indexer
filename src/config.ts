@@ -1841,7 +1841,7 @@ const CHAINS: Chain[] = [
       {
         code: "HBAR",
         address: "0x0000000000000000000000000000000000000000",
-        decimals: 8,
+        decimals: 18,
         priceSource: {
           chainId: 295,
           address: "0x0000000000000000000000000000000000000000",
@@ -1850,7 +1850,7 @@ const CHAINS: Chain[] = [
       {
         code: "HBAR",
         address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-        decimals: 8,
+        decimals: 18,
         priceSource: {
           chainId: 295,
           address: "0x0000000000000000000000000000000000000000",
