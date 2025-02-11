@@ -1846,6 +1846,15 @@ const CHAINS: Chain[] = [
           address: "0x0000000000000000000000000000000000000000",
         },
       },
+      {
+        code: "HBAR",
+        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        decimals: 8,
+        priceSource: {
+          chainId: 295,
+          address: "0x0000000000000000000000000000000000000000",
+        },
+      },
     ],
     subscriptions: [
       // Allo V2
