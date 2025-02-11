@@ -1836,6 +1836,7 @@ const CHAINS: Chain[] = [
       .default("https://mainnet.hashio.io/api")
       .parse(process.env.HEDERA_RPC_URL),
     pricesFromTimestamp: Date.UTC(2025, 1, 1, 0, 0, 0),
+    maxGetLogsRange: 9000,
     tokens: [
       {
         code: "HBAR",
