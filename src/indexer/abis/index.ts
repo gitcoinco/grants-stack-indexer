@@ -1,5 +1,5 @@
 // V1.1
-import ProjectRegistryV1 from "./allo-v1/v1/ProjectRegistry.js";
+import ProjectRegistryV1 from "../contracts/alloV1/projectRegistry/v1/abi/ProjectRegistry.js";
 import RoundFactoryV1 from "./allo-v1/v1/RoundFactory.js";
 import RoundImplementationV1 from "./allo-v1/v1/RoundImplementation.js";
 import QuadraticFundingVotingStrategyFactoryV1 from "./allo-v1/v1/QuadraticFundingVotingStrategyFactory.js";
@@ -8,7 +8,7 @@ import ProgramFactoryV1 from "./allo-v1/v1/ProgramFactory.js";
 import ProgramImplementationV1 from "./allo-v1/v1/ProgramImplementation.js";
 
 // V1.2
-import ProjectRegistryV2 from "./allo-v1/v2/ProjectRegistry.js";
+import ProjectRegistryV2 from "../contracts/alloV1/projectRegistry/v2/abi/ProjectRegistry.js";
 import RoundFactoryV2 from "./allo-v1/v2/RoundFactory.js";
 import RoundImplementationV2 from "./allo-v1/v2/RoundImplementation.js";
 import QuadraticFundingVotingStrategyFactoryV2 from "./allo-v1/v2/QuadraticFundingVotingStrategyFactory.js";
