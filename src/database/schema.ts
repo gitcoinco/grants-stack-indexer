@@ -40,6 +40,20 @@ export const MatchingDistributionSchema = z.object({
   usdPriceTimestampAt: z.date().optional(),
 });
 
+export const ERFDistributionSchema = z.object({
+  matchingDistribution: z.array(
+    z.object({
+      applicationId: z.string(),
+      projectPayoutAddress: z.string(),
+      projectId: z.string(),
+      projectName: z.string(),
+      matchPoolPercentage: z.coerce.number(),
+    })
+  ),
+  blockNumber: z.number().optional(),
+  blockTimestamp: z.date().optional(),
+});
+
 export type RoundTable = {
   id: Address | string;
   chainId: ChainId;
