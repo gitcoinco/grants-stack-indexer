@@ -320,6 +320,15 @@ const CHAINS: Chain[] = [
           address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
         },
       },
+      {
+        code: "GTC",
+        address: "0x5e7C95EaF08D6FeD05a8E4BC607Fb682834C74cE",
+        decimals: 18,
+        priceSource: {
+          chainId: 1,
+          address: "0xde30da39c46104798bb5aa3fe8b9e0e1f348163f",
+        },
+      },
     ],
     subscriptions: [
       {
