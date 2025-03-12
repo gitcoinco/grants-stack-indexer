@@ -1691,6 +1691,15 @@ const CHAINS: Chain[] = [
           address: "0x4f604735c1cf31399c6e711d5962b2b3e0225ad3",
         },
       },
+      {
+        code: "G$",
+        address: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
+        decimals: 18,
+        priceSource: {
+          chainId: 42220,
+          address: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
+        },
+      },
     ],
     subscriptions: [
       // Allo V2
