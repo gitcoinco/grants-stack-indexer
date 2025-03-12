@@ -8,6 +8,7 @@
   "scripts": {
     "start": "node dist/src/index.js",
     "dev": "tsx watch src/index.ts --http --indexer --http-wait-for-sync=false",
+    "dev:log": "mkdir -p logs && tsx watch src/index.ts --indexer --drop-db | tee \"logs/$(date '+%Y-%m-%d_%H-%M-%S').log\"",
     "build": "tsc",
     "lint": "eslint src && prettier --check src",
     "format": "prettier --write src",

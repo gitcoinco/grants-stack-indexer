@@ -160,6 +160,8 @@ function decodeDGApplicationData(encodedData: Hex) {
   return results;
 }
 
+let allocatedCount = 0;
+
 export async function handleEvent(
   args: EventHandlerArgs<Indexer>
 ): Promise<Changeset[]> {
@@ -1215,19 +1217,72 @@ export async function handleEvent(
     }
 
     case "Allocated": {
+      allocatedCount++;
+
+      const logAllocation = ({
+        msg,
+        isError = false,
+        ...args
+      }: {
+        msg?: string;
+        isError?: boolean;
+        [key: string]: unknown;
+      }) => {
+        const level = isError ? "error" : "info";
+        logger[level]({
+          msg: `(Allocated) ${allocatedCount} - ${chainId}${msg ? ` - ${msg}` : ""}`,
+          ...args,
+        });
+      };
+
+      logAllocation({
+        blockNumber: event.blockNumber,
+        address: event.address,
+        chainId,
+      });
       const strategyAddress = parseAddress(event.address);
+      logAllocation({
+        msg: "parsed strategy address",
+        address: event.address,
+        strategyAddress,
+      });
+
+      logAllocation({
+        msg: "getting round (db.getRoundByStrategyAddress(chainId, strategyAddress))",
+        strategyAddress,
+        chainId,
+      });
       const round = await db.getRoundByStrategyAddress(
         chainId,
         strategyAddress
       );
 
       if (round === null) {
+        logAllocation({
+          msg: "round not found",
+          event,
+          isError: true,
+        });
         return [];
       }
 
+      logAllocation({
+        msg: "round found",
+        round,
+      });
+
       switch (round.strategyName) {
         case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy": {
+          logAllocation({
+            msg: "handling DonationVotingMerkleDistributionDirectTransferStrategy",
+            strategyName: round.strategyName,
+          });
           if (!("origin" in event.params)) {
+            logAllocation({
+              msg: "origin not found",
+              event,
+              isError: true,
+            });
             return [];
           }
 
@@ -1235,6 +1290,16 @@ export async function handleEvent(
           const amount = event.params.amount;
           const token = parseAddress(event.params.token);
           const origin = parseAddress(event.params.origin);
+          const roundMatchTokenAddress = round.matchTokenAddress;
+
+          logAllocation({
+            msg: "getting application (db.getApplicationByAnchorAddress(chainId, round.id, recipientId))",
+            recipientId,
+            amount,
+            token,
+            origin,
+            roundMatchTokenAddress,
+          });
 
           const application = await db.getApplicationByAnchorAddress(
             chainId,
@@ -1242,11 +1307,19 @@ export async function handleEvent(
             recipientId
           );
 
-          const roundMatchTokenAddress = round.matchTokenAddress;
-
           if (application === null) {
+            logAllocation({
+              msg: "application not found",
+              event,
+              isError: true,
+            });
             return [];
           }
+
+          logAllocation({
+            msg: "application found",
+            application,
+          });
 
           const donationId = ethers.utils.solidityKeccak256(
             ["string"],
@@ -1264,29 +1337,30 @@ export async function handleEvent(
           const amountInUsd = conversionToUSD.amount;
 
           let amountInRoundMatchToken: bigint | null = null;
-          try {
-            amountInRoundMatchToken =
-              roundMatchTokenAddress === token
-                ? event.params.amount
-                : (
-                    await convertFromUSD(
-                      priceProvider,
-                      chainId,
-                      roundMatchTokenAddress,
-                      amountInUsd,
-                      event.blockNumber
-                    )
-                  ).amount;
-          } catch (err) {
-            if (err instanceof UnknownTokenError) {
-              logger.warn({
-                msg: `Skipping event ${event.name} on chain ${chainId} due to unknown token ${roundMatchTokenAddress}`,
-                err,
-                event,
-              });
-              return [];
-            } else {
-              throw err;
+          if (roundMatchTokenAddress === token) {
+            amountInRoundMatchToken = event.params.amount;
+          } else {
+            try {
+              amountInRoundMatchToken = (
+                await convertFromUSD(
+                  priceProvider,
+                  chainId,
+                  roundMatchTokenAddress,
+                  amountInUsd,
+                  event.blockNumber
+                )
+              ).amount;
+            } catch (err) {
+              if (err instanceof UnknownTokenError) {
+                logger.warn({
+                  msg: `Skipping event ${event.name} on chain ${chainId} due to unknown token ${roundMatchTokenAddress}`,
+                  err,
+                  event,
+                });
+                return [];
+              } else {
+                throw err;
+              }
             }
           }
           const parsedMetadata = ApplicationMetadataSchema.safeParse(
@@ -1319,6 +1393,11 @@ export async function handleEvent(
             amountInRoundMatchToken,
             timestamp: conversionToUSD.timestamp,
           };
+
+          logAllocation({
+            msg: "InsertDonation",
+            donation,
+          });
 
           return [
             {
@@ -1374,6 +1453,22 @@ export async function handleEvent(
               (await blockTimestampInMs(chainId, event.blockNumber)) / 1000
             )
           );
+
+          logAllocation({
+            msg: "InsertApplicationPayout",
+            payout: {
+              amount,
+              applicationId: application?.id!,
+              roundId,
+              chainId,
+              tokenAddress,
+              amountInRoundMatchToken,
+              amountInUsd,
+              transactionHash: event.transactionHash,
+              sender: parseAddress(event.params.sender),
+              timestamp,
+            },
+          });
 
           return [
             {
