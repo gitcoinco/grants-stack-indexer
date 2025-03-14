@@ -45,6 +45,7 @@ import { getTokenForChain } from "../../../config.js";
 import { ethers } from "ethers";
 import { UnknownTokenError } from "../../../prices/common.js";
 import { ApplicationMetadataSchema } from "../../applicationMetadata.js";
+import { Logger } from "pino";
 
 const ALLO_NATIVE_TOKEN = parseAddress(
   "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
@@ -160,7 +161,40 @@ function decodeDGApplicationData(encodedData: Hex) {
   return results;
 }
 
-let allocatedCount = 0;
+const counters: Record<string, number> = {};
+
+const generateCustomLogger = ({
+  eventName,
+  logger,
+  chainId,
+  counters,
+}: {
+  eventName: string;
+  logger: Logger;
+  chainId: number;
+  counters: Record<string, number>;
+}) => {
+  if (!counters[eventName]) {
+    counters[eventName] = 0;
+  }
+  counters[eventName]++;
+
+  return ({
+    msg,
+    isError = false,
+    ...args
+  }: {
+    msg?: string;
+    isError?: boolean;
+    [key: string]: unknown;
+  }) => {
+    const level = isError ? "error" : "info";
+    logger[level]({
+      msg: `(${eventName}) ${counters[eventName]} - ${chainId}${msg ? ` - ${msg}` : ""}`,
+      ...args,
+    });
+  };
+};
 
 export async function handleEvent(
   args: EventHandlerArgs<Indexer>
@@ -184,8 +218,24 @@ export async function handleEvent(
   switch (event.name) {
     // -- Allo V2 Profiles
     case "ProfileCreated": {
+      const customLogger = generateCustomLogger({
+        eventName: event.name,
+        logger,
+        chainId,
+        counters,
+      });
+
       const profileId = event.params.profileId;
       const metadataCid = event.params.metadata.pointer;
+
+      customLogger({
+        blockNumber: event.blockNumber,
+        address: event.address,
+        chainId,
+        profileId,
+        metadataCid,
+      });
+
       const metadata = await ipfsGet<ProjectTable["metadata"]>(metadataCid);
 
       const parsedMetadata = ProjectMetadataSchema.safeParse(metadata);
@@ -214,6 +264,25 @@ export async function handleEvent(
       const createdBy = tx.from;
       const programTags = isProgram ? ["program"] : [];
 
+      customLogger({
+        msg: "InsertProject",
+        project: {
+          tags: ["allo-v2", ...programTags],
+          chainId,
+          registryAddress: parseAddress(event.address),
+          id: profileId,
+          name: event.params.name,
+          nonce: event.params.nonce,
+          anchorAddress: parseAddress(event.params.anchor),
+          projectNumber: null,
+          metadataCid: metadataCid,
+          metadata: metadataValue,
+          createdByAddress: parseAddress(createdBy),
+          createdAtBlock: event.blockNumber,
+          updatedAtBlock: event.blockNumber,
+          projectType,
+        },
+      });
       const changes: Changeset[] = [
         {
           type: "InsertProject",
@@ -275,23 +344,71 @@ export async function handleEvent(
     }
 
     case "PoolCreated": {
+      const customLogger = generateCustomLogger({
+        eventName: event.name,
+        logger,
+        chainId,
+        counters,
+      });
+
       const { pointer: metadataPointer } = event.params.metadata;
+      const poolId = event.params.poolId;
+      const strategyAddress = event.params.strategy;
+
+      customLogger({
+        blockNumber: event.blockNumber,
+        address: event.address,
+        chainId,
+        metadataPointer,
+        poolId,
+        strategyAddress,
+      });
+
+      customLogger({
+        msg: "fetching pool metadata",
+        metadataPointer,
+      });
       const { roundMetadata, applicationMetadata } = await fetchPoolMetadata(
         ipfsGet,
         metadataPointer
       );
       const parsedMetadata = RoundMetadataSchema.safeParse(roundMetadata);
 
-      const poolId = event.params.poolId;
-      const { managerRole, adminRole } = generateRoundRoles(poolId);
-      const strategyAddress = event.params.strategy;
+      customLogger({
+        msg: "parsed round metadata",
+        roundMetadata,
+        applicationMetadata,
+        parsedMetadata,
+      });
 
+      customLogger({
+        msg: "generating round roles",
+        poolId,
+      });
+      const { managerRole, adminRole } = generateRoundRoles(poolId);
+      customLogger({
+        msg: "generated round roles",
+        managerRole,
+        adminRole,
+      });
+
+      customLogger({
+        msg: "getting strategy",
+        contract: "AlloV2/IStrategy/V1",
+        address: strategyAddress,
+        functionName: "getStrategyId",
+      });
       const strategyId = await readContract({
         contract: "AlloV2/IStrategy/V1",
         address: strategyAddress,
         functionName: "getStrategyId",
       });
       const strategy = extractStrategyFromId(strategyId);
+      customLogger({
+        msg: "got strategy",
+        strategy,
+        strategyId,
+      });
       let matchAmount = 0n;
       let matchAmountInUsd = 0;
 
@@ -305,6 +422,11 @@ export async function handleEvent(
 
       switch (strategy?.name) {
         case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy":
+          customLogger({
+            msg: "subscribing to contract based on strategy name",
+            strategyName: strategy?.name,
+            address: strategyAddress,
+          });
           subscribeToContract({
             contract:
               "AlloV2/DonationVotingMerkleDistributionDirectTransferStrategy/V1",
@@ -312,30 +434,55 @@ export async function handleEvent(
           });
           break;
         case "allov2.DirectGrantsSimpleStrategy":
+          customLogger({
+            msg: "subscribing to contract based on strategy name",
+            strategyName: strategy?.name,
+            address: strategyAddress,
+          });
           subscribeToContract({
             contract: "AlloV2/DirectGrantsSimpleStrategy/V1",
             address: strategyAddress,
           });
           break;
         case "allov2.DirectGrantsLiteStrategy":
+          customLogger({
+            msg: "subscribing to contract based on strategy name",
+            strategyName: strategy?.name,
+            address: strategyAddress,
+          });
           subscribeToContract({
             contract: "AlloV2/DirectGrantsLiteStrategy/V1",
             address: strategyAddress,
           });
           break;
         case "allov2.EasyRPGFStrategy":
+          customLogger({
+            msg: "subscribing to contract based on strategy name",
+            strategyName: strategy?.name,
+            address: strategyAddress,
+          });
           subscribeToContract({
             contract: "AlloV2/EasyRPGFStrategy/V1",
             address: strategyAddress,
           });
           break;
         case "allov2.DirectAllocationStrategy":
+          customLogger({
+            msg: "subscribing to contract based on strategy name",
+            strategyName: strategy?.name,
+            address: strategyAddress,
+          });
           subscribeToContract({
             contract: "AlloV2/DirectAllocationStrategy/V1",
             address: strategyAddress,
           });
           break;
         case "allov2.EasyRetroFundingStrategy":
+          customLogger({
+            msg: "subscribing to contract based on strategy name",
+            strategyName: strategy?.name,
+            address: strategyAddress,
+          });
           subscribeToContract({
             contract: "AlloV2/EasyRetroFundingStrategy/V1",
             address: strategyAddress,
@@ -541,6 +688,11 @@ export async function handleEvent(
         totalDistributed: 0n,
       };
 
+      customLogger({
+        msg: "InsertRound",
+        round: newRound,
+      });
+
       const changes: Changeset[] = [
         {
           type: "InsertRound",
@@ -571,6 +723,11 @@ export async function handleEvent(
           });
         }
 
+        customLogger({
+          msg: "DeletePendingRoundRoles",
+          ids: pendingAdminRoundRoles.map((r) => r.id!),
+        });
+
         changes.push({
           type: "DeletePendingRoundRoles",
           ids: pendingAdminRoundRoles.map((r) => r.id!),
@@ -588,6 +745,16 @@ export async function handleEvent(
 
       if (pendingManagerRoundRoles.length > 0) {
         for (const pr of pendingManagerRoundRoles) {
+          customLogger({
+            msg: "InsertRoundRole",
+            roundRole: {
+              chainId,
+              roundId: poolId.toString(),
+              address: pr.address,
+              role: "manager",
+              createdAtBlock: event.blockNumber,
+            },
+          });
           changes.push({
             type: "InsertRoundRole",
             roundRole: {
@@ -599,6 +766,11 @@ export async function handleEvent(
             },
           });
         }
+
+        customLogger({
+          msg: "DeletePendingRoundRoles",
+          ids: pendingManagerRoundRoles.map((r) => r.id!),
+        });
 
         changes.push({
           type: "DeletePendingRoundRoles",
@@ -1217,37 +1389,26 @@ export async function handleEvent(
     }
 
     case "Allocated": {
-      allocatedCount++;
+      const customLogger = generateCustomLogger({
+        eventName: event.name,
+        logger,
+        chainId,
+        counters,
+      });
 
-      const logAllocation = ({
-        msg,
-        isError = false,
-        ...args
-      }: {
-        msg?: string;
-        isError?: boolean;
-        [key: string]: unknown;
-      }) => {
-        const level = isError ? "error" : "info";
-        logger[level]({
-          msg: `(Allocated) ${allocatedCount} - ${chainId}${msg ? ` - ${msg}` : ""}`,
-          ...args,
-        });
-      };
-
-      logAllocation({
+      customLogger({
         blockNumber: event.blockNumber,
         address: event.address,
         chainId,
       });
       const strategyAddress = parseAddress(event.address);
-      logAllocation({
+      customLogger({
         msg: "parsed strategy address",
         address: event.address,
         strategyAddress,
       });
 
-      logAllocation({
+      customLogger({
         msg: "getting round (db.getRoundByStrategyAddress(chainId, strategyAddress))",
         strategyAddress,
         chainId,
@@ -1258,7 +1419,7 @@ export async function handleEvent(
       );
 
       if (round === null) {
-        logAllocation({
+        customLogger({
           msg: "round not found",
           event,
           isError: true,
@@ -1266,19 +1427,19 @@ export async function handleEvent(
         return [];
       }
 
-      logAllocation({
+      customLogger({
         msg: "round found",
         round,
       });
 
       switch (round.strategyName) {
         case "allov2.DonationVotingMerkleDistributionDirectTransferStrategy": {
-          logAllocation({
+          customLogger({
             msg: "handling DonationVotingMerkleDistributionDirectTransferStrategy",
             strategyName: round.strategyName,
           });
           if (!("origin" in event.params)) {
-            logAllocation({
+            customLogger({
               msg: "origin not found",
               event,
               isError: true,
@@ -1292,7 +1453,7 @@ export async function handleEvent(
           const origin = parseAddress(event.params.origin);
           const roundMatchTokenAddress = round.matchTokenAddress;
 
-          logAllocation({
+          customLogger({
             msg: "getting application (db.getApplicationByAnchorAddress(chainId, round.id, recipientId))",
             recipientId,
             amount,
@@ -1308,7 +1469,7 @@ export async function handleEvent(
           );
 
           if (application === null) {
-            logAllocation({
+            customLogger({
               msg: "application not found",
               event,
               isError: true,
@@ -1316,7 +1477,7 @@ export async function handleEvent(
             return [];
           }
 
-          logAllocation({
+          customLogger({
             msg: "application found",
             application,
           });
@@ -1394,7 +1555,7 @@ export async function handleEvent(
             timestamp: conversionToUSD.timestamp,
           };
 
-          logAllocation({
+          customLogger({
             msg: "InsertDonation",
             donation,
           });
@@ -1454,7 +1615,7 @@ export async function handleEvent(
             )
           );
 
-          logAllocation({
+          customLogger({
             msg: "InsertApplicationPayout",
             payout: {
               amount,
@@ -1501,6 +1662,19 @@ export async function handleEvent(
     }
 
     case "DirectAllocated": {
+      const customLogger = generateCustomLogger({
+        eventName: event.name,
+        logger,
+        chainId,
+        counters,
+      });
+
+      customLogger({
+        blockNumber: event.blockNumber,
+        address: event.address,
+        chainId,
+      });
+
       const strategyAddress = parseAddress(event.address);
       const round = await db.getRoundByStrategyAddress(
         chainId,
