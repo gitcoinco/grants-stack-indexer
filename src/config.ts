@@ -53,7 +53,14 @@ export type Chain = {
 
 const rpcUrl = z.string().url();
 
-const CHAINS: Chain[] = [
+const MAX_GET_LOGS_RANGE: number = 1900;
+
+// Override maxGetLogsRange for specific chains by chain name
+const MAX_GET_LOGS_RANGE_BY_CHAIN_NAME: Record<string, number> = {
+  "scroll-sepolia": 2000, // As example
+};
+
+const RAW_CHAINS: Chain[] = [
   {
     id: 1,
     name: "mainnet",
@@ -1305,7 +1312,6 @@ const CHAINS: Chain[] = [
       .default("https://sepolia-rpc.scroll.io")
       .parse(process.env.SCROLL_SEPOLIA_RPC_URL),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
-    maxGetLogsRange: 2000,
     tokens: [
       {
         code: "ETH",
@@ -1376,7 +1382,6 @@ const CHAINS: Chain[] = [
       .default("https://rpc.scroll.io")
       .parse(process.env.SCROLL_RPC_URL),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
-    maxGetLogsRange: 9000,
     tokens: [
       {
         code: "ETH",
@@ -1512,7 +1517,6 @@ const CHAINS: Chain[] = [
       .default("https://evm-rpc.sei-apis.com")
       .parse(process.env.SEI_MAINNET_RPC_URL),
     pricesFromTimestamp: Date.UTC(2024, 0, 1, 0, 0, 0),
-    maxGetLogsRange: 10000,
     tokens: [
       {
         code: "SEI",
@@ -1854,7 +1858,6 @@ const CHAINS: Chain[] = [
       .default("https://mainnet.hashio.io/api")
       .parse(process.env.HEDERA_RPC_URL),
     pricesFromTimestamp: Date.UTC(2025, 1, 1, 0, 0, 0),
-    maxGetLogsRange: 9000,
     tokens: [
       {
         code: "HBAR",
@@ -1890,6 +1893,12 @@ const CHAINS: Chain[] = [
     ],
   },
 ];
+
+const CHAINS = RAW_CHAINS.map((chain) => ({
+  ...chain,
+  maxGetLogsRange:
+    MAX_GET_LOGS_RANGE_BY_CHAIN_NAME[chain.name] ?? MAX_GET_LOGS_RANGE,
+}));
 
 export const getDecimalsForToken = (
   chainId: ChainId,
