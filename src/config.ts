@@ -22,9 +22,9 @@ type CoingeckoSupportedChainId =
   | 1088
   | 295;
 
-const CHAIN_DATA_VERSION = "87";
-const IPFS_DATA_VERSION = "1";
-const PRICE_DATA_VERSION = "1";
+const CHAIN_DATA_VERSION = "100";
+const IPFS_DATA_VERSION = "100";
+const PRICE_DATA_VERSION = "100";
 
 export type Token = {
   code: string;
