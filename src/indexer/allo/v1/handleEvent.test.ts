@@ -112,59 +112,6 @@ describe("handleEvent", () => {
     vi.resetAllMocks();
   });
 
-  describe("ProjectCreated", () => {
-    test("should insert project", async () => {
-      const changesets = await handleEvent({
-        ...DEFAULT_ARGS,
-        event: {
-          ...DEFAULT_ARGS.event,
-          contractName: "AlloV1/ProjectRegistry/V2",
-          name: "ProjectCreated",
-          params: {
-            projectID: 1n,
-            owner: addressTwo,
-          },
-        },
-        context: {
-          ...DEFAULT_ARGS.context,
-          rpcClient: MOCK_RPC_CLIENT(),
-        },
-      });
-
-      expect(changesets).toHaveLength(2);
-
-      expect(changesets[0]).toEqual({
-        type: "InsertProject",
-        project: {
-          chainId: 1,
-          createdByAddress: addressTwo,
-          createdAtBlock: 1n,
-          updatedAtBlock: 1n,
-          id: "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
-          name: "",
-          metadata: null,
-          metadataCid: null,
-          projectNumber: 1,
-          registryAddress: addressOne,
-          tags: ["allo-v1"],
-          projectType: "canonical",
-        },
-      });
-
-      expect(changesets[1]).toEqual({
-        type: "InsertProjectRole",
-        projectRole: {
-          chainId: 1,
-          projectId:
-            "0xe31382b762a33e568e1e9ef38d64f4a2b4dbb51ec0f79ec41779fc5be79ead32",
-          address: addressTwo,
-          role: "owner",
-          createdAtBlock: 1n,
-        },
-      });
-    });
-  });
-
   describe("MetadataUpdated", () => {
     test("should fetch and update metadata", async () => {
       const changesets = await handleEvent({

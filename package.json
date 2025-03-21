@@ -18,8 +18,20 @@
     "deploy:development": "docker buildx build . --platform=linux/amd64 -t registry.fly.io/indexer-development:latest && docker push registry.fly.io/indexer-development:latest && flyctl -c fly.development.toml --app indexer-development deploy -i registry.fly.io/indexer-development:latest"
   },
   "imports": {
-    "#abis/*": {
-      "default": "./src/indexer/abis/*"
+    "#src/*": { 
+      "default": "./src/*"
+    },
+    "#database/*": { 
+      "default": "./src/database/*"
+    },
+    "#indexer/*": { 
+      "default": "./src/indexer/*"
+    },
+    "#prices/*": { 
+      "default": "./src/prices/*"
+    },
+    "#test/*": { 
+      "default": "./src/test/*"
     }
   },
   "author": "",
