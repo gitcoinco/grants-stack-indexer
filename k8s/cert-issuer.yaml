@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: letsencrypt-nginx
+  namespace: backend-web
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: engineering@gitcoin.co
+    privateKeySecretRef:
+      name: letsencrypt-nginx-private-key
+    solvers:
+      - http01:
+          ingress:
+            class: nginx

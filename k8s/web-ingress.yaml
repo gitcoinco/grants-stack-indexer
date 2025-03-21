@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-web
+  namespace: backend-web
+  annotations: #### commented before cert-manager was installed
+    cert-manager.io/issuer: letsencrypt-nginx
+spec:
+  tls: #### commented before cert-manager was installed
+    - hosts:
+        - do.gitcoin-indexer.xyz
+      secretName: letsencrypt-nginx
+  rules:
+    - host: do.gitcoin-indexer.xyz
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: indexer-web
+                port:
+                  number: 8080
+  ingressClassName: nginx
